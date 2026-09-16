@@ -11,10 +11,9 @@ public sealed class CoreSchemaMigration001 : IDatabaseMigration
 
     public async ValueTask ApplyAsync(
         DbConnection connection,
-        DbTransaction transaction,
         CancellationToken cancellationToken)
     {
-        await ExecuteAsync(connection, transaction, """
+        await ExecuteAsync(connection, """
             CREATE TABLE IF NOT EXISTS ano_players (
                 steam_id BIGINT UNSIGNED NOT NULL PRIMARY KEY,
                 last_known_name VARCHAR(128) NOT NULL,
@@ -24,7 +23,7 @@ public sealed class CoreSchemaMigration001 : IDatabaseMigration
             ) ENGINE=InnoDB
             """, cancellationToken).ConfigureAwait(false);
 
-        await ExecuteAsync(connection, transaction, """
+        await ExecuteAsync(connection, """
             CREATE TABLE IF NOT EXISTS ano_module_data (
                 module_id VARCHAR(64) NOT NULL,
                 data_key VARCHAR(128) NOT NULL,
@@ -37,12 +36,10 @@ public sealed class CoreSchemaMigration001 : IDatabaseMigration
 
     private static async ValueTask ExecuteAsync(
         DbConnection connection,
-        DbTransaction transaction,
         string sql,
         CancellationToken cancellationToken)
     {
         await using var command = connection.CreateCommand();
-        command.Transaction = transaction;
         command.CommandText = sql;
         await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
     }
