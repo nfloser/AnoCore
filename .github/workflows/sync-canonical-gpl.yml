@@ -1,0 +1,49 @@
+name: Sync canonical GPLv3
+
+on:
+  push:
+    branches:
+      - chore/3-canonical-gpl-license
+    paths:
+      - .github/workflows/sync-canonical-gpl.yml
+
+permissions:
+  contents: write
+
+jobs:
+  sync-license:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Fetch and verify canonical upstream license
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location \
+            https://raw.githubusercontent.com/K4ryuu/K4-Zenith/dev/LICENSE.md \
+            --output LICENSE.md
+          actual="$(git hash-object LICENSE.md)"
+          expected="a232fb906b309d40657bbeba71a1f8fecc0dc347"
+          if [[ "$actual" != "$expected" ]]; then
+            echo "Unexpected GPL blob hash: $actual (expected $expected)" >&2
+            exit 1
+          fi
+          echo "Verified canonical GPLv3 blob: $actual"
+
+      - name: Commit verified license
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- LICENSE.md; then
+            echo "LICENSE.md already matches the verified canonical text."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add LICENSE.md
+          git commit -m "legal: sync canonical GPLv3 license text"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
