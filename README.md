@@ -28,11 +28,11 @@ Admin Stats   Maps     Veto      Tournament
 - `AnoCore.Plugin` is the thin CounterStrikeSharp adapter and composition root.
 - Optional gameplay/community features are separate modules rather than hard-coded core behavior.
 
-See [`docs/architecture.md`](docs/architecture.md) for the architecture rules and [`docs/migration-from-k4-zenith.md`](docs/migration-from-k4-zenith.md) for the migration strategy.
+See [`docs/architecture.md`](docs/architecture.md) for the architecture rules, [`docs/player-lifecycle.md`](docs/player-lifecycle.md) for player session semantics and [`docs/migration-from-k4-zenith.md`](docs/migration-from-k4-zenith.md) for the migration strategy.
 
-## Current bootstrap scope
+## Current foundation
 
-The first development slice establishes the solution structure, module lifecycle, module/player/permission/command/event contracts, tests, CI and project governance. Persistence, configs, full player integration and feature modules follow as separate issues/PRs.
+AnoCore currently contains the tested module lifecycle and a reconnect-safe in-memory player registry. Player state is independent of CounterStrikeSharp; the plugin layer maps valid human `CCSPlayerController` instances into immutable AnoCore snapshots. Persistence, configs, permissions and higher-level feature modules follow in separate issues/PRs.
 
 ## Build
 
@@ -45,7 +45,7 @@ dotnet test AnoCore.sln --configuration Release --no-build
 dotnet format AnoCore.sln --verify-no-changes --no-restore
 ```
 
-CounterStrikeSharp is pinned through central package management rather than a wildcard package version. The initial bootstrap targets stable `CounterStrikeSharp.API` 1.0.374.
+CounterStrikeSharp is pinned through central package management rather than a wildcard package version. The initial foundation targets stable `CounterStrikeSharp.API` 1.0.374.
 
 ## Development workflow
 
