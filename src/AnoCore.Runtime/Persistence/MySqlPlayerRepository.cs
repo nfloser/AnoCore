@@ -26,7 +26,7 @@ public sealed class MySqlPlayerRepository : IPlayerRepository
                 FROM ano_players
                 WHERE steam_id = @steamId
                 """;
-            MigrationRunner.AddParameter(command, "@steamId", id.SteamId);
+            MigrationRunner.AddParameter(command, "@steamId", id.SteamId64);
             await using var reader = await command.ExecuteReaderAsync(token).ConfigureAwait(false);
             if (!await reader.ReadAsync(token).ConfigureAwait(false))
             {
@@ -57,7 +57,7 @@ public sealed class MySqlPlayerRepository : IPlayerRepository
                     first_seen_utc = LEAST(first_seen_utc, VALUES(first_seen_utc)),
                     last_seen_utc = GREATEST(last_seen_utc, VALUES(last_seen_utc))
                 """;
-            MigrationRunner.AddParameter(command, "@steamId", profile.Id.SteamId);
+            MigrationRunner.AddParameter(command, "@steamId", profile.Id.SteamId64);
             MigrationRunner.AddParameter(command, "@name", profile.LastKnownName);
             MigrationRunner.AddParameter(command, "@firstSeen", profile.FirstSeenUtc.UtcDateTime);
             MigrationRunner.AddParameter(command, "@lastSeen", profile.LastSeenUtc.UtcDateTime);
