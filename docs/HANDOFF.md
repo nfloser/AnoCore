@@ -4,45 +4,50 @@ This file is updated before major context or work-session boundaries so another 
 
 ## Current workstream
 
-- Issue: #4 — Implement player lifecycle and player service registry
-- Branch: `feature/4-player-lifecycle`
-- Pull request: #10 — Implement reconnect-safe player lifecycle
-- Latest tested implementation commit: `e3606339f61c00970726daf27d910f660fbc61c5`
+- Issue: #12 — Implement event bus and CounterStrikeSharp runtime composition
+- Branch: `feature/12-runtime-event-bus`
+- Pull request: #24 — Implement event bus and CounterStrikeSharp runtime composition
+- Latest tested implementation commit: `d21d452bc57aa906cbcf3ef174b6a8ab59dcfcf4`
 
 ## Implemented
 
-- CounterStrikeSharp-independent player snapshots and IDs.
-- Reconnect-safe per-connection session IDs.
-- In-memory player registry with connect/reconnect/update/disconnect semantics.
-- Stale-session protection for delayed disconnects and updates.
-- Lifecycle events and thin CounterStrikeSharp mapper boundary.
-- Human-player filtering at the CSS boundary.
-- Tests for connect, reconnect, stale disconnect/update handling and validation.
-- Disconnect snapshots are explicitly `IsConnected = false` and `IsAlive = false`.
-- Repository workstream decomposition and persistent handoff process.
+- Thread-safe in-process `AnoEventBus` implementing `IAnoEventBus`.
+- Registration-order delivery and event-type isolation.
+- Independent, idempotent subscription disposal.
+- Subscriber failure isolation followed by aggregated error reporting.
+- Cancellation before and between subscriber deliveries.
+- Snapshot semantics when subscriptions change during publication.
+- CounterStrikeSharp player connect/disconnect/team/spawn/death hooks wired to the reconnect-safe player registry.
+- Disconnect uses the event `Xuid`, so cleanup does not depend on a still-valid controller.
+- Team/spawn/death refresh on the next server frame.
+- Hot reload bootstraps already connected human players into the fresh registry.
+- Unload explicitly deregisters all AnoCore lifecycle hooks.
+- Async lifecycle failures are observed and logged.
+- Real CS2 server verification procedure documented in `docs/runtime-verification.md`.
 
 ## Test status
 
-- Earlier CI run 11 exposed an ambiguous MSTest assertion; fixed in `aea32f0b278c0717567774e10b9a401dbce64af4`.
-- Self-review then found that disconnected snapshots could remain alive.
-- Regression test commit `49ecde213f7ea3aeb44f944d19de977121287980` captures that case.
-- Runtime fix commit `e3606339f61c00970726daf27d910f660fbc61c5` marks disconnected players dead.
-- CI run 16 on the fix completed successfully: restore, Release build, tests and format verification all passed.
+- Event-bus tests were committed before implementation in `af8dd6fcdc0f6566e428f96d7f92bd3089603c3b`.
+- Event-bus implementation commit: `91116c4287391cc9051736be53abe74cb0b7bfee`.
+- CSS runtime wiring commit: `4bb6089816528b584ee8bbb61fdeb502cf7c249f`.
+- Verification documentation commit: `d21d452bc57aa906cbcf3ef174b6a8ab59dcfcf4`.
+- PR #24 CI run 19 completed successfully: restore, Release build, all tests and format verification passed.
 
 ## Review status
 
-- Architecture boundary reviewed: core/runtime remain CounterStrikeSharp-independent.
-- Reconnect/session semantics reviewed.
-- Disconnect-state review finding fixed and regression-tested.
-- No remaining blocking findings known at this checkpoint.
+- Event delivery ordering, failure semantics, cancellation and unsubscribe behavior reviewed.
+- CSS types remain isolated to `AnoCore.Plugin`; core/runtime remain independent.
+- Hot-reload and unload paths explicitly manage handler lifetime.
+- No blocking review finding is currently known.
+- Native CS2 behavior is not falsely claimed as tested; the documented real-server checklist remains a release gate.
 
 ## Open items / next steps
 
-1. Submit the explicit PR #10 self-review and merge after this handoff-only commit is green.
-2. Start #12 on `feature/12-runtime-event-bus` from the new `main`.
-3. Implement/test the event bus before wiring CounterStrikeSharp hooks.
-4. In parallel, #3 remains isolated on `chore/3-canonical-gpl-license`; it must be completed before public distribution.
-5. Continue roadmap issues #13–#23 in dependency order described in `docs/workstreams.md` and #11.
+1. Let CI validate this handoff-only commit, submit the PR #24 self-review and merge #12.
+2. Start the two independent workstreams #13 (configuration/localization/placeholders/logging) and #14 (MySQL/MariaDB persistence/migrations) from the new green `main`.
+3. Keep #3 isolated on `chore/3-canonical-gpl-license`; finish it before public distribution.
+4. After #14, continue #15 permissions/roles/immunity; after #15/#14/#12, continue #16 commands/UI/settings.
+5. Continue umbrella roadmap #11 through #23; release remains blocked on real-server end-to-end verification.
 
 ## Project workstreams
 
