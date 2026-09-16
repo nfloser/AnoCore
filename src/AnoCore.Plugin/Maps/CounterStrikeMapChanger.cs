@@ -1,6 +1,7 @@
 using AnoCore.Abstractions.Maps;
 using CounterStrikeSharp.API;
 namespace AnoCore.Plugin.Maps;
+
 public sealed class CounterStrikeMapChanger : IMapChanger
 {
     public ValueTask ChangeMapAsync(MapDefinition map, CancellationToken cancellationToken = default)

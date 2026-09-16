@@ -1,4 +1,5 @@
 namespace AnoCore.Abstractions.Voting;
+
 public sealed record VotePolicy
 {
     public VotePolicy(TimeSpan duration, int minimumVotes, VoteTieBreakPolicy tieBreakPolicy = VoteTieBreakPolicy.OptionOrder)

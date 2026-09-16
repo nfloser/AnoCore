@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 namespace AnoCore.Abstractions.Voting;
+
 public sealed record VoteId
 {
     private static readonly Regex Pattern = new("^ano\\.[a-z0-9][a-z0-9_.-]{0,63}$", RegexOptions.Compiled | RegexOptions.CultureInvariant);

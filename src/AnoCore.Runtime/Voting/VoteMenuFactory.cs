@@ -2,6 +2,7 @@ using AnoCore.Abstractions.Menus;
 using AnoCore.Abstractions.Players;
 using AnoCore.Abstractions.Voting;
 namespace AnoCore.Runtime.Voting;
+
 public static class VoteMenuFactory
 {
     public static MenuDefinition Create(VoteSnapshot vote, Func<PlayerId, string, CancellationToken, ValueTask> castVote)

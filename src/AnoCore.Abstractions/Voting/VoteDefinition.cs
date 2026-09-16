@@ -1,5 +1,6 @@
 using AnoCore.Abstractions.Players;
 namespace AnoCore.Abstractions.Voting;
+
 public sealed class VoteDefinition
 {
     public VoteDefinition(VoteId id, string title, IReadOnlyCollection<VoteOption> options, IReadOnlyCollection<PlayerId> eligiblePlayers, VotePolicy policy)

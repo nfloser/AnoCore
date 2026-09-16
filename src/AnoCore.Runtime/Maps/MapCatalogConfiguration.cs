@@ -1,6 +1,7 @@
 using AnoCore.Abstractions.Configuration;
 using AnoCore.Abstractions.Maps;
 namespace AnoCore.Runtime.Maps;
+
 public sealed record MapCatalogConfiguration(IReadOnlyList<MapDefinition> Maps) { public static MapCatalogConfiguration Empty { get; } = new([]); }
 public sealed class MapCatalogLoader(IConfigStore configStore)
 {

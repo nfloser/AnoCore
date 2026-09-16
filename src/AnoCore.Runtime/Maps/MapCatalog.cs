@@ -1,5 +1,6 @@
 using AnoCore.Abstractions.Maps;
 namespace AnoCore.Runtime.Maps;
+
 public sealed class MapCatalog : IMapCatalog
 {
     private readonly Dictionary<string, MapDefinition> _byName;

@@ -1,4 +1,5 @@
 namespace AnoCore.Abstractions.Maps;
+
 public interface IMapCatalog
 {
     IReadOnlyList<MapDefinition> All { get; }

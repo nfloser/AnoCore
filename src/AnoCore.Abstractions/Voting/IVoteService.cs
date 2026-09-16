@@ -1,5 +1,6 @@
 using AnoCore.Abstractions.Players;
 namespace AnoCore.Abstractions.Voting;
+
 public interface IVoteService
 {
     ValueTask<VoteOperationResult> CreateAsync(PlayerId caller, VoteDefinition definition, DateTimeOffset now, CancellationToken cancellationToken = default);

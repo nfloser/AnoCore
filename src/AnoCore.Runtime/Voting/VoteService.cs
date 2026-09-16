@@ -2,6 +2,7 @@ using AnoCore.Abstractions.Permissions;
 using AnoCore.Abstractions.Players;
 using AnoCore.Abstractions.Voting;
 namespace AnoCore.Runtime.Voting;
+
 public sealed class VoteService : IVoteService
 {
     public static readonly PermissionId ManagePermission = new("ano.vote.manage");
@@ -50,7 +51,12 @@ public sealed class VoteService : IVoteService
     private sealed class Session
     {
         public Session(VoteDefinition definition, DateTimeOffset openedAt) { Definition = definition; OpenedAt = openedAt; Deadline = openedAt + definition.Policy.Duration; Eligible = definition.EligiblePlayers.ToHashSet(); OptionIds = definition.Options.Select(option => option.Id).ToHashSet(StringComparer.Ordinal); }
-        public VoteDefinition Definition { get; } public DateTimeOffset OpenedAt { get; } public DateTimeOffset Deadline { get; } public HashSet<PlayerId> Eligible { get; } public HashSet<string> OptionIds { get; } public Dictionary<PlayerId, string> Ballots { get; } = []; public VoteState State { get; private set; } = VoteState.Open; public VoteResult? Result { get; private set; }
+        public VoteDefinition Definition { get; }
+        public DateTimeOffset OpenedAt { get; }
+        public DateTimeOffset Deadline { get; }
+        public HashSet<PlayerId> Eligible { get; }
+        public HashSet<string> OptionIds { get; }
+        public Dictionary<PlayerId, string> Ballots { get; } = []; public VoteState State { get; private set; } = VoteState.Open; public VoteResult? Result { get; private set; }
         public VoteSnapshot Snapshot() => new(Definition, State, OpenedAt, Deadline, new Dictionary<PlayerId, string>(Ballots));
         public VoteResult Finalize(DateTimeOffset now)
         {
