@@ -36,7 +36,7 @@ The first development slice establishes the solution structure, module lifecycle
 
 ## Build
 
-Requires .NET 8 SDK.
+Requires .NET 10 SDK. This follows the current stable CounterStrikeSharp API package, which targets `net10.0`.
 
 ```bash
 dotnet restore AnoCore.sln
