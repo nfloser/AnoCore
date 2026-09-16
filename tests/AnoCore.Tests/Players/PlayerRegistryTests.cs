@@ -128,8 +128,8 @@ public sealed class PlayerRegistryTests
         var connected = await registry.ConnectAsync(new PlayerConnection(
             id,
             "Player",
-            PlayerTeam.Spectator,
-            isAlive: false,
+            PlayerTeam.Terrorist,
+            isAlive: true,
             FirstSeen));
         var disconnectedAt = FirstSeen.AddMinutes(5);
 
@@ -137,6 +137,7 @@ public sealed class PlayerRegistryTests
 
         Assert.IsNotNull(disconnected);
         Assert.IsFalse(disconnected.IsConnected);
+        Assert.IsFalse(disconnected.IsAlive);
         Assert.AreEqual(disconnectedAt, disconnected.LastUpdatedAtUtc);
         Assert.IsFalse(registry.TryGet(id, out _));
         Assert.HasCount(0, registry.OnlinePlayers);
