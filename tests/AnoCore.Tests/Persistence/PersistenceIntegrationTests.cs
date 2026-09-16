@@ -101,6 +101,25 @@ public sealed class PersistenceIntegrationTests
     }
 
     [TestMethod]
+    public async Task PlayerRepository_StaleUpsertDoesNotRegressLatestNameOrLastSeen()
+    {
+        await new MigrationRunner(_database, [new CoreSchemaMigration001()]).ApplyPendingAsync();
+        var repository = new MySqlPlayerRepository(_database);
+        var id = new PlayerId(76561198000000002);
+        var firstSeen = new DateTimeOffset(2026, 9, 1, 12, 0, 0, TimeSpan.Zero);
+        var latestSeen = firstSeen.AddDays(5);
+
+        await repository.UpsertAsync(new PlayerProfile(id, "CurrentName", firstSeen, latestSeen));
+        await repository.UpsertAsync(new PlayerProfile(id, "StaleName", firstSeen.AddDays(-2), firstSeen.AddDays(1)));
+        var loaded = await repository.GetAsync(id);
+
+        Assert.IsNotNull(loaded);
+        Assert.AreEqual("CurrentName", loaded.LastKnownName);
+        Assert.AreEqual(firstSeen.AddDays(-2), loaded.FirstSeenUtc);
+        Assert.AreEqual(latestSeen, loaded.LastSeenUtc);
+    }
+
+    [TestMethod]
     public async Task ModuleDataStore_IsolatesValuesByModule()
     {
         await new MigrationRunner(_database, [new CoreSchemaMigration001()]).ApplyPendingAsync();
