@@ -112,7 +112,7 @@ public sealed class AnoVetoCoordinatorTests
         var created = await harness.Coordinator.CreateAsync(Manager, [PlayerA], Now);
 
         var first = await harness.Coordinator.CastAsync(PlayerA, created.Maps[0].MapId, Now.AddSeconds(1));
-        var second = await harness.Coordinator.CastAsync(new PlayerId(PlayerA.SteamId), created.Maps[1].MapId, Now.AddSeconds(2));
+        var second = await harness.Coordinator.CastAsync(new PlayerId(PlayerA.SteamId64), created.Maps[1].MapId, Now.AddSeconds(2));
 
         Assert.IsTrue(first.Accepted);
         Assert.IsFalse(second.Accepted);
