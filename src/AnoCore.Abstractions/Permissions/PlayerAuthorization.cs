@@ -20,7 +20,7 @@ public sealed class PlayerAuthorization
 
     public PlayerId PlayerId { get; }
 
-    public IReadOnlyList<RoleId> Roles { get; }
+    public IReadOnlyCollection<RoleId> Roles { get; }
 
-    public IReadOnlyList<PermissionRule> Rules { get; }
+    public IReadOnlyCollection<PermissionRule> Rules { get; }
 }

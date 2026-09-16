@@ -36,11 +36,11 @@ public sealed class AuthorizationRole
 
     public int Immunity { get; }
 
-    public IReadOnlyList<RoleId> Parents { get; }
+    public IReadOnlyCollection<RoleId> Parents { get; }
 
-    public IReadOnlyList<PermissionRule> Rules { get; }
+    public IReadOnlyCollection<PermissionRule> Rules { get; }
 
-    public IReadOnlyList<string> Tags { get; }
+    public IReadOnlyCollection<string> Tags { get; }
 
     private static string NormalizeTag(string value)
     {

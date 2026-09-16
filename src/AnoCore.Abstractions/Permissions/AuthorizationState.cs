@@ -18,9 +18,9 @@ public sealed class AuthorizationState : IEquatable<AuthorizationState>
 
     public static AuthorizationState Empty { get; } = new([], []);
 
-    public IReadOnlyList<AuthorizationRole> Roles { get; }
+    public IReadOnlyCollection<AuthorizationRole> Roles { get; }
 
-    public IReadOnlyList<PlayerAuthorization> Players { get; }
+    public IReadOnlyCollection<PlayerAuthorization> Players { get; }
 
     public bool Equals(AuthorizationState? other)
     {
