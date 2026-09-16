@@ -146,7 +146,7 @@ public sealed class PlayerRegistry : IPlayerRegistry
                 current.SessionId,
                 current.Name,
                 isConnected: false,
-                current.IsAlive,
+                isAlive: false,
                 current.Team,
                 current.ConnectedAtUtc,
                 effectiveTimestamp);
