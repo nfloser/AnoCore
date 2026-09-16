@@ -26,18 +26,22 @@ Dependencies must point toward abstractions. `AnoCore.Abstractions` must not ref
 
 ## Initial contracts
 
-The first bootstrap slice establishes:
+The foundation currently establishes:
 
 - normalized `ModuleId` identifiers;
 - `IAnoModule` lifecycle contracts;
 - `ModuleHost` state transitions, duplicate protection and initialization rollback;
-- `PlayerId` and minimal player contracts;
+- validated `PlayerId` and `PlayerSessionId` identities;
+- immutable `PlayerSnapshot` state;
+- reconnect-safe `IPlayerRegistry` lifecycle contracts and events;
 - `PermissionId` using the `ano.*` namespace;
 - command descriptors and registry contracts;
 - event-bus contracts;
-- a thin CounterStrikeSharp plugin entry point.
+- a thin CounterStrikeSharp plugin/adapter boundary.
 
 Identifiers are immutable reference value objects rather than structs. This prevents callers from bypassing constructor validation through `default(T)` and creating invalid IDs.
+
+Player lifecycle state is identified by both SteamID and a per-connection session ID. This allows the runtime to reject stale updates/disconnects after a reconnect. See [`player-lifecycle.md`](player-lifecycle.md).
 
 ## Module boundaries
 
@@ -52,7 +56,7 @@ The following are intentionally **not** part of the core runtime:
 
 They will consume stable AnoCore services as independent modules.
 
-## Lifecycle
+## Module lifecycle
 
 A module moves through these states:
 
