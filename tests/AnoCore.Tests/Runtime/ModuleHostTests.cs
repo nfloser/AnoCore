@@ -31,7 +31,7 @@ public sealed class ModuleHostTests
     }
 
     [TestMethod]
-    public async Task LoadAsync_WhenInitializationFails_MarksModuleFaultedAndRethrows()
+    public async Task LoadAsync_WhenInitializationFails_MarksModuleFaultedAndRollsBack()
     {
         var module = new FakeModule("ano.failure")
         {
@@ -41,7 +41,26 @@ public sealed class ModuleHostTests
 
         await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => host.LoadAsync(module));
 
+        Assert.AreEqual(1, module.ShutdownCalls);
         Assert.AreEqual(ModuleState.Faulted, host.GetState(module.Descriptor.Id));
+    }
+
+    [TestMethod]
+    public async Task LoadAsync_WhenInitializationAndRollbackFail_RecordsBothFailures()
+    {
+        var module = new FakeModule("ano.double-failure")
+        {
+            InitializeException = new InvalidOperationException("init"),
+            ShutdownException = new InvalidOperationException("rollback"),
+        };
+        var host = new ModuleHost(new TestModuleContext());
+
+        await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => host.LoadAsync(module));
+
+        var snapshot = host.Modules.Single(item => item.Descriptor.Id == module.Descriptor.Id);
+        var aggregate = snapshot.Failure as AggregateException;
+        Assert.IsNotNull(aggregate);
+        Assert.HasCount(2, aggregate.InnerExceptions);
     }
 
     [TestMethod]
@@ -78,6 +97,8 @@ public sealed class ModuleHostTests
 
         public Exception? InitializeException { get; init; }
 
+        public Exception? ShutdownException { get; init; }
+
         public int InitializeCalls { get; private set; }
 
         public int ShutdownCalls { get; private set; }
@@ -97,6 +118,12 @@ public sealed class ModuleHostTests
         public Task ShutdownAsync(CancellationToken cancellationToken = default)
         {
             ShutdownCalls++;
+
+            if (ShutdownException is not null)
+            {
+                throw ShutdownException;
+            }
+
             return Task.CompletedTask;
         }
     }

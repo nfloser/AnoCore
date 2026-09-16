@@ -1,6 +1,6 @@
 namespace AnoCore.Abstractions.Players;
 
-public readonly record struct PlayerId
+public sealed record PlayerId
 {
     public PlayerId(ulong steamId64)
     {

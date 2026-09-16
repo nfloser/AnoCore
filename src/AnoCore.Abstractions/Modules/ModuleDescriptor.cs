@@ -4,6 +4,8 @@ public sealed record ModuleDescriptor
 {
     public ModuleDescriptor(ModuleId id, string name, string version, string description)
     {
+        ArgumentNullException.ThrowIfNull(id);
+
         if (string.IsNullOrWhiteSpace(name))
         {
             throw new ArgumentException("A module name is required.", nameof(name));

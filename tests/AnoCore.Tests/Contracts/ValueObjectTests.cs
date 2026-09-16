@@ -15,6 +15,7 @@ public sealed class ValueObjectTests
         var id = new ModuleId("  Ano.Veto  ");
 
         Assert.AreEqual("ano.veto", id.Value);
+        Assert.AreEqual(new ModuleId("ANO.VETO"), id);
     }
 
     [TestMethod]
@@ -33,6 +34,7 @@ public sealed class ValueObjectTests
         var permission = new PermissionId("  ANO.VETO.CREATE ");
 
         Assert.AreEqual("ano.veto.create", permission.Value);
+        Assert.AreEqual(new PermissionId("ano.veto.create"), permission);
         Assert.ThrowsExactly<ArgumentException>(() => _ = new PermissionId("zenith.admin"));
     }
 
@@ -40,6 +42,12 @@ public sealed class ValueObjectTests
     public void PlayerId_RejectsZeroSteamId()
     {
         Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => _ = new PlayerId(0));
+    }
+
+    [TestMethod]
+    public void PlayerId_UsesSteamIdAsValueIdentity()
+    {
+        Assert.AreEqual(new PlayerId(76561198000000000), new PlayerId(76561198000000000));
     }
 
     [TestMethod]

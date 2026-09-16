@@ -2,7 +2,7 @@ using System.Text.RegularExpressions;
 
 namespace AnoCore.Abstractions.Permissions;
 
-public readonly record struct PermissionId
+public sealed record PermissionId
 {
     private static readonly Regex ValidPattern = new(
         "^ano(?:\\.[a-z0-9][a-z0-9_-]*)+$",
@@ -19,7 +19,7 @@ public readonly record struct PermissionId
         if (!ValidPattern.IsMatch(normalized))
         {
             throw new ArgumentException(
-                "Permissions must use the ano.* namespace and contain only letters, numbers, underscores and dots.",
+                "Permissions must use the ano.* namespace and contain only letters, numbers, underscores, hyphens and dots.",
                 nameof(value));
         }
 

@@ -28,6 +28,8 @@ public sealed class ModuleHost
 
     public ModuleState GetState(ModuleId moduleId)
     {
+        ArgumentNullException.ThrowIfNull(moduleId);
+
         lock (_sync)
         {
             if (!_registrations.TryGetValue(moduleId, out var registration))
@@ -68,12 +70,26 @@ public sealed class ModuleHost
                 registration.Failure = null;
             }
         }
-        catch (Exception exception)
+        catch (Exception initializationException)
         {
+            Exception recordedFailure = initializationException;
+
+            try
+            {
+                await module.ShutdownAsync(CancellationToken.None).ConfigureAwait(false);
+            }
+            catch (Exception rollbackException)
+            {
+                recordedFailure = new AggregateException(
+                    "Module initialization failed and rollback also failed.",
+                    initializationException,
+                    rollbackException);
+            }
+
             lock (_sync)
             {
                 registration.State = ModuleState.Faulted;
-                registration.Failure = exception;
+                registration.Failure = recordedFailure;
             }
 
             throw;
@@ -82,6 +98,8 @@ public sealed class ModuleHost
 
     public async Task<bool> UnloadAsync(ModuleId moduleId, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(moduleId);
+
         Registration registration;
 
         lock (_sync)

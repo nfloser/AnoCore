@@ -30,12 +30,14 @@ The first bootstrap slice establishes:
 
 - normalized `ModuleId` identifiers;
 - `IAnoModule` lifecycle contracts;
-- `ModuleHost` state transitions and duplicate protection;
+- `ModuleHost` state transitions, duplicate protection and initialization rollback;
 - `PlayerId` and minimal player contracts;
 - `PermissionId` using the `ano.*` namespace;
 - command descriptors and registry contracts;
 - event-bus contracts;
 - a thin CounterStrikeSharp plugin entry point.
+
+Identifiers are immutable reference value objects rather than structs. This prevents callers from bypassing constructor validation through `default(T)` and creating invalid IDs.
 
 ## Module boundaries
 
@@ -59,7 +61,9 @@ Created → Loading → Loaded → Unloading → Unloaded
               └──────────────→ Faulted ←──────────┘
 ```
 
-The runtime records failures rather than silently treating failed modules as loaded. A duplicate active module ID is rejected.
+If initialization fails, the runtime makes a best-effort call to `ShutdownAsync` before recording the module as faulted. Module shutdown logic must therefore tolerate partial initialization. If rollback also fails, both failures are retained in the module snapshot.
+
+A duplicate active module ID is rejected.
 
 ## Compatibility policy
 

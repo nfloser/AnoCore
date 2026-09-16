@@ -2,7 +2,7 @@ using System.Text.RegularExpressions;
 
 namespace AnoCore.Abstractions.Modules;
 
-public readonly record struct ModuleId
+public sealed record ModuleId
 {
     private static readonly Regex ValidPattern = new(
         "^[a-z0-9][a-z0-9.-]{0,62}$",
