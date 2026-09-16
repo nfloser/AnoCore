@@ -12,25 +12,15 @@ Issue #19 provides the shared, CounterStrikeSharp-independent map and voting pri
 
 ## Generic voting
 
-`VoteService` owns deterministic vote sessions. A `VoteDefinition` declares:
-
-- an `ano.*` vote ID,
-- display title,
-- ordered options,
-- an explicit eligible SteamID population,
-- duration,
-- minimum-vote quorum,
-- tie-break policy.
+`VoteService` owns deterministic vote sessions. A `VoteDefinition` declares an `ano.*` vote ID, display title, ordered options, an explicit eligible SteamID population, duration, minimum-vote quorum and tie-break policy.
 
 Create, close and cancel operations require `ano.vote.manage`. Casting is restricted to the eligible `PlayerId` set and each SteamID can vote once. Because ballots key on `PlayerId`, reconnecting creates no second voting identity.
 
-Expired votes are finalized through `FinalizeExpired(now)` or when a late cast is attempted. `OptionOrder` is the deterministic tie-break policy: the earliest tied option in the definition wins. `NoWinner` can instead leave tied votes without a winner.
-
-The vote result always records per-option tallies, cast count, outcome and finalization time. Quorum failure never invents a winner.
+Expired votes are finalized through `FinalizeExpired(now)` or when a late cast is attempted. `OptionOrder` is the deterministic tie-break policy: the earliest tied option in the definition wins. `NoWinner` can instead leave tied votes without a winner. Quorum failure never invents a winner.
 
 ## Menu integration
 
-`VoteMenuFactory` turns a logical vote snapshot into an AnoCore menu definition. Feature modules register/open that menu using the shared issue #16 menu service and route selections back into `VoteService`. This keeps HTML/UI details out of vote logic.
+`VoteMenuFactory` turns a logical vote snapshot into an AnoCore menu definition. Feature modules register/open that menu using the shared issue #16 menu service and route selections back into `VoteService`.
 
 ## AnoVeto dependency
 
@@ -38,4 +28,4 @@ AnoVeto (#20) should consume this infrastructure rather than implement its own b
 
 ## Runtime verification
 
-Unit/CI tests verify deterministic core behavior. A real CS2 server test is still required before release to verify actual `changelevel`/Workshop command behavior and menu presentation; this document does not claim native execution has occurred in CI.
+Unit/CI tests verify deterministic core behavior. A real CS2 server test is still required before release to verify actual `changelevel`/Workshop command behavior and menu presentation; native execution is not claimed by CI.

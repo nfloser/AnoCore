@@ -132,9 +132,7 @@ public sealed class VoteServiceTests
         Assert.AreEqual(VoteOperationFailure.AlreadyExists, duplicate.Failure);
     }
 
-    private static VoteDefinition CreateDefinition(
-        TimeSpan? duration = null,
-        int minimumVotes = 1)
+    private static VoteDefinition CreateDefinition(TimeSpan? duration = null, int minimumVotes = 1)
         => new(
             new VoteId("ano.test"),
             "Test vote",
@@ -157,7 +155,6 @@ public sealed class VoteServiceTests
     private sealed class TogglePermissions : IPermissionEvaluator
     {
         public bool Allowed { get; set; }
-
         public ValueTask<bool> HasPermissionAsync(PlayerId playerId, PermissionId permission, CancellationToken cancellationToken = default)
             => ValueTask.FromResult(Allowed);
     }
