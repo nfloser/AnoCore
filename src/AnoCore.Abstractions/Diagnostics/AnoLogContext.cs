@@ -19,7 +19,7 @@ public sealed record AnoLogContext(
 
         if (Player is not null)
         {
-            properties["SteamId"] = Player.SteamId;
+            properties["SteamId"] = Player.SteamId64;
         }
 
         if (!string.IsNullOrWhiteSpace(Operation))
