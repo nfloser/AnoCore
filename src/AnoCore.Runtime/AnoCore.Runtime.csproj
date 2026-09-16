@@ -6,4 +6,7 @@
   <ItemGroup>
     <ProjectReference Include="..\AnoCore.Abstractions\AnoCore.Abstractions.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="MySqlConnector" />
+  </ItemGroup>
 </Project>
