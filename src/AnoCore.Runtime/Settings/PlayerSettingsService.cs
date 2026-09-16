@@ -23,6 +23,7 @@ public sealed class PlayerSettingsService : IPlayerSettingsService
         PlayerSettingKey<T> key,
         CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(playerId);
         ArgumentNullException.ThrowIfNull(key);
         var json = await _store.GetAsync(SettingsModule, BuildKey(playerId, key.Name), cancellationToken).ConfigureAwait(false);
         if (json is null)
@@ -40,6 +41,7 @@ public sealed class PlayerSettingsService : IPlayerSettingsService
         T value,
         CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(playerId);
         ArgumentNullException.ThrowIfNull(key);
         var json = JsonSerializer.Serialize(value, _serializerOptions);
         return _store.SetAsync(SettingsModule, BuildKey(playerId, key.Name), json, cancellationToken);
@@ -50,10 +52,11 @@ public sealed class PlayerSettingsService : IPlayerSettingsService
         PlayerSettingKey<T> key,
         CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(playerId);
         ArgumentNullException.ThrowIfNull(key);
         return _store.DeleteAsync(SettingsModule, BuildKey(playerId, key.Name), cancellationToken);
     }
 
     private static string BuildKey(PlayerId playerId, string settingName)
-        => $"player:{playerId.Value}:setting:{settingName}";
+        => $"player:{playerId.SteamId64}:setting:{settingName}";
 }

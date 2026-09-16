@@ -13,6 +13,13 @@ public sealed class MenuServiceTests
     private static readonly ModuleId Owner = new("tests");
 
     [TestMethod]
+    public void MenuId_RejectsEmptyAndNonAnoNamespaces()
+    {
+        Assert.ThrowsExactly<ArgumentException>(() => new MenuId(""));
+        Assert.ThrowsExactly<ArgumentException>(() => new MenuId("menu.test"));
+    }
+
+    [TestMethod]
     public async Task SelectAsync_InvokesExactlyOnceAndClosesSession()
     {
         var selections = 0;

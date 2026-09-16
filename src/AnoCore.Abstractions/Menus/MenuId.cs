@@ -2,7 +2,7 @@ using System.Text.RegularExpressions;
 
 namespace AnoCore.Abstractions.Menus;
 
-public readonly record struct MenuId
+public sealed record MenuId
 {
     private static readonly Regex Pattern = new(
         "^ano\\.[a-z0-9][a-z0-9_.-]{0,63}$",
@@ -26,5 +26,5 @@ public readonly record struct MenuId
 
     public string Value { get; }
 
-    public override string ToString() => Value ?? string.Empty;
+    public override string ToString() => Value;
 }
