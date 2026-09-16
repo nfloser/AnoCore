@@ -18,6 +18,24 @@ jobs:
     name: Build and test
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      ANOCORE_TEST_MYSQL: "Server=127.0.0.1;Port=3306;User ID=anocore;Password=anocore;Database=anocore;Pooling=true;Connection Timeout=10;Default Command Timeout=30"
+
+    services:
+      mariadb:
+        image: mariadb:11.8.9
+        env:
+          MARIADB_ROOT_PASSWORD: root-test-only
+          MARIADB_DATABASE: anocore
+          MARIADB_USER: anocore
+          MARIADB_PASSWORD: anocore
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mariadb-admin ping -h 127.0.0.1 -uanocore -panocore"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
 
     steps:
       - name: Checkout
