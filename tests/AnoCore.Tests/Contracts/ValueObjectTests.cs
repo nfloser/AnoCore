@@ -17,14 +17,14 @@ public sealed class ValueObjectTests
         Assert.AreEqual("ano.veto", id.Value);
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DataRow("")]
     [DataRow(" ")]
     [DataRow("ano veto")]
     [DataRow("ano/veto")]
     public void ModuleId_RejectsInvalidValues(string value)
     {
-        Assert.ThrowsException<ArgumentException>(() => _ = new ModuleId(value));
+        Assert.ThrowsExactly<ArgumentException>(() => _ = new ModuleId(value));
     }
 
     [TestMethod]
@@ -33,13 +33,13 @@ public sealed class ValueObjectTests
         var permission = new PermissionId("  ANO.VETO.CREATE ");
 
         Assert.AreEqual("ano.veto.create", permission.Value);
-        Assert.ThrowsException<ArgumentException>(() => _ = new PermissionId("zenith.admin"));
+        Assert.ThrowsExactly<ArgumentException>(() => _ = new PermissionId("zenith.admin"));
     }
 
     [TestMethod]
     public void PlayerId_RejectsZeroSteamId()
     {
-        Assert.ThrowsException<ArgumentOutOfRangeException>(() => _ = new PlayerId(0));
+        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => _ = new PlayerId(0));
     }
 
     [TestMethod]
@@ -52,6 +52,8 @@ public sealed class ValueObjectTests
             ["anov", "!Veto"]);
 
         Assert.AreEqual("anoveto", descriptor.Name);
-        CollectionAssert.AreEqual(new[] { "anov", "veto" }, descriptor.Aliases.ToArray());
+        Assert.HasCount(2, descriptor.Aliases);
+        Assert.AreEqual("anov", descriptor.Aliases[0]);
+        Assert.AreEqual("veto", descriptor.Aliases[1]);
     }
 }

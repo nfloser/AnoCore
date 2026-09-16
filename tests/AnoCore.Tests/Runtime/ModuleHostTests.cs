@@ -17,7 +17,7 @@ public sealed class ModuleHostTests
 
         Assert.AreEqual(1, module.InitializeCalls);
         Assert.AreEqual(ModuleState.Loaded, host.GetState(module.Descriptor.Id));
-        Assert.AreEqual(1, host.Modules.Count);
+        Assert.HasCount(1, host.Modules);
     }
 
     [TestMethod]
@@ -26,7 +26,7 @@ public sealed class ModuleHostTests
         var host = new ModuleHost(new TestModuleContext());
         await host.LoadAsync(new FakeModule("ano.duplicate"));
 
-        await Assert.ThrowsExceptionAsync<InvalidOperationException>(
+        await Assert.ThrowsExactlyAsync<InvalidOperationException>(
             () => host.LoadAsync(new FakeModule("ANO.DUPLICATE")));
     }
 
@@ -39,7 +39,7 @@ public sealed class ModuleHostTests
         };
         var host = new ModuleHost(new TestModuleContext());
 
-        await Assert.ThrowsExceptionAsync<InvalidOperationException>(() => host.LoadAsync(module));
+        await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => host.LoadAsync(module));
 
         Assert.AreEqual(ModuleState.Faulted, host.GetState(module.Descriptor.Id));
     }
