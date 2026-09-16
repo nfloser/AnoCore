@@ -53,7 +53,10 @@ public sealed class MySqlPlayerRepository : IPlayerRepository
                 INSERT INTO ano_players (steam_id, last_known_name, first_seen_utc, last_seen_utc)
                 VALUES (@steamId, @name, @firstSeen, @lastSeen)
                 ON DUPLICATE KEY UPDATE
-                    last_known_name = VALUES(last_known_name),
+                    last_known_name = IF(
+                        VALUES(last_seen_utc) >= last_seen_utc,
+                        VALUES(last_known_name),
+                        last_known_name),
                     first_seen_utc = LEAST(first_seen_utc, VALUES(first_seen_utc)),
                     last_seen_utc = GREATEST(last_seen_utc, VALUES(last_seen_utc))
                 """;
