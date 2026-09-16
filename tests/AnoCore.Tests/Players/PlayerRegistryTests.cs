@@ -36,8 +36,9 @@ public sealed class PlayerRegistryTests
         Assert.HasCount(1, registry.OnlinePlayers);
         Assert.IsTrue(registry.TryGet(id, out var fromRegistry));
         Assert.AreEqual(player, fromRegistry);
+        Assert.HasCount(1, events.Published);
 
-        var connected = Assert.IsInstanceOfType<PlayerConnectedEvent>(Assert.Single(events.Published));
+        var connected = Assert.IsInstanceOfType<PlayerConnectedEvent>(events.Published[0]);
         Assert.AreEqual(player, connected.Player);
     }
 
