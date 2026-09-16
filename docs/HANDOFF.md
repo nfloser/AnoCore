@@ -2,53 +2,72 @@
 
 This file is updated before major context or work-session boundaries so another development session can continue without guessing.
 
-## Current workstream
+## Current main
 
-- Issue: #12 — Implement event bus and CounterStrikeSharp runtime composition
-- Branch: `feature/12-runtime-event-bus`
-- Pull request: #24 — Implement event bus and CounterStrikeSharp runtime composition
-- Latest tested implementation commit: `d21d452bc57aa906cbcf3ef174b6a8ab59dcfcf4`
+- Repository: `nfloser/AnoCore`
+- Main commit after shared-services merge: `80dcbc648219bd07fc9defcab4744f53a6217192`
+- Completed workstreams: #1 bootstrap, #4 player lifecycle, #12 runtime event bus/CounterStrikeSharp composition, #13 shared services.
+- Umbrella roadmap: #11.
 
-## Implemented
+## Active workstreams
 
-- Thread-safe in-process `AnoEventBus` implementing `IAnoEventBus`.
-- Registration-order delivery and event-type isolation.
-- Independent, idempotent subscription disposal.
-- Subscriber failure isolation followed by aggregated error reporting.
-- Cancellation before and between subscriber deliveries.
-- Snapshot semantics when subscriptions change during publication.
-- CounterStrikeSharp player connect/disconnect/team/spawn/death hooks wired to the reconnect-safe player registry.
-- Disconnect uses the event `Xuid`, so cleanup does not depend on a still-valid controller.
-- Team/spawn/death refresh on the next server frame.
-- Hot reload bootstraps already connected human players into the fresh registry.
-- Unload explicitly deregisters all AnoCore lifecycle hooks.
-- Async lifecycle failures are observed and logged.
-- Real CS2 server verification procedure documented in `docs/runtime-verification.md`.
+### #14 — MySQL/MariaDB persistence
 
-## Test status
+- Branch: `feature/14-persistence`
+- Pull request: #26
+- Latest implementation/review-fix commit: `5b1c40318997f21dba72bec301d79c86cdbe77a1`
+- Previous green integration-test commit before review hardening: `ae81807d5f72ce01d2963e1499b6f6d67398691b`
+- CI run #30 passed restore, Release build, MariaDB integration tests and format verification at `ae81807...`.
+- Review found a stale-upsert bug where an old profile could regress `last_known_name` while `last_seen_utc` stayed monotonic.
+- Regression test added in `9bb88f6186f0383f7e1b3a6924d1ae0c39b8d01b`.
+- Fix added in `5b1c40318997f21dba72bec301d79c86cdbe77a1` so the name only advances with an equal/newer `last_seen_utc`.
+- CI run #32 is pending/running for the hardened head and must be green before review completion/merge.
 
-- Event-bus tests were committed before implementation in `af8dd6fcdc0f6566e428f96d7f92bd3089603c3b`.
-- Event-bus implementation commit: `91116c4287391cc9051736be53abe74cb0b7bfee`.
-- CSS runtime wiring commit: `4bb6089816528b584ee8bbb61fdeb502cf7c249f`.
-- Verification documentation commit: `d21d452bc57aa906cbcf3ef174b6a8ab59dcfcf4`.
-- PR #24 CI run 19 completed successfully: restore, Release build, all tests and format verification passed.
+### #3 — Canonical GPLv3 license
 
-## Review status
+- Branch: `feature/3-canonical-gplv3`
+- Upstream reference: K4-Zenith `dev` `LICENSE.md` blob `a232fb906b309d40657bbeba71a1f8fecc0dc347`.
+- Goal: replace the short notice with the verbatim GPLv3 license, preserve `NOTICE.md` attribution, verify the resulting license blob byte-for-byte, run CI, review and merge.
 
-- Event delivery ordering, failure semantics, cancellation and unsubscribe behavior reviewed.
-- CSS types remain isolated to `AnoCore.Plugin`; core/runtime remain independent.
-- Hot-reload and unload paths explicitly manage handler lifetime.
-- No blocking review finding is currently known.
-- Native CS2 behavior is not falsely claimed as tested; the documented real-server checklist remains a release gate.
+## Recently merged
 
-## Open items / next steps
+### #13 — Shared services
 
-1. Let CI validate this handoff-only commit, submit the PR #24 self-review and merge #12.
-2. Start the two independent workstreams #13 (configuration/localization/placeholders/logging) and #14 (MySQL/MariaDB persistence/migrations) from the new green `main`.
-3. Keep #3 isolated on `chore/3-canonical-gpl-license`; finish it before public distribution.
-4. After #14, continue #15 permissions/roles/immunity; after #15/#14/#12, continue #16 commands/UI/settings.
-5. Continue umbrella roadmap #11 through #23; release remains blocked on real-server end-to-end verification.
+- PR: #25
+- Head: `3c8fad4afcf41b4ea2b164dc416ccb82de2dd669`
+- Merge commit: `80dcbc648219bd07fc9defcab4744f53a6217192`
+- CI: green (restore/build/tests/format).
+- Self-review completed before merge.
+- Provides typed JSON configuration, localization fallback, owner-bound placeholders and structured logging context.
+
+### #12 — Runtime composition
+
+- PR: #24
+- Provides `AnoEventBus`, CounterStrikeSharp lifecycle hooks, hot-reload bootstrap/unload cleanup and documented real-CS2 verification procedure.
+- CI green before merge.
+
+## Open roadmap / dependency order
+
+1. Finish #14 and #3.
+2. Start #15 roles/permissions/groups/VIP/immunity from the new green `main`; persistence from #14 is required.
+3. Continue #16 commands/menu/player settings after #15.
+4. #17 admin/chat/messaging, #18 stats/ranks/playtime and #19 map catalog/generic voting can then progress as separate branches where dependencies permit.
+5. Build #20 AnoVeto on #19/#15/#16 foundations.
+6. Build #21 tournament/match on player/authorization/command/map foundations.
+7. Complete #22 Web/API/server/security/SDK.
+8. Finish #23 K4 migration closure, packaging, acceptance matrix, E2E verification and release.
+
+## Known release gates / open problems
+
+- Real native CS2 behavior cannot be claimed verified from GitHub CI alone. `docs/runtime-verification.md` remains a required real-server acceptance gate.
+- #3 must be complete before any public distribution/release.
+- Dependabot PRs #5–#9 remain open and should be rationalized/reviewed rather than blindly merged; #8/#9 overlap on MSTest.
+- No production credentials may be committed; MariaDB CI uses disposable test credentials only.
+
+## Next exact action
+
+Check CI run #32 for `feature/14-persistence`. If green, finish independent PR #26 review and merge. If red, fetch the failing job log, fix only the concrete defect on the same branch and rerun. Then complete #3 and branch #15 from the updated green `main`.
 
 ## Project workstreams
 
-See `docs/workstreams.md` and umbrella issue #11 for dependency ordering and parallelizable streams.
+See `docs/workstreams.md` and umbrella issue #11 for the complete workstream map.
