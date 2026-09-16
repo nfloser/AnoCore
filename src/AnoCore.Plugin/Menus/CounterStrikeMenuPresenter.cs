@@ -40,8 +40,9 @@ public sealed class CounterStrikeMenuPresenter
 
         foreach (var option in definition.Options)
         {
-            menu.AddMenuOption(option.Label, (controller, _) =>
+            menu.AddMenuOption(option.Label, (controller, menuOption) =>
             {
+                _ = menuOption;
                 _ = SelectAsync(controller, playerId, option);
             });
         }
