@@ -175,17 +175,16 @@ public sealed class PersistenceIntegrationTests
 
         public async ValueTask ApplyAsync(
             DbConnection connection,
-            DbTransaction transaction,
             CancellationToken cancellationToken)
         {
             await ExecuteAsync(
                 connection,
-                transaction,
+                null,
                 "CREATE TABLE ano_migration_test (id INT NOT NULL PRIMARY KEY)",
                 cancellationToken);
             await ExecuteAsync(
                 connection,
-                transaction,
+                null,
                 "INSERT INTO ano_migration_test (id) VALUES (1)",
                 cancellationToken);
         }
@@ -199,7 +198,6 @@ public sealed class PersistenceIntegrationTests
 
         public ValueTask ApplyAsync(
             DbConnection connection,
-            DbTransaction transaction,
             CancellationToken cancellationToken)
             => ValueTask.CompletedTask;
     }
