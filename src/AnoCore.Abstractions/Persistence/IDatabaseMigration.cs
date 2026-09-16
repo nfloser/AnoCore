@@ -10,6 +10,5 @@ public interface IDatabaseMigration
 
     ValueTask ApplyAsync(
         DbConnection connection,
-        DbTransaction transaction,
         CancellationToken cancellationToken);
 }
