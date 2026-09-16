@@ -18,13 +18,13 @@ public sealed class CommandRegistryTests
     {
         var calls = new List<CommandContext>();
         var registry = new CommandRegistry(new AllowAllPermissions());
-        registry.Register(Owner, new CommandDescriptor("anotest", "test", aliases: ["at"]), context =>
+        registry.Register(Owner, new CommandDescriptor("anotest", "test", aliases: ["anot"]), context =>
         {
             calls.Add(context);
             return ValueTask.FromResult(CommandResult.Ok("done"));
         });
 
-        var result = await registry.ExecuteAsync("!at \"hello world\" 42", Player);
+        var result = await registry.ExecuteAsync("!anot \"hello world\" 42", Player);
 
         Assert.IsTrue(result.Success);
         Assert.AreEqual("done", result.Message);
@@ -78,12 +78,14 @@ public sealed class CommandRegistryTests
     }
 
     [TestMethod]
-    public void Register_RejectsCommandsOutsideAnoNamespace()
+    public void Register_RejectsCommandsAndAliasesOutsideAnoNamespace()
     {
         var registry = new CommandRegistry(new AllowAllPermissions());
 
         Assert.ThrowsExactly<ArgumentException>(() =>
             registry.Register(Owner, new CommandDescriptor("kick", "bad"), _ => ValueTask.FromResult(CommandResult.Ok())));
+        Assert.ThrowsExactly<ArgumentException>(() =>
+            registry.Register(Owner, new CommandDescriptor("anokick", "bad alias", aliases: ["k"]), _ => ValueTask.FromResult(CommandResult.Ok())));
     }
 
     private sealed class AllowAllPermissions : IPermissionEvaluator
