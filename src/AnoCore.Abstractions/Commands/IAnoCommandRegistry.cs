@@ -9,6 +9,8 @@ public interface IAnoCommandRegistry
 
     void UnregisterAll(ModuleId owner);
 
+    IReadOnlyCollection<CommandDescriptor> GetCommands();
+
     ValueTask<CommandResult> ExecuteAsync(
         string input,
         PlayerId? caller,

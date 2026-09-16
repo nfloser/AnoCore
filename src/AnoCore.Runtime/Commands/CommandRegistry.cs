@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using AnoCore.Abstractions.Commands;
 using AnoCore.Abstractions.Modules;
@@ -59,6 +60,17 @@ public sealed class CommandRegistry : IAnoCommandRegistry
         }
     }
 
+    public IReadOnlyCollection<CommandDescriptor> GetCommands()
+    {
+        lock (_gate)
+        {
+            return _registrationNames.Keys
+                .Select(registration => registration.Descriptor)
+                .OrderBy(descriptor => descriptor.Name, StringComparer.Ordinal)
+                .ToArray();
+        }
+    }
+
     public async ValueTask<CommandResult> ExecuteAsync(
         string input,
         PlayerId? caller,
@@ -91,7 +103,13 @@ public sealed class CommandRegistry : IAnoCommandRegistry
             }
         }
 
-        var context = new CommandContext(caller, tokens.Skip(1).ToArray(), input, cancellationToken);
+        var rawArguments = tokens.Skip(1).ToArray();
+        if (!TryParseArguments(registration.Descriptor, rawArguments, out var parsedArguments, out var argumentError))
+        {
+            return CommandResult.Fail(CommandFailureReason.InvalidInput, argumentError);
+        }
+
+        var context = new CommandContext(caller, rawArguments, input, cancellationToken, parsedArguments);
         try
         {
             return await registration.Handler(context).ConfigureAwait(false);
@@ -136,6 +154,98 @@ public sealed class CommandRegistry : IAnoCommandRegistry
         {
             throw new ArgumentException("AnoCore commands and aliases must use the 'ano' prefix.", parameterName);
         }
+    }
+
+    private static bool TryParseArguments(
+        CommandDescriptor descriptor,
+        IReadOnlyList<string> rawArguments,
+        out IReadOnlyDictionary<string, object?> parsedArguments,
+        out string? error)
+    {
+        var parsed = new Dictionary<string, object?>(StringComparer.Ordinal);
+        parsedArguments = parsed;
+        error = null;
+
+        if (descriptor.Arguments.Count == 0)
+        {
+            return true;
+        }
+
+        var requiredCount = descriptor.Arguments.Count(argument => argument.Required);
+        if (rawArguments.Count < requiredCount)
+        {
+            error = $"Usage: {descriptor.Usage}";
+            return false;
+        }
+
+        if (rawArguments.Count > descriptor.Arguments.Count)
+        {
+            error = $"Usage: {descriptor.Usage}";
+            return false;
+        }
+
+        for (var index = 0; index < rawArguments.Count; index++)
+        {
+            var specification = descriptor.Arguments[index];
+            if (!TryParseValue(rawArguments[index], specification.Kind, out var value))
+            {
+                error = $"Invalid value for '{specification.Name}'. Usage: {descriptor.Usage}";
+                return false;
+            }
+
+            parsed.Add(specification.Name, value);
+        }
+
+        return true;
+    }
+
+    private static bool TryParseValue(string raw, CommandArgumentKind kind, out object? value)
+    {
+        switch (kind)
+        {
+            case CommandArgumentKind.String:
+                value = raw;
+                return true;
+            case CommandArgumentKind.Int32:
+                if (int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var intValue))
+                {
+                    value = intValue;
+                    return true;
+                }
+
+                break;
+            case CommandArgumentKind.UInt64:
+                if (ulong.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var ulongValue))
+                {
+                    value = ulongValue;
+                    return true;
+                }
+
+                break;
+            case CommandArgumentKind.Boolean:
+                switch (raw.Trim().ToLowerInvariant())
+                {
+                    case "true":
+                    case "1":
+                    case "yes":
+                    case "on":
+                        value = true;
+                        return true;
+                    case "false":
+                    case "0":
+                    case "no":
+                    case "off":
+                        value = false;
+                        return true;
+                }
+
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unsupported command argument kind.");
+        }
+
+        value = null;
+        return false;
     }
 
     private static bool TryTokenize(string input, out List<string> tokens, out string? error)

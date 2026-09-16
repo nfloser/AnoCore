@@ -8,7 +8,11 @@ All AnoCore-owned command names and aliases must start with `ano`. CounterStrike
 
 `CommandRegistry` owns parsing, alias resolution and authorization. A permission is checked before the handler is invoked. Server-console callers have no `PlayerId` and are not subjected to player permission checks; individual commands may still reject console use in their handler.
 
-Quoted arguments are parsed by the runtime so commands can safely receive values containing whitespace. Handler exceptions are converted into a failed `CommandResult` instead of escaping into the game callback.
+Quoted arguments are parsed by the runtime so commands can safely receive values containing whitespace. Command descriptors may declare typed arguments (`String`, `Int32`, `UInt64`, `Boolean`), required/optional ordering and help descriptions. The registry validates and converts these arguments before invoking the handler. Invalid or missing values produce a usage response without executing feature code. `CommandContext.Get<T>(name)` provides the validated typed value.
+
+`CommandDescriptor.Usage` is generated from argument metadata unless a custom usage string is supplied. `IAnoCommandRegistry.GetCommands()` exposes immutable descriptor snapshots for future `!anohelp` and web/API surfaces.
+
+Handler exceptions are converted into a failed `CommandResult` instead of escaping into the game callback.
 
 Command registrations are owned by a `ModuleId`. Disposing a registration or calling `UnregisterAll(owner)` removes the command and all aliases, preventing hot-reload leaks.
 
