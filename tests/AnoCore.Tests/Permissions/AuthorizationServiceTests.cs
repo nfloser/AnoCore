@@ -90,6 +90,18 @@ public sealed class AuthorizationServiceTests
     }
 
     [TestMethod]
+    public void AuthorizationState_RejectsUnknownRoleReferences()
+    {
+        Assert.ThrowsExactly<ArgumentException>(() => new AuthorizationState(
+            [Role("moderator", parents: [new RoleId("missing")])],
+            []));
+
+        Assert.ThrowsExactly<ArgumentException>(() => new AuthorizationState(
+            [Role("moderator")],
+            [Assignment(Alice, "missing")]));
+    }
+
+    [TestMethod]
     public async Task Immunity_UsesHighestInheritedRoleAndBlocksEqualOrLowerActors()
     {
         var service = CreateService(new AuthorizationState(
@@ -143,6 +155,22 @@ public sealed class AuthorizationServiceTests
     }
 
     [TestMethod]
+    public async Task ReloadAsync_FailedLoadPreservesPreviousPolicy()
+    {
+        var initial = new AuthorizationState(
+            [Role("viewer", rules: [Allow("ano.stats.view")])],
+            [Assignment(Alice, "viewer")]);
+        var store = new InMemoryAuthorizationStore(initial);
+        var service = new AuthorizationService(store);
+        await service.ReloadAsync();
+        store.LoadException = new InvalidDataException("broken persisted policy");
+
+        await Assert.ThrowsExactlyAsync<InvalidDataException>(async () => await service.ReloadAsync());
+
+        Assert.IsTrue(await service.HasPermissionAsync(Alice, new PermissionId("ano.stats.view")));
+    }
+
+    [TestMethod]
     public async Task ModuleDataAuthorizationStore_RoundTripsState()
     {
         var moduleStore = new MemoryModuleDataStore();
@@ -183,8 +211,17 @@ public sealed class AuthorizationServiceTests
 
         public AuthorizationState? State { get; set; }
 
+        public Exception? LoadException { get; set; }
+
         public ValueTask<AuthorizationState?> LoadAsync(CancellationToken cancellationToken = default)
-            => ValueTask.FromResult(State);
+        {
+            if (LoadException is not null)
+            {
+                return ValueTask.FromException<AuthorizationState?>(LoadException);
+            }
+
+            return ValueTask.FromResult(State);
+        }
 
         public ValueTask SaveAsync(AuthorizationState state, CancellationToken cancellationToken = default)
         {
