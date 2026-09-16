@@ -1,0 +1,35 @@
+# Build output
+bin/
+obj/
+artifacts/
+TestResults/
+coverage/
+
+# IDE
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Packages / generated artifacts
+*.nupkg
+*.snupkg
+packages/
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+secrets.json
+appsettings.Local.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# CounterStrikeSharp deployment output
+publish/
+deploy/

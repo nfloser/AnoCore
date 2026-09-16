@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>AnoCore</AssemblyName>
+    <RootNamespace>AnoCore.Plugin</RootNamespace>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\AnoCore.Runtime\AnoCore.Runtime.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="CounterStrikeSharp.API" PrivateAssets="all" ExcludeAssets="runtime" />
+  </ItemGroup>
+</Project>

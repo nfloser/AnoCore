@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    name: Build and test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore
+        run: dotnet restore AnoCore.sln
+
+      - name: Build
+        run: dotnet build AnoCore.sln --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test AnoCore.sln --configuration Release --no-build --verbosity normal
+
+      - name: Verify formatting
+        run: dotnet format AnoCore.sln --verify-no-changes --no-restore

@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>AnoCore.Abstractions</AssemblyName>
+    <RootNamespace>AnoCore.Abstractions</RootNamespace>
+  </PropertyGroup>
+</Project>
