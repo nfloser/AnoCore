@@ -247,12 +247,12 @@ public sealed class AnoVetoCoordinator
             return AnoVetoOperationResult.Success(active.Maps, AnoVetoOutcome.QuorumNotMet);
         }
 
-        if (result.Outcome == VoteOutcome.TieWithoutWinner || result.WinnerOptionId is null)
+        if (result.Outcome == VoteOutcome.TieWithoutWinner || result.WinningOptionId is null)
         {
             return AnoVetoOperationResult.Success(active.Maps, AnoVetoOutcome.TieWithoutWinner);
         }
 
-        if (!active.OptionToMap.TryGetValue(result.WinnerOptionId, out var winner))
+        if (!active.OptionToMap.TryGetValue(result.WinningOptionId, out var winner))
         {
             throw new InvalidOperationException("Vote result references an unknown AnoVeto option.");
         }
