@@ -49,11 +49,12 @@ public sealed class MigrationRunner
                 continue;
             }
 
-            await _database.InTransactionAsync(async (connection, transaction, token) =>
+            // MariaDB/MySQL DDL can implicitly commit. Migrations therefore must be retry-safe;
+            // pretending the whole schema change is transactional would provide false guarantees.
+            await _database.WithConnectionAsync(async (connection, token) =>
             {
-                await migration.ApplyAsync(connection, transaction, token).ConfigureAwait(false);
+                await migration.ApplyAsync(connection, token).ConfigureAwait(false);
                 await using var command = connection.CreateCommand();
-                command.Transaction = transaction;
                 command.CommandText = """
                     INSERT INTO ano_schema_migrations (version, name, applied_at_utc)
                     VALUES (@version, @name, @appliedAtUtc)
@@ -63,7 +64,7 @@ public sealed class MigrationRunner
                 AddParameter(command, "@appliedAtUtc", DateTime.UtcNow);
                 await command.ExecuteNonQueryAsync(token).ConfigureAwait(false);
                 return true;
-            }, cancellationToken: cancellationToken).ConfigureAwait(false);
+            }, cancellationToken).ConfigureAwait(false);
 
             applied.Add(migration.Version);
             count++;
