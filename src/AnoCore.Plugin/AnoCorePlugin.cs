@@ -5,12 +5,13 @@ using AnoCore.Runtime.Players;
 using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Core.Attributes;
+using CounterStrikeSharp.API.Modules.Commands;
 using CounterStrikeSharp.API.Modules.Events;
 using Microsoft.Extensions.Logging;
 
 namespace AnoCore.Plugin;
 
-[MinimumApiVersion(260)]
+[MinimumApiVersion(374)]
 public sealed class AnoCorePlugin : BasePlugin
 {
     private AnoEventBus? _eventBus;
@@ -32,17 +33,24 @@ public sealed class AnoCorePlugin : BasePlugin
 
         RegisterLifecycleHooks();
 
-        if (hotReload)
-        {
-            BootstrapConnectedPlayers();
-        }
+        AddCommand("css_anostatus", "Show AnoCore runtime status", OnStatus);
+        BootstrapConnectedPlayers();
+        Logger.LogInformation("AnoCore player lifecycle loaded. Gameplay modules are not yet connected.");
     }
 
     public override void Unload(bool hotReload)
     {
+        RemoveCommand("css_anostatus", OnStatus);
         DeregisterLifecycleHooks();
         _players = null;
         _eventBus = null;
+    }
+
+    private void OnStatus(CCSPlayerController? player, CommandInfo command)
+    {
+        command.ReplyToCommand(
+            $"[ANO] AnoCore {ModuleVersion}; tracked humans: {_players?.OnlinePlayers.Count ?? 0}; "
+            + "player lifecycle active; gameplay modules not connected.");
     }
 
     private void RegisterLifecycleHooks()
@@ -130,7 +138,7 @@ public sealed class AnoCorePlugin : BasePlugin
     {
         foreach (var controller in Utilities.GetPlayers())
         {
-            TrackConnection(controller, "hot_reload_bootstrap");
+            TrackConnection(controller, "load_bootstrap");
         }
     }
 
@@ -156,7 +164,14 @@ public sealed class AnoCorePlugin : BasePlugin
             return;
         }
 
-        Server.NextFrame(() => RefreshPlayer(controller, operation));
+        var registry = _players;
+        Server.NextFrame(() =>
+        {
+            if (registry is not null && ReferenceEquals(registry, _players))
+            {
+                RefreshPlayer(controller, operation);
+            }
+        });
     }
 
     private void RefreshPlayer(CCSPlayerController? controller, string operation)
