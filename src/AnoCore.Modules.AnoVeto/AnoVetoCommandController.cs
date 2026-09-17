@@ -122,6 +122,9 @@ public sealed class AnoVetoCommandController : IDisposable
             AnoVetoFailure.Forbidden => CommandResult.Fail(CommandFailureReason.Forbidden, "You are not allowed to create AnoVeto votes."),
             AnoVetoFailure.AlreadyActive => CommandResult.Fail(CommandFailureReason.InvalidInput, "An AnoVeto vote is already active."),
             AnoVetoFailure.NotEnoughMaps => CommandResult.Fail(CommandFailureReason.HandlerFailed, "At least eight configured maps are required."),
+            AnoVetoFailure.NotEnoughEligiblePlayers => CommandResult.Fail(
+                CommandFailureReason.InvalidInput,
+                "Not enough eligible players are online for the configured minimum vote count."),
             _ => CommandResult.Fail(CommandFailureReason.HandlerFailed, $"AnoVeto could not be started: {result.Failure}."),
         };
     }
