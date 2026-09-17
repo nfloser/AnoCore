@@ -128,7 +128,14 @@ public sealed class CounterStrikeCommandBridge : IDisposable
             }
 
             var message = result.Message;
-            Server.NextFrame(() => Reply(player, callingContext, message));
+            Server.NextWorldUpdate(() =>
+            {
+                if (!Volatile.Read(ref _disposed)
+                    && (player is null || (player.IsValid && player.SteamID == playerId?.SteamId64)))
+                {
+                    Reply(player, callingContext, message);
+                }
+            });
         }
         catch (Exception exception)
         {
