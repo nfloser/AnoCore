@@ -48,6 +48,19 @@ public sealed class AnoVetoCommandController : IDisposable
             HandleAsync);
     }
 
+    public async ValueTask<AnoVetoOperationResult?> ExpireAsync(CancellationToken cancellationToken = default)
+    {
+        var result = await _coordinator.ExpireAsync(
+            _timeProvider.GetUtcNow(),
+            cancellationToken).ConfigureAwait(false);
+        if (result is not null)
+        {
+            RemoveVoteMenu();
+        }
+
+        return result;
+    }
+
     public void Dispose()
     {
         Interlocked.Exchange(ref _commandRegistration, null)?.Dispose();
@@ -198,10 +211,14 @@ public sealed class AnoVetoCommandController : IDisposable
 
     private async ValueTask CastFromMenuAsync(MenuSelectionContext context, MapDefinition map)
     {
-        await _coordinator.CastAsync(
+        var result = await _coordinator.CastAsync(
             context.PlayerId,
             map.MapId,
             _timeProvider.GetUtcNow(),
             context.CancellationToken).ConfigureAwait(false);
+        if (result.Accepted && result.Outcome != AnoVetoOutcome.None)
+        {
+            RemoveVoteMenu();
+        }
     }
 }
