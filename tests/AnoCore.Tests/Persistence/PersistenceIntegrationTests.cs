@@ -177,8 +177,9 @@ public sealed class PersistenceIntegrationTests
             Assert.AreSame(runtime.Commands, runtime.GetService(typeof(IAnoCommandRegistry)));
         }
 
+        var restartEvents = new AnoEventBus();
         using var restarted = await RuntimeServices.CreateAsync(
-            _database, new JsonConfigStore(path), new AnoEventBus(), new PlayerRegistry());
+            _database, new JsonConfigStore(path), restartEvents, new PlayerRegistry(restartEvents));
         Assert.AreEqual("de", await restarted.Settings.GetAsync(id, key));
         Assert.AreEqual("Connected", (await restarted.Profiles.GetAsync(id))!.LastKnownName);
     }
