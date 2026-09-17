@@ -117,6 +117,61 @@ public sealed class AnoVetoCommandControllerTests
         Assert.AreEqual(AnoVetoFailure.AlreadyVoted, secondVote.Failure);
     }
 
+    [TestMethod]
+    public async Task StatusCommand_IsAvailableToRegularPlayers()
+    {
+        var permissions = new ManagerPermissionEvaluator(allow: true);
+        var commands = new CommandRegistry(permissions);
+        var menus = new MenuService();
+        var players = new StubPlayerRegistry([Snapshot(Manager, "Manager"), Snapshot(PlayerA, "Player A")]);
+        var coordinator = CreateCoordinator(permissions);
+        using var controller = new AnoVetoCommandController(commands, menus, players, coordinator, new FixedTimeProvider(Now));
+        Assert.IsTrue((await commands.ExecuteAsync("!anoveto create", Manager)).Success);
+
+        var result = await commands.ExecuteAsync("!anoveto status", PlayerA);
+
+        Assert.IsTrue(result.Success, result.Message);
+        StringAssert.Contains(result.Message, "8");
+    }
+
+    [TestMethod]
+    public async Task CancelCommand_EndsVoteAndClosesOpenMenus()
+    {
+        var permissions = new ManagerPermissionEvaluator(allow: true);
+        var commands = new CommandRegistry(permissions);
+        var menus = new MenuService();
+        var players = new StubPlayerRegistry([Snapshot(Manager, "Manager"), Snapshot(PlayerA, "Player A")]);
+        var coordinator = CreateCoordinator(permissions);
+        using var controller = new AnoVetoCommandController(commands, menus, players, coordinator, new FixedTimeProvider(Now));
+        Assert.IsTrue((await commands.ExecuteAsync("!anoveto create", Manager)).Success);
+        Assert.IsTrue((await commands.ExecuteAsync("!anoveto", PlayerA)).Success);
+        Assert.IsTrue(menus.TryGetOpenMenu(PlayerA, out _));
+
+        var result = await commands.ExecuteAsync("!anoveto cancel", Manager);
+
+        Assert.IsTrue(result.Success, result.Message);
+        Assert.IsFalse(coordinator.TryGetStatus(out _));
+        Assert.IsFalse(menus.TryGetOpenMenu(PlayerA, out _));
+    }
+
+    [TestMethod]
+    public async Task CancelCommand_RejectsUnauthorizedPlayer()
+    {
+        var permissions = new ManagerPermissionEvaluator(allow: true);
+        var commands = new CommandRegistry(permissions);
+        var menus = new MenuService();
+        var players = new StubPlayerRegistry([Snapshot(Manager, "Manager"), Snapshot(PlayerA, "Player A")]);
+        var coordinator = CreateCoordinator(permissions);
+        using var controller = new AnoVetoCommandController(commands, menus, players, coordinator, new FixedTimeProvider(Now));
+        Assert.IsTrue((await commands.ExecuteAsync("!anoveto create", Manager)).Success);
+
+        var result = await commands.ExecuteAsync("!anoveto cancel", PlayerA);
+
+        Assert.IsFalse(result.Success);
+        Assert.AreEqual(CommandFailureReason.Forbidden, result.FailureReason);
+        Assert.IsTrue(coordinator.TryGetStatus(out _));
+    }
+
     private static AnoVetoCoordinator CreateCoordinator(IPermissionEvaluator permissions)
     {
         var catalog = new MapCatalog(Enumerable.Range(1, 8)
