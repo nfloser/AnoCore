@@ -1,34 +1,40 @@
 # AnoCore development handoff
 
-## Support workstream — 2026-09-17
+## Current workstream
 
-- Issue: #32.
-- Branch: `fix/deployment-readiness`.
-- Source change: `7f86ad77378a58da050a42138530ab67cb21f09c`.
-- Packaging change: `089bc0e4aceb410eaaffd7b8710d89ec2764ce1e`.
-- Existing independent feature work: #31, branch `feature/20-anoveto`, observed head `e2a137fab59192ad11488cb27d2837e9bb2f3425`. Recheck its current head before integrating.
-- This support branch does not implement or overwrite the feature module.
+- Full functional scope is defined in `docs/functional-acceptance.md`; umbrella #11 remains open.
+- Runtime composition: issue #34, PR #35, branch `feature/runtime-composition`.
+- Prior deployment work: #33 merged.
+- Independent feature work: #31, `feature/20-anoveto`. Do not overwrite that branch.
+- Extended administration commands: #36, separate from core/runtime.
 
-## Changes
+## Implemented in this branch
 
-- Require API 374, matching the pinned compile-time API.
-- Bootstrap connected humans on every load, including manual load without a hot-reload flag.
-- Ignore queued player-refresh callbacks after registry replacement.
-- Register/remove `css_anostatus` with lifecycle and explicitly disclose incomplete gameplay composition.
-- Publish the complete plugin dependency graph; validate required files and reject a private engine API DLL.
-- Include install instructions, exact source archive, commit identifier and license notices in the development artifact.
-- Update active product documentation to describe AnoCore directly; preserve provenance and license notices.
+- Async shared-service startup with database probe, migrations and authorization load before native activation.
+- Configuration through `ANOCORE_MYSQL` or `plugins/AnoCore/config/core.json`.
+- 30-second startup deadline and cancellation on unload; failed/missing configuration does not activate privileged commands.
+- Shared module service provider for events, players, profiles, data, authorization, commands, menus, settings, placeholders and votes.
+- Player profile persistence on connect/reconnect/disconnect/name change and bootstrap of humans present during startup.
+- Native `anocommands` and permission-gated `anoreloadauth`, plus honest `anostatus`.
+- World-update command replies guarded against unload and changed player identity.
+- Integration correction: settings keys now use dots, not colons rejected by the MySQL store.
 
-## Verified source-level finding / next integration task
+## Validation evidence and remaining checks
 
-`AnoCorePlugin.Load` currently creates only `AnoEventBus` and `PlayerRegistry`. Available persistence, authorization, command, menu, settings, map and vote classes are not wired into a complete runtime. The same composition gap was observed on #31's recorded head.
+- Initial test commit `7f03aea1a600ff47d543a73e29ad1990baa14353` failed because the composition implementation did not yet exist (CI 35201860967).
+- The first implementation CI (35202043099) built successfully but reproduced an existing settings/MySQL key mismatch through the new restart test.
+- After the fix, CI 35202374205 passed all 96 tests including MariaDB composition/restart checks; its formatting gate found two import-order issues.
+- This commit corrects those imports. Consult PR #35 for the final CI run on the exact head, including packaging.
+- No native CS2 server is available in this session. Startup/unload, real menu interaction and map transitions remain server acceptance gates; no production release is claimed.
 
-Coordinate the composition work with #31. Initialize configuration/persistence/authorization, attach feature modules, bind native commands and dispose the bindings on unload. Check server-thread affinity after async operations, initialization rollback, command conflicts and fail-closed authorization.
+## Integration contract for the feature workstream
 
-The standalone vote plugin was inspected only as a reference. No code there was changed by this support workstream.
+The plugin exposes `Runtime` (the `RuntimeServices` container) and `MenuPresenter` after successful initialization. Use its existing authorization/commands/menus/players/settings services rather than duplicating repositories or connection logic. New feature commands need explicit native binding and unload cleanup; current startup binds the core descriptors. Optional feature modules are not automatically discovered or loaded by this slice.
 
-## Validation
+Preserve the API-374 guard, unconditional connected-player bootstrap, startup cancellation and stale-refresh guard when integrating. Engine calls after asynchronous work must be marshalled onto the server update thread. Update status/module reporting only for actual loaded modules.
 
-No local .NET SDK or native CS2 runtime is available in this session. Build, tests (including MariaDB), formatting and publishing must pass the support PR's CI. Native load, command, UI and map-change behavior require the test-server checks in `docs/deployment.md` and `docs/runtime-verification.md`.
+## Still required for full functionality
 
-This file is not a claim of green CI or production readiness. Consult the support PR checks for the exact tested commit and result. No release should be tagged until #23's real-server acceptance gate passes.
+Complete every row in `docs/functional-acceptance.md`: core registration/settings UI/config upgrades, administration/chat/tags/messaging (#17), stats/ranks/playtime/toplists (#18), extended commands (#36), custom vote (#20/#31), tournament (#21), SDK/API/integrations (#22) and end-to-end deployment/release (#23).
+
+Do not mark #11 or #23 complete, call this feature parity, or publish a production release while these rows remain open. License/NOTICE and source provenance remain intact.

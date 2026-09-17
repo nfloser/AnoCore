@@ -1,15 +1,15 @@
 using System.Data.Common;
+using AnoCore.Abstractions.Commands;
 using AnoCore.Abstractions.Modules;
 using AnoCore.Abstractions.Persistence;
 using AnoCore.Abstractions.Players;
+using AnoCore.Abstractions.Settings;
 using AnoCore.Runtime.Composition;
 using AnoCore.Runtime.Configuration;
 using AnoCore.Runtime.Events;
-using AnoCore.Runtime.Players;
-using AnoCore.Abstractions.Settings;
-using AnoCore.Abstractions.Commands;
-using AnoCore.Runtime.Persistence;
 using AnoCore.Runtime.Persistence.Migrations;
+using AnoCore.Runtime.Persistence;
+using AnoCore.Runtime.Players;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace AnoCore.Tests.Persistence;
