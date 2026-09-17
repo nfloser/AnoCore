@@ -1,7 +1,7 @@
 using AnoCore.Abstractions.Commands;
 using AnoCore.Abstractions.Configuration;
+using AnoCore.Abstractions.Hud;
 using AnoCore.Abstractions.Maps;
-using AnoCore.Abstractions.Menus;
 using AnoCore.Abstractions.Players;
 using AnoCore.Abstractions.Voting;
 using AnoCore.Runtime.Maps;
@@ -25,7 +25,7 @@ public sealed class AnoVetoModuleRuntime : IDisposable
     public static async ValueTask<AnoVetoModuleRuntime?> CreateAsync(
         IConfigStore configuration,
         IAnoCommandRegistry commands,
-        IMenuService menus,
+        ICustomHudService hud,
         IPlayerRegistry players,
         IVoteService votes,
         IMapChanger mapChanger,
@@ -35,7 +35,7 @@ public sealed class AnoVetoModuleRuntime : IDisposable
     {
         ArgumentNullException.ThrowIfNull(configuration);
         ArgumentNullException.ThrowIfNull(commands);
-        ArgumentNullException.ThrowIfNull(menus);
+        ArgumentNullException.ThrowIfNull(hud);
         ArgumentNullException.ThrowIfNull(players);
         ArgumentNullException.ThrowIfNull(votes);
         ArgumentNullException.ThrowIfNull(mapChanger);
@@ -61,7 +61,7 @@ public sealed class AnoVetoModuleRuntime : IDisposable
             settings.ToOptions());
         var controller = new AnoVetoCommandController(
             commands,
-            menus,
+            hud,
             players,
             coordinator,
             timeProvider);
