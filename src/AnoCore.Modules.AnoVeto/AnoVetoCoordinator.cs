@@ -111,7 +111,7 @@ public sealed class AnoVetoCoordinator
             return ValueTask.FromResult(AnoVetoOperationResult.Reject(AnoVetoFailure.InvalidMap));
         }
 
-        return CastCoreAsync(player, option.Key, active.Maps, now, cancellationToken);
+        return CastCoreAsync(player, option.Key, active, now, cancellationToken);
     }
 
     public async ValueTask<AnoVetoOperationResult> CompleteAsync(
@@ -214,7 +214,7 @@ public sealed class AnoVetoCoordinator
     private async ValueTask<AnoVetoOperationResult> CastCoreAsync(
         PlayerId player,
         string optionId,
-        IReadOnlyList<MapDefinition> maps,
+        ActiveVote active,
         DateTimeOffset now,
         CancellationToken cancellationToken)
     {
@@ -224,7 +224,13 @@ public sealed class AnoVetoCoordinator
             return AnoVetoOperationResult.Reject(MapFailure(cast.Failure));
         }
 
-        return AnoVetoOperationResult.Success(maps);
+        var finalized = _votes.FinalizeIfAllEligibleVoted(VoteId, now);
+        if (finalized is null)
+        {
+            return AnoVetoOperationResult.Success(active.Maps);
+        }
+
+        return await FinalizeCoreAsync(active, finalized, cancellationToken).ConfigureAwait(false);
     }
 
     private async ValueTask<AnoVetoOperationResult> FinalizeCoreAsync(
