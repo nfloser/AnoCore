@@ -13,6 +13,7 @@ public enum AnoVetoFailure
     AlreadyVoted = 6,
     InvalidMap = 7,
     VoteRejected = 8,
+    NotEnoughEligiblePlayers = 9,
 }
 
 public enum AnoVetoOutcome
