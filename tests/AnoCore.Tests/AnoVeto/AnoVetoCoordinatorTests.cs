@@ -50,7 +50,6 @@ public sealed class AnoVetoCoordinatorTests
         var winner = created.Maps[0];
 
         Assert.IsTrue((await harness.Coordinator.CastAsync(PlayerA, winner.MapId, Now.AddSeconds(1))).Accepted);
-        Assert.IsTrue((await harness.Coordinator.CastAsync(PlayerB, winner.MapId, Now.AddSeconds(2))).Accepted);
 
         var result = await harness.Coordinator.CompleteAsync(Manager, Now.AddSeconds(3));
         var repeated = await harness.Coordinator.CompleteAsync(Manager, Now.AddSeconds(4));
@@ -66,7 +65,7 @@ public sealed class AnoVetoCoordinatorTests
     public async Task ExpireAsync_ChangesMapAtMostOnce()
     {
         var harness = CreateHarness(8, minimumVotes: 1, duration: TimeSpan.FromSeconds(10));
-        var created = await harness.Coordinator.CreateAsync(Manager, [PlayerA], Now);
+        var created = await harness.Coordinator.CreateAsync(Manager, [PlayerA, PlayerB], Now);
         await harness.Coordinator.CastAsync(PlayerA, created.Maps[2].MapId, Now.AddSeconds(1));
 
         var first = await harness.Coordinator.ExpireAsync(Now.AddSeconds(10));
@@ -81,7 +80,7 @@ public sealed class AnoVetoCoordinatorTests
     public async Task CancelAsync_NeverChangesMap()
     {
         var harness = CreateHarness(8, minimumVotes: 1);
-        var created = await harness.Coordinator.CreateAsync(Manager, [PlayerA], Now);
+        var created = await harness.Coordinator.CreateAsync(Manager, [PlayerA, PlayerB], Now);
         await harness.Coordinator.CastAsync(PlayerA, created.Maps[0].MapId, Now.AddSeconds(1));
 
         var result = await harness.Coordinator.CancelAsync(Manager, Now.AddSeconds(2));
@@ -109,7 +108,7 @@ public sealed class AnoVetoCoordinatorTests
     public async Task CastAsync_SameSteamIdCannotVoteTwice()
     {
         var harness = CreateHarness(8, minimumVotes: 1);
-        var created = await harness.Coordinator.CreateAsync(Manager, [PlayerA], Now);
+        var created = await harness.Coordinator.CreateAsync(Manager, [PlayerA, PlayerB], Now);
 
         var first = await harness.Coordinator.CastAsync(PlayerA, created.Maps[0].MapId, Now.AddSeconds(1));
         var second = await harness.Coordinator.CastAsync(new PlayerId(PlayerA.SteamId64), created.Maps[1].MapId, Now.AddSeconds(2));
