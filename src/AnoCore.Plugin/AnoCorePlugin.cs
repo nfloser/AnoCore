@@ -102,8 +102,13 @@ public sealed class AnoCorePlugin : BasePlugin
 
             if (string.IsNullOrWhiteSpace(connectionString))
             {
-                _runtimeStatus = "not configured";
-                Logger.LogWarning("AnoCore requires ANOCORE_MYSQL or config/core.json ConnectionString.");
+                lock (_startupGate)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    _runtimeStatus = "not configured";
+                    Logger.LogWarning("AnoCore requires ANOCORE_MYSQL or config/core.json ConnectionString.");
+                }
+
                 return;
             }
 
@@ -131,6 +136,8 @@ public sealed class AnoCorePlugin : BasePlugin
             {
                 if (!cancellationToken.IsCancellationRequested)
                 {
+                    _pendingRuntime?.Dispose();
+                    _pendingRuntime = null;
                     _runtimeStatus = "startup failed";
                     Logger.LogError("AnoCore startup failed ({ErrorType}); check configuration and database availability.",
                         exception.GetType().Name);
