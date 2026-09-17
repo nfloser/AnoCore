@@ -1,6 +1,6 @@
-# Migration from K4-Zenith
+# Existing-server data migration
 
-AnoCore is not intended to be a blind namespace rename of K4-Zenith. The migration is incremental so the known-good concepts can be retained while problematic coupling and local build assumptions are removed.
+Migration is incremental. Preserve existing server behavior and data while replacing one subsystem at a time with independently verified AnoCore services.
 
 ## Principles
 
@@ -13,7 +13,7 @@ AnoCore is not intended to be a blind namespace rename of K4-Zenith. The migrati
 
 ## Planned subsystem order
 
-| Order | K4-Zenith capability | AnoCore target |
+| Order | Existing capability | AnoCore target |
 | --- | --- | --- |
 | 1 | Module/API foundation | `AnoCore.Abstractions` + `AnoCore.Runtime` |
 | 2 | Player lifecycle/services | Ano player service |
@@ -28,4 +28,4 @@ AnoCore is not intended to be a blind namespace rename of K4-Zenith. The migrati
 
 ## Data migration
 
-Existing K4-Zenith player data, statistics, playtime, ranks, bans, permissions and configuration will not be modified in-place without a tested migration path. Future migration tooling must support dry-run/validation and preserve a recoverable backup before destructive schema changes.
+Existing server player data, statistics, playtime, ranks, bans, permissions and configuration will not be modified in-place without a tested migration path. Future migration tooling must support dry-run/validation and preserve a recoverable backup before destructive schema changes.

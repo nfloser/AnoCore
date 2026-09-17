@@ -19,13 +19,13 @@ CI verifies:
 Use a disposable/non-production CS2 server with the pinned CounterStrikeSharp API version.
 
 1. Install the built AnoCore plugin and start the server with no players connected.
-2. Confirm AnoCore loads once and the server log contains no plugin exceptions.
-3. Join with one human Steam account. Confirm one player connection is tracked and no duplicate lifecycle errors occur.
+2. Confirm AnoCore loads once and the server log contains no plugin exceptions. Run `css_anostatus`; expect zero tracked humans on an empty server.
+3. Join with one human Steam account. Run `!anostatus` and confirm one player connection is tracked and no duplicate lifecycle errors occur.
 4. Change between Spectator, Terrorist and Counter-Terrorist. Confirm the server remains stable and the player snapshot follows the resulting team.
 5. Spawn and die. Confirm alive state follows the game state after the next frame.
 6. Disconnect and reconnect the same Steam account. Confirm the reconnect creates a new session and delayed callbacks from the old session do not remove the new session.
 7. With a player connected, hot-reload AnoCore. Confirm the connected human is bootstrapped once into the fresh registry and no duplicate game-event handlers fire.
-8. Unload AnoCore. Confirm game-event hooks are deregistered and no AnoCore callbacks execute afterward.
+8. Manually load AnoCore with already-connected humans and verify `css_anostatus` includes them. Unload AnoCore. Confirm `css_anostatus` is removed and game-event hooks are deregistered and no AnoCore callbacks execute afterward.
 9. Repeat load → hot reload → unload twice and inspect logs for duplicate event handling or unobserved task failures.
 
 ## Release gate

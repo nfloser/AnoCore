@@ -1,60 +1,44 @@
 # AnoCore
 
-AnoCore is a modular Counter-Strike 2 server framework for the AnoMeme server ecosystem. It is designed to provide stable shared infrastructure for independent modules such as administration, statistics, maps, voting, veto and tournament management.
+AnoCore is a modular Counter-Strike 2 server framework for the AnoMeme server ecosystem. Shared services support independent administration, statistics, map voting and tournament modules.
 
-The project uses the proven ideas and implementation experience of K4-Zenith as a migration/reference foundation instead of rediscovering every CounterStrikeSharp integration from scratch. AnoCore is **not** intended to remain a cosmetic rename: subsystems are being characterized, tested and migrated into an Ano-native architecture incrementally.
-
-> **Status:** private early development. No stable public API or production release exists yet.
+> **Status:** private development. The installed plugin currently runs player lifecycle tracking and `!anostatus`. Service implementations in the repository do not yet mean their features are connected in game. No production release exists.
 
 ## Architecture
 
-```text
-Counter-Strike 2
-      │
-CounterStrikeSharp
-      │
-AnoCore.Plugin
-      │
-AnoCore.Runtime
-      │
-AnoCore.Abstractions
-      │
-┌─────┼────────┬────────┬─────────────┐
-Admin Stats   Maps     Veto      Tournament
-```
+- `AnoCore.Abstractions`: module-facing contracts without engine dependencies.
+- `AnoCore.Runtime`: lifecycle, events, configuration, localization, placeholders, persistence, authorization, commands, menus, settings, map catalog and voting implementations.
+- `AnoCore.Plugin`: CounterStrikeSharp adapters and the server composition root.
+- Gameplay features remain independent modules.
 
-- `AnoCore.Abstractions` contains module-facing contracts and has no CounterStrikeSharp dependency.
-- `AnoCore.Runtime` implements core lifecycle/services.
-- `AnoCore.Plugin` is the thin CounterStrikeSharp adapter and composition root.
-- Optional gameplay/community features are separate modules rather than hard-coded core behavior.
+See [architecture](docs/architecture.md), [player lifecycle](docs/player-lifecycle.md) and [data migration](docs/data-migration.md).
 
-See [`docs/architecture.md`](docs/architecture.md) for the architecture rules, [`docs/player-lifecycle.md`](docs/player-lifecycle.md) for player session semantics and [`docs/migration-from-k4-zenith.md`](docs/migration-from-k4-zenith.md) for the migration strategy.
+## Install and verify
 
-## Current foundation
+[Deployment instructions](docs/deployment.md) explain the CI development package, prerequisites, rollback and server checks.
 
-AnoCore currently contains the tested module lifecycle and a reconnect-safe in-memory player registry. Player state is independent of CounterStrikeSharp; the plugin layer maps valid human `CCSPlayerController` instances into immutable AnoCore snapshots. Persistence, configs, permissions and higher-level feature modules follow in separate issues/PRs.
+Use `!anostatus` in chat or `css_anostatus` in the server console to confirm that the plugin responds and reports tracked humans. The command explicitly reports that gameplay modules are not connected. It does not claim database or feature readiness.
 
 ## Build
 
-Requires .NET 10 SDK. This follows the current stable CounterStrikeSharp API package, which targets `net10.0`.
+Requires .NET 10 SDK and a server with CounterStrikeSharp API 374 or newer and a compatible .NET 10 host. The API package is pinned to `CounterStrikeSharp.API` 1.0.374.
 
 ```bash
 dotnet restore AnoCore.sln
 dotnet build AnoCore.sln --configuration Release --no-restore
 dotnet test AnoCore.sln --configuration Release --no-build
 dotnet format AnoCore.sln --verify-no-changes --no-restore
+dotnet publish src/AnoCore.Plugin/AnoCore.Plugin.csproj --configuration Release --no-build --output artifacts/plugins/AnoCore
 ```
 
-CounterStrikeSharp is pinned through central package management rather than a wildcard package version. The initial foundation targets stable `CounterStrikeSharp.API` 1.0.374.
+CI runs database integration tests with MariaDB and validates the deployment package before uploading it. Native CS2 verification remains a separate [acceptance gate](docs/runtime-verification.md).
 
 ## Development workflow
 
-AnoCore uses:
+Issue → Branch → Tests/TDD → Implementation → Documentation → Pull Request → CI → Review → Corrections → Merge → Release.
 
-**Issue → Branch → Tests/TDD → Implementation → Documentation → Pull Request → CI → Review → Corrections → Merge → Release**
+See [AGENTS.md](AGENTS.md), [CONTRIBUTING.md](CONTRIBUTING.md) and [current handoff](docs/HANDOFF.md).
 
-Project-specific development rules are documented in [`AGENTS.md`](AGENTS.md) and contribution instructions in [`CONTRIBUTING.md`](CONTRIBUTING.md).
+## License
 
-## Licensing and K4-Zenith attribution
-
-AnoCore is developed under GNU GPL v3.0. K4-Zenith-derived code retains its original copyright and GPL obligations. See [`LICENSE.md`](LICENSE.md) and [`NOTICE.md`](NOTICE.md).
+GNU GPL v3.0. Third-party attribution and applicable notices are preserved in [NOTICE.md](NOTICE.md) and [LICENSE.md](LICENSE.md).

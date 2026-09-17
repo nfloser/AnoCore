@@ -16,7 +16,7 @@ AnoCore is developed as a set of small, reviewable workstreams. Each workstream 
 10. Maps, generic voting and AnoVeto.
 11. Tournament/match orchestration, including forced team placement in tournament mode.
 12. Web/API, server management, security hardening and developer SDK.
-13. K4-Zenith migration completion, release packaging and end-to-end CS2 verification.
+13. Existing-server data migration completion, release packaging and end-to-end CS2 verification.
 
 ## Parallelizable work
 
