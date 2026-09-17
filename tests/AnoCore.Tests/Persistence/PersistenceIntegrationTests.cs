@@ -215,6 +215,21 @@ public sealed class PersistenceIntegrationTests
         Assert.IsTrue((await runtime.Commands.ExecuteAsync("anocommands", player)).Success);
     }
 
+
+    [TestMethod]
+    public async Task RuntimeServices_RejectsCancelledStartupWithoutInstallingSubscriptions()
+    {
+        var events = new AnoEventBus();
+        var players = new PlayerRegistry(events);
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        await Assert.ThrowsAsync<OperationCanceledException>(() => RuntimeServices.CreateAsync(
+            _database, new JsonConfigStore(Path.GetTempPath()), events, players, cancellation.Token));
+        var id = new PlayerId(76561198000000012);
+        await players.ConnectAsync(new PlayerConnection(
+            id, "No persistence subscriber", PlayerTeam.Spectator, false, DateTimeOffset.UtcNow));
+    }
+
     private async Task DropAnoTablesAsync()
     {
         await ExecuteAsync("DROP TABLE IF EXISTS ano_migration_test");
