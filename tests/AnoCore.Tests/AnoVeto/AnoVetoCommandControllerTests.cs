@@ -1,11 +1,13 @@
 using AnoCore.Abstractions.Commands;
 using AnoCore.Abstractions.Maps;
+using AnoCore.Abstractions.Menus;
 using AnoCore.Abstractions.Permissions;
 using AnoCore.Abstractions.Players;
 using AnoCore.Abstractions.Voting;
 using AnoCore.Modules.AnoVeto;
 using AnoCore.Runtime.Commands;
 using AnoCore.Runtime.Maps;
+using AnoCore.Runtime.Menus;
 using AnoCore.Runtime.Voting;
 
 namespace AnoCore.Tests.AnoVeto;
@@ -22,9 +24,10 @@ public sealed class AnoVetoCommandControllerTests
     {
         var permissions = new ManagerPermissionEvaluator(allow: true);
         var commands = new CommandRegistry(permissions);
+        var menus = new MenuService();
         var players = new StubPlayerRegistry([Snapshot(Manager, "Manager"), Snapshot(PlayerA, "Player A")]);
         var coordinator = CreateCoordinator(permissions);
-        using var controller = new AnoVetoCommandController(commands, players, coordinator, new FixedTimeProvider(Now));
+        using var controller = new AnoVetoCommandController(commands, menus, players, coordinator, new FixedTimeProvider(Now));
 
         var result = await commands.ExecuteAsync("!anoveto create", Manager);
 
@@ -40,9 +43,10 @@ public sealed class AnoVetoCommandControllerTests
     {
         var permissions = new ManagerPermissionEvaluator(allow: false);
         var commands = new CommandRegistry(permissions);
+        var menus = new MenuService();
         var players = new StubPlayerRegistry([Snapshot(Manager, "Manager")]);
         var coordinator = CreateCoordinator(permissions);
-        using var controller = new AnoVetoCommandController(commands, players, coordinator, new FixedTimeProvider(Now));
+        using var controller = new AnoVetoCommandController(commands, menus, players, coordinator, new FixedTimeProvider(Now));
 
         var result = await commands.ExecuteAsync("!anoveto create", Manager);
 
@@ -56,15 +60,61 @@ public sealed class AnoVetoCommandControllerTests
     {
         var permissions = new ManagerPermissionEvaluator(allow: true);
         var commands = new CommandRegistry(permissions);
+        var menus = new MenuService();
         var players = new StubPlayerRegistry([Snapshot(Manager, "Manager")]);
         var coordinator = CreateCoordinator(permissions);
-        var controller = new AnoVetoCommandController(commands, players, coordinator, new FixedTimeProvider(Now));
+        var controller = new AnoVetoCommandController(commands, menus, players, coordinator, new FixedTimeProvider(Now));
 
         controller.Dispose();
         var result = await commands.ExecuteAsync("!anoveto create", Manager);
 
         Assert.IsFalse(result.Success);
         Assert.AreEqual(CommandFailureReason.NotFound, result.FailureReason);
+    }
+
+    [TestMethod]
+    public async Task OpenCommand_OpensEightMapMenu()
+    {
+        var permissions = new ManagerPermissionEvaluator(allow: true);
+        var commands = new CommandRegistry(permissions);
+        var menus = new MenuService();
+        var players = new StubPlayerRegistry([Snapshot(Manager, "Manager"), Snapshot(PlayerA, "Player A")]);
+        var coordinator = CreateCoordinator(permissions);
+        using var controller = new AnoVetoCommandController(commands, menus, players, coordinator, new FixedTimeProvider(Now));
+        Assert.IsTrue((await commands.ExecuteAsync("!anoveto create", Manager)).Success);
+
+        var result = await commands.ExecuteAsync("!anoveto", PlayerA);
+
+        Assert.IsTrue(result.Success, result.Message);
+        Assert.IsTrue(menus.TryGetOpenMenu(PlayerA, out var menu));
+        Assert.IsNotNull(menu);
+        Assert.HasCount(8, menu.Options);
+        Assert.IsTrue(coordinator.TryGetStatus(out var maps));
+        CollectionAssert.AreEqual(maps.Select(map => map.DisplayName).ToArray(), menu.Options.Select(option => option.Label).ToArray());
+    }
+
+    [TestMethod]
+    public async Task MenuSelection_CastsBallotForSelectedMap()
+    {
+        var permissions = new ManagerPermissionEvaluator(allow: true);
+        var commands = new CommandRegistry(permissions);
+        var menus = new MenuService();
+        var players = new StubPlayerRegistry([Snapshot(Manager, "Manager"), Snapshot(PlayerA, "Player A")]);
+        var coordinator = CreateCoordinator(permissions);
+        using var controller = new AnoVetoCommandController(commands, menus, players, coordinator, new FixedTimeProvider(Now));
+        Assert.IsTrue((await commands.ExecuteAsync("!anoveto create", Manager)).Success);
+        Assert.IsTrue((await commands.ExecuteAsync("!anoveto", PlayerA)).Success);
+        Assert.IsTrue(menus.TryGetOpenMenu(PlayerA, out var menu));
+        Assert.IsNotNull(menu);
+
+        var selected = menu.Options[3];
+        var selection = await menus.SelectAsync(PlayerA, selected.Id);
+
+        Assert.IsTrue(selection.Accepted);
+        Assert.IsTrue(coordinator.TryGetStatus(out var maps));
+        var secondVote = await coordinator.CastAsync(PlayerA, maps[4].MapId, Now.AddSeconds(1));
+        Assert.IsFalse(secondVote.Accepted);
+        Assert.AreEqual(AnoVetoFailure.AlreadyVoted, secondVote.Failure);
     }
 
     private static AnoVetoCoordinator CreateCoordinator(IPermissionEvaluator permissions)
