@@ -51,7 +51,7 @@ Stale updates/disconnects do not publish events.
 
 `AnoCore.Plugin` owns the `CCSPlayerController` mapping. `CounterStrikePlayerMapper` filters invalid controllers, bots, HLTV and zero SteamIDs before creating AnoCore connection/update records.
 
-This keeps `AnoCore.Abstractions` and `AnoCore.Runtime` independent of CounterStrikeSharp and prevents the global static player/controller coupling used by the legacy K4-Zenith player model.
+This keeps `AnoCore.Abstractions` and `AnoCore.Runtime` independent of CounterStrikeSharp and avoids global static coupling between player state and engine controllers.
 
 ## Persistence
 
