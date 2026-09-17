@@ -57,3 +57,29 @@ jobs:
 
       - name: Verify formatting
         run: dotnet format AnoCore.sln --verify-no-changes --no-restore
+
+      - name: Publish development plugin
+        run: dotnet publish src/AnoCore.Plugin/AnoCore.Plugin.csproj --configuration Release --no-build --output artifacts/plugins/AnoCore
+
+      - name: Validate deployment package
+        run: |
+          test -s artifacts/plugins/AnoCore/AnoCore.dll
+          test -s artifacts/plugins/AnoCore/AnoCore.Runtime.dll
+          test -s artifacts/plugins/AnoCore/AnoCore.Abstractions.dll
+          test -s artifacts/plugins/AnoCore/MySqlConnector.dll
+          test -s artifacts/plugins/AnoCore/AnoCore.deps.json
+          if find artifacts/plugins/AnoCore -iname 'CounterStrikeSharp.API.dll' -print -quit | grep -q .; then
+            echo 'CounterStrikeSharp.API.dll must be supplied by the server, not the plugin package.' >&2
+            exit 1
+          fi
+          cp LICENSE.md NOTICE.md artifacts/
+          cp docs/deployment.md artifacts/INSTALL.md
+          git rev-parse HEAD > artifacts/BUILD-COMMIT.txt
+          git archive --format=zip --output=artifacts/AnoCore-source.zip HEAD
+
+      - name: Upload development package
+        uses: actions/upload-artifact@v4
+        with:
+          name: AnoCore-development
+          path: artifacts/
+          if-no-files-found: error
