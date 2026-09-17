@@ -2,7 +2,7 @@
 
 AnoCore is a modular Counter-Strike 2 server framework for the AnoMeme server ecosystem. Shared services support independent administration, statistics, map voting and tournament modules.
 
-> **Status:** private development. The installed plugin currently runs player lifecycle tracking and `!anostatus`. Service implementations in the repository do not yet mean their features are connected in game. No production release exists.
+> **Status:** private development. The plugin initializes shared services after database validation and reports readiness through `!anostatus`. Official gameplay modules are tracked in the [functional acceptance matrix](docs/functional-acceptance.md). No production release exists.
 
 ## Architecture
 
@@ -17,7 +17,7 @@ See [architecture](docs/architecture.md), [player lifecycle](docs/player-lifecyc
 
 [Deployment instructions](docs/deployment.md) explain the CI development package, prerequisites, rollback and server checks.
 
-Use `!anostatus` in chat or `css_anostatus` in the server console to confirm that the plugin responds and reports tracked humans. The command explicitly reports that gameplay modules are not connected. It does not claim database or feature readiness.
+Use `!anostatus` in chat or `css_anostatus` in the server console to confirm that the plugin responds and reports tracked humans. The command reports `starting`, `not configured`, `startup failed` or `ready` and the number of optional modules. `ready` means shared services initialized successfully, not that every gameplay feature is complete.
 
 ## Build
 

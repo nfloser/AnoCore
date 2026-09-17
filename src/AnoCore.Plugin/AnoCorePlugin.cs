@@ -1,6 +1,11 @@
 using AnoCore.Abstractions.Players;
+using AnoCore.Plugin.Commands;
+using AnoCore.Plugin.Menus;
 using AnoCore.Plugin.Players;
+using AnoCore.Runtime.Composition;
+using AnoCore.Runtime.Configuration;
 using AnoCore.Runtime.Events;
+using AnoCore.Runtime.Persistence;
 using AnoCore.Runtime.Players;
 using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
@@ -17,6 +22,16 @@ public sealed class AnoCorePlugin : BasePlugin
     private AnoEventBus? _eventBus;
     private PlayerRegistry? _players;
     private bool _lifecycleHooksRegistered;
+    private readonly object _startupGate = new();
+    private CancellationTokenSource? _startup;
+    private RuntimeServices? _pendingRuntime;
+    private RuntimeServices? _runtime;
+    private CounterStrikeCommandBridge? _commands;
+    private string _runtimeStatus = "not started";
+
+    public RuntimeServices? Runtime => _runtime;
+
+    public CounterStrikeMenuPresenter? MenuPresenter { get; private set; }
 
     public override string ModuleName => "AnoCore";
 
@@ -35,11 +50,26 @@ public sealed class AnoCorePlugin : BasePlugin
 
         AddCommand("css_anostatus", "Show AnoCore runtime status", OnStatus);
         BootstrapConnectedPlayers();
-        Logger.LogInformation("AnoCore player lifecycle loaded. Gameplay modules are not yet connected.");
+        _startup = new CancellationTokenSource();
+        _runtimeStatus = "starting";
+        _ = InitializeRuntimeAsync(_eventBus, _players, _startup.Token);
     }
 
     public override void Unload(bool hotReload)
     {
+        lock (_startupGate)
+        {
+            _startup?.Cancel();
+            _pendingRuntime?.Dispose();
+            _pendingRuntime = null;
+            _commands?.Dispose();
+            _commands = null;
+            _runtime?.Dispose();
+            _runtime = null;
+            MenuPresenter = null;
+            _runtimeStatus = "stopped";
+        }
+
         RemoveCommand("css_anostatus", OnStatus);
         DeregisterLifecycleHooks();
         _players = null;
@@ -50,7 +80,110 @@ public sealed class AnoCorePlugin : BasePlugin
     {
         command.ReplyToCommand(
             $"[ANO] AnoCore {ModuleVersion}; tracked humans: {_players?.OnlinePlayers.Count ?? 0}; "
-            + "player lifecycle active; gameplay modules not connected.");
+            + $"services: {_runtimeStatus}; optional gameplay modules: {_runtime?.Modules.Modules.Count ?? 0}.");
+    }
+
+    private async Task InitializeRuntimeAsync(
+        AnoEventBus events,
+        PlayerRegistry players,
+        CancellationToken cancellationToken)
+    {
+        RuntimeServices? created = null;
+        try
+        {
+            var configuration = new JsonConfigStore(Path.Combine(ModuleDirectory, "config"));
+            var settings = await configuration.LoadAsync("core", () => new RuntimeConfiguration(),
+                cancellationToken: cancellationToken).ConfigureAwait(false);
+            var connectionString = Environment.GetEnvironmentVariable("ANOCORE_MYSQL");
+            if (string.IsNullOrWhiteSpace(connectionString))
+            {
+                connectionString = settings.ConnectionString;
+            }
+
+            if (string.IsNullOrWhiteSpace(connectionString))
+            {
+                lock (_startupGate)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    _runtimeStatus = "not configured";
+                    Logger.LogWarning("AnoCore requires ANOCORE_MYSQL or config/core.json ConnectionString.");
+                }
+
+                return;
+            }
+
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeout.CancelAfter(TimeSpan.FromSeconds(30));
+            created = await RuntimeServices.CreateAsync(
+                new MySqlDatabase(connectionString), configuration, events, players, timeout.Token)
+                .ConfigureAwait(false);
+            lock (_startupGate)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                _pendingRuntime = created;
+                created = null;
+                Server.NextWorldUpdate(() => ActivateRuntime(cancellationToken));
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            created?.Dispose();
+        }
+        catch (Exception exception)
+        {
+            created?.Dispose();
+            lock (_startupGate)
+            {
+                if (!cancellationToken.IsCancellationRequested)
+                {
+                    _pendingRuntime?.Dispose();
+                    _pendingRuntime = null;
+                    _runtimeStatus = "startup failed";
+                    Logger.LogError("AnoCore startup failed ({ErrorType}); check configuration and database availability.",
+                        exception.GetType().Name);
+                }
+            }
+        }
+    }
+
+    private void ActivateRuntime(CancellationToken cancellationToken)
+    {
+        lock (_startupGate)
+        {
+            if (cancellationToken.IsCancellationRequested || _pendingRuntime is null)
+            {
+                return;
+            }
+
+            var runtime = _pendingRuntime;
+            _pendingRuntime = null;
+            var bridge = new CounterStrikeCommandBridge(this, runtime.Commands, Logger);
+            try
+            {
+                foreach (var descriptor in runtime.Commands.GetCommands())
+                {
+                    bridge.Bind(descriptor);
+                }
+
+                MenuPresenter = new CounterStrikeMenuPresenter(this, runtime.Menus, Logger);
+                _commands = bridge;
+                _runtime = runtime;
+                _runtimeStatus = "ready";
+                Logger.LogInformation("AnoCore shared services ready; database and authorization initialized.");
+            }
+            catch
+            {
+                bridge.Dispose();
+                runtime.Dispose();
+                _runtimeStatus = "activation failed";
+                Logger.LogError("AnoCore command/menu activation failed.");
+            }
+        }
+    }
+
+    public sealed class RuntimeConfiguration
+    {
+        public string ConnectionString { get; set; } = string.Empty;
     }
 
     private void RegisterLifecycleHooks()

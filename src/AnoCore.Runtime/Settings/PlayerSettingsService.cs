@@ -58,5 +58,5 @@ public sealed class PlayerSettingsService : IPlayerSettingsService
     }
 
     private static string BuildKey(PlayerId playerId, string settingName)
-        => $"player:{playerId.SteamId64}:setting:{settingName}";
+        => $"player.{playerId.SteamId64}.setting.{settingName}";
 }

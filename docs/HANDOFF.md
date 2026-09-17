@@ -1,76 +1,40 @@
-# AnoCore Development Handoff
-
-This file is updated at package boundaries so work can continue without reconstructing state.
+# AnoCore development handoff
 
 ## Current workstream
 
-- Issue: #20 — Implement AnoVeto map vote module
-- Branch: `feature/20-anoveto`
-- Pull request: #31 (draft)
-- Original branch base: `7d8333d61aa47106db39bed293a7123661d10aae`
-- Latest functional commit before this checkpoint: `4e191886603598da1a7de6222d31ce9ec117b59b`
+- Full functional scope is defined in `docs/functional-acceptance.md`; umbrella #11 remains open.
+- Runtime composition: issue #34, PR #35, branch `feature/runtime-composition`.
+- Prior deployment work: #33 merged.
+- Independent feature work: #31, `feature/20-anoveto`. Do not overwrite that branch.
+- Extended administration commands: #36, separate from core/runtime.
 
-## Completed AnoVeto packages
+## Implemented in this branch
 
-### A — Coordinator contract
-Implemented and tested:
-- exactly 8 unique maps;
-- injectable deterministic random selection;
-- reconnect-safe one-vote-per-SteamID behavior;
-- deterministic quorum/tie handling;
-- timeout finalization;
-- cancellation without map change;
-- winning map transition emitted at most once.
+- Async shared-service startup with database probe, migrations and authorization load before native activation.
+- Configuration through `ANOCORE_MYSQL` or `plugins/AnoCore/config/core.json`.
+- 30-second startup deadline and cancellation on unload; failed/missing configuration does not activate privileged commands.
+- Shared module service provider for events, players, profiles, data, authorization, commands, menus, settings, placeholders and votes.
+- Player profile persistence on connect/reconnect/disconnect/name change and bootstrap of humans present during startup.
+- Native `anocommands` and permission-gated `anoreloadauth`, plus honest `anostatus`.
+- World-update command replies guarded against unload and changed player identity.
+- Integration correction: settings keys now use dots, not colons rejected by the MySQL store.
 
-Known-green checkpoint: `eac10a3c595a963ec34b25218e99d0e60e40ec94`, CI run 59 passed restore, Release build, tests and format.
+## Validation evidence and remaining checks
 
-### B — `!anoveto create`
-Implemented:
-- command registration;
-- eligible online-player collection;
-- authorization through the existing vote/permission layer;
-- clean unregister on disposal.
+- Initial test commit `7f03aea1a600ff47d543a73e29ad1990baa14353` failed because the composition implementation did not yet exist (CI 35201860967).
+- The first implementation CI (35202043099) built successfully but reproduced an existing settings/MySQL key mismatch through the new restart test.
+- After the fix, CI 35202374205 passed all 96 tests including MariaDB composition/restart checks; its formatting gate found two import-order issues.
+- This commit corrects those imports. Consult PR #35 for the final CI run on the exact head, including packaging.
+- No native CS2 server is available in this session. Startup/unload, real menu interaction and map transitions remain server acceptance gates; no production release is claimed.
 
-Implementation checkpoint: `44266ddd366dcaa9827d32cf2d7b213d67396aa6`, CI run 61 passed fully.
+## Integration contract for the feature workstream
 
-### C — Voting menu
-Implemented:
-- bare `!anoveto` opens the active vote menu;
-- menu contains the 8 selected map display names;
-- selection casts through the existing reconnect-safe vote service;
-- menu registration is owned/disposed by the AnoVeto controller.
+The plugin exposes `Runtime` (the `RuntimeServices` container) and `MenuPresenter` after successful initialization. Use its existing authorization/commands/menus/players/settings services rather than duplicating repositories or connection logic. New feature commands need explicit native binding and unload cleanup; current startup binds the core descriptors. Optional feature modules are not automatically discovered or loaded by this slice.
 
-Implementation checkpoint: `eaea54df373ea5dbd2cfffdbcb6bf8e40e3cbb0e`, CI run 64 passed restore, Release build, full tests and format.
+Preserve the API-374 guard, unconditional connected-player bootstrap, startup cancellation and stale-refresh guard when integrating. Engine calls after asynchronous work must be marshalled onto the server update thread. Update status/module reporting only for actual loaded modules.
 
-### D — status/cancel management
-Red tests: `9249e8ab5788a29af572b02819ced8c75430b1cc`.
-Implementation: `4e191886603598da1a7de6222d31ce9ec117b59b`.
+## Still required for full functionality
 
-Implemented:
-- `!anoveto status` is available to normal players and reports the active 8-map vote;
-- `!anoveto cancel` uses existing manager authorization;
-- unauthorized cancellation returns Forbidden and preserves the vote;
-- successful cancellation terminates the vote and disposes the registered vote menu, closing open menu sessions;
-- bare `!anoveto` fails cleanly after cancellation.
+Complete every row in `docs/functional-acceptance.md`: core registration/settings UI/config upgrades, administration/chat/tags/messaging (#17), stats/ranks/playtime/toplists (#18), extended commands (#36), custom vote (#20/#31), tournament (#21), SDK/API/integrations (#22) and end-to-end deployment/release (#23).
 
-This checkpoint commit exists to trigger and record a fresh CI run for Block D. Do not start Block E until that CI is green.
-
-## Remaining AnoVeto packages
-
-E. CounterStrikeSharp runtime composition and expiry ticking.
-F. Documentation and real-CS2 acceptance checklist.
-G. Final full CI, self-review, integration with current `main`, fixes and merge.
-
-Each package remains independently committed and tested before the next begins.
-
-## Wider roadmap
-
-Merged foundation includes core/CI, player lifecycle, events/runtime, MariaDB persistence, permissions/immunity, commands/menus/settings, canonical GPLv3, maps and generic voting. Other isolated workstreams remain #17 admin/chat/messaging, #18 stats/ranks/playtime/toplists, #21 tournament, #22 Web/API/server/security/SDK, and #23 migration/package/real-server release acceptance.
-
-## External/release gates
-
-Managed CI does not prove native CounterStrikeSharp/CS2 behavior. Real-server verification remains mandatory for CenterHtml menu rendering, command bridging, event timing, hot reload/unload, timeout behavior and actual map transitions before release readiness is claimed.
-
-## Next exact step
-
-Verify fresh PR CI for this checkpoint. If Block D is green, begin Block E from this known-good head and change only runtime composition/expiry behavior.
+Do not mark #11 or #23 complete, call this feature parity, or publish a production release while these rows remain open. License/NOTICE and source provenance remain intact.
