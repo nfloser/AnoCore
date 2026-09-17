@@ -17,7 +17,7 @@ An older server hosting other working plugins does not establish compatibility w
 3. Stop the test server and back up any existing `game/csgo/addons/counterstrikesharp/plugins/AnoCore` directory.
 4. Copy the complete `plugins/AnoCore` directory into `game/csgo/addons/counterstrikesharp/plugins/`. The result must include `AnoCore/AnoCore.dll`, `AnoCore.Runtime.dll`, `AnoCore.Abstractions.dll`, `AnoCore.deps.json` and the published dependency DLLs.
 5. Do not copy a private `CounterStrikeSharp.API.dll` into this directory.
-6. Restart the server. Confirm the AnoCore lifecycle-loaded message and no loader exceptions.
+6. Configure the database as described below, then restart. Confirm the shared-services-ready message and no loader exceptions.
 7. Run `css_anostatus` in the server console, then connect a human player and run `!anostatus`.
 
 Copying only `AnoCore.dll` is insufficient. CI publishes the project dependency graph and checks the required files before uploading.
@@ -29,7 +29,25 @@ Copying only `AnoCore.dll` is insufficient. CI publishes the project dependency 
 - Read-only status command reporting the tracked human count.
 - Old queued refresh callbacks are ignored after registry replacement.
 
-The plugin currently does not compose database/configuration, authorization, commands/menus, voting or optional gameplay modules into a complete runtime. Database settings and feature commands are therefore not advertised as working. The integrated AnoVeto work is tracked separately in #20/#31; avoid registering its command concurrently with another plugin.
+The plugin initializes migrations, module data, player profiles, authorization, command/menu services, settings, placeholders and the vote service. Native core commands are bound only after successful database startup. Optional modules still require their individual integration and server acceptance.
+
+## Database configuration
+
+On first load, AnoCore creates `plugins/AnoCore/config/core.json` with an empty `ConnectionString`. Set that value to your dedicated MySQL/MariaDB connection string, or configure `ANOCORE_MYSQL` in the server environment (environment takes precedence). Never commit production credentials. Restrict access to this configuration file.
+
+Example structure, with values supplied by the operator:
+
+```json
+{
+  "ConnectionString": "Server=127.0.0.1;Database=anocore;User ID=anocore;Password=YOUR_DATABASE_PASSWORD;Connection Timeout=10;Default Command Timeout=15"
+}
+```
+
+Use a dedicated database; startup applies the existing AnoCore schema migrations. Startup has a 30-second cancellation deadline. Missing configuration or a database/authorization failure leaves only lifecycle tracking and status available; privileged services are not activated. Correct configuration and restart to retry.
+
+`css_anocommands` lists registered logical commands. `css_anoreloadauth` reloads persisted role assignments; the server console is allowed, players require `ano.core.reload`. No player receives this permission by default. See `docs/authorization.md` for the persisted authorization model.
+
+Connected/reconnected/disconnected profiles and name changes are stored through the real player repository; player settings use storage-safe keys and survive restart. Unit tests alone are supplemented by MariaDB composition tests. No legacy database is automatically imported.
 
 ## Verification
 
@@ -47,11 +65,11 @@ See the repository's `docs/runtime-verification.md` for the broader acceptance c
 
 ## Rollback
 
-Stop the server, replace only the AnoCore plugin directory with its backup, then restart. Preserve unrelated plugins and server configuration. This development package does not migrate or overwrite an existing gameplay database.
+Stop the server, replace only the AnoCore plugin directory with its backup, then restart. Preserve unrelated plugins and server configuration. This package applies AnoCore schema migrations to the configured database. Back up that database before an upgrade; do not point it at an unrelated gameplay database.
 
 ## Fastest path to feature readiness
 
-1. Complete the composition root: load validated configuration, initialize persistence/migrations, load authorization and connect command/menu adapters.
+1. Verify configured database startup and existing core commands on the target host.
 2. Attach the independently developed feature modules with explicit shutdown/rollback.
 3. Register each native command once; ensure engine operations run on the server thread after asynchronous database work.
 4. Exercise permissions, UI, disconnect/reconnect, timeout and map transition with real clients.
