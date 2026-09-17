@@ -42,7 +42,7 @@ public sealed class AnoVetoCommandController : IDisposable
                     new CommandArgumentDescriptor(
                         "action",
                         CommandArgumentKind.String,
-                        "Optional management action such as create.",
+                        "Optional management action such as create, status or cancel.",
                         required: false),
                 ]),
             HandleAsync);
@@ -51,30 +51,36 @@ public sealed class AnoVetoCommandController : IDisposable
     public void Dispose()
     {
         Interlocked.Exchange(ref _commandRegistration, null)?.Dispose();
-        lock (_menuGate)
-        {
-            _menuRegistration?.Dispose();
-            _menuRegistration = null;
-        }
+        RemoveVoteMenu();
     }
 
-    private async ValueTask<CommandResult> HandleAsync(CommandContext context)
+    private ValueTask<CommandResult> HandleAsync(CommandContext context)
     {
         if (context.Caller is null)
         {
-            return CommandResult.Fail(CommandFailureReason.InvalidInput, "AnoVeto must be used by a player.");
+            return ValueTask.FromResult(CommandResult.Fail(
+                CommandFailureReason.InvalidInput,
+                "AnoVeto must be used by a player."));
         }
 
         if (!context.TryGet<string>("action", out var action) || string.IsNullOrWhiteSpace(action))
         {
-            return OpenMenu(context.Caller);
+            return ValueTask.FromResult(OpenMenu(context.Caller));
         }
 
-        if (!string.Equals(action, "create", StringComparison.OrdinalIgnoreCase))
+        return action.Trim().ToLowerInvariant() switch
         {
-            return CommandResult.Fail(CommandFailureReason.InvalidInput, $"Unknown AnoVeto action '{action}'.");
-        }
+            "create" => CreateAsync(context),
+            "status" => ValueTask.FromResult(GetStatus()),
+            "cancel" => CancelAsync(context),
+            _ => ValueTask.FromResult(CommandResult.Fail(
+                CommandFailureReason.InvalidInput,
+                $"Unknown AnoVeto action '{action}'.")),
+        };
+    }
 
+    private async ValueTask<CommandResult> CreateAsync(CommandContext context)
+    {
         var eligiblePlayers = _players.OnlinePlayers
             .Where(player => player.IsConnected)
             .Select(player => player.Id)
@@ -87,7 +93,7 @@ public sealed class AnoVetoCommandController : IDisposable
         }
 
         var result = await _coordinator.CreateAsync(
-            context.Caller,
+            context.Caller!,
             eligiblePlayers,
             _timeProvider.GetUtcNow(),
             context.CancellationToken).ConfigureAwait(false);
@@ -104,6 +110,37 @@ public sealed class AnoVetoCommandController : IDisposable
             AnoVetoFailure.AlreadyActive => CommandResult.Fail(CommandFailureReason.InvalidInput, "An AnoVeto vote is already active."),
             AnoVetoFailure.NotEnoughMaps => CommandResult.Fail(CommandFailureReason.HandlerFailed, "At least eight configured maps are required."),
             _ => CommandResult.Fail(CommandFailureReason.HandlerFailed, $"AnoVeto could not be started: {result.Failure}."),
+        };
+    }
+
+    private CommandResult GetStatus()
+    {
+        if (!_coordinator.TryGetStatus(out var maps))
+        {
+            return CommandResult.Fail(CommandFailureReason.InvalidInput, "There is no active AnoVeto vote.");
+        }
+
+        return CommandResult.Ok($"AnoVeto is active with {maps.Count} maps.");
+    }
+
+    private async ValueTask<CommandResult> CancelAsync(CommandContext context)
+    {
+        var result = await _coordinator.CancelAsync(
+            context.Caller!,
+            _timeProvider.GetUtcNow(),
+            context.CancellationToken).ConfigureAwait(false);
+
+        if (result.Accepted)
+        {
+            RemoveVoteMenu();
+            return CommandResult.Ok("AnoVeto cancelled.");
+        }
+
+        return result.Failure switch
+        {
+            AnoVetoFailure.Forbidden => CommandResult.Fail(CommandFailureReason.Forbidden, "You are not allowed to cancel AnoVeto votes."),
+            AnoVetoFailure.NotActive => CommandResult.Fail(CommandFailureReason.InvalidInput, "There is no active AnoVeto vote."),
+            _ => CommandResult.Fail(CommandFailureReason.HandlerFailed, $"AnoVeto could not be cancelled: {result.Failure}."),
         };
     }
 
@@ -136,6 +173,15 @@ public sealed class AnoVetoCommandController : IDisposable
         {
             _menuRegistration?.Dispose();
             _menuRegistration = RegisterVoteMenu(maps);
+        }
+    }
+
+    private void RemoveVoteMenu()
+    {
+        lock (_menuGate)
+        {
+            _menuRegistration?.Dispose();
+            _menuRegistration = null;
         }
     }
 
