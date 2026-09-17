@@ -9,9 +9,11 @@ namespace AnoCore.Plugin.Menus;
 
 public sealed class CounterStrikeMenuPresenter
 {
+    private readonly object _gate = new();
     private readonly BasePlugin _plugin;
     private readonly IMenuService _menus;
     private readonly ILogger _logger;
+    private readonly Dictionary<PlayerId, RenderedMenu> _renderedMenus = [];
 
     public CounterStrikeMenuPresenter(BasePlugin plugin, IMenuService menus, ILogger logger)
     {
@@ -48,7 +50,56 @@ public sealed class CounterStrikeMenuPresenter
         }
 
         menu.Open(player);
+        var instance = MenuManager.GetActiveMenu(player);
+        if (instance is not null)
+        {
+            lock (_gate)
+            {
+                _renderedMenus[playerId] = new RenderedMenu(definition.Id, instance);
+            }
+        }
+
         return true;
+    }
+
+    public void Reconcile()
+    {
+        KeyValuePair<PlayerId, RenderedMenu>[] rendered;
+        lock (_gate)
+        {
+            rendered = _renderedMenus.ToArray();
+        }
+
+        var controllers = Utilities.GetPlayers()
+            .Where(player => player.IsValid && player.SteamID != 0)
+            .GroupBy(player => player.SteamID)
+            .ToDictionary(group => group.Key, group => group.First());
+
+        foreach (var pair in rendered)
+        {
+            if (!controllers.TryGetValue(pair.Key.SteamId64, out var player))
+            {
+                RemoveTracked(pair.Key, pair.Value);
+                continue;
+            }
+
+            var activeInstance = MenuManager.GetActiveMenu(player);
+            if (!ReferenceEquals(activeInstance, pair.Value.Instance))
+            {
+                RemoveTracked(pair.Key, pair.Value);
+                continue;
+            }
+
+            if (_menus.TryGetOpenMenu(pair.Key, out var logicalMenu)
+                && logicalMenu is not null
+                && logicalMenu.Id == pair.Value.MenuId)
+            {
+                continue;
+            }
+
+            MenuManager.CloseActiveMenu(player);
+            RemoveTracked(pair.Key, pair.Value);
+        }
     }
 
     private async Task SelectAsync(CCSPlayerController player, PlayerId playerId, MenuOption option)
@@ -58,6 +109,7 @@ public sealed class CounterStrikeMenuPresenter
             var result = await _menus.SelectAsync(playerId, option.Id).ConfigureAwait(false);
             Server.NextFrame(() =>
             {
+                Reconcile();
                 if (!player.IsValid)
                 {
                     return;
@@ -77,15 +129,22 @@ public sealed class CounterStrikeMenuPresenter
                 {
                     Open(player);
                 }
-                else
-                {
-                    MenuManager.CloseActiveMenu(player);
-                }
             });
         }
         catch (Exception exception)
         {
             _logger.LogError(exception, "AnoCore menu selection failed for player {PlayerId} and option {OptionId}.", playerId, option.Id);
+        }
+    }
+
+    private void RemoveTracked(PlayerId playerId, RenderedMenu expected)
+    {
+        lock (_gate)
+        {
+            if (_renderedMenus.TryGetValue(playerId, out var current) && ReferenceEquals(current, expected))
+            {
+                _renderedMenus.Remove(playerId);
+            }
         }
     }
 
@@ -108,4 +167,6 @@ public sealed class CounterStrikeMenuPresenter
             return false;
         }
     }
+
+    private sealed record RenderedMenu(MenuId MenuId, IMenuInstance Instance);
 }

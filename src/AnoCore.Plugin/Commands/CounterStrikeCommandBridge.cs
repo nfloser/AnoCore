@@ -14,14 +14,20 @@ public sealed class CounterStrikeCommandBridge : IDisposable
     private readonly BasePlugin _plugin;
     private readonly IAnoCommandRegistry _registry;
     private readonly ILogger _logger;
+    private readonly Action<string, CCSPlayerController?>? _afterDispatch;
     private readonly Dictionary<string, CommandInfo.CommandCallback> _bindings = new(StringComparer.Ordinal);
     private bool _disposed;
 
-    public CounterStrikeCommandBridge(BasePlugin plugin, IAnoCommandRegistry registry, ILogger logger)
+    public CounterStrikeCommandBridge(
+        BasePlugin plugin,
+        IAnoCommandRegistry registry,
+        ILogger logger,
+        Action<string, CCSPlayerController?>? afterDispatch = null)
     {
         _plugin = plugin ?? throw new ArgumentNullException(nameof(plugin));
         _registry = registry ?? throw new ArgumentNullException(nameof(registry));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _afterDispatch = afterDispatch;
     }
 
     public IDisposable Bind(CommandDescriptor descriptor)
@@ -110,10 +116,11 @@ public sealed class CounterStrikeCommandBridge : IDisposable
 
         var callingContext = info.CallingContext;
         var input = BuildInvocation(logicalName, info);
-        _ = DispatchAsync(input, playerId, player, callingContext);
+        _ = DispatchAsync(logicalName, input, playerId, player, callingContext);
     }
 
     private async Task DispatchAsync(
+        string logicalName,
         string input,
         PlayerId? playerId,
         CCSPlayerController? player,
@@ -122,18 +129,32 @@ public sealed class CounterStrikeCommandBridge : IDisposable
         try
         {
             var result = await _registry.ExecuteAsync(input, playerId).ConfigureAwait(false);
-            if (string.IsNullOrWhiteSpace(result.Message))
+            var message = result.Message;
+            if (string.IsNullOrWhiteSpace(message) && _afterDispatch is null)
             {
                 return;
             }
 
-            var message = result.Message;
             Server.NextWorldUpdate(() =>
             {
-                if (!Volatile.Read(ref _disposed)
-                    && (player is null || (player.IsValid && player.SteamID == playerId?.SteamId64)))
+                if (Volatile.Read(ref _disposed)
+                    || (player is not null && (!player.IsValid || player.SteamID != playerId?.SteamId64)))
+                {
+                    return;
+                }
+
+                if (!string.IsNullOrWhiteSpace(message))
                 {
                     Reply(player, callingContext, message);
+                }
+
+                try
+                {
+                    _afterDispatch?.Invoke(logicalName, player);
+                }
+                catch (Exception exception)
+                {
+                    _logger.LogError(exception, "AnoCore post-command presentation failed for {CommandName}.", logicalName);
                 }
             });
         }

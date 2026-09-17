@@ -3,38 +3,62 @@
 ## Current workstream
 
 - Full functional scope is defined in `docs/functional-acceptance.md`; umbrella #11 remains open.
-- Runtime composition: issue #34, PR #35, branch `feature/runtime-composition`.
-- Prior deployment work: #33 merged.
-- Independent feature work: #31, `feature/20-anoveto`. Do not overwrite that branch.
-- Extended administration commands: #36, separate from core/runtime.
+- Shared runtime composition from issue #34 / PR #35 is merged into `main` at `de160592a362c74f59b2a430829be62cce3de04f`.
+- Active feature work: issue #20 / PR #31 / branch `feature/20-anoveto`.
+- Extended administration commands remain a separate workstream and must not be overwritten.
 
-## Implemented in this branch
+## Known-good AnoVeto checkpoint
 
-- Async shared-service startup with database probe, migrations and authorization load before native activation.
-- Configuration through `ANOCORE_MYSQL` or `plugins/AnoCore/config/core.json`.
-- 30-second startup deadline and cancellation on unload; failed/missing configuration does not activate privileged commands.
-- Shared module service provider for events, players, profiles, data, authorization, commands, menus, settings, placeholders and votes.
-- Player profile persistence on connect/reconnect/disconnect/name change and bootstrap of humans present during startup.
-- Native `anocommands` and permission-gated `anoreloadauth`, plus honest `anostatus`.
-- World-update command replies guarded against unload and changed player identity.
-- Integration correction: settings keys now use dots, not colons rejected by the MySQL store.
+- Reviewed implementation head before this documentation-only checkpoint: `42794bcebb7a7b833052b08d59890597fdffe3f8`.
+- CI run: `35225883916` (#104).
+- Restore: passed.
+- Release build: passed.
+- Test suite: 122/122 passed, including MariaDB integration and AnoVeto lifecycle/runtime/configuration/eligibility tests.
+- Formatting: passed.
+- Development plugin publish: passed.
+- Deployment package validation: passed and explicitly verifies `AnoCore.Modules.AnoVeto.dll` is present.
+- Artifact upload: passed.
+- Review finding resolved: native CenterHtml menus are now tracked by instance and reconciled against logical menu state, so timeout/cancel/finalization does not leave stale AnoVeto UI visible or accidentally close a later unrelated native menu.
 
-## Validation evidence and remaining checks
+## AnoVeto implemented through native runtime composition
 
-- Initial test commit `7f03aea1a600ff47d543a73e29ad1990baa14353` failed because the composition implementation did not yet exist (CI 35201860967).
-- The first implementation CI (35202043099) built successfully but reproduced an existing settings/MySQL key mismatch through the new restart test.
-- After the fix, CI 35202374205 passed all 96 tests including MariaDB composition/restart checks; its formatting gate found two import-order issues.
-- This commit corrects those imports. Consult PR #35 for the final CI run on the exact head, including packaging.
-- No native CS2 server is available in this session. Startup/unload, real menu interaction and map transitions remain server acceptance gates; no production release is claimed.
+- Dedicated `AnoCore.Modules.AnoVeto` project with validated `anoveto.json` configuration.
+- `maps.json` is loaded through the shared map catalog infrastructure; exactly eight unique candidates are selected through injectable randomness.
+- Shared SteamID-based vote service is reused; AnoVeto does not duplicate permissions, voting, commands, menus, player state or persistence.
+- `!anoveto create`, `!anoveto`, `status` and `cancel` logical command behavior is implemented.
+- `css_anoveto` is bound through the existing CounterStrikeSharp command bridge.
+- Logical eight-map menus are presented through the existing CounterStrike menu presenter / CenterHtml path.
+- Native menu instances are reconciled after command dispatch, selections and expiry, while guarding against closing menus that replaced the tracked AnoVeto instance.
+- Menu selections route back into the same reconnect-safe vote session; one ballot per SteamID is enforced.
+- Management authorization is inherited from the shared `ano.vote.manage` permission layer.
+- Minimum-vote configuration greater than the eligible online population is rejected cleanly instead of throwing during vote construction.
+- Deterministic quorum and tie handling is implemented.
+- Votes finalize immediately once every eligible player voted, or on expiry/manual completion.
+- A ballot submitted at the exact deadline is rejected without consuming the expired result, allowing the expiry owner to finalize exactly once.
+- Map-change emission is guarded to occur at most once.
+- Completed, cancelled and expired votes unregister the logical menu and reconcile native open menu instances.
+- Native runtime composition creates AnoVeto from the existing `RuntimeServices` and the real CounterStrike map changer.
+- A repeating one-second CounterStrikeSharp timer finalizes expired AnoVeto sessions.
+- Timer, controller, command registrations and shared runtime objects are disposed during unload/failed activation.
+- AnoVeto configuration/composition failure is isolated: AnoCore continues without the optional module rather than failing the core runtime.
+- The development package includes `AnoCore.Modules.AnoVeto.dll`; CounterStrikeSharp itself remains server-supplied.
 
-## Integration contract for the feature workstream
+## Review status and acceptance gates
 
-The plugin exposes `Runtime` (the `RuntimeServices` container) and `MenuPresenter` after successful initialization. Use its existing authorization/commands/menus/players/settings services rather than duplicating repositories or connection logic. New feature commands need explicit native binding and unload cleanup; current startup binds the core descriptors. Optional feature modules are not automatically discovered or loaded by this slice.
+- Critical PR paths reviewed: generic vote extension, coordinator finalization/concurrency, command/menu cleanup, configuration loading, shared-service composition, CounterStrikeSharp host integration, expiry timer and packaging.
+- No remaining code-review blocker is known after the stale-native-menu fix.
+- A real CS2 server acceptance run is still required for actual CenterHtml rendering, key interaction and the final `changelevel` / `host_workshop_map` transition. CI cannot prove engine/UI behavior.
+- Do not claim a production release or complete feature parity while umbrella #11 / release issue #23 and the remaining functional-acceptance rows are open.
 
-Preserve the API-374 guard, unconditional connected-player bootstrap, startup cancellation and stale-refresh guard when integrating. Engine calls after asynchronous work must be marshalled onto the server update thread. Update status/module reporting only for actual loaded modules.
+## Next steps
 
-## Still required for full functionality
+1. Require final CI on the exact documentation checkpoint head, then mark PR #31 ready and merge it.
+2. After merge, preserve the real-server AnoVeto acceptance as a release gate.
+3. Select the next independent workstream from `docs/functional-acceptance.md`; preserve other active branches and do not overwrite parallel administration work.
+4. Continue using small test-first commits and update this handoff before context boundaries.
 
-Complete every row in `docs/functional-acceptance.md`: core registration/settings UI/config upgrades, administration/chat/tags/messaging (#17), stats/ranks/playtime/toplists (#18), extended commands (#36), custom vote (#20/#31), tournament (#21), SDK/API/integrations (#22) and end-to-end deployment/release (#23).
+## Integration rules
 
-Do not mark #11 or #23 complete, call this feature parity, or publish a production release while these rows remain open. License/NOTICE and source provenance remain intact.
+Use existing authorization, commands, menus, players, settings, voting and configuration services in `RuntimeServices`. Do not create a second database, permission system, command registry, menu service or vote service. Engine calls after asynchronous work must be marshalled onto the server update thread. Preserve the API-374 guard, startup cancellation, connected-player bootstrap and unload cleanup.
+
+License, NOTICE and source provenance must remain intact.
