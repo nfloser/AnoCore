@@ -8,8 +8,8 @@ using AnoCore.Abstractions.Settings;
 using AnoCore.Runtime.Composition;
 using AnoCore.Runtime.Configuration;
 using AnoCore.Runtime.Events;
-using AnoCore.Runtime.Persistence.Migrations;
 using AnoCore.Runtime.Persistence;
+using AnoCore.Runtime.Persistence.Migrations;
 using AnoCore.Runtime.Players;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -156,7 +156,6 @@ public sealed class PersistenceIntegrationTests
         Assert.ThrowsExactly<ArgumentException>(() => new MigrationRunner(_database, migrations));
     }
 
-
     [TestMethod]
     public async Task RuntimeServices_PersistsProfilesAndSettingsAcrossRestart()
     {
@@ -216,7 +215,6 @@ public sealed class PersistenceIntegrationTests
         Assert.IsTrue((await runtime.Commands.ExecuteAsync("anocommands", player)).Success);
     }
 
-
     [TestMethod]
     public async Task RuntimeServices_RejectsCancelledStartupWithoutInstallingSubscriptions()
     {
@@ -230,7 +228,6 @@ public sealed class PersistenceIntegrationTests
         await players.ConnectAsync(new PlayerConnection(
             id, "No persistence subscriber", PlayerTeam.Spectator, false, DateTimeOffset.UtcNow));
     }
-
 
     [TestMethod]
     public async Task RuntimeServices_LoadsPersistedRolesAndEnforcesThemAfterRestart()
