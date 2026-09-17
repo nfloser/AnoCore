@@ -227,6 +227,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 {
                     if (string.Equals(commandName, "anoveto", StringComparison.Ordinal))
                     {
+                        presenter.Reconcile();
                         presenter.Open(player);
                     }
                 });
@@ -243,7 +244,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 {
                     expiryTimer = AddTimer(
                         1.0f,
-                        () => Observe(anoVeto.ExpireAsync().AsTask(), "anoveto_expire"),
+                        () => _ = ExpireAnoVetoAsync(anoVeto, presenter),
                         TimerFlags.REPEAT);
                 }
 
@@ -267,6 +268,30 @@ public sealed class AnoCorePlugin : BasePlugin
                 _runtimeStatus = "activation failed";
                 Logger.LogError(exception, "AnoCore command/menu/module activation failed.");
             }
+        }
+    }
+
+    private async Task ExpireAnoVetoAsync(AnoVetoModuleRuntime anoVeto, CounterStrikeMenuPresenter presenter)
+    {
+        try
+        {
+            var result = await anoVeto.ExpireAsync().ConfigureAwait(false);
+            if (result is null)
+            {
+                return;
+            }
+
+            Server.NextWorldUpdate(() =>
+            {
+                if (ReferenceEquals(_anoVeto, anoVeto) && ReferenceEquals(MenuPresenter, presenter))
+                {
+                    presenter.Reconcile();
+                }
+            });
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "AnoCore runtime operation {Operation} failed.", "anoveto_expire");
         }
     }
 
