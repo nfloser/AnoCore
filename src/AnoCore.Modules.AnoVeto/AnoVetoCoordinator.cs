@@ -53,6 +53,12 @@ public sealed class AnoVetoCoordinator
             return AnoVetoOperationResult.Reject(AnoVetoFailure.NotEnoughMaps);
         }
 
+        var distinctEligiblePlayers = eligiblePlayers.Distinct().ToArray();
+        if (distinctEligiblePlayers.Length < _options.MinimumVotes)
+        {
+            return AnoVetoOperationResult.Reject(AnoVetoFailure.NotEnoughEligiblePlayers);
+        }
+
         var selected = _random.Select(_catalog.All, MapCount).ToArray();
         if (selected.Length != MapCount || selected.Select(map => map.MapId).Distinct(StringComparer.OrdinalIgnoreCase).Count() != MapCount)
         {
@@ -69,7 +75,7 @@ public sealed class AnoVetoCoordinator
             VoteId,
             "AnoVeto — choose the next map",
             options,
-            eligiblePlayers,
+            distinctEligiblePlayers,
             new VotePolicy(_options.Duration, _options.MinimumVotes, _options.TieBreakPolicy));
 
         var created = await _votes.CreateAsync(manager, definition, now, cancellationToken).ConfigureAwait(false);
