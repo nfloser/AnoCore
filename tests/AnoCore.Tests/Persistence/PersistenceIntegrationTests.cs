@@ -1,6 +1,7 @@
 using System.Data.Common;
 using AnoCore.Abstractions.Commands;
 using AnoCore.Abstractions.Modules;
+using AnoCore.Abstractions.Permissions;
 using AnoCore.Abstractions.Persistence;
 using AnoCore.Abstractions.Players;
 using AnoCore.Abstractions.Settings;
@@ -228,6 +229,26 @@ public sealed class PersistenceIntegrationTests
         var id = new PlayerId(76561198000000012);
         await players.ConnectAsync(new PlayerConnection(
             id, "No persistence subscriber", PlayerTeam.Spectator, false, DateTimeOffset.UtcNow));
+    }
+
+
+    [TestMethod]
+    public async Task RuntimeServices_LoadsPersistedRolesAndEnforcesThemAfterRestart()
+    {
+        await new MigrationRunner(_database, [new CoreSchemaMigration001()]).ApplyPendingAsync();
+        var events = new AnoEventBus();
+        var player = new PlayerId(76561198000000013);
+        var role = new RoleId("operator");
+        var store = new AnoCore.Runtime.Permissions.ModuleDataAuthorizationStore(new MySqlModuleDataStore(_database));
+        await store.SaveAsync(new AuthorizationState(
+            [new AuthorizationRole(role, 50, [], [new PermissionRule("ano.core.reload", PermissionEffect.Allow)], ["admin"])],
+            [new PlayerAuthorization(player, [role], [])]));
+        using var runtime = await RuntimeServices.CreateAsync(
+            _database, new JsonConfigStore(Path.GetTempPath()), events, new PlayerRegistry(events));
+        Assert.AreEqual(50, await runtime.Authorization.GetImmunityAsync(player));
+        Assert.IsTrue(await runtime.Authorization.HasTagAsync(player, "admin"));
+        Assert.IsTrue((await runtime.Commands.ExecuteAsync("anoreloadauth", player)).Success);
+        Assert.IsFalse(await runtime.Authorization.HasPermissionAsync(player, new PermissionId("ano.unrelated.action")));
     }
 
     private async Task DropAnoTablesAsync()
