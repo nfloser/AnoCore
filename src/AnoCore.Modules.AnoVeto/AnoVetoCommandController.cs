@@ -1,6 +1,5 @@
 using AnoCore.Abstractions.Commands;
-using AnoCore.Abstractions.Maps;
-using AnoCore.Abstractions.Menus;
+using AnoCore.Abstractions.Hud;
 using AnoCore.Abstractions.Modules;
 using AnoCore.Abstractions.Players;
 
@@ -9,28 +8,28 @@ namespace AnoCore.Modules.AnoVeto;
 public sealed class AnoVetoCommandController : IDisposable
 {
     private static readonly ModuleId Owner = new("ano.veto");
-    private static readonly MenuId VoteMenuId = new("ano.anoveto");
 
-    private readonly object _menuGate = new();
-    private readonly IMenuService _menus;
     private readonly IPlayerRegistry _players;
     private readonly AnoVetoCoordinator _coordinator;
+    private readonly AnoVetoHudController _hud;
     private readonly TimeProvider _timeProvider;
     private IDisposable? _commandRegistration;
-    private IDisposable? _menuRegistration;
 
     public AnoVetoCommandController(
         IAnoCommandRegistry commands,
-        IMenuService menus,
+        ICustomHudService hud,
         IPlayerRegistry players,
         AnoVetoCoordinator coordinator,
         TimeProvider? timeProvider = null)
     {
         ArgumentNullException.ThrowIfNull(commands);
-        _menus = menus ?? throw new ArgumentNullException(nameof(menus));
         _players = players ?? throw new ArgumentNullException(nameof(players));
         _coordinator = coordinator ?? throw new ArgumentNullException(nameof(coordinator));
         _timeProvider = timeProvider ?? TimeProvider.System;
+        _hud = new AnoVetoHudController(
+            hud ?? throw new ArgumentNullException(nameof(hud)),
+            coordinator,
+            _timeProvider);
 
         _commandRegistration = commands.Register(
             Owner,
@@ -55,7 +54,7 @@ public sealed class AnoVetoCommandController : IDisposable
             cancellationToken).ConfigureAwait(false);
         if (result is not null)
         {
-            RemoveVoteMenu();
+            _hud.HideAll();
         }
 
         return result;
@@ -64,7 +63,7 @@ public sealed class AnoVetoCommandController : IDisposable
     public void Dispose()
     {
         Interlocked.Exchange(ref _commandRegistration, null)?.Dispose();
-        RemoveVoteMenu();
+        _hud.Dispose();
     }
 
     private ValueTask<CommandResult> HandleAsync(CommandContext context)
@@ -78,7 +77,7 @@ public sealed class AnoVetoCommandController : IDisposable
 
         if (!context.TryGet<string>("action", out var action) || string.IsNullOrWhiteSpace(action))
         {
-            return ValueTask.FromResult(OpenMenu(context.Caller));
+            return ValueTask.FromResult(OpenHud(context.Caller));
         }
 
         return action.Trim().ToLowerInvariant() switch
@@ -113,7 +112,7 @@ public sealed class AnoVetoCommandController : IDisposable
 
         if (result.Accepted)
         {
-            ReplaceVoteMenu(result.Maps);
+            _hud.ShowAll(eligiblePlayers);
             return CommandResult.Ok($"AnoVeto started with {result.Maps.Count} maps.");
         }
 
@@ -148,7 +147,7 @@ public sealed class AnoVetoCommandController : IDisposable
 
         if (result.Accepted)
         {
-            RemoveVoteMenu();
+            _hud.HideAll();
             return CommandResult.Ok("AnoVeto cancelled.");
         }
 
@@ -160,68 +159,15 @@ public sealed class AnoVetoCommandController : IDisposable
         };
     }
 
-    private CommandResult OpenMenu(PlayerId playerId)
+    private CommandResult OpenHud(PlayerId playerId)
     {
-        if (!_coordinator.TryGetStatus(out var maps))
+        if (!_coordinator.TryGetStatus(out _))
         {
             return CommandResult.Fail(CommandFailureReason.InvalidInput, "There is no active AnoVeto vote.");
         }
 
-        EnsureVoteMenu(maps);
-        _menus.Open(playerId, VoteMenuId);
-        return CommandResult.Ok("AnoVeto menu opened.");
-    }
-
-    private void EnsureVoteMenu(IReadOnlyList<MapDefinition> maps)
-    {
-        lock (_menuGate)
-        {
-            if (_menuRegistration is null)
-            {
-                _menuRegistration = RegisterVoteMenu(maps);
-            }
-        }
-    }
-
-    private void ReplaceVoteMenu(IReadOnlyList<MapDefinition> maps)
-    {
-        lock (_menuGate)
-        {
-            _menuRegistration?.Dispose();
-            _menuRegistration = RegisterVoteMenu(maps);
-        }
-    }
-
-    private void RemoveVoteMenu()
-    {
-        lock (_menuGate)
-        {
-            _menuRegistration?.Dispose();
-            _menuRegistration = null;
-        }
-    }
-
-    private IDisposable RegisterVoteMenu(IReadOnlyList<MapDefinition> maps)
-        => _menus.Register(
-            Owner,
-            new MenuDefinition(
-                VoteMenuId,
-                "AnoVeto — choose the next map",
-                maps.Select((map, index) => new MenuOption(
-                    $"map{index + 1:00}",
-                    map.DisplayName,
-                    context => CastFromMenuAsync(context, map))).ToArray()));
-
-    private async ValueTask CastFromMenuAsync(MenuSelectionContext context, MapDefinition map)
-    {
-        var result = await _coordinator.CastAsync(
-            context.PlayerId,
-            map.MapId,
-            _timeProvider.GetUtcNow(),
-            context.CancellationToken).ConfigureAwait(false);
-        if (result.Accepted && result.Outcome != AnoVetoOutcome.None)
-        {
-            RemoveVoteMenu();
-        }
+        return _hud.Show(playerId)
+            ? CommandResult.Ok("AnoVeto HUD opened.")
+            : CommandResult.Fail(CommandFailureReason.HandlerFailed, "AnoVeto HUD could not be opened.");
     }
 }
