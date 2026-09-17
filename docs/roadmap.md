@@ -48,4 +48,4 @@
 - dashboard
 - server management
 - CI/release automation
-- tested migration from existing K4-Zenith data
+- tested migration from existing server data

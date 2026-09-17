@@ -4,7 +4,7 @@
 
 AnoCore provides reusable infrastructure for CS2 server modules without forcing each feature to reimplement player lifecycle, commands, permissions, configuration, persistence, events or UI integration.
 
-K4-Zenith demonstrated the value of this model. AnoCore keeps that useful separation while removing hard-coded local dependencies and evolving the public API deliberately.
+AnoCore separates engine adapters from service implementations, avoids hard-coded local dependencies and evolves public contracts deliberately.
 
 ## Dependency direction
 
