@@ -1,66 +1,76 @@
 # AnoCore Development Handoff
 
-This file is updated before major context or work-session boundaries so another development session can continue without guessing.
+This file is updated at package boundaries so work can continue without reconstructing state.
 
 ## Current workstream
 
 - Issue: #20 — Implement AnoVeto map vote module
 - Branch: `feature/20-anoveto`
 - Pull request: #31 (draft)
-- Base `main`: `7d8333d61aa47106db39bed293a7123661d10aae`
-- Current implementation head before this checkpoint: `3d1fc6f38167e8b4f696c58337a9c6eca0f9f918`
+- Original branch base: `7d8333d61aa47106db39bed293a7123661d10aae`
+- Latest functional commit before this checkpoint: `4e191886603598da1a7de6222d31ce9ec117b59b`
 
-## Completed foundation
+## Completed AnoVeto packages
 
-Merged to `main`: #1/#2 core and CI; #4/#10 player lifecycle; #12/#24 event/runtime composition; #14/#26 MariaDB persistence; #15/#27 permissions/immunity; #16/#28 commands/menus/settings; #3/#29 canonical GPLv3; #19/#30 maps and generic voting.
-
-Last known-green main-derived CI was PR #30 run 55 (`35145795972`): restore, Release build, 92 tests including MariaDB integration, and format verification all passed.
-
-## AnoVeto block plan
-
-A. Coordinator compiles and its test-first contract passes.
-B. `!anoveto create` command composition and authorization.
-C. `!anoveto` visual menu and vote selection.
-D. status/cancel management behavior.
-E. CounterStrikeSharp runtime composition and expiry ticking.
-F. documentation and real-server acceptance checklist.
-G. final full CI, self-review, fixes and merge.
-
-Each block must be committed independently before the next block starts.
-
-## Current Block A
-
-Implemented test-first contracts for:
-- exactly eight unique selected maps using injectable randomness;
-- catalogs with fewer than eight maps rejected;
-- one ballot per SteamID across reconnect identity;
-- deterministic quorum/tie handling through the generic vote service;
+### A — Coordinator contract
+Implemented and tested:
+- exactly 8 unique maps;
+- injectable deterministic random selection;
+- reconnect-safe one-vote-per-SteamID behavior;
+- deterministic quorum/tie handling;
 - timeout finalization;
 - cancellation without map change;
-- winning map change emitted at most once.
+- winning map transition emitted at most once.
 
-Commits:
-- `ac4b004562bfd4f248ec852f50cc066157e58cac` — red tests for AnoVeto coordinator.
-- `f33f8694c185ab461556bd8655be921c66092568` — initial AnoVeto coordinator implementation.
-- `e2a137fab59192ad11488cb27d2837e9bb2f3425` — align tests with `PlayerId.SteamId64` API.
-- `3d1fc6f38167e8b4f696c58337a9c6eca0f9f918` — align coordinator with `VoteResult.WinningOptionId` API.
+Known-green checkpoint: `eac10a3c595a963ec34b25218e99d0e60e40ec94`, CI run 59 passed restore, Release build, tests and format.
 
-CI run 58 (`35146422195`) against `e2a137f` restored successfully but failed compilation only because the coordinator still referenced the old `WinnerOptionId` name. That compile defect is fixed in `3d1fc6f`.
+### B — `!anoveto create`
+Implemented:
+- command registration;
+- eligible online-player collection;
+- authorization through the existing vote/permission layer;
+- clean unregister on disposal.
 
-## Open roadmap workstreams
+Implementation checkpoint: `44266ddd366dcaa9827d32cf2d7b213d67396aa6`, CI run 61 passed fully.
 
-- #17 — admin, chat tags and messaging.
-- #18 — statistics, ranks, playtime and toplists.
-- #20 — AnoVeto (current).
-- #21 — tournament and competitive match orchestration.
-- #22 — Web/API, server management, security and developer SDK.
-- #23 — K4 migration closure, packaging, real-server E2E verification and first release.
-- #11 — umbrella roadmap.
+### C — Voting menu
+Implemented:
+- bare `!anoveto` opens the active vote menu;
+- menu contains the 8 selected map display names;
+- selection casts through the existing reconnect-safe vote service;
+- menu registration is owned/disposed by the AnoVeto controller.
+
+Implementation checkpoint: `eaea54df373ea5dbd2cfffdbcb6bf8e40e3cbb0e`, CI run 64 passed restore, Release build, full tests and format.
+
+### D — status/cancel management
+Red tests: `9249e8ab5788a29af572b02819ced8c75430b1cc`.
+Implementation: `4e191886603598da1a7de6222d31ce9ec117b59b`.
+
+Implemented:
+- `!anoveto status` is available to normal players and reports the active 8-map vote;
+- `!anoveto cancel` uses existing manager authorization;
+- unauthorized cancellation returns Forbidden and preserves the vote;
+- successful cancellation terminates the vote and disposes the registered vote menu, closing open menu sessions;
+- bare `!anoveto` fails cleanly after cancellation.
+
+This checkpoint commit exists to trigger and record a fresh CI run for Block D. Do not start Block E until that CI is green.
+
+## Remaining AnoVeto packages
+
+E. CounterStrikeSharp runtime composition and expiry ticking.
+F. Documentation and real-CS2 acceptance checklist.
+G. Final full CI, self-review, integration with current `main`, fixes and merge.
+
+Each package remains independently committed and tested before the next begins.
+
+## Wider roadmap
+
+Merged foundation includes core/CI, player lifecycle, events/runtime, MariaDB persistence, permissions/immunity, commands/menus/settings, canonical GPLv3, maps and generic voting. Other isolated workstreams remain #17 admin/chat/messaging, #18 stats/ranks/playtime/toplists, #21 tournament, #22 Web/API/server/security/SDK, and #23 migration/package/real-server release acceptance.
 
 ## External/release gates
 
-Native CounterStrikeSharp/CS2 behavior is not considered verified by managed CI alone. Real-server checks remain required for menu rendering, runtime event timing, hot reload/unload and actual map transitions. No release is tagged until #23 records the acceptance matrix and migration inventory.
+Managed CI does not prove native CounterStrikeSharp/CS2 behavior. Real-server verification remains mandatory for CenterHtml menu rendering, command bridging, event timing, hot reload/unload, timeout behavior and actual map transitions before release readiness is claimed.
 
 ## Next exact step
 
-Run normal PR CI on the post-compile-fix checkpoint. Do not start Block B until Block A builds and all existing/new AnoVeto tests pass. If CI is green, record the result here and then begin Block B with tests first.
+Verify fresh PR CI for this checkpoint. If Block D is green, begin Block E from this known-good head and change only runtime composition/expiry behavior.
