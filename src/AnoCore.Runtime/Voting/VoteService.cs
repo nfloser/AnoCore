@@ -138,6 +138,23 @@ public sealed class VoteService : IVoteService
         }
     }
 
+    public VoteResult? FinalizeIfAllEligibleVoted(VoteId voteId, DateTimeOffset now)
+    {
+        ArgumentNullException.ThrowIfNull(voteId);
+        lock (_gate)
+        {
+            if (!_sessions.TryGetValue(voteId, out var session)
+                || session.State != VoteState.Open
+                || now >= session.Deadline
+                || session.Ballots.Count != session.Eligible.Count)
+            {
+                return null;
+            }
+
+            return session.Finalize(now);
+        }
+    }
+
     public IReadOnlyList<VoteResult> FinalizeExpired(DateTimeOffset now)
     {
         lock (_gate)
