@@ -1,7 +1,9 @@
+using AnoCore.Abstractions.Hud;
 using AnoCore.Abstractions.Players;
 using AnoCore.Abstractions.Voting;
 using AnoCore.Modules.AnoVeto;
 using AnoCore.Plugin.Commands;
+using AnoCore.Plugin.Hud;
 using AnoCore.Plugin.Maps;
 using AnoCore.Plugin.Menus;
 using AnoCore.Plugin.Players;
@@ -33,6 +35,7 @@ public sealed class AnoCorePlugin : BasePlugin
     private RuntimeServices? _runtime;
     private AnoVetoModuleRuntime? _anoVeto;
     private CounterStrikeCommandBridge? _commands;
+    private CounterStrikeCustomHudService? _customHud;
     private CounterStrikeSharp.API.Modules.Timers.Timer? _anoVetoExpiryTimer;
     private string _runtimeStatus = "not started";
 
@@ -52,6 +55,8 @@ public sealed class AnoCorePlugin : BasePlugin
     {
         _eventBus = new AnoEventBus();
         _players = new PlayerRegistry(_eventBus);
+        _customHud = new CounterStrikeCustomHudService(this, Logger);
+        _customHud.Start();
 
         RegisterLifecycleHooks();
 
@@ -59,7 +64,7 @@ public sealed class AnoCorePlugin : BasePlugin
         BootstrapConnectedPlayers();
         _startup = new CancellationTokenSource();
         _runtimeStatus = "starting";
-        _ = InitializeRuntimeAsync(_eventBus, _players, _startup.Token);
+        _ = InitializeRuntimeAsync(_eventBus, _players, _customHud, _startup.Token);
     }
 
     public override void Unload(bool hotReload)
@@ -85,6 +90,8 @@ public sealed class AnoCorePlugin : BasePlugin
             _runtime?.Dispose();
             _runtime = null;
             MenuPresenter = null;
+            _customHud?.Dispose();
+            _customHud = null;
             _runtimeStatus = "stopped";
         }
 
@@ -105,6 +112,7 @@ public sealed class AnoCorePlugin : BasePlugin
     private async Task InitializeRuntimeAsync(
         AnoEventBus events,
         PlayerRegistry players,
+        ICustomHudService hud,
         CancellationToken cancellationToken)
     {
         RuntimeServices? created = null;
@@ -150,7 +158,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 createdAnoVeto = await AnoVetoModuleRuntime.CreateAsync(
                     configuration,
                     created.Commands,
-                    created.Menus,
+                    hud,
                     created.Players,
                     votes,
                     new CounterStrikeMapChanger(),
@@ -223,13 +231,10 @@ public sealed class AnoCorePlugin : BasePlugin
                 this,
                 runtime.Commands,
                 Logger,
-                (commandName, player) =>
+                (_, player) =>
                 {
-                    if (string.Equals(commandName, "anoveto", StringComparison.Ordinal))
-                    {
-                        presenter.Reconcile();
-                        presenter.Open(player);
-                    }
+                    presenter.Reconcile();
+                    presenter.Open(player);
                 });
             CounterStrikeSharp.API.Modules.Timers.Timer? expiryTimer = null;
 
@@ -244,7 +249,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 {
                     expiryTimer = AddTimer(
                         1.0f,
-                        () => _ = ExpireAnoVetoAsync(anoVeto, presenter),
+                        () => _ = ExpireAnoVetoAsync(anoVeto),
                         TimerFlags.REPEAT);
                 }
 
@@ -271,23 +276,11 @@ public sealed class AnoCorePlugin : BasePlugin
         }
     }
 
-    private async Task ExpireAnoVetoAsync(AnoVetoModuleRuntime anoVeto, CounterStrikeMenuPresenter presenter)
+    private async Task ExpireAnoVetoAsync(AnoVetoModuleRuntime anoVeto)
     {
         try
         {
-            var result = await anoVeto.ExpireAsync().ConfigureAwait(false);
-            if (result is null)
-            {
-                return;
-            }
-
-            Server.NextWorldUpdate(() =>
-            {
-                if (ReferenceEquals(_anoVeto, anoVeto) && ReferenceEquals(MenuPresenter, presenter))
-                {
-                    presenter.Reconcile();
-                }
-            });
+            await anoVeto.ExpireAsync().ConfigureAwait(false);
         }
         catch (Exception exception)
         {
