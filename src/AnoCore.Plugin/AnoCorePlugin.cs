@@ -7,11 +7,11 @@ using AnoCore.Runtime.Configuration;
 using AnoCore.Runtime.Events;
 using AnoCore.Runtime.Persistence;
 using AnoCore.Runtime.Players;
-using CounterStrikeSharp.API.Core.Attributes;
+using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
+using CounterStrikeSharp.API.Core.Attributes;
 using CounterStrikeSharp.API.Modules.Commands;
 using CounterStrikeSharp.API.Modules.Events;
-using CounterStrikeSharp.API;
 using Microsoft.Extensions.Logging;
 
 namespace AnoCore.Plugin;
