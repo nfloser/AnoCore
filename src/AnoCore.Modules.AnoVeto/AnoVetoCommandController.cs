@@ -1,4 +1,6 @@
 using AnoCore.Abstractions.Commands;
+using AnoCore.Abstractions.Maps;
+using AnoCore.Abstractions.Menus;
 using AnoCore.Abstractions.Modules;
 using AnoCore.Abstractions.Players;
 
@@ -7,24 +9,30 @@ namespace AnoCore.Modules.AnoVeto;
 public sealed class AnoVetoCommandController : IDisposable
 {
     private static readonly ModuleId Owner = new("ano.veto");
+    private static readonly MenuId VoteMenuId = new("ano.anoveto");
 
+    private readonly object _menuGate = new();
+    private readonly IMenuService _menus;
     private readonly IPlayerRegistry _players;
     private readonly AnoVetoCoordinator _coordinator;
     private readonly TimeProvider _timeProvider;
-    private IDisposable? _registration;
+    private IDisposable? _commandRegistration;
+    private IDisposable? _menuRegistration;
 
     public AnoVetoCommandController(
         IAnoCommandRegistry commands,
+        IMenuService menus,
         IPlayerRegistry players,
         AnoVetoCoordinator coordinator,
         TimeProvider? timeProvider = null)
     {
         ArgumentNullException.ThrowIfNull(commands);
+        _menus = menus ?? throw new ArgumentNullException(nameof(menus));
         _players = players ?? throw new ArgumentNullException(nameof(players));
         _coordinator = coordinator ?? throw new ArgumentNullException(nameof(coordinator));
         _timeProvider = timeProvider ?? TimeProvider.System;
 
-        _registration = commands.Register(
+        _commandRegistration = commands.Register(
             Owner,
             new CommandDescriptor(
                 "anoveto",
@@ -42,7 +50,12 @@ public sealed class AnoVetoCommandController : IDisposable
 
     public void Dispose()
     {
-        Interlocked.Exchange(ref _registration, null)?.Dispose();
+        Interlocked.Exchange(ref _commandRegistration, null)?.Dispose();
+        lock (_menuGate)
+        {
+            _menuRegistration?.Dispose();
+            _menuRegistration = null;
+        }
     }
 
     private async ValueTask<CommandResult> HandleAsync(CommandContext context)
@@ -54,7 +67,7 @@ public sealed class AnoVetoCommandController : IDisposable
 
         if (!context.TryGet<string>("action", out var action) || string.IsNullOrWhiteSpace(action))
         {
-            return CommandResult.Fail(CommandFailureReason.InvalidInput, "Use !anoveto create to start a vote.");
+            return OpenMenu(context.Caller);
         }
 
         if (!string.Equals(action, "create", StringComparison.OrdinalIgnoreCase))
@@ -81,6 +94,7 @@ public sealed class AnoVetoCommandController : IDisposable
 
         if (result.Accepted)
         {
+            ReplaceVoteMenu(result.Maps);
             return CommandResult.Ok($"AnoVeto started with {result.Maps.Count} maps.");
         }
 
@@ -91,5 +105,57 @@ public sealed class AnoVetoCommandController : IDisposable
             AnoVetoFailure.NotEnoughMaps => CommandResult.Fail(CommandFailureReason.HandlerFailed, "At least eight configured maps are required."),
             _ => CommandResult.Fail(CommandFailureReason.HandlerFailed, $"AnoVeto could not be started: {result.Failure}."),
         };
+    }
+
+    private CommandResult OpenMenu(PlayerId playerId)
+    {
+        if (!_coordinator.TryGetStatus(out var maps))
+        {
+            return CommandResult.Fail(CommandFailureReason.InvalidInput, "There is no active AnoVeto vote.");
+        }
+
+        EnsureVoteMenu(maps);
+        _menus.Open(playerId, VoteMenuId);
+        return CommandResult.Ok("AnoVeto menu opened.");
+    }
+
+    private void EnsureVoteMenu(IReadOnlyList<MapDefinition> maps)
+    {
+        lock (_menuGate)
+        {
+            if (_menuRegistration is null)
+            {
+                _menuRegistration = RegisterVoteMenu(maps);
+            }
+        }
+    }
+
+    private void ReplaceVoteMenu(IReadOnlyList<MapDefinition> maps)
+    {
+        lock (_menuGate)
+        {
+            _menuRegistration?.Dispose();
+            _menuRegistration = RegisterVoteMenu(maps);
+        }
+    }
+
+    private IDisposable RegisterVoteMenu(IReadOnlyList<MapDefinition> maps)
+        => _menus.Register(
+            Owner,
+            new MenuDefinition(
+                VoteMenuId,
+                "AnoVeto — choose the next map",
+                maps.Select((map, index) => new MenuOption(
+                    $"map{index + 1:00}",
+                    map.DisplayName,
+                    context => CastFromMenuAsync(context, map))).ToArray()));
+
+    private async ValueTask CastFromMenuAsync(MenuSelectionContext context, MapDefinition map)
+    {
+        await _coordinator.CastAsync(
+            context.PlayerId,
+            map.MapId,
+            _timeProvider.GetUtcNow(),
+            context.CancellationToken).ConfigureAwait(false);
     }
 }
