@@ -152,6 +152,42 @@ public sealed class ModerationServiceTests
     }
 
     [TestMethod]
+    public void ModerationSanction_RevokeCreatesValidatedCopyAndPreservesOriginal()
+    {
+        var original = new ModerationSanction(
+            Guid.NewGuid(),
+            Target,
+            Admin,
+            ModerationRestriction.Chat,
+            "spam",
+            Now,
+            Now.AddMinutes(10));
+
+        var revoked = original.Revoke(Admin, "resolved", Now.AddMinutes(5));
+
+        Assert.IsNull(original.RevokedAtUtc);
+        Assert.AreEqual(Now.AddMinutes(5), revoked.RevokedAtUtc);
+        Assert.AreEqual(Admin, revoked.RevokedById);
+        Assert.AreEqual("resolved", revoked.RevocationReason);
+        Assert.ThrowsExactly<InvalidOperationException>(() =>
+            original.Revoke(Admin, "too late", Now.AddMinutes(10)));
+    }
+
+    [TestMethod]
+    public async Task ApplyAsync_RejectsReasonLongerThanPersistenceSchema()
+    {
+        var service = new ModerationService(new MemoryRepository());
+
+        await Assert.ThrowsExactlyAsync<ArgumentException>(async () =>
+            await service.ApplyAsync(
+                Target,
+                Admin,
+                ModerationRestriction.Chat,
+                new string('x', ModerationValidation.MaxReasonLength + 1),
+                Now));
+    }
+
+    [TestMethod]
     public async Task HistoryAndAuditAreDeterministicallyOrderedAndNeverDeletedByRevoke()
     {
         var service = new ModerationService(new MemoryRepository());
