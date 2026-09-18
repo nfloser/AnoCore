@@ -109,6 +109,32 @@ public sealed class MySqlModerationRepositoryTests
     }
 
     [TestMethod]
+    public async Task RevokeActiveAsync_AuditRecordsOnlyRestrictionsActuallyChanged()
+    {
+        await ApplyMigrationsAsync();
+        var service = new ModerationService(new MySqlModerationRepository(_database));
+        await service.ApplyAsync(
+            Target,
+            Admin,
+            ModerationRestriction.Voice,
+            "voice only",
+            Now);
+
+        var revoked = await service.RevokeAsync(
+            Target,
+            Admin,
+            ModerationRestriction.Voice | ModerationRestriction.Chat,
+            "clear communication restrictions",
+            Now.AddMinutes(5));
+
+        Assert.AreEqual(1, revoked.Count);
+        var audit = await service.GetAuditHistoryAsync(Target);
+        Assert.AreEqual(2, audit.Count);
+        Assert.AreEqual(ModerationAuditAction.Revoked, audit[1].Action);
+        Assert.AreEqual(ModerationRestriction.Voice, audit[1].Restrictions);
+    }
+
+    [TestMethod]
     public async Task RuntimeServices_ExposesPersistentModerationServicesAcrossRestart()
     {
         var path = Path.Combine(Path.GetTempPath(), "ano-moderation-" + Guid.NewGuid().ToString("N"));
