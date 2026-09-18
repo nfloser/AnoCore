@@ -196,6 +196,62 @@ public sealed class MySqlModerationRepositoryTests
     }
 
     [TestMethod]
+    public async Task AddAsync_RejectsAuditMetadataThatDoesNotMatchSanctions()
+    {
+        await ApplyMigrationsAsync();
+        var repository = new MySqlModerationRepository(_database);
+        var sanction = Sanction(Guid.NewGuid(), ModerationRestriction.Chat, "matched reason");
+        var mismatchedAudit = new ModerationAuditEntry(
+            Guid.NewGuid(),
+            Target,
+            null,
+            ModerationAuditAction.Applied,
+            ModerationRestriction.Chat,
+            "matched reason",
+            Now);
+
+        await Assert.ThrowsExactlyAsync<ArgumentException>(async () =>
+            await repository.AddAsync([sanction], mismatchedAudit));
+
+        Assert.AreEqual(0, (await repository.GetHistoryAsync(Target)).Count);
+        Assert.AreEqual(0, (await repository.GetAuditHistoryAsync(Target)).Count);
+    }
+
+    [TestMethod]
+    public async Task RevokeActiveAsync_RejectsAuditMetadataThatDoesNotMatchOperation()
+    {
+        await ApplyMigrationsAsync();
+        var repository = new MySqlModerationRepository(_database);
+        var sanction = Sanction(Guid.NewGuid(), ModerationRestriction.Connect, "ban");
+        await repository.AddAsync(
+            [sanction],
+            Audit(Guid.NewGuid(), ModerationAuditAction.Applied, ModerationRestriction.Connect, "ban"));
+
+        var mismatchedAudit = new ModerationAuditEntry(
+            Guid.NewGuid(),
+            Target,
+            null,
+            ModerationAuditAction.Revoked,
+            ModerationRestriction.Connect,
+            "different reason",
+            Now.AddMinutes(5));
+
+        await Assert.ThrowsExactlyAsync<ArgumentException>(async () =>
+            await repository.RevokeActiveAsync(
+                Target,
+                ModerationRestriction.Connect,
+                Admin,
+                "expected reason",
+                Now.AddMinutes(5),
+                mismatchedAudit));
+
+        Assert.AreEqual(
+            ModerationRestriction.Connect,
+            (await new ModerationService(repository).GetStateAsync(Target, Now.AddMinutes(6))).Restrictions);
+        Assert.AreEqual(1, (await repository.GetAuditHistoryAsync(Target)).Count);
+    }
+
+    [TestMethod]
     public async Task AddAsync_RollsBackSanctionsWhenAuditInsertFails()
     {
         await ApplyMigrationsAsync();
