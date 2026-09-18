@@ -263,7 +263,11 @@ public sealed class MySqlModerationRepositoryTests
         await repository.AddAsync([firstSanction], firstAudit);
 
         var secondSanction = Sanction(Guid.NewGuid(), ModerationRestriction.Voice, "must roll back");
-        var duplicateAudit = Audit(auditId, ModerationAuditAction.Applied, ModerationRestriction.Voice, "duplicate");
+        var duplicateAudit = Audit(
+            auditId,
+            ModerationAuditAction.Applied,
+            ModerationRestriction.Voice,
+            "must roll back");
 
         await Assert.ThrowsAsync<DbException>(async () =>
             await repository.AddAsync([secondSanction], duplicateAudit));
@@ -283,7 +287,14 @@ public sealed class MySqlModerationRepositoryTests
         var appliedAudit = Audit(auditId, ModerationAuditAction.Applied, ModerationRestriction.Connect, "ban");
         await repository.AddAsync([sanction], appliedAudit);
 
-        var duplicateAudit = Audit(auditId, ModerationAuditAction.Revoked, ModerationRestriction.Connect, "duplicate");
+        var duplicateAudit = new ModerationAuditEntry(
+            auditId,
+            Target,
+            Admin,
+            ModerationAuditAction.Revoked,
+            ModerationRestriction.Connect,
+            "must roll back",
+            Now.AddMinutes(5));
         await Assert.ThrowsAsync<DbException>(async () =>
             await repository.RevokeActiveAsync(
                 Target,
