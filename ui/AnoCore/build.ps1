@@ -1,6 +1,7 @@
 param(
     [string]$Cs2 = "",
-    [string]$Addon = "anomeme_ui"
+    [string]$Addon = "anomeme_ui",
+    [switch]$InstallLocalClient
 )
 
 $ErrorActionPreference = "Stop"
@@ -65,7 +66,19 @@ foreach ($required in @($outLayout, $outStyle)) {
     }
 }
 
+if ($InstallLocalClient) {
+    $clientLayoutDir = Join-Path $Cs2 "game\csgo\panorama\layout\custom_game\anocore"
+    $clientStyleDir = Join-Path $Cs2 "game\csgo\panorama\styles\custom_game\anocore"
+    New-Item -ItemType Directory -Force -Path $clientLayoutDir, $clientStyleDir | Out-Null
+    Copy-Item $outLayout (Join-Path $clientLayoutDir "ano_veto.vxml_c") -Force
+    Copy-Item $outStyle (Join-Path $clientStyleDir "ano_veto.vcss_c") -Force
+    Write-Output "Installed compiled AnoVeto resources into the local CS2 client panorama tree."
+    Write-Output "Restart CS2 before testing because Panorama caches resources for the session."
+}
+
 Write-Output "AnoCore Panorama HUD compiled successfully."
 Write-Output "Compiled addon root: $gameRoot"
-Write-Output "For local testing copy/mount the compiled addon for the client."
-Write-Output "For normal players publish '$Addon' as a Workshop addon and mount it through your server addon delivery."
+if (-not $InstallLocalClient) {
+    Write-Output "For a one-client development test, rerun with -InstallLocalClient."
+}
+Write-Output "For normal players publish '$Addon' as a Workshop addon and deliver it to clients (for example with MultiAddonManager)."
