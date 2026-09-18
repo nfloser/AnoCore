@@ -2,8 +2,12 @@ using System.Data.Common;
 using AnoCore.Abstractions.Moderation;
 using AnoCore.Abstractions.Persistence;
 using AnoCore.Abstractions.Players;
+using AnoCore.Runtime.Composition;
+using AnoCore.Runtime.Configuration;
+using AnoCore.Runtime.Events;
 using AnoCore.Runtime.Moderation;
 using AnoCore.Runtime.Persistence;
+using AnoCore.Runtime.Players;
 using AnoCore.Runtime.Persistence.Migrations;
 
 namespace AnoCore.Tests.Moderation;
@@ -102,6 +106,40 @@ public sealed class MySqlModerationRepositoryTests
         Assert.AreEqual(2, history.Count);
         Assert.AreEqual(1, history.Count(value => value.RevokedAtUtc is not null));
         Assert.AreEqual(2, (await service.GetAuditHistoryAsync(Target)).Count);
+    }
+
+    [TestMethod]
+    public async Task RuntimeServices_ExposesPersistentModerationServicesAcrossRestart()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "ano-moderation-" + Guid.NewGuid().ToString("N"));
+        var events = new AnoEventBus();
+        using (var runtime = await RuntimeServices.CreateAsync(
+            _database,
+            new JsonConfigStore(path),
+            events,
+            new PlayerRegistry(events)))
+        {
+            Assert.AreSame(runtime.Moderation, runtime.GetService(typeof(IModerationService)));
+            Assert.AreSame(runtime.ModerationRepository, runtime.GetService(typeof(IModerationRepository)));
+
+            await runtime.Moderation.ApplyAsync(
+                Target,
+                Admin,
+                ModerationRestriction.Connect,
+                "runtime persisted ban",
+                Now);
+        }
+
+        var restartEvents = new AnoEventBus();
+        using var restarted = await RuntimeServices.CreateAsync(
+            _database,
+            new JsonConfigStore(path),
+            restartEvents,
+            new PlayerRegistry(restartEvents));
+
+        Assert.AreEqual(
+            ModerationRestriction.Connect,
+            (await restarted.Moderation.GetStateAsync(Target, Now.AddMinutes(1))).Restrictions);
     }
 
     [TestMethod]
