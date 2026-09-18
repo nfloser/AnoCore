@@ -37,6 +37,7 @@ The foundation currently establishes:
 - `PermissionId` using the `ano.*` namespace;
 - command descriptors and registry contracts;
 - event-bus contracts;
+- engine-independent custom HUD contracts for reusable informational or interactive Panorama surfaces;
 - a thin CounterStrikeSharp plugin/adapter boundary.
 
 Identifiers are immutable reference value objects rather than structs. This prevents callers from bypassing constructor validation through `default(T)` and creating invalid IDs.
@@ -72,3 +73,12 @@ A duplicate active module ID is rejected.
 ## Compatibility policy
 
 Until the first stable release, APIs may evolve between development versions. Once `1.0.0` is reached, breaking public API changes require a major semantic-version increment or an explicit deprecation/migration path.
+
+
+## Rich HUD boundary
+
+`AnoCore.Abstractions.Hud` describes custom HUD layouts without depending on CounterStrikeSharp. A module registers a stable HUD ID, Panorama layout resource, root panel, optional button IDs and whether the surface captures input. Modules can then show/hide the surface and update per-player text variables or CSS classes.
+
+`AnoCore.Plugin.Hud.CounterStrikeCustomHudService` is the engine adapter. It owns the `CCSCustomHudLayout` entity, routes `OnCustomHudClicked` callbacks only to the matching registered layout, applies per-player state, restores visible state after map changes, resets reused player slots and releases input capture during hide/unload.
+
+This separation is intentional: AnoVeto is the first consumer, but the same contract can back non-interactive tournament brackets, match-status panels, rankings or later interactive administration UI without those modules depending on CounterStrikeSharp.

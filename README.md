@@ -8,10 +8,10 @@ AnoCore is a modular Counter-Strike 2 server framework for the AnoMeme server ec
 
 - `AnoCore.Abstractions`: module-facing contracts without engine dependencies.
 - `AnoCore.Runtime`: lifecycle, events, configuration, localization, placeholders, persistence, authorization, commands, menus, settings, map catalog and voting implementations.
-- `AnoCore.Plugin`: CounterStrikeSharp adapters and the server composition root.
+- `AnoCore.Plugin`: CounterStrikeSharp adapters, including the API-374 CustomHudLayout bridge, and the server composition root.
 - Gameplay features remain independent modules.
 
-See [architecture](docs/architecture.md), [player lifecycle](docs/player-lifecycle.md) and [data migration](docs/data-migration.md).
+See [architecture](docs/architecture.md), [custom HUDs](docs/custom-hud.md), [player lifecycle](docs/player-lifecycle.md) and [data migration](docs/data-migration.md).
 
 ## Install and verify
 

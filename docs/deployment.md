@@ -5,7 +5,8 @@ This package is for verifying the current AnoCore runtime on a test server. It i
 ## Requirements
 
 - CS2 with Metamod and CounterStrikeSharp installed.
-- CounterStrikeSharp API 374 or newer, with a .NET 10-compatible host.
+- CounterStrikeSharp API 374 or newer, with a .NET 10-compatible host. API 374 introduced the `CustomHudLayout` API used by AnoCore's rich HUD adapter.
+- CS2 from August 24, 2026 or newer for the engine `custom_hud_layout` entity.
 - A successful AnoCore CI run for the exact commit being installed.
 
 An older server hosting other working plugins does not establish compatibility with this build. Inspect the installed CounterStrikeSharp version first.
@@ -19,6 +20,7 @@ An older server hosting other working plugins does not establish compatibility w
 5. Do not copy a private `CounterStrikeSharp.API.dll` into this directory.
 6. Configure the database as described below, then restart. Confirm the shared-services-ready message and no loader exceptions.
 7. Run `css_anostatus` in the server console, then connect a human player and run `!anostatus`.
+8. For AnoVeto's rich HUD, compile the client Panorama sources from `ui/AnoCore` and make the compiled addon available to the test client as described below.
 
 Copying only `AnoCore.dll` is insufficient. CI publishes the project dependency graph and checks the required files before uploading.
 
@@ -74,3 +76,21 @@ Stop the server, replace only the AnoCore plugin directory with its backup, then
 3. Register each native command once; ensure engine operations run on the server thread after asynchronous database work.
 4. Exercise permissions, UI, disconnect/reconnect, timeout and map transition with real clients.
 5. Record server evidence before marking the feature or release production-ready.
+
+
+## Custom HUD client addon
+
+AnoVeto no longer relies on CenterHtml for its vote UI on this branch. It uses CS2's `custom_hud_layout` entity through CounterStrikeSharp API 374. The server plugin controls per-player text, CSS classes, visibility, input capture and button-click events, while the Panorama XML/CSS must also exist on each client.
+
+The CI artifact includes the source directory `ui/AnoCore`. It intentionally does **not** claim to compile Valve resources because `resourcecompiler.exe` ships with the Windows CS2 Workshop Tools rather than the GitHub runner.
+
+For a local one-client smoke test:
+
+1. Install Counter-Strike 2 Workshop Tools from the CS2 settings and restart Steam/CS2 if prompted.
+2. From the extracted source/artifact run `powershell -ExecutionPolicy Bypass -File .\ui\AnoCore\build.ps1`. Use `-Cs2 "<path>"` if CS2 is not auto-detected.
+3. The script copies the XML/CSS into a `csgo_addons/anomeme_ui` content addon and invokes ResourceCompiler.
+4. Confirm `ano_veto.vxml_c` and `ano_veto.vcss_c` exist below the generated `game/csgo_addons/anomeme_ui/panorama/.../custom_game/anocore/` paths.
+5. Mount/deliver that addon to the client. During development this can be a local addon; for normal server users publish the addon to the Workshop and use the server's addon-delivery mechanism.
+6. Restart the client after resource changes because Panorama resources are cached.
+
+Without the client resource addon the server-side `custom_hud_layout` entity can exist, but the player cannot render the intended layout. This is a client asset requirement, not a reason to fall back to CenterHtml.
