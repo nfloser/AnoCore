@@ -270,12 +270,7 @@ public sealed class ModerationServiceTests
                     continue;
                 }
 
-                var revoked = current with
-                {
-                    RevokedAtUtc = atUtc,
-                    RevokedById = actorId,
-                    RevocationReason = reason,
-                };
+                var revoked = current.Revoke(actorId, reason, atUtc);
                 _sanctions[index] = revoked;
                 changed.Add(revoked);
             }
