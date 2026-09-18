@@ -39,7 +39,7 @@ public sealed class ModerationService : IModerationService
         cancellationToken.ThrowIfCancellationRequested();
 
         var sanctions = SingleRestrictions
-            .Where(restrictions.HasFlag)
+            .Where(restriction => restrictions.HasFlag(restriction))
             .Select(restriction => new ModerationSanction(
                 Guid.NewGuid(),
                 targetId,
