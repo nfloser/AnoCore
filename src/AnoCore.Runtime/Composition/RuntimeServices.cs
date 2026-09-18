@@ -2,6 +2,7 @@ using AnoCore.Abstractions.Commands;
 using AnoCore.Abstractions.Configuration;
 using AnoCore.Abstractions.Events;
 using AnoCore.Abstractions.Menus;
+using AnoCore.Abstractions.Moderation;
 using AnoCore.Abstractions.Modules;
 using AnoCore.Abstractions.Permissions;
 using AnoCore.Abstractions.Persistence;
@@ -14,6 +15,7 @@ using AnoCore.Abstractions.Voting;
 using AnoCore.Runtime.Commands;
 using AnoCore.Runtime.Events;
 using AnoCore.Runtime.Menus;
+using AnoCore.Runtime.Moderation;
 using AnoCore.Runtime.Modules;
 using AnoCore.Runtime.Permissions;
 using AnoCore.Runtime.Persistence;
@@ -46,6 +48,8 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
         Commands = new CommandRegistry(Authorization);
         Menus = new MenuService();
         Settings = new PlayerSettingsService(data);
+        ModerationRepository = new MySqlModerationRepository(database);
+        Moderation = new ModerationService(ModerationRepository);
         Players = players;
         TargetResolver = new PlayerTargetResolver(players);
         TargetAuthorization = new TargetAuthorizationService(players, Authorization);
@@ -63,6 +67,8 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
         Add<IAnoCommandRegistry>(Commands);
         Add<IMenuService>(Menus);
         Add<IPlayerSettingsService>(Settings);
+        Add<IModerationRepository>(ModerationRepository);
+        Add<IModerationService>(Moderation);
         Add<IPlayerTargetResolver>(TargetResolver);
         Add<ITargetAuthorizationService>(TargetAuthorization);
         Add<IPlaceholderRegistry>(new PlaceholderRegistry());
@@ -81,6 +87,10 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
 
     public PlayerSettingsService Settings { get; }
 
+    public MySqlModerationRepository ModerationRepository { get; }
+
+    public ModerationService Moderation { get; }
+
     public PlayerTargetResolver TargetResolver { get; }
 
     public TargetAuthorizationService TargetAuthorization { get; }
@@ -98,7 +108,9 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
         ArgumentNullException.ThrowIfNull(configuration);
         ArgumentNullException.ThrowIfNull(events);
         ArgumentNullException.ThrowIfNull(players);
-        await new DatabaseStartupProbe(database, [new CoreSchemaMigration001()])
+        await new DatabaseStartupProbe(
+            database,
+            [new CoreSchemaMigration001(), new ModerationSchemaMigration002()])
             .EnsureReadyAsync(cancellationToken).ConfigureAwait(false);
         var runtime = new RuntimeServices(database, configuration, events, players);
         try
