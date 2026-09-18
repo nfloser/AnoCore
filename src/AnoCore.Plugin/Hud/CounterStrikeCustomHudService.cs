@@ -596,7 +596,7 @@ public sealed class CounterStrikeCustomHudService : ICustomHudService, IDisposab
                 return;
             }
 
-            foreach (var playerId in SnapshotVisiblePlayers(registration))
+            foreach (var playerId in SnapshotTrackedPlayers(registration))
             {
                 var player = FindPlayer(playerId);
                 if (player is null)
@@ -683,6 +683,14 @@ public sealed class CounterStrikeCustomHudService : ICustomHudService, IDisposab
                 .Where(pair => pair.Value.Visible)
                 .Select(pair => pair.Key)
                 .ToArray();
+        }
+    }
+
+    private PlayerId[] SnapshotTrackedPlayers(Registration registration)
+    {
+        lock (_gate)
+        {
+            return registration.PlayerStates.Keys.ToArray();
         }
     }
 
