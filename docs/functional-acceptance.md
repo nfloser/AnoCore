@@ -10,8 +10,8 @@ The source inventory was checked on 2026-09-17 against the reference recorded in
 | Player data | SteamID, online/offline reads, storage/settings defaults, save/load/reset, reconnect and safe shutdown | Profile and typed settings persistence connected in #34; registration/reset/batching still required |
 | Configuration | Module registration, typed validation, defaults/schema upgrades, reload, shared access | Atomic JSON store exists; module metadata/upgrades and complete reload remain |
 | Database | MariaDB/MySQL, migrations, durable writes, backup/recoverable migration, purge | Startup/migrations and repositories exist; operational backup/purge acceptance remains #23 |
-| Authorization | Roles/groups, inheritance, deny/allow, immunity, command overrides, timed assignments/VIP | Evaluation/persistence exist; administration and timed assignment enforcement remain #17 |
-| Commands | Registered names/aliases, usage/help, permissions, client/server constraints, target resolution | Core registry/bridge connected; targeting and module commands remain #17 |
+| Authorization | Roles/groups, inheritance, deny/allow, immunity, command overrides, timed assignments/VIP | Evaluation/persistence exist; #37/PR #38 centralizes permission + immunity + stale-session target authorization; administration and timed assignment enforcement remain #17 |
+| Commands | Registered names/aliases, usage/help, permissions, client/server constraints, target resolution | Core registry/bridge connected; #37/PR #38 provides deterministic shared target resolution; concrete admin/module commands remain #17 |
 | Settings UI | Automatically expose module settings, per-player toggles, defaults/reset, persistence | Typed storage exists; complete UI/registration remains |
 | Messaging | Player/team/all output, localization, placeholders, center message duration/priority | Individual services exist; engine messaging and priority lifecycle remain #17 |
 | Chat and tags | Chat processing, clan/name tags, name/chat colors, ownership priority, permission-based choices and removal | #17; not implemented as a complete feature |
@@ -19,12 +19,12 @@ The source inventory was checked on 2026-09-17 against the reference recorded in
 | Playtime | Total/today, team/alive-state breakdown, notification settings, reconnect/day rollover and restart persistence | #18; not implemented as a complete feature |
 | Ranks | Configurable thresholds/points and scoring rules; rank menus; give/take/set/reset; rank/tag display and notifications | #18; not implemented as a complete feature |
 | Toplists | Rank/time/stat queries, deterministic ordering, menu navigation and placement tags | #18; not implemented as a complete feature |
-| Moderation | Kick/silent kick; ban/unban; mute/gag/silence and reversal; warnings; duration/expiry; reasons; offline/server-scoped data; admin menus/audit | #17; not implemented as a complete feature |
-| Admin integration | Permission/group administration, immunity, connection information, webhook notifications, compatibility policy | #17/#22; not implemented as a complete feature |
-| Extended commands | Health/armor; freeze/unfreeze; noclip; slay; rename; respawn/revive; strip/give; teleport; speed; bury/unbury; slap; blind/unblind; god; team/swap; hide; protected cvar/server-command controls; same-IP inspection | Separate module required; permissions and target immunity mandatory |
+| Moderation | Kick/silent kick; ban/unban; mute/gag/silence and reversal; warnings; duration/expiry; reasons; offline/server-scoped data; admin menus/audit | #17; target resolution/authorization prerequisite is #37/PR #38; moderation behavior remains |
+| Admin integration | Permission/group administration, immunity, connection information, webhook notifications, compatibility policy | Shared target/immunity enforcement is #37/PR #38; remaining administration is #17/#22 |
+| Extended commands | Health/armor; freeze/unfreeze; noclip; slay; rename; respawn/revive; strip/give; teleport; speed; bury/unbury; slap; blind/unblind; god; team/swap; hide; protected cvar/server-command controls; same-IP inspection | #36 remains separate; it must consume centralized targeting/permissions/immunity and still needs command behavior + real-server acceptance |
 | SDK/events | Player loaded/unloaded, storage reset, settings changed, chat/core-unload events; module-owned cleanup and compatibility | Existing contracts cover part of this; full SDK acceptance remains #22 |
 | External integration | Documented data/API access and compatibility requirements for existing administration panels | #22; no drop-in schema compatibility claim |
-| Ano maps/vote | Catalog, generic voting, eight-map custom vote, roles, single vote, timeout/runoff/reconnect and real map load | #19 foundations; #20/#31 integration in progress |
+| Ano maps/vote | Catalog, generic voting, eight-map custom vote, roles, single vote, timeout/runoff/reconnect and real map load | #19 foundations and #20/PR #31 implementation are merged; real CenterHtml interaction and real map transition remain release acceptance gates |
 | Ano tournament | Teams, forced placement, reconnect, ready/knife/side choice, BO formats, pauses/overtime/demo/backup and recovery | #21; not implemented as a complete feature |
 | Deployment | Full dependency artifact, configuration, upgrade/rollback, diagnostics | Development package exists; real-server acceptance remains #23 |
 

@@ -9,6 +9,7 @@ using AnoCore.Abstractions.Placeholders;
 using AnoCore.Abstractions.Players;
 using AnoCore.Abstractions.Players.Events;
 using AnoCore.Abstractions.Settings;
+using AnoCore.Abstractions.Targeting;
 using AnoCore.Abstractions.Voting;
 using AnoCore.Runtime.Commands;
 using AnoCore.Runtime.Events;
@@ -20,6 +21,7 @@ using AnoCore.Runtime.Persistence.Migrations;
 using AnoCore.Runtime.Placeholders;
 using AnoCore.Runtime.Players;
 using AnoCore.Runtime.Settings;
+using AnoCore.Runtime.Targeting;
 using AnoCore.Runtime.Voting;
 
 namespace AnoCore.Runtime.Composition;
@@ -45,6 +47,8 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
         Menus = new MenuService();
         Settings = new PlayerSettingsService(data);
         Players = players;
+        TargetResolver = new PlayerTargetResolver(players);
+        TargetAuthorization = new TargetAuthorizationService(players, Authorization);
         Modules = new ModuleHost(new ModuleContext(this));
 
         Add<IDatabase>(database);
@@ -59,6 +63,8 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
         Add<IAnoCommandRegistry>(Commands);
         Add<IMenuService>(Menus);
         Add<IPlayerSettingsService>(Settings);
+        Add<IPlayerTargetResolver>(TargetResolver);
+        Add<ITargetAuthorizationService>(TargetAuthorization);
         Add<IPlaceholderRegistry>(new PlaceholderRegistry());
         Add<IVoteService>(new VoteService(Authorization));
     }
@@ -74,6 +80,10 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
     public MenuService Menus { get; }
 
     public PlayerSettingsService Settings { get; }
+
+    public PlayerTargetResolver TargetResolver { get; }
+
+    public TargetAuthorizationService TargetAuthorization { get; }
 
     public ModuleHost Modules { get; }
 
