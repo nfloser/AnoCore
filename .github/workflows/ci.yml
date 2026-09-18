@@ -87,6 +87,9 @@ jobs:
               raise SystemExit("AnoVeto layout does not reference its compiled stylesheet")
           if ".ano-overlay.shown" not in style.read_text(encoding="utf-8"):
               raise SystemExit("AnoVeto stylesheet does not define visible HUD state")
+          build_text = build.read_text(encoding="utf-8")
+          if "InstallLocalClient" not in build_text:
+              raise SystemExit("AnoCore HUD build script must retain the local-client smoke-test installation option")
           PY
 
       - name: Publish development plugin
