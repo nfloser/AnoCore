@@ -148,12 +148,5 @@ public sealed class ModerationService : IModerationService
             .ToArray();
 
     private static string NormalizeReason(string reason)
-    {
-        if (string.IsNullOrWhiteSpace(reason))
-        {
-            throw new ArgumentException("A moderation reason is required.", nameof(reason));
-        }
-
-        return reason.Trim();
-    }
+        => ModerationValidation.NormalizeReason(reason);
 }
