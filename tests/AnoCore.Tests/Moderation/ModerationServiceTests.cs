@@ -174,6 +174,28 @@ public sealed class ModerationServiceTests
     }
 
     [TestMethod]
+    public void ModerationSanction_RejectsRevocationMetadataWithoutRevocationTime()
+    {
+        Assert.ThrowsExactly<ArgumentException>(() => new ModerationSanction(
+            Guid.NewGuid(),
+            Target,
+            Admin,
+            ModerationRestriction.Chat,
+            "spam",
+            Now,
+            revokedById: Admin));
+
+        Assert.ThrowsExactly<ArgumentException>(() => new ModerationSanction(
+            Guid.NewGuid(),
+            Target,
+            Admin,
+            ModerationRestriction.Chat,
+            "spam",
+            Now,
+            revocationReason: "orphaned reason"));
+    }
+
+    [TestMethod]
     public async Task ApplyAsync_RejectsReasonLongerThanPersistenceSchema()
     {
         var service = new ModerationService(new MemoryRepository());
