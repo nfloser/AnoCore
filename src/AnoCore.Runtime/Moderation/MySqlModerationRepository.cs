@@ -205,7 +205,7 @@ public sealed class MySqlModerationRepository : IModerationRepository
             while (await reader.ReadAsync(token).ConfigureAwait(false))
             {
                 result.Add(new ModerationAuditEntry(
-                    Guid.Parse(reader.GetString(0)),
+                    ReadGuid(reader, 0),
                     ReadPlayer(reader, 1)!,
                     ReadPlayer(reader, 2),
                     (ModerationAuditAction)Convert.ToInt32(reader.GetValue(3), CultureInfo.InvariantCulture),
@@ -355,7 +355,7 @@ public sealed class MySqlModerationRepository : IModerationRepository
         while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
         {
             result.Add(new ModerationSanction(
-                Guid.Parse(reader.GetString(0)),
+                ReadGuid(reader, 0),
                 ReadPlayer(reader, 1)!,
                 ReadPlayer(reader, 2),
                 (ModerationRestriction)Convert.ToInt32(reader.GetValue(3), CultureInfo.InvariantCulture),
@@ -368,6 +368,18 @@ public sealed class MySqlModerationRepository : IModerationRepository
         }
 
         return result;
+    }
+
+    private static Guid ReadGuid(DbDataReader reader, int ordinal)
+    {
+        var value = reader.GetValue(ordinal);
+        return value switch
+        {
+            Guid guid => guid,
+            string text => Guid.Parse(text),
+            _ => Guid.Parse(Convert.ToString(value, CultureInfo.InvariantCulture)
+                ?? throw new InvalidDataException("A moderation id could not be read.")),
+        };
     }
 
     private static PlayerId? ReadPlayer(DbDataReader reader, int ordinal)
