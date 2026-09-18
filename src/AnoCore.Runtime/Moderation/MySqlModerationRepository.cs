@@ -108,10 +108,7 @@ public sealed class MySqlModerationRepository : IModerationRepository
         ArgumentNullException.ThrowIfNull(targetId);
         ArgumentNullException.ThrowIfNull(audit);
         ModerationValidation.ValidateRestrictions(restrictions);
-        if (string.IsNullOrWhiteSpace(reason))
-        {
-            throw new ArgumentException("A moderation revocation reason is required.", nameof(reason));
-        }
+        var normalizedReason = ModerationValidation.NormalizeReason(reason);
 
         if (audit.Action != ModerationAuditAction.Revoked
             || audit.TargetId != targetId
@@ -120,7 +117,6 @@ public sealed class MySqlModerationRepository : IModerationRepository
             throw new ArgumentException("The moderation audit does not match the revocation operation.", nameof(audit));
         }
 
-        var normalizedReason = reason.Trim();
         var revokedAt = atUtc.ToUniversalTime();
         return await _database.InTransactionAsync<IReadOnlyList<ModerationSanction>>(
             async (connection, transaction, token) =>
@@ -163,12 +159,7 @@ public sealed class MySqlModerationRepository : IModerationRepository
                             $"Moderation sanction '{sanction.Id:D}' changed while it was locked for revocation.");
                     }
 
-                    revoked.Add(sanction with
-                    {
-                        RevokedAtUtc = revokedAt,
-                        RevokedById = actorId,
-                        RevocationReason = normalizedReason,
-                    });
+                    revoked.Add(sanction.Revoke(actorId, normalizedReason, revokedAt));
                 }
 
                 await InsertAuditAsync(connection, transaction, audit, token).ConfigureAwait(false);
