@@ -110,14 +110,16 @@ public sealed class MySqlModerationRepository : IModerationRepository
         ModerationValidation.ValidateRestrictions(restrictions);
         var normalizedReason = ModerationValidation.NormalizeReason(reason);
 
+        var revokedAt = atUtc.ToUniversalTime();
         if (audit.Action != ModerationAuditAction.Revoked
             || audit.TargetId != targetId
-            || audit.Restrictions != restrictions)
+            || audit.ActorId != actorId
+            || audit.Restrictions != restrictions
+            || !string.Equals(audit.Reason, normalizedReason, StringComparison.Ordinal)
+            || audit.OccurredAtUtc != revokedAt)
         {
             throw new ArgumentException("The moderation audit does not match the revocation operation.", nameof(audit));
         }
-
-        var revokedAt = atUtc.ToUniversalTime();
         return await _database.InTransactionAsync<IReadOnlyList<ModerationSanction>>(
             async (connection, transaction, token) =>
             {
@@ -230,9 +232,15 @@ public sealed class MySqlModerationRepository : IModerationRepository
             throw new ArgumentException("Applying sanctions requires an applied audit entry.", nameof(audit));
         }
 
-        if (sanctions.Any(value => value.TargetId != audit.TargetId))
+        if (sanctions.Any(value =>
+            value.TargetId != audit.TargetId
+            || value.ActorId != audit.ActorId
+            || !string.Equals(value.Reason, audit.Reason, StringComparison.Ordinal)
+            || value.CreatedAtUtc != audit.OccurredAtUtc))
         {
-            throw new ArgumentException("Every sanction must target the same player as the audit entry.", nameof(sanctions));
+            throw new ArgumentException(
+                "Every sanction must match the audit target, actor, reason and creation time.",
+                nameof(sanctions));
         }
 
         var restrictions = sanctions.Aggregate(
