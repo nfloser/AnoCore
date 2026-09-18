@@ -162,7 +162,19 @@ public sealed class MySqlModerationRepository : IModerationRepository
                     revoked.Add(sanction.Revoke(actorId, normalizedReason, revokedAt));
                 }
 
-                await InsertAuditAsync(connection, transaction, audit, token).ConfigureAwait(false);
+                var effectiveRestrictions = revoked.Aggregate(
+                    ModerationRestriction.None,
+                    (current, sanction) => current | sanction.Restriction);
+                var effectiveAudit = new ModerationAuditEntry(
+                    audit.Id,
+                    audit.TargetId,
+                    audit.ActorId,
+                    audit.Action,
+                    effectiveRestrictions,
+                    audit.Reason,
+                    audit.OccurredAtUtc);
+
+                await InsertAuditAsync(connection, transaction, effectiveAudit, token).ConfigureAwait(false);
                 return revoked;
             },
             cancellationToken: cancellationToken).ConfigureAwait(false);
