@@ -67,7 +67,7 @@ public sealed class MySqlModerationRepository : IModerationRepository
                 FROM ano_moderation_sanctions
                 WHERE target_steam_id = @targetSteamId
                   AND created_at_utc <= @atUtc
-                  AND revoked_at_utc IS NULL
+                  AND (revoked_at_utc IS NULL OR revoked_at_utc > @atUtc)
                   AND (expires_at_utc IS NULL OR expires_at_utc > @atUtc)
                 ORDER BY created_at_utc, sanction_id
                 """;
