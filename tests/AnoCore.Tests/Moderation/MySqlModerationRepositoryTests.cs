@@ -140,8 +140,8 @@ public sealed class MySqlModerationRepositoryTests
         await Assert.ThrowsAsync<DbException>(async () =>
             await repository.RevokeActiveAsync(
                 Target,
-                Admin,
                 ModerationRestriction.Connect,
+                Admin,
                 "must roll back",
                 Now.AddMinutes(5),
                 duplicateAudit));
