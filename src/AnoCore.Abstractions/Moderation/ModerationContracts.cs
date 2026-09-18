@@ -57,6 +57,13 @@ public sealed record ModerationSanction
             throw new ArgumentOutOfRangeException(nameof(revokedAtUtc), "Revocation cannot precede creation.");
         }
 
+        if (revoked is null && (revokedById is not null || revocationReason is not null))
+        {
+            throw new ArgumentException(
+                "Revocation metadata requires a revocation timestamp.",
+                nameof(revokedAtUtc));
+        }
+
         if (revoked is not null && string.IsNullOrWhiteSpace(revocationReason))
         {
             throw new ArgumentException("A revoked sanction requires a revocation reason.", nameof(revocationReason));
