@@ -7,8 +7,8 @@ using AnoCore.Runtime.Configuration;
 using AnoCore.Runtime.Events;
 using AnoCore.Runtime.Moderation;
 using AnoCore.Runtime.Persistence;
-using AnoCore.Runtime.Players;
 using AnoCore.Runtime.Persistence.Migrations;
+using AnoCore.Runtime.Players;
 
 namespace AnoCore.Tests.Moderation;
 
