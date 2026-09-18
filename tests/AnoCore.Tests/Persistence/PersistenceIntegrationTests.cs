@@ -250,6 +250,8 @@ public sealed class PersistenceIntegrationTests
 
     private async Task DropAnoTablesAsync()
     {
+        await ExecuteAsync("DROP TABLE IF EXISTS ano_moderation_audit");
+        await ExecuteAsync("DROP TABLE IF EXISTS ano_moderation_sanctions");
         await ExecuteAsync("DROP TABLE IF EXISTS ano_migration_test");
         await ExecuteAsync("DROP TABLE IF EXISTS ano_tx_test");
         await ExecuteAsync("DROP TABLE IF EXISTS ano_module_data");
