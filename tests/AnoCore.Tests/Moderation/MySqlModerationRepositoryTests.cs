@@ -143,6 +143,33 @@ public sealed class MySqlModerationRepositoryTests
     }
 
     [TestMethod]
+    public async Task GetStateAsync_HistoricalQueryBeforeLaterRevocationRemainsActive()
+    {
+        await ApplyMigrationsAsync();
+        var service = new ModerationService(new MySqlModerationRepository(_database));
+        await service.ApplyAsync(
+            Target,
+            Admin,
+            ModerationRestriction.Chat,
+            "historical gag",
+            Now);
+
+        await service.RevokeAsync(
+            Target,
+            Admin,
+            ModerationRestriction.Chat,
+            "later revoke",
+            Now.AddMinutes(10));
+
+        Assert.AreEqual(
+            ModerationRestriction.Chat,
+            (await service.GetStateAsync(Target, Now.AddMinutes(5))).Restrictions);
+        Assert.AreEqual(
+            ModerationRestriction.None,
+            (await service.GetStateAsync(Target, Now.AddMinutes(10))).Restrictions);
+    }
+
+    [TestMethod]
     public async Task AddAsync_RollsBackSanctionsWhenAuditInsertFails()
     {
         await ApplyMigrationsAsync();
