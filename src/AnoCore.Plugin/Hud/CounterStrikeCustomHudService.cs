@@ -15,6 +15,7 @@ public sealed class CounterStrikeCustomHudService : ICustomHudService, IDisposab
     private readonly BasePlugin _plugin;
     private readonly ILogger _logger;
     private readonly Dictionary<CustomHudId, Registration> _registrations = [];
+    private readonly HashSet<Registration> _pendingCleanup = [];
     private readonly CancellationTokenSource _lifetime = new();
     private bool _started;
     private bool _disposed;
@@ -190,8 +191,12 @@ public sealed class CounterStrikeCustomHudService : ICustomHudService, IDisposab
 
             _disposed = true;
             _lifetime.Cancel();
-            registrations = _registrations.Values.ToArray();
+            registrations = _registrations.Values
+                .Concat(_pendingCleanup)
+                .Distinct()
+                .ToArray();
             _registrations.Clear();
+            _pendingCleanup.Clear();
 
             if (_started)
             {
@@ -635,14 +640,29 @@ public sealed class CounterStrikeCustomHudService : ICustomHudService, IDisposab
                 && ReferenceEquals(current, registration))
             {
                 _registrations.Remove(registration.Definition.Id);
+                _pendingCleanup.Add(registration);
                 removed = true;
             }
         }
 
-        if (removed)
+        if (!removed)
         {
-            Schedule(() => CleanupRegistration(registration));
+            return;
         }
+
+        Server.NextWorldUpdate(() =>
+        {
+            var shouldCleanup = false;
+            lock (_gate)
+            {
+                shouldCleanup = _pendingCleanup.Remove(registration);
+            }
+
+            if (shouldCleanup)
+            {
+                CleanupRegistration(registration);
+            }
+        });
     }
 
     private bool IsCurrent(Registration registration)
