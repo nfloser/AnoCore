@@ -42,10 +42,7 @@ public sealed record ModerationSanction
             throw new ArgumentOutOfRangeException(nameof(restriction), "A persisted sanction must contain exactly one restriction.");
         }
 
-        if (string.IsNullOrWhiteSpace(reason))
-        {
-            throw new ArgumentException("A moderation reason is required.", nameof(reason));
-        }
+        var normalizedReason = ModerationValidation.NormalizeReason(reason);
 
         var created = createdAtUtc.ToUniversalTime();
         var expires = expiresAtUtc?.ToUniversalTime();
@@ -69,33 +66,59 @@ public sealed record ModerationSanction
         TargetId = targetId;
         ActorId = actorId;
         Restriction = restriction;
-        Reason = reason.Trim();
+        Reason = normalizedReason;
         CreatedAtUtc = created;
         ExpiresAtUtc = expires;
         RevokedAtUtc = revoked;
         RevokedById = revokedById;
-        RevocationReason = string.IsNullOrWhiteSpace(revocationReason) ? null : revocationReason.Trim();
+        RevocationReason = revoked is null
+            ? null
+            : ModerationValidation.NormalizeReason(revocationReason!);
     }
 
-    public Guid Id { get; init; }
+    public Guid Id { get; }
 
-    public PlayerId TargetId { get; init; }
+    public PlayerId TargetId { get; }
 
-    public PlayerId? ActorId { get; init; }
+    public PlayerId? ActorId { get; }
 
-    public ModerationRestriction Restriction { get; init; }
+    public ModerationRestriction Restriction { get; }
 
-    public string Reason { get; init; }
+    public string Reason { get; }
 
-    public DateTimeOffset CreatedAtUtc { get; init; }
+    public DateTimeOffset CreatedAtUtc { get; }
 
-    public DateTimeOffset? ExpiresAtUtc { get; init; }
+    public DateTimeOffset? ExpiresAtUtc { get; }
 
-    public DateTimeOffset? RevokedAtUtc { get; init; }
+    public DateTimeOffset? RevokedAtUtc { get; }
 
-    public PlayerId? RevokedById { get; init; }
+    public PlayerId? RevokedById { get; }
 
-    public string? RevocationReason { get; init; }
+    public string? RevocationReason { get; }
+
+    public ModerationSanction Revoke(
+        PlayerId? actorId,
+        string reason,
+        DateTimeOffset atUtc)
+    {
+        var revokedAt = atUtc.ToUniversalTime();
+        if (!IsActiveAt(revokedAt))
+        {
+            throw new InvalidOperationException("Only an active moderation sanction can be revoked.");
+        }
+
+        return new ModerationSanction(
+            Id,
+            TargetId,
+            ActorId,
+            Restriction,
+            Reason,
+            CreatedAtUtc,
+            ExpiresAtUtc,
+            revokedAt,
+            actorId,
+            reason);
+    }
 
     public bool IsActiveAt(DateTimeOffset atUtc)
     {
@@ -134,17 +157,14 @@ public sealed record ModerationAuditEntry
         }
 
         ModerationValidation.ValidateRestrictions(restrictions);
-        if (string.IsNullOrWhiteSpace(reason))
-        {
-            throw new ArgumentException("A moderation audit reason is required.", nameof(reason));
-        }
+        var normalizedReason = ModerationValidation.NormalizeReason(reason);
 
         Id = id;
         TargetId = targetId;
         ActorId = actorId;
         Action = action;
         Restrictions = restrictions;
-        Reason = reason.Trim();
+        Reason = normalizedReason;
         OccurredAtUtc = occurredAtUtc.ToUniversalTime();
     }
 
@@ -233,6 +253,8 @@ public interface IModerationService
 
 public static class ModerationValidation
 {
+    public const int MaxReasonLength = 512;
+
     private const ModerationRestriction All =
         ModerationRestriction.Connect | ModerationRestriction.Voice | ModerationRestriction.Chat;
 
@@ -242,5 +264,23 @@ public static class ModerationValidation
         {
             throw new ArgumentOutOfRangeException(nameof(restrictions), "At least one known moderation restriction is required.");
         }
+    }
+
+    public static string NormalizeReason(string reason)
+    {
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            throw new ArgumentException("A moderation reason is required.", nameof(reason));
+        }
+
+        var normalized = reason.Trim();
+        if (normalized.Length > MaxReasonLength)
+        {
+            throw new ArgumentException(
+                $"Moderation reasons cannot exceed {MaxReasonLength} characters.",
+                nameof(reason));
+        }
+
+        return normalized;
     }
 }
