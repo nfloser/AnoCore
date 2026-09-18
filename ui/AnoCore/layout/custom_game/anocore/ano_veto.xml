@@ -3,10 +3,10 @@
         <include src="s2r://panorama/styles/custom_game/anocore/ano_veto.vcss_c" />
     </styles>
 
-    <Panel class="ano-screen" hittest="true" hittestchildren="true">
+    <Panel id="ano_veto_root" class="ano-overlay" hittest="true" hittestchildren="true">
         <Panel class="ano-dim" hittest="false" />
 
-        <Panel id="ano_veto_root" class="ano-window" hittest="true" hittestchildren="true">
+        <Panel class="ano-window" hittest="true" hittestchildren="true">
             <Panel class="ano-header" hittest="false">
                 <Panel class="ano-header-copy" hittest="false">
                     <Label class="ano-brand" text="ANOMEME" />
@@ -31,7 +31,7 @@
 
             <Panel class="ano-footer" hittest="false">
                 <Label class="ano-help" text="CLICK A MAP TO VOTE" />
-                <Label class="ano-help ano-help-secondary" text="ESC / CLOSE releases the cursor without voting" />
+                <Label class="ano-help ano-help-secondary" text="CLOSE releases the cursor without voting" />
             </Panel>
         </Panel>
     </Panel>

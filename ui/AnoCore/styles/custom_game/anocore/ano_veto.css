@@ -1,7 +1,15 @@
-.ano-screen
+.ano-overlay
 {
     width: 100%;
     height: 100%;
+    opacity: 0;
+    visibility: collapse;
+}
+
+.ano-overlay.shown
+{
+    opacity: 1;
+    visibility: visible;
 }
 
 .ano-dim
@@ -9,13 +17,7 @@
     width: 100%;
     height: 100%;
     background-color: #000000;
-    opacity: 0;
-    visibility: collapse;
-}
-
-.ano-window.shown + .ano-dim
-{
-    visibility: visible;
+    opacity: 0.38;
 }
 
 .ano-window
@@ -30,16 +32,6 @@
     border: 2px solid #f0f4ff2e;
     border-radius: 10px;
     box-shadow: #000000aa 0px 0px 28px 0px;
-    opacity: 0;
-    visibility: collapse;
-    transform: translateX(-5000px);
-}
-
-.ano-window.shown
-{
-    opacity: 1;
-    visibility: visible;
-    transform: none;
 }
 
 .ano-header
