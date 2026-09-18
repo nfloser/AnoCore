@@ -87,10 +87,10 @@ The CI artifact includes the source directory `ui/AnoCore`. It intentionally doe
 For a local one-client smoke test:
 
 1. Install Counter-Strike 2 Workshop Tools from the CS2 settings and restart Steam/CS2 if prompted.
-2. From the extracted source/artifact run `powershell -ExecutionPolicy Bypass -File .\ui\AnoCore\build.ps1`. Use `-Cs2 "<path>"` if CS2 is not auto-detected.
-3. The script copies the XML/CSS into a `csgo_addons/anomeme_ui` content addon and invokes ResourceCompiler.
-4. Confirm `ano_veto.vxml_c` and `ano_veto.vcss_c` exist below the generated `game/csgo_addons/anomeme_ui/panorama/.../custom_game/anocore/` paths.
-5. Mount/deliver that addon to the client. During development this can be a local addon; for normal server users publish the addon to the Workshop and use the server's addon-delivery mechanism.
-6. Restart the client after resource changes because Panorama resources are cached.
+2. From the extracted source/artifact run `powershell -ExecutionPolicy Bypass -File .\ui\AnoCore\build.ps1 -InstallLocalClient`. Use `-Cs2 "<path>"` if CS2 is not auto-detected.
+3. The script copies the XML/CSS into a `csgo_addons/anomeme_ui` content addon, invokes ResourceCompiler, verifies the outputs, and with `-InstallLocalClient` copies the compiled resources into your local client's `game/csgo/panorama/.../custom_game/anocore/` tree.
+4. Confirm `ano_veto.vxml_c` and `ano_veto.vcss_c` exist in both the generated addon output and the local client Panorama tree.
+5. Restart CS2 after resource changes because Panorama caches layouts for the session, then connect to the test server.
+6. For normal server users, do not rely on this local-copy shortcut: publish the compiled addon to the Workshop and use the server's addon-delivery mechanism (for example MultiAddonManager) so clients receive it automatically.
 
 Without the client resource addon the server-side `custom_hud_layout` entity can exist, but the player cannot render the intended layout. This is a client asset requirement, not a reason to fall back to CenterHtml.
