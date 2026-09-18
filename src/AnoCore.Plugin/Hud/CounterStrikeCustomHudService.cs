@@ -312,7 +312,7 @@ public sealed class CounterStrikeCustomHudService : ICustomHudService, IDisposab
                 false);
             if (registration.Definition.CaptureInput)
             {
-                registration.Entity.SetInputCaptureEnabled(player, false);
+                registration.Entity!.SetInputCaptureEnabled(player, false);
             }
         }
 
@@ -458,7 +458,7 @@ public sealed class CounterStrikeCustomHudService : ICustomHudService, IDisposab
             state.Visible);
         if (registration.Definition.CaptureInput)
         {
-            registration.Entity.SetInputCaptureEnabled(player, state.Visible);
+            registration.Entity!.SetInputCaptureEnabled(player, state.Visible);
         }
     }
 
