@@ -82,10 +82,10 @@ public sealed class AnoCorePlugin : BasePlugin
 
             _anoVeto?.Dispose();
             _anoVeto = null;
-            _adminCommands?.Dispose();
-            _adminCommands = null;
             _commands?.Dispose();
             _commands = null;
+            _adminCommands?.Dispose();
+            _adminCommands = null;
             _runtime?.Dispose();
             _runtime = null;
             MenuPresenter = null;
@@ -222,14 +222,7 @@ public sealed class AnoCorePlugin : BasePlugin
             var anoVeto = _pendingAnoVeto;
             _pendingRuntime = null;
             _pendingAnoVeto = null;
-            var targetGateway = new ModerationTargetGateway(
-                runtime.Players,
-                runtime.TargetResolver,
-                runtime.TargetAuthorization,
-                runtime.Authorization);
-            var adminCommands = new ModerationCommandController(
-                runtime.Commands,
-                new ModerationCommandExecutor(targetGateway, runtime.Moderation));
+            ModerationCommandController? adminCommands = null;
             var presenter = new CounterStrikeMenuPresenter(this, runtime.Menus, Logger);
             var bridge = new CounterStrikeCommandBridge(
                 this,
@@ -247,6 +240,15 @@ public sealed class AnoCorePlugin : BasePlugin
 
             try
             {
+                var targetGateway = new ModerationTargetGateway(
+                    runtime.Players,
+                    runtime.TargetResolver,
+                    runtime.TargetAuthorization,
+                    runtime.Authorization);
+                adminCommands = new ModerationCommandController(
+                    runtime.Commands,
+                    new ModerationCommandExecutor(targetGateway, runtime.Moderation));
+
                 foreach (var descriptor in runtime.Commands.GetCommands())
                 {
                     bridge.Bind(descriptor);
@@ -275,8 +277,8 @@ public sealed class AnoCorePlugin : BasePlugin
             {
                 expiryTimer?.Kill();
                 anoVeto?.Dispose();
-                adminCommands.Dispose();
                 bridge.Dispose();
+                adminCommands?.Dispose();
                 runtime.Dispose();
                 MenuPresenter = null;
                 _runtimeStatus = "activation failed";
