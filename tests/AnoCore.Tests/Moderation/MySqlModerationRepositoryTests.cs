@@ -146,6 +146,7 @@ public sealed class MySqlModerationRepositoryTests
             new PlayerRegistry(events)))
         {
             Assert.AreSame(runtime.Moderation, runtime.GetService(typeof(IModerationService)));
+            Assert.AreSame(runtime.Moderation, runtime.GetService(typeof(IModerationSnapshotProvider)));
             Assert.AreSame(runtime.ModerationRepository, runtime.GetService(typeof(IModerationRepository)));
 
             await runtime.Moderation.ApplyAsync(
