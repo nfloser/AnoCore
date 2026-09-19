@@ -31,9 +31,9 @@
 - Revoke replaces matching cached sanctions only after persistence succeeds and preserves unrelated restrictions.
 - Failed or cancelled mutations leave loaded snapshots unchanged.
 - Per-player state loads/mutations are serialized through 64 fixed async lock stripes to avoid stale load-vs-mutation races without an unbounded lock dictionary.
-- `Invalidate` removes an individual player snapshot.
+- `InvalidateAsync` uses the same SteamID stripe and removes an individual snapshot only after any in-flight load/mutation for that stripe has completed, so invalidation wins load races.
 - `RuntimeServices` exposes the exact same `ModerationService` instance as `IModerationService` and `IModerationSnapshotProvider`.
-- Tests cover cache miss, load, expiry boundary, apply/revoke updates, partial restriction preservation, invalidation, failure/cancellation and shared runtime composition.
+- Tests cover cache miss, load, expiry boundary, apply/revoke updates, partial restriction preservation, invalidation/load races, failure/cancellation and shared runtime composition.
 - Current main was merged into the branch without losing #51 live moderation command composition.
 
 ## Why this exists
