@@ -64,7 +64,7 @@ After successful persistence:
 - apply updates an already-loaded snapshot with the new sanctions;
 - revoke replaces matching cached sanctions with their revoked copies;
 - failed or cancelled persistence does not change the cached snapshot;
-- `Invalidate` explicitly removes a player's snapshot when a consumer no longer wants to retain it.
+- `InvalidateAsync` acquires the same SteamID stripe before removing a player's snapshot, so an in-flight load cannot repopulate it after invalidation returns.
 
 The database remains the source of truth. A cache miss must be warmed through `GetStateAsync` before a native high-frequency path relies on the snapshot.
 
