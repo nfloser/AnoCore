@@ -1,9 +1,10 @@
+using System.Collections.Concurrent;
 using AnoCore.Abstractions.Moderation;
 using AnoCore.Abstractions.Players;
 
 namespace AnoCore.Runtime.Moderation;
 
-public sealed class ModerationService : IModerationService
+public sealed class ModerationService : IModerationService, IModerationSnapshotProvider
 {
     private static readonly ModerationRestriction[] SingleRestrictions =
     [
@@ -12,7 +13,12 @@ public sealed class ModerationService : IModerationService
         ModerationRestriction.Chat,
     ];
 
+    private const int SnapshotGateCount = 64;
+
     private readonly IModerationRepository _repository;
+    private readonly ConcurrentDictionary<PlayerId, ModerationSanction[]> _snapshots = [];
+    private readonly SemaphoreSlim[] _snapshotGates =
+        Enumerable.Range(0, SnapshotGateCount).Select(_ => new SemaphoreSlim(1, 1)).ToArray();
 
     public ModerationService(IModerationRepository repository)
         => _repository = repository ?? throw new ArgumentNullException(nameof(repository));
@@ -60,8 +66,24 @@ public sealed class ModerationService : IModerationService
             normalizedReason,
             createdAt);
 
-        await _repository.AddAsync(sanctions, audit, cancellationToken).ConfigureAwait(false);
-        return sanctions;
+        var gate = GetSnapshotGate(targetId);
+        await gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await _repository.AddAsync(sanctions, audit, cancellationToken).ConfigureAwait(false);
+            UpdateSnapshotIfLoaded(
+                targetId,
+                current =>
+                [
+                    .. current.Where(value => value.IsActiveAt(createdAt)),
+                    .. sanctions,
+                ]);
+            return sanctions;
+        }
+        finally
+        {
+            gate.Release();
+        }
     }
 
     public async ValueTask<IReadOnlyList<ModerationSanction>> RevokeAsync(
@@ -87,16 +109,36 @@ public sealed class ModerationService : IModerationService
             normalizedReason,
             revokedAt);
 
-        var revoked = await _repository.RevokeActiveAsync(
-            targetId,
-            restrictions,
-            actorId,
-            normalizedReason,
-            revokedAt,
-            audit,
-            cancellationToken).ConfigureAwait(false);
+        var gate = GetSnapshotGate(targetId);
+        await gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            var revoked = await _repository.RevokeActiveAsync(
+                targetId,
+                restrictions,
+                actorId,
+                normalizedReason,
+                revokedAt,
+                audit,
+                cancellationToken).ConfigureAwait(false);
 
-        return OrderSanctions(revoked);
+            var ordered = OrderSanctions(revoked);
+            if (ordered.Count > 0)
+            {
+                var replacements = ordered.ToDictionary(value => value.Id);
+                UpdateSnapshotIfLoaded(
+                    targetId,
+                    current => current
+                        .Select(value => replacements.GetValueOrDefault(value.Id, value))
+                        .ToArray());
+            }
+
+            return ordered;
+        }
+        finally
+        {
+            gate.Release();
+        }
     }
 
     public async ValueTask<ModerationState> GetStateAsync(
@@ -106,17 +148,46 @@ public sealed class ModerationService : IModerationService
     {
         ArgumentNullException.ThrowIfNull(targetId);
         var instant = atUtc.ToUniversalTime();
-        var active = (await _repository.GetActiveAsync(targetId, instant, cancellationToken).ConfigureAwait(false))
-            .Where(value => value.TargetId == targetId && value.IsActiveAt(instant))
-            .OrderBy(value => value.CreatedAtUtc)
-            .ThenBy(value => value.Id)
-            .ToArray();
+        var gate = GetSnapshotGate(targetId);
+        await gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            var active = (await _repository.GetActiveAsync(targetId, instant, cancellationToken).ConfigureAwait(false))
+                .Where(value => value.TargetId == targetId && value.IsActiveAt(instant))
+                .OrderBy(value => value.CreatedAtUtc)
+                .ThenBy(value => value.Id)
+                .ToArray();
 
-        var restrictions = active.Aggregate(
-            ModerationRestriction.None,
-            (current, sanction) => current | sanction.Restriction);
+            _snapshots[targetId] = active;
+            var restrictions = GetRestrictions(active, instant);
+            return new ModerationState(targetId, restrictions, active);
+        }
+        finally
+        {
+            gate.Release();
+        }
+    }
 
-        return new ModerationState(targetId, restrictions, active);
+    public bool TryGetRestrictions(
+        PlayerId targetId,
+        DateTimeOffset atUtc,
+        out ModerationRestriction restrictions)
+    {
+        ArgumentNullException.ThrowIfNull(targetId);
+        if (!_snapshots.TryGetValue(targetId, out var sanctions))
+        {
+            restrictions = ModerationRestriction.None;
+            return false;
+        }
+
+        restrictions = GetRestrictions(sanctions, atUtc.ToUniversalTime());
+        return true;
+    }
+
+    public void Invalidate(PlayerId targetId)
+    {
+        ArgumentNullException.ThrowIfNull(targetId);
+        _snapshots.TryRemove(targetId, out _);
     }
 
     public async ValueTask<IReadOnlyList<ModerationSanction>> GetHistoryAsync(
@@ -140,6 +211,28 @@ public sealed class ModerationService : IModerationService
             .ThenBy(value => value.Id)
             .ToArray();
     }
+
+    private SemaphoreSlim GetSnapshotGate(PlayerId targetId)
+        => _snapshotGates[targetId.SteamId64 % SnapshotGateCount];
+
+    private void UpdateSnapshotIfLoaded(
+        PlayerId targetId,
+        Func<ModerationSanction[], ModerationSanction[]> update)
+    {
+        if (_snapshots.TryGetValue(targetId, out var current))
+        {
+            _snapshots[targetId] = update(current);
+        }
+    }
+
+    private static ModerationRestriction GetRestrictions(
+        IEnumerable<ModerationSanction> sanctions,
+        DateTimeOffset atUtc)
+        => sanctions
+            .Where(value => value.IsActiveAt(atUtc))
+            .Aggregate(
+                ModerationRestriction.None,
+                (current, sanction) => current | sanction.Restriction);
 
     private static IReadOnlyList<ModerationSanction> OrderSanctions(IEnumerable<ModerationSanction> sanctions)
         => sanctions
