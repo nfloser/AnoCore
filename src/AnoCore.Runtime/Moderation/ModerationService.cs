@@ -184,10 +184,21 @@ public sealed class ModerationService : IModerationService, IModerationSnapshotP
         return true;
     }
 
-    public void Invalidate(PlayerId targetId)
+    public async ValueTask InvalidateAsync(
+        PlayerId targetId,
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(targetId);
-        _snapshots.TryRemove(targetId, out _);
+        var gate = GetSnapshotGate(targetId);
+        await gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            _snapshots.TryRemove(targetId, out _);
+        }
+        finally
+        {
+            gate.Release();
+        }
     }
 
     public async ValueTask<IReadOnlyList<ModerationSanction>> GetHistoryAsync(
