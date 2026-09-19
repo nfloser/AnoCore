@@ -1,5 +1,6 @@
 using AnoCore.Abstractions.Players;
 using AnoCore.Abstractions.Voting;
+using AnoCore.Modules.Admin;
 using AnoCore.Modules.AnoVeto;
 using AnoCore.Plugin.Commands;
 using AnoCore.Plugin.Maps;
@@ -32,6 +33,7 @@ public sealed class AnoCorePlugin : BasePlugin
     private AnoVetoModuleRuntime? _pendingAnoVeto;
     private RuntimeServices? _runtime;
     private AnoVetoModuleRuntime? _anoVeto;
+    private ModerationCommandController? _adminCommands;
     private CounterStrikeCommandBridge? _commands;
     private CounterStrikeSharp.API.Modules.Timers.Timer? _anoVetoExpiryTimer;
     private string _runtimeStatus = "not started";
@@ -82,6 +84,8 @@ public sealed class AnoCorePlugin : BasePlugin
             _anoVeto = null;
             _commands?.Dispose();
             _commands = null;
+            _adminCommands?.Dispose();
+            _adminCommands = null;
             _runtime?.Dispose();
             _runtime = null;
             MenuPresenter = null;
@@ -218,6 +222,7 @@ public sealed class AnoCorePlugin : BasePlugin
             var anoVeto = _pendingAnoVeto;
             _pendingRuntime = null;
             _pendingAnoVeto = null;
+            ModerationCommandController? adminCommands = null;
             var presenter = new CounterStrikeMenuPresenter(this, runtime.Menus, Logger);
             var bridge = new CounterStrikeCommandBridge(
                 this,
@@ -235,6 +240,15 @@ public sealed class AnoCorePlugin : BasePlugin
 
             try
             {
+                var targetGateway = new ModerationTargetGateway(
+                    runtime.Players,
+                    runtime.TargetResolver,
+                    runtime.TargetAuthorization,
+                    runtime.Authorization);
+                adminCommands = new ModerationCommandController(
+                    runtime.Commands,
+                    new ModerationCommandExecutor(targetGateway, runtime.Moderation));
+
                 foreach (var descriptor in runtime.Commands.GetCommands())
                 {
                     bridge.Bind(descriptor);
@@ -249,6 +263,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 }
 
                 MenuPresenter = presenter;
+                _adminCommands = adminCommands;
                 _commands = bridge;
                 _runtime = runtime;
                 _anoVeto = anoVeto;
@@ -263,6 +278,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 expiryTimer?.Kill();
                 anoVeto?.Dispose();
                 bridge.Dispose();
+                adminCommands?.Dispose();
                 runtime.Dispose();
                 MenuPresenter = null;
                 _runtimeStatus = "activation failed";

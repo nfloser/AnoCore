@@ -3,64 +3,77 @@
 ## Current workstreams
 
 - Full functional scope remains in `docs/functional-acceptance.md`; umbrella #11 remains open.
-- Targeting/immunity #37 / PR #38 is merged in main at `ad73aa7cfea8ab4342e599cca8b65146e163551b`.
-- Persistent moderation #41 / PR #42 is merged in main at `fd20c543ece4a95f8d1978a1a5a97bb40dc3f97d`.
-- Moderation admin commands #43 / PR #44 are merged in main at `c7a7eff2f6db28e5c809c757e1b8e1858d69899e`.
-- Connect-ban lifecycle policy #45 / PR #46 is merged in main at `ab0eca64d1dc9d69365d260c68758554fba95c9b`.
-- Active native disconnect-adapter work is #47 / PR #48 / branch `feature/47-native-disconnect-adapter`.
-- Independent CustomHud/AnoVeto draft PR #40 is integrated with the shared foundations and passed CI #158; it still requires real CS2/DatHost Panorama acceptance.
-- Extended commands #36 remain separate.
+- Targeting/immunity #37 / PR #38 is merged.
+- Persistent moderation #41 / PR #42 is merged.
+- Persistent moderation admin commands #43 / PR #44 are merged.
+- Connect-ban lifecycle policy #45 / PR #46 is merged.
+- Native CounterStrike disconnect adapter #47 / PR #48 is merged.
+- Existing-session connect-ban bootstrap #49 / PR #50 is merged.
+- Active live-command composition: issue #51 / PR #52 / branch `feature/51-compose-moderation-commands`.
+- Independent CustomHud/AnoVeto PR #40 passed CI #158 after integrating current foundations but remains draft until real CS2/DatHost Panorama acceptance.
+- Extended commands #36 and the remaining #17 communication/admin/UI packages remain separate.
 
-## Known-good #47 checkpoint
+## Known-good #51 checkpoint
 
-- Initial native adapter head `d10affdc47e31c4de097e9f7f6d0838058104e1a` passed CI #183.
-- The adapter then received one review hardening commit: queued disconnect callbacks now no-op if their cancellation token was cancelled before the server update executes.
-- Final documentation commits follow that code change; require final exact-head CI before merge.
-- Existing suite remains 177 tests before any later test additions.
-- CounterStrikeSharp package remains pinned at API 1.0.374.
+- Reviewed code head before this handoff commit: `c84435fa29b038db7f005e6ed0b0978ba6f3b48a`.
+- CI run: `35454654365` (#193).
+- Release build: passed with zero warnings and zero errors.
+- Test suite: 179/179 passed, including MariaDB integration.
+- Formatting: passed.
+- Development plugin publish: passed.
+- Deployment package validation: passed.
+- Artifact upload: passed.
 
-## Implemented in #47 / PR #48
+## Implemented in #51 / PR #52
 
-- New `CounterStrikePlayerDisconnectAction` in the plugin layer.
-- `AnoCore.Plugin` now references `AnoCore.Modules.Admin` for the shared disconnect-action contract.
-- Native work is marshalled through `Server.NextWorldUpdate`.
-- Before disconnecting, the callback checks:
-  - operation cancellation;
-  - the shared registry still contains the player;
-  - the player is still connected;
-  - the current `PlayerSessionId` exactly matches the originally banned session.
-- Live controller resolution uses SteamID64 and excludes invalid/bot/HLTV controllers.
-- Current sessions are disconnected through CounterStrikeSharp API 374:
-  `CCSPlayerController.Disconnect(NetworkDisconnectionReason.NETWORK_DISCONNECT_KICKED)`.
-- The free-form AnoCore moderation reason remains in persistent audit/history; CounterStrikeSharp's disconnect method accepts a network reason enum rather than that text.
-- Detailed behavior is recorded in `docs/connect-ban-enforcement.md`.
+- Live plugin composition creates `ModerationTargetGateway` from the shared:
+  - player registry,
+  - target resolver,
+  - target authorization service,
+  - authorization service.
+- It creates `ModerationCommandExecutor` from that gateway and the shared moderation service.
+- It creates `ModerationCommandController` before the native CounterStrike command bridge enumerates command descriptors.
+- The existing `CounterStrikeCommandBridge` therefore exposes all eight already-tested moderation commands without a second command implementation.
+- The controller is retained for the active runtime lifetime.
+- Unload removes native command bindings first, then unregisters the moderation command descriptors.
+- Activation rollback disposes the command bridge, moderation controller, AnoVeto runtime and shared runtime consistently.
+- Review fix: controller construction was moved inside the activation try/catch so a registration collision cannot escape the rollback path and orphan the runtime.
+
+## Live moderation command surface
+
+- `!anoban <target> <minutes> [reason]`
+- `!anounban <target> [reason]`
+- `!anomute <target> <minutes> [reason]`
+- `!anounmute <target> [reason]`
+- `!anogag <target> <minutes> [reason]`
+- `!anoungag <target> [reason]`
+- `!anosilence <target> <minutes> [reason]`
+- `!anounsilence <target> [reason]`
+
+The commands reuse centralized target resolution, permissions, immunity, persistence and audit history. They do not implement their own player or moderation storage.
 
 ## Scope boundary
 
-PR #48 deliberately does not edit `AnoCorePlugin.cs`, because draft PR #40 owns that file in parallel.
+#51 only makes the persistent commands reachable through the live CounterStrike command bridge.
 
-Therefore the native adapter exists and compiles/packages, but `ConnectBanEnforcement` is not yet composed into the live plugin.
+Already merged connect-ban policy/native disconnect code is separate. Remaining #17 native work still includes:
 
-The next integration package should reconcile current main with #40 and wire only:
-
-- the shared runtime/event/player services;
-- `CounterStrikePlayerDisconnectAction`;
-- `ConnectBanEnforcement`;
-- disposal during unload/startup rollback.
-
-Chat gag and voice mute enforcement remain later independent packages.
+- voice-mute enforcement,
+- chat-gag enforcement,
+- live refresh when communication moderation changes,
+- admin UI/audit presentation,
+- chat/name/clan tags and shared messaging surfaces.
 
 ## Next steps
 
-1. Run final CI on the exact #48 documentation head, self-review and merge with expected-head SHA.
-2. Reconcile PR #40 with the latest main without losing its CustomHud changes.
-3. Add the connect-ban composition in one small integration package/commit set.
-4. Run real-server acceptance: active ban disconnect, expired/revoked allow, stale/reconnect safety and unload.
-5. Then implement chat gag enforcement as a separate package, followed by voice mute enforcement.
-6. Keep #36 Extended Commands separate until these administration foundations are integrated.
+1. Run final exact-head CI after this handoff commit, self-review PR #52 and merge with expected-head SHA if green and mergeable.
+2. Continue #17 in another small branch with communication restriction propagation/enforcement rather than combining voice, chat, tags and UI in one change.
+3. Keep PR #40 draft until real CS2/DatHost CustomHud acceptance is recorded.
+4. Keep #36 Extended Commands separate and consume the shared target/authorization/moderation foundations.
+5. Preserve small commits, CI gates and handoff notes before context boundaries.
 
 ## Integration rules
 
-Reuse the shared player registry, event bus and `IModerationService`. Never resolve a queued disconnect solely by SteamID without rechecking the original session token. Native engine calls remain on the server update thread.
+Use the shared services in `RuntimeServices`. Do not create duplicate player registries, target resolvers, authorization/immunity logic, command registries or moderation stores. Engine work after asynchronous operations must be marshalled onto the server update thread. Preserve cleanup on unload, hot reload and activation rollback.
 
 License, NOTICE and source provenance must remain intact.

@@ -54,17 +54,24 @@ If a revoke command finds no matching active restriction, it fails cleanly inste
 
 Registration is atomic: if a later command cannot be registered, for example because another module already owns its name, earlier registrations made by that constructor are rolled back before the constructor rethrows.
 
-## Integration boundary
+## Live plugin composition
 
-This module intentionally contains no CounterStrikeSharp API calls.
+The module itself intentionally contains no CounterStrikeSharp API calls, but `AnoCorePlugin` now composes it from the shared runtime services.
 
-The next native #17 integration packages must:
+During runtime activation the plugin creates:
 
-1. instantiate the admin module from the shared runtime services;
-2. deny/disconnect clients with an active `Connect` restriction;
-3. enforce `Voice` restrictions in the voice path;
-4. enforce `Chat` restrictions in the chat path;
-5. refresh enforcement immediately after command state changes where required;
-6. preserve all existing centralized target, permission, immunity and audit behavior.
+1. `ModerationTargetGateway` from the shared player registry, target resolver, target authorization and authorization service;
+2. `ModerationCommandExecutor` from that gateway and the shared moderation service;
+3. `ModerationCommandController` before `CounterStrikeCommandBridge` enumerates registered descriptors.
+
+That ordering makes all eight moderation commands visible to the existing CounterStrikeSharp command bridge without a second command system.
+
+The controller is retained for the active runtime lifetime and disposed on unload or activation rollback, which unregisters all owned command descriptors.
+
+## Remaining native enforcement boundary
+
+The commands are live and persist moderation state. Connect-ban policy and its native disconnect adapter also exist, but their final plugin composition is a separate package.
+
+Voice/chat enforcement and admin UI remain later #17 work.
 
 Real server acceptance is required before the moderation feature is considered production-ready.
