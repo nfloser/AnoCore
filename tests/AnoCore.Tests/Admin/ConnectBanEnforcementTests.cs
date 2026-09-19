@@ -120,6 +120,26 @@ public sealed class ConnectBanEnforcementTests
     }
 
     [TestMethod]
+    public async Task Disconnected_ReleasesTrackedSession()
+    {
+        var events = new AnoEventBus();
+        var moderation = new StubModerationService(ModerationRestriction.Connect);
+        var disconnect = new StubDisconnectAction();
+        using var enforcement = new ConnectBanEnforcement(
+            events,
+            moderation,
+            disconnect,
+            new FixedTimeProvider(Now));
+
+        var player = Player(PlayerSessionId.New());
+        await events.PublishAsync(new PlayerConnectedEvent(player));
+        await events.PublishAsync(new PlayerDisconnectedEvent(player));
+        await events.PublishAsync(new PlayerConnectedEvent(player));
+
+        Assert.AreEqual(2, disconnect.Calls);
+    }
+
+    [TestMethod]
     public async Task Dispose_UnsubscribesFromConnectionEvents()
     {
         var events = new AnoEventBus();
