@@ -50,7 +50,7 @@ public sealed class ModerationCommandController : IDisposable
         string description,
         bool requiresDuration)
     {
-        var arguments = requiresDuration
+        IReadOnlyList<CommandArgumentDescriptor> arguments = requiresDuration
             ?
             [
                 new CommandArgumentDescriptor(
