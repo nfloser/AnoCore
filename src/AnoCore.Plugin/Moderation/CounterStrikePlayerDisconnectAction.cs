@@ -22,6 +22,11 @@ public sealed class CounterStrikePlayerDisconnectAction : IPlayerDisconnectActio
 
         Server.NextWorldUpdate(() =>
         {
+            if (cancellationToken.IsCancellationRequested)
+            {
+                return;
+            }
+
             if (!_players.TryGet(player.Id, out var current)
                 || current is null
                 || !current.IsConnected
