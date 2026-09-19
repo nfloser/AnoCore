@@ -84,6 +84,21 @@ Chat maps only to `ModerationRestriction.Chat`; Voice maps only to `ModerationRe
 
 The policy evaluates against `TimeProvider.GetUtcNow()`, so temporary restrictions are blocked before expiry and allowed starting exactly at the expiry instant without another MariaDB read.
 
+## Lifecycle snapshot warming
+
+`ModerationSnapshotLifecycle` subscribes to the engine-independent player lifecycle events and keeps the shared moderation snapshot ready before high-frequency communication callbacks need it.
+
+- first connect warms state through `IModerationService.GetStateAsync`;
+- reconnect invalidates the previous cached state and reloads the current SteamID state;
+- disconnect invalidates only when the event belongs to the currently tracked session;
+- a stale disconnect from an older session cannot clear the current player's snapshot;
+- dispose unsubscribes the lifecycle handlers and cancels in-flight warming;
+- if a warm finishes after the player has disconnected/disposed, the late snapshot is invalidated again.
+
+The lifecycle uses the same shared `IModerationService` / `IModerationSnapshotProvider`; it does not own another cache. The snapshot provider's per-SteamID serialization guarantees that disconnect invalidation wins a genuinely in-flight load.
+
+Warm failures remain visible as lifecycle-event failures and do not turn into an unrestricted snapshot.
+
 ## Native enforcement boundary
 
 Persistent moderation commands are composed into the live command bridge, and connect restrictions have a native disconnect path. Remaining #17 native work still includes voice-mute and chat-gag enforcement plus admin UI/audit presentation.
