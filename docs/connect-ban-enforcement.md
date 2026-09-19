@@ -1,6 +1,6 @@
 # Connect-ban enforcement
 
-AnoCore enforces persisted connect restrictions through an engine-independent lifecycle policy before the CounterStrikeSharp disconnect adapter is introduced.
+AnoCore enforces persisted connect restrictions through an engine-independent lifecycle policy and a thin CounterStrikeSharp disconnect adapter.
 
 ## Flow
 
@@ -37,13 +37,29 @@ Cancellation is propagated. A failed or cancelled disconnect is not treated as s
 
 Disposing the enforcement object unsubscribes all lifecycle handlers and clears tracked sessions.
 
-## Native integration boundary
+## Native disconnect adapter
 
-This package intentionally does not implement the CounterStrikeSharp disconnect call.
+`CounterStrikePlayerDisconnectAction` implements `IPlayerDisconnectAction` in the plugin layer.
 
-The next small #17 package should provide the native `IPlayerDisconnectAction` adapter and compose `ConnectBanEnforcement` from the plugin using the existing shared event bus and moderation service.
+It schedules the native operation through `Server.NextWorldUpdate`, then revalidates the shared registry before touching the engine. The disconnect is skipped when:
 
-Native engine calls must be marshalled onto the CS2 server update thread where required by CounterStrikeSharp.
+- the operation token was cancelled after scheduling;
+- the player is no longer tracked/connected;
+- the tracked `PlayerSessionId` no longer matches the session that was originally banned.
+
+That session guard prevents a delayed native callback from disconnecting a newly reconnected session that happens to use the same SteamID64.
+
+For a still-current session, the adapter resolves the live non-bot/non-HLTV `CCSPlayerController` by SteamID64 and calls:
+
+`Disconnect(NetworkDisconnectionReason.NETWORK_DISCONNECT_KICKED)`
+
+CounterStrikeSharp's disconnect API accepts a network-disconnection enum, not AnoCore's free-form moderation reason, so the durable reason remains in AnoCore's moderation/audit history.
+
+## Remaining composition boundary
+
+The native adapter is present but is not yet instantiated from `AnoCorePlugin`, because draft PR #40 concurrently owns that composition file. A follow-up integration package must reconcile current main with #40 and construct `ConnectBanEnforcement` using the shared registry/event bus/moderation service plus this adapter.
+
+Native engine calls remain marshalled onto the CS2 server update thread.
 
 ## Acceptance evidence
 
@@ -58,4 +74,4 @@ Automated tests cover:
 - disconnect lifecycle cleanup;
 - disposal/unsubscription.
 
-Real-server verification remains required after the native adapter is wired.
+CI verifies the adapter compiles/packages against CounterStrikeSharp API 374. Real-server verification remains required after plugin composition is wired.
