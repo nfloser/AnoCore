@@ -29,9 +29,9 @@ public sealed class ConnectBanEnforcement : IDisposable
         _timeProvider = timeProvider ?? TimeProvider.System;
 
         _subscriptions.Add(events.Subscribe<PlayerConnectedEvent>(
-            (value, token) => EnforceAsync(value.Player, token)));
+            (value, token) => CheckAsync(value.Player, token)));
         _subscriptions.Add(events.Subscribe<PlayerReconnectedEvent>(
-            (value, token) => EnforceAsync(value.Current, token)));
+            (value, token) => CheckAsync(value.Current, token)));
         _subscriptions.Add(events.Subscribe<PlayerDisconnectedEvent>(
             (value, _) =>
             {
@@ -67,9 +67,9 @@ public sealed class ConnectBanEnforcement : IDisposable
         }
     }
 
-    private async ValueTask EnforceAsync(
+    public async ValueTask CheckAsync(
         PlayerSnapshot player,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, this);
         cancellationToken.ThrowIfCancellationRequested();
