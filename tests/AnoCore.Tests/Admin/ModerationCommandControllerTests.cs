@@ -1,5 +1,6 @@
 using AnoCore.Abstractions.Commands;
 using AnoCore.Abstractions.Moderation;
+using AnoCore.Abstractions.Modules;
 using AnoCore.Abstractions.Permissions;
 using AnoCore.Abstractions.Players;
 using AnoCore.Modules.Admin;
@@ -104,6 +105,23 @@ public sealed class ModerationCommandControllerTests
         Assert.AreEqual(0, targets.Calls);
         Assert.AreEqual(0, moderation.ApplyCalls);
         Assert.AreEqual(0, moderation.RevokeCalls);
+    }
+
+    [TestMethod]
+    public void Constructor_RollsBackEarlierRegistrationsWhenLaterCommandCollides()
+    {
+        var registry = new CommandRegistry(new AllowAllPermissions());
+        registry.Register(
+            new ModuleId("collision"),
+            new CommandDescriptor("anogag", "pre-existing"),
+            _ => ValueTask.FromResult(CommandResult.Ok()));
+
+        Assert.ThrowsExactly<InvalidOperationException>(() =>
+            CreateController(registry, out _, out _));
+
+        CollectionAssert.AreEqual(
+            new[] { "anogag" },
+            registry.GetCommands().Select(command => command.Name).ToArray());
     }
 
     [TestMethod]
