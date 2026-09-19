@@ -77,6 +77,31 @@ public sealed class ModerationCommunicationPolicyTests
     }
 
     [TestMethod]
+    public void Evaluate_UsesCurrentUtcForSnapshotExpiry()
+    {
+        var expiresAt = Now.AddMinutes(5);
+        var snapshots = new StubSnapshots
+        {
+            IsLoaded = true,
+            Restrictions = ModerationRestriction.Chat,
+            ExpiresAtUtc = expiresAt,
+        };
+        var time = new MutableTimeProvider(expiresAt.AddTicks(-1));
+        var policy = new ModerationCommunicationPolicy(snapshots, time);
+
+        Assert.AreEqual(
+            CommunicationRestrictionDecision.Blocked,
+            policy.Evaluate(Player, CommunicationChannel.Chat));
+
+        time.UtcNow = expiresAt;
+
+        Assert.AreEqual(
+            CommunicationRestrictionDecision.Allowed,
+            policy.Evaluate(Player, CommunicationChannel.Chat));
+        Assert.AreEqual(expiresAt, snapshots.LastAtUtc);
+    }
+
+    [TestMethod]
     public void Evaluate_RejectsUnknownCommunicationChannel()
     {
         var policy = Policy(ModerationRestriction.None);
@@ -100,6 +125,8 @@ public sealed class ModerationCommunicationPolicyTests
 
         public ModerationRestriction Restrictions { get; init; }
 
+        public DateTimeOffset? ExpiresAtUtc { get; init; }
+
         public DateTimeOffset? LastAtUtc { get; private set; }
 
         public bool TryGetRestrictions(
@@ -108,7 +135,9 @@ public sealed class ModerationCommunicationPolicyTests
             out ModerationRestriction restrictions)
         {
             LastAtUtc = atUtc;
-            restrictions = Restrictions;
+            restrictions = ExpiresAtUtc is { } expires && atUtc >= expires
+                ? ModerationRestriction.None
+                : Restrictions;
             return IsLoaded;
         }
 
@@ -121,5 +150,12 @@ public sealed class ModerationCommunicationPolicyTests
     private sealed class FixedTimeProvider(DateTimeOffset now) : TimeProvider
     {
         public override DateTimeOffset GetUtcNow() => now;
+    }
+
+    private sealed class MutableTimeProvider(DateTimeOffset now) : TimeProvider
+    {
+        public DateTimeOffset UtcNow { get; set; } = now;
+
+        public override DateTimeOffset GetUtcNow() => UtcNow;
     }
 }
