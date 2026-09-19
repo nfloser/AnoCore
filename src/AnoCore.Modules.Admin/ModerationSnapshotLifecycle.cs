@@ -53,7 +53,6 @@ public sealed class ModerationSnapshotLifecycle : IDisposable
             _sessions.Clear();
         }
 
-        _lifetime.Dispose();
     }
 
     private ValueTask OnConnectedAsync(
@@ -116,9 +115,9 @@ public sealed class ModerationSnapshotLifecycle : IDisposable
                     linked.Token)
                 .ConfigureAwait(false);
 
-            if (!IsCurrentSession(player))
+            if (!HasTrackedSession(player.Id))
             {
-                await _snapshots.InvalidateAsync(player.Id, linked.Token)
+                await _snapshots.InvalidateAsync(player.Id, CancellationToken.None)
                     .ConfigureAwait(false);
             }
         }
@@ -143,12 +142,11 @@ public sealed class ModerationSnapshotLifecycle : IDisposable
         }
     }
 
-    private bool IsCurrentSession(PlayerSnapshot player)
+    private bool HasTrackedSession(PlayerId playerId)
     {
         lock (_sync)
         {
-            return _sessions.TryGetValue(player.Id, out var sessionId)
-                && sessionId == player.SessionId;
+            return _sessions.ContainsKey(playerId);
         }
     }
 
