@@ -35,6 +35,25 @@ public sealed class ModerationSnapshotLifecycle : IDisposable
         ];
     }
 
+    public async ValueTask WarmExistingAsync(
+        IEnumerable<PlayerSnapshot> players,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(players);
+        ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, this);
+
+        foreach (var player in players
+                     .Where(value => value.IsConnected)
+                     .OrderBy(value => value.Id.SteamId64))
+        {
+            await WarmAsync(
+                    player,
+                    invalidateFirst: false,
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }
+    }
+
     public void Dispose()
     {
         if (Interlocked.Exchange(ref _disposed, 1) != 0)
