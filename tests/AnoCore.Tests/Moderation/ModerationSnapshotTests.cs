@@ -120,11 +120,38 @@ public sealed class ModerationSnapshotTests
 
         await service.GetStateAsync(Target, Now);
         await service.GetStateAsync(other, Now);
-        snapshots.Invalidate(Target);
+        await snapshots.InvalidateAsync(Target);
 
         Assert.IsFalse(snapshots.TryGetRestrictions(Target, Now, out _));
         Assert.IsTrue(snapshots.TryGetRestrictions(other, Now, out var otherRestrictions));
         Assert.AreEqual(ModerationRestriction.Voice, otherRestrictions);
+    }
+
+    [TestMethod]
+    public async Task InvalidateAsync_WaitsForInflightLoadAndWinsTheRace()
+    {
+        var repository = new BlockingLoadRepository(
+            new ModerationSanction(
+                Guid.NewGuid(),
+                Target,
+                Admin,
+                ModerationRestriction.Chat,
+                "cached",
+                Now));
+        var service = new ModerationService(repository);
+        var snapshots = (IModerationSnapshotProvider)service;
+
+        var load = service.GetStateAsync(Target, Now).AsTask();
+        await repository.ReadStarted.Task;
+
+        var invalidate = snapshots.InvalidateAsync(Target).AsTask();
+        Assert.IsFalse(invalidate.IsCompleted);
+
+        repository.ReleaseRead.TrySetResult();
+        await load;
+        await invalidate;
+
+        Assert.IsFalse(snapshots.TryGetRestrictions(Target, Now, out _));
     }
 
     [TestMethod]
@@ -211,6 +238,53 @@ public sealed class ModerationSnapshotTests
         Assert.AreEqual(0, repository.AddCalls);
         Assert.IsTrue(snapshots.TryGetRestrictions(Target, Now.AddMinutes(2), out var restrictions));
         Assert.AreEqual(ModerationRestriction.Voice, restrictions);
+    }
+
+    private sealed class BlockingLoadRepository(ModerationSanction sanction) : IModerationRepository
+    {
+        public TaskCompletionSource ReadStarted { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public TaskCompletionSource ReleaseRead { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public async ValueTask<IReadOnlyList<ModerationSanction>> GetActiveAsync(
+            PlayerId targetId,
+            DateTimeOffset atUtc,
+            CancellationToken cancellationToken = default)
+        {
+            ReadStarted.TrySetResult();
+            await ReleaseRead.Task.WaitAsync(cancellationToken);
+            return sanction.TargetId == targetId && sanction.IsActiveAt(atUtc)
+                ? [sanction]
+                : [];
+        }
+
+        public ValueTask AddAsync(
+            IReadOnlyCollection<ModerationSanction> sanctions,
+            ModerationAuditEntry audit,
+            CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public ValueTask<IReadOnlyList<ModerationSanction>> GetHistoryAsync(
+            PlayerId targetId,
+            CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public ValueTask<IReadOnlyList<ModerationSanction>> RevokeActiveAsync(
+            PlayerId targetId,
+            ModerationRestriction restrictions,
+            PlayerId? actorId,
+            string reason,
+            DateTimeOffset atUtc,
+            ModerationAuditEntry audit,
+            CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public ValueTask<IReadOnlyList<ModerationAuditEntry>> GetAuditHistoryAsync(
+            PlayerId targetId,
+            CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
     }
 
     private sealed class MemoryRepository(params ModerationSanction[] initial) : IModerationRepository
