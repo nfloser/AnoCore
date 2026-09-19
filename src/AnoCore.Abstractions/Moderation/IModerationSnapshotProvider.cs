@@ -9,5 +9,7 @@ public interface IModerationSnapshotProvider
         DateTimeOffset atUtc,
         out ModerationRestriction restrictions);
 
-    void Invalidate(PlayerId targetId);
+    ValueTask InvalidateAsync(
+        PlayerId targetId,
+        CancellationToken cancellationToken = default);
 }
