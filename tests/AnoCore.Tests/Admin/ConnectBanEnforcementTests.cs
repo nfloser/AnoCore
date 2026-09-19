@@ -13,6 +13,44 @@ public sealed class ConnectBanEnforcementTests
     private static readonly DateTimeOffset Now = new(2026, 9, 19, 16, 0, 0, TimeSpan.Zero);
 
     [TestMethod]
+    public async Task CheckAsync_ExistingActiveSessionDisconnectsOnceAcrossRepeatedBootstrapChecks()
+    {
+        var events = new AnoEventBus();
+        var moderation = new StubModerationService(ModerationRestriction.Connect);
+        var disconnect = new StubDisconnectAction();
+        using var enforcement = new ConnectBanEnforcement(
+            events,
+            moderation,
+            disconnect,
+            new FixedTimeProvider(Now));
+
+        var player = Player(PlayerSessionId.New());
+        await enforcement.CheckAsync(player);
+        await enforcement.CheckAsync(player);
+
+        Assert.AreEqual(2, moderation.StateCalls);
+        Assert.AreEqual(1, disconnect.Calls);
+    }
+
+    [TestMethod]
+    public async Task CheckAsync_ExistingUnrestrictedSessionIsAllowed()
+    {
+        var events = new AnoEventBus();
+        var moderation = new StubModerationService(ModerationRestriction.None);
+        var disconnect = new StubDisconnectAction();
+        using var enforcement = new ConnectBanEnforcement(
+            events,
+            moderation,
+            disconnect,
+            new FixedTimeProvider(Now));
+
+        await enforcement.CheckAsync(Player(PlayerSessionId.New()));
+
+        Assert.AreEqual(1, moderation.StateCalls);
+        Assert.AreEqual(0, disconnect.Calls);
+    }
+
+    [TestMethod]
     public async Task Connected_ActiveConnectRestrictionDisconnectsExactlyOncePerSession()
     {
         var events = new AnoEventBus();
