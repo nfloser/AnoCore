@@ -42,15 +42,35 @@ public sealed class ModerationSnapshotLifecycle : IDisposable
         ArgumentNullException.ThrowIfNull(players);
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, this);
 
+        List<Exception>? failures = null;
         foreach (var player in players
                      .Where(value => value.IsConnected)
                      .OrderBy(value => value.Id.SteamId64))
         {
-            await WarmAsync(
-                    player,
-                    invalidateFirst: false,
-                    cancellationToken)
-                .ConfigureAwait(false);
+            try
+            {
+                await WarmAsync(
+                        player,
+                        invalidateFirst: false,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception exception)
+            {
+                failures ??= [];
+                failures.Add(exception);
+            }
+        }
+
+        if (failures is { Count: > 0 })
+        {
+            throw new AggregateException(
+                "One or more moderation snapshots could not be warmed.",
+                failures);
         }
     }
 
