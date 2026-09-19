@@ -32,6 +32,12 @@ public sealed class ConnectBanEnforcement : IDisposable
             (value, token) => EnforceAsync(value.Player, token)));
         _subscriptions.Add(events.Subscribe<PlayerReconnectedEvent>(
             (value, token) => EnforceAsync(value.Current, token)));
+        _subscriptions.Add(events.Subscribe<PlayerDisconnectedEvent>(
+            (value, _) =>
+            {
+                Release(value.Player.SessionId);
+                return ValueTask.CompletedTask;
+            }));
     }
 
     public void Dispose()
@@ -50,6 +56,14 @@ public sealed class ConnectBanEnforcement : IDisposable
         lock (_gate)
         {
             _disconnecting.Clear();
+        }
+    }
+
+    private void Release(PlayerSessionId sessionId)
+    {
+        lock (_gate)
+        {
+            _disconnecting.Remove(sessionId);
         }
     }
 
