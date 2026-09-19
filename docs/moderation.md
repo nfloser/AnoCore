@@ -68,6 +68,22 @@ After successful persistence:
 
 The database remains the source of truth. A cache miss must be warmed through `GetStateAsync` before a native high-frequency path relies on the snapshot.
 
+## Synchronous communication policy
+
+`ModerationCommunicationPolicy` provides the engine-independent synchronous decision boundary for native chat and voice adapters.
+
+It evaluates only the already-loaded `IModerationSnapshotProvider` and never performs a database query. The caller supplies a player and either the Chat or Voice channel. Results are explicit:
+
+- `Allowed`
+- `Blocked`
+- `SnapshotUnavailable`
+
+A snapshot miss is not treated as unrestricted. Lifecycle code must warm moderation state before a high-frequency native callback relies on this policy.
+
+Chat maps only to `ModerationRestriction.Chat`; Voice maps only to `ModerationRestriction.Voice`. A silence blocks both because the persisted/snapshot state contains both flags.
+
+The policy evaluates against `TimeProvider.GetUtcNow()`, so temporary restrictions are blocked before expiry and allowed starting exactly at the expiry instant without another MariaDB read.
+
 ## Native enforcement boundary
 
 Persistent moderation commands are composed into the live command bridge, and connect restrictions have a native disconnect path. Remaining #17 native work still includes voice-mute and chat-gag enforcement plus admin UI/audit presentation.
