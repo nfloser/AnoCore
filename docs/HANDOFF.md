@@ -3,64 +3,54 @@
 ## Current workstreams
 
 - Full functional scope remains in `docs/functional-acceptance.md`; umbrella #11 remains open.
-- Targeting/immunity #37 / PR #38 is merged.
-- Persistent moderation #41 / PR #42 is merged.
-- Persistent moderation admin commands #43 / PR #44 are merged.
-- Connect-ban policy/native disconnect/bootstrap #45 through #50 are merged.
-- Live moderation command composition #51 / PR #52 is merged.
-- Race-safe moderation snapshots #53 / PR #54 are merged in main at `5c98f3990b328386922b2b0bafe45d9c4dc6a8d3`.
-- Active communication-policy work: issue #55 / PR #56 / branch `feature/55-communication-policy`.
+- Targeting/immunity #37/#38, persistent moderation #41/#42, moderation commands #43/#44, connect-ban lifecycle/native enforcement #45-#50, live command composition #51/#52, moderation snapshots #53/#54 and synchronous communication policy #55/#56 are merged.
+- Communication policy merge commit on main: `27672fe5bf28ef0a311ac0c96f36e66919df1654`.
+- Active snapshot-lifecycle work: issue #57 / PR #58 / branch `feature/57-moderation-lifecycle-warming`.
 - Independent CustomHud/AnoVeto PR #40 remains draft until real CS2/DatHost Panorama acceptance.
 - Extended commands #36 and remaining #17 native chat/voice, tags, messaging and admin-UI packages remain separate.
 
-## Known-good #55 checkpoint
+## Known-good #57 checkpoint
 
-- Reviewed code/test head before documentation commits: `0b924f2961fd30bd4ce610c1f2a3c05918cf66c4`.
-- CI run: `35456178405` (#213).
+- Reviewed implementation/test head before documentation-only commits: `8fa4ea47b2eb9e1f66f427a331d931b6f1dc49a6`.
+- CI run: `35456745727` (#221).
 - Release build: passed with zero warnings and zero errors.
-- Test suite: 195/195 passed, including MariaDB integration and the communication-policy expiry regression.
+- Test suite: 203/203 passed, including MariaDB integration and lifecycle race/failure tests.
 - Formatting: passed.
 - Development plugin publish: passed.
 - Deployment package validation: passed.
 - Artifact upload: passed.
-- Later commits only update moderation documentation, acceptance and this handoff; require final exact-head CI before merge.
+- Later commits only update moderation docs, acceptance and this handoff; require final exact-head CI before merge.
 
-## Implemented in #55 / PR #56
+## Implemented in #57 / PR #58
 
-- Engine-independent `IModerationCommunicationPolicy`.
-- Channels: Chat and Voice.
-- Decisions: Allowed, Blocked and SnapshotUnavailable.
-- Chat maps only to `ModerationRestriction.Chat`.
-- Voice maps only to `ModerationRestriction.Voice`.
-- Silence blocks both channels through the existing two-flag moderation state.
-- Evaluation is synchronous and uses only `IModerationSnapshotProvider`; no database access occurs in the policy.
-- Snapshot miss is explicit and never silently treated as unrestricted.
-- `TimeProvider` supplies current UTC time so temporary restrictions expire locally at the exact boundary.
-- Tests cover unrestricted, chat-only, voice-only, silence, cache miss, invalid channel and exact expiry behavior.
+- Engine-independent `ModerationSnapshotLifecycle`.
+- Subscribes to `PlayerConnectedEvent`, `PlayerReconnectedEvent` and `PlayerDisconnectedEvent`.
+- Connect warms moderation through shared `IModerationService.GetStateAsync`.
+- Reconnect invalidates previous cache state then reloads the current player state.
+- Current session is tracked per SteamID so stale disconnect events cannot invalidate a newer reconnect.
+- Matching disconnect invalidates once and forgets the tracked session.
+- Disconnect during a real in-flight `ModerationService` warm ends with no cached snapshot.
+- Warm failures do not create an available snapshot.
+- Dispose unsubscribes events and cancels in-flight warm work without surfacing an unload failure.
+- Late warm completion after disconnect/dispose is cleaned up without erasing a separately tracked newer session.
+- No second moderation cache/store is introduced.
 
-## Integration boundary
+## Scope boundary
 
-#56 intentionally does not add CounterStrikeSharp say/say_team listeners, voice hooks, snapshot warming or plugin composition.
-
-Native consumers must:
-
-1. warm moderation state through the shared `IModerationService` at a lifecycle boundary;
-2. use the shared snapshot provider/policy synchronously in high-frequency callbacks;
-3. treat `SnapshotUnavailable` as an explicit not-ready state;
-4. avoid MariaDB calls from chat/voice callbacks;
-5. preserve unload/hot-reload cleanup and reconnect/session safety.
+#58 intentionally does not register CounterStrikeSharp listeners and does not block native chat or voice itself. It prepares the shared cache lifecycle so later high-frequency adapters can use `IModerationCommunicationPolicy` synchronously without MariaDB reads.
 
 ## Next steps
 
-1. Run final CI on the exact documentation/handoff head, review PR #56 and merge with expected-head SHA if green.
-2. Create the next small #17 package for snapshot warming/invalidation on player lifecycle.
-3. Build native chat-gag enforcement separately from native voice-mute enforcement if their CounterStrikeSharp hook lifecycles differ.
-4. Keep PR #40 draft until real CS2/DatHost CustomHud acceptance is recorded.
-5. Keep #36 Extended Commands separate and reuse shared authorization/targeting/moderation.
-6. Preserve small test-first commits, exact-head CI, self-review and this handoff before context boundaries.
+1. Run final exact-head CI after documentation, self-review PR #58 and merge with expected-head SHA if green.
+2. Implement native chat-gag interception as a separate small #17 package.
+3. Implement native voice-mute enforcement separately if its CounterStrikeSharp lifecycle/API differs.
+4. Compose those adapters with the merged snapshot lifecycle and synchronous communication policy.
+5. Keep PR #40 draft until real CS2/DatHost CustomHud acceptance is recorded.
+6. Keep #36 Extended Commands separate and reuse shared authorization/targeting/moderation.
+7. Preserve small test-first commits, exact-head CI and this handoff before context boundaries.
 
 ## Integration rules
 
-Do not create duplicate moderation caches, stores or permission systems. Use `IModerationCommunicationPolicy` over the shared `IModerationSnapshotProvider` for synchronous communication decisions. Engine mutations after async work must be marshalled onto the server update thread.
+Do not create duplicate moderation caches, stores or permission systems. Warm asynchronously at player lifecycle boundaries, then evaluate communication synchronously through the shared policy. Treat snapshot miss as not-ready, not unrestricted. Engine mutations after async work must return to the server update thread where required.
 
 License, NOTICE and source provenance must remain intact.
