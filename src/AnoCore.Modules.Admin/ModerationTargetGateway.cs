@@ -59,7 +59,16 @@ public sealed record ModerationTargetResult(
     }
 }
 
-public sealed class ModerationTargetGateway
+public interface IModerationTargetGateway
+{
+    ValueTask<ModerationTargetResult> ResolveAsync(
+        string selector,
+        PlayerId? actor,
+        PermissionId permission,
+        CancellationToken cancellationToken = default);
+}
+
+public sealed class ModerationTargetGateway : IModerationTargetGateway
 {
     private readonly IPlayerRegistry _players;
     private readonly IPlayerTargetResolver _resolver;
