@@ -35,6 +35,31 @@ public sealed class ModerationSnapshotLifecycleTests
     }
 
     [TestMethod]
+    public async Task WarmExistingAsync_TracksAlreadyOnlineSessionAndInvalidatesOnDisconnect()
+    {
+        var events = new AnoEventBus();
+        var moderation = new RecordingModeration();
+        using var lifecycle = new ModerationSnapshotLifecycle(
+            events,
+            moderation,
+            moderation,
+            new FixedTimeProvider(Now));
+
+        var existing = Snapshot(PlayerSessionId.New(), isConnected: true);
+        await lifecycle.WarmExistingAsync([existing]);
+
+        Assert.AreEqual(1, moderation.Warms.Count);
+        Assert.AreEqual(Player, moderation.Warms.Single().PlayerId);
+
+        moderation.ResetCalls();
+        await events.PublishAsync(new PlayerDisconnectedEvent(
+            Snapshot(existing.SessionId, isConnected: false)));
+
+        Assert.AreEqual(1, moderation.Invalidations.Count);
+        Assert.AreEqual(Player, moderation.Invalidations.Single());
+    }
+
+    [TestMethod]
     public async Task Reconnect_InvalidatesPreviousSnapshotThenWarmsCurrentSession()
     {
         var events = new AnoEventBus();
