@@ -69,6 +69,7 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
         Add<IPlayerSettingsService>(Settings);
         Add<IModerationRepository>(ModerationRepository);
         Add<IModerationService>(Moderation);
+        Add<IModerationSnapshotProvider>(Moderation);
         Add<IPlayerTargetResolver>(TargetResolver);
         Add<ITargetAuthorizationService>(TargetAuthorization);
         Add<IPlaceholderRegistry>(new PlaceholderRegistry());
