@@ -10,6 +10,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AnoCore.Plugin", "src\AnoCo
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AnoCore.Modules.AnoVeto", "src\AnoCore.Modules.AnoVeto\AnoCore.Modules.AnoVeto.csproj", "{10D13F95-F85B-4DBB-838F-D532B1BCDF14}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AnoCore.Modules.Admin", "src\AnoCore.Modules.Admin\AnoCore.Modules.Admin.csproj", "{8A1B5B41-90E9-4C12-9EBE-4E9DD0C38A43}"
+EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AnoCore.Tests", "tests\AnoCore.Tests\AnoCore.Tests.csproj", "{5ED6BC30-47FB-4EBD-A292-19147447F055}"
 EndProject
 Global
@@ -34,6 +36,10 @@ Global
     {10D13F95-F85B-4DBB-838F-D532B1BCDF14}.Debug|Any CPU.Build.0 = Debug|Any CPU
     {10D13F95-F85B-4DBB-838F-D532B1BCDF14}.Release|Any CPU.ActiveCfg = Release|Any CPU
     {10D13F95-F85B-4DBB-838F-D532B1BCDF14}.Release|Any CPU.Build.0 = Release|Any CPU
+    {8A1B5B41-90E9-4C12-9EBE-4E9DD0C38A43}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+    {8A1B5B41-90E9-4C12-9EBE-4E9DD0C38A43}.Debug|Any CPU.Build.0 = Debug|Any CPU
+    {8A1B5B41-90E9-4C12-9EBE-4E9DD0C38A43}.Release|Any CPU.ActiveCfg = Release|Any CPU
+    {8A1B5B41-90E9-4C12-9EBE-4E9DD0C38A43}.Release|Any CPU.Build.0 = Release|Any CPU
     {5ED6BC30-47FB-4EBD-A292-19147447F055}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
     {5ED6BC30-47FB-4EBD-A292-19147447F055}.Debug|Any CPU.Build.0 = Debug|Any CPU
     {5ED6BC30-47FB-4EBD-A292-19147447F055}.Release|Any CPU.ActiveCfg = Release|Any CPU
