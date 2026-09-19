@@ -4,6 +4,7 @@ using AnoCore.Abstractions.Players;
 using AnoCore.Abstractions.Players.Events;
 using AnoCore.Modules.Admin;
 using AnoCore.Runtime.Events;
+using AnoCore.Runtime.Moderation;
 
 namespace AnoCore.Tests.Admin;
 
@@ -127,6 +128,90 @@ public sealed class ModerationSnapshotLifecycleTests
         Assert.AreEqual(0, moderation.Invalidations.Count);
     }
 
+    [TestMethod]
+    public async Task DisconnectDuringWarm_LeavesSnapshotInvalidated()
+    {
+        var events = new AnoEventBus();
+        var repository = new BlockingRepository(
+            new ModerationSanction(
+                Guid.NewGuid(),
+                Player,
+                null,
+                ModerationRestriction.Chat,
+                "cached",
+                Now));
+        var moderation = new ModerationService(repository);
+        using var lifecycle = new ModerationSnapshotLifecycle(
+            events,
+            moderation,
+            moderation,
+            new FixedTimeProvider(Now));
+
+        var current = Snapshot(PlayerSessionId.New(), isConnected: true);
+        var connect = events.PublishAsync(new PlayerConnectedEvent(current)).AsTask();
+        await repository.ReadStarted.Task;
+
+        var disconnect = events.PublishAsync(new PlayerDisconnectedEvent(
+            Snapshot(current.SessionId, isConnected: false))).AsTask();
+
+        Assert.IsFalse(disconnect.IsCompleted);
+
+        repository.ReleaseRead.TrySetResult();
+        await connect;
+        await disconnect;
+
+        Assert.IsFalse(((IModerationSnapshotProvider)moderation).TryGetRestrictions(
+            Player,
+            Now,
+            out _));
+    }
+
+    [TestMethod]
+    public async Task WarmFailure_DoesNotCreateAvailableSnapshot()
+    {
+        var events = new AnoEventBus();
+        var moderation = new ModerationService(new FailingRepository());
+        using var lifecycle = new ModerationSnapshotLifecycle(
+            events,
+            moderation,
+            moderation,
+            new FixedTimeProvider(Now));
+
+        await Assert.ThrowsExactlyAsync<AggregateException>(async () =>
+            await events.PublishAsync(new PlayerConnectedEvent(
+                Snapshot(PlayerSessionId.New(), isConnected: true))));
+
+        Assert.IsFalse(((IModerationSnapshotProvider)moderation).TryGetRestrictions(
+            Player,
+            Now,
+            out _));
+    }
+
+    [TestMethod]
+    public async Task Dispose_CancelsInflightWarmWithoutPublishingFailure()
+    {
+        var events = new AnoEventBus();
+        var repository = new BlockingRepository();
+        var moderation = new ModerationService(repository);
+        var lifecycle = new ModerationSnapshotLifecycle(
+            events,
+            moderation,
+            moderation,
+            new FixedTimeProvider(Now));
+
+        var connect = events.PublishAsync(new PlayerConnectedEvent(
+            Snapshot(PlayerSessionId.New(), isConnected: true))).AsTask();
+        await repository.ReadStarted.Task;
+
+        lifecycle.Dispose();
+        await connect;
+
+        Assert.IsFalse(((IModerationSnapshotProvider)moderation).TryGetRestrictions(
+            Player,
+            Now,
+            out _));
+    }
+
     private static PlayerSnapshot Snapshot(PlayerSessionId sessionId, bool isConnected)
         => new(
             Player,
@@ -137,6 +222,88 @@ public sealed class ModerationSnapshotLifecycleTests
             PlayerTeam.CounterTerrorist,
             Now,
             Now);
+
+    private sealed class BlockingRepository(params ModerationSanction[] sanctions) : IModerationRepository
+    {
+        public TaskCompletionSource ReadStarted { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public TaskCompletionSource ReleaseRead { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public async ValueTask<IReadOnlyList<ModerationSanction>> GetActiveAsync(
+            PlayerId targetId,
+            DateTimeOffset atUtc,
+            CancellationToken cancellationToken = default)
+        {
+            ReadStarted.TrySetResult();
+            await ReleaseRead.Task.WaitAsync(cancellationToken);
+            return sanctions
+                .Where(value => value.TargetId == targetId && value.IsActiveAt(atUtc))
+                .ToArray();
+        }
+
+        public ValueTask AddAsync(
+            IReadOnlyCollection<ModerationSanction> values,
+            ModerationAuditEntry audit,
+            CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public ValueTask<IReadOnlyList<ModerationSanction>> GetHistoryAsync(
+            PlayerId targetId,
+            CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public ValueTask<IReadOnlyList<ModerationSanction>> RevokeActiveAsync(
+            PlayerId targetId,
+            ModerationRestriction restrictions,
+            PlayerId? actorId,
+            string reason,
+            DateTimeOffset atUtc,
+            ModerationAuditEntry audit,
+            CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public ValueTask<IReadOnlyList<ModerationAuditEntry>> GetAuditHistoryAsync(
+            PlayerId targetId,
+            CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+    }
+
+    private sealed class FailingRepository : IModerationRepository
+    {
+        public ValueTask<IReadOnlyList<ModerationSanction>> GetActiveAsync(
+            PlayerId targetId,
+            DateTimeOffset atUtc,
+            CancellationToken cancellationToken = default)
+            => throw new InvalidOperationException("Simulated warm failure.");
+
+        public ValueTask AddAsync(
+            IReadOnlyCollection<ModerationSanction> sanctions,
+            ModerationAuditEntry audit,
+            CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public ValueTask<IReadOnlyList<ModerationSanction>> GetHistoryAsync(
+            PlayerId targetId,
+            CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public ValueTask<IReadOnlyList<ModerationSanction>> RevokeActiveAsync(
+            PlayerId targetId,
+            ModerationRestriction restrictions,
+            PlayerId? actorId,
+            string reason,
+            DateTimeOffset atUtc,
+            ModerationAuditEntry audit,
+            CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public ValueTask<IReadOnlyList<ModerationAuditEntry>> GetAuditHistoryAsync(
+            PlayerId targetId,
+            CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+    }
 
     private sealed class RecordingModeration : IModerationService, IModerationSnapshotProvider
     {
