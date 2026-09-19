@@ -127,11 +127,103 @@ public sealed class ModerationSnapshotTests
         Assert.AreEqual(ModerationRestriction.Voice, otherRestrictions);
     }
 
+    [TestMethod]
+    public async Task ApplyAsync_PersistenceFailureLeavesLoadedSnapshotUnchanged()
+    {
+        var existing = new ModerationSanction(
+            Guid.NewGuid(),
+            Target,
+            Admin,
+            ModerationRestriction.Voice,
+            "existing",
+            Now);
+        var repository = new MemoryRepository(existing) { FailAdds = true };
+        var service = new ModerationService(repository);
+        var snapshots = (IModerationSnapshotProvider)service;
+        await service.GetStateAsync(Target, Now);
+
+        await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () =>
+            await service.ApplyAsync(
+                Target,
+                Admin,
+                ModerationRestriction.Chat,
+                "must fail",
+                Now.AddMinutes(1)));
+
+        Assert.IsTrue(snapshots.TryGetRestrictions(Target, Now.AddMinutes(2), out var restrictions));
+        Assert.AreEqual(ModerationRestriction.Voice, restrictions);
+    }
+
+    [TestMethod]
+    public async Task RevokeAsync_PersistenceFailureLeavesLoadedSnapshotUnchanged()
+    {
+        var existing = new ModerationSanction(
+            Guid.NewGuid(),
+            Target,
+            Admin,
+            ModerationRestriction.Chat,
+            "existing",
+            Now);
+        var repository = new MemoryRepository(existing) { FailRevokes = true };
+        var service = new ModerationService(repository);
+        var snapshots = (IModerationSnapshotProvider)service;
+        await service.GetStateAsync(Target, Now);
+
+        await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () =>
+            await service.RevokeAsync(
+                Target,
+                Admin,
+                ModerationRestriction.Chat,
+                "must fail",
+                Now.AddMinutes(1)));
+
+        Assert.IsTrue(snapshots.TryGetRestrictions(Target, Now.AddMinutes(2), out var restrictions));
+        Assert.AreEqual(ModerationRestriction.Chat, restrictions);
+    }
+
+    [TestMethod]
+    public async Task CancelledMutationDoesNotTouchRepositoryOrLoadedSnapshot()
+    {
+        var existing = new ModerationSanction(
+            Guid.NewGuid(),
+            Target,
+            Admin,
+            ModerationRestriction.Voice,
+            "existing",
+            Now);
+        var repository = new MemoryRepository(existing);
+        var service = new ModerationService(repository);
+        var snapshots = (IModerationSnapshotProvider)service;
+        await service.GetStateAsync(Target, Now);
+
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        await Assert.ThrowsExactlyAsync<OperationCanceledException>(async () =>
+            await service.ApplyAsync(
+                Target,
+                Admin,
+                ModerationRestriction.Chat,
+                "cancelled",
+                Now.AddMinutes(1),
+                cancellationToken: cancellation.Token));
+
+        Assert.AreEqual(0, repository.AddCalls);
+        Assert.IsTrue(snapshots.TryGetRestrictions(Target, Now.AddMinutes(2), out var restrictions));
+        Assert.AreEqual(ModerationRestriction.Voice, restrictions);
+    }
+
     private sealed class MemoryRepository(params ModerationSanction[] initial) : IModerationRepository
     {
         private readonly List<ModerationSanction> _sanctions = [.. initial];
 
         public int ActiveReads { get; private set; }
+
+        public int AddCalls { get; private set; }
+
+        public bool FailAdds { get; init; }
+
+        public bool FailRevokes { get; init; }
 
         public ValueTask AddAsync(
             IReadOnlyCollection<ModerationSanction> sanctions,
@@ -139,6 +231,12 @@ public sealed class ModerationSnapshotTests
             CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            AddCalls++;
+            if (FailAdds)
+            {
+                throw new InvalidOperationException("Simulated add failure.");
+            }
+
             _sanctions.AddRange(sanctions);
             return ValueTask.CompletedTask;
         }
@@ -172,6 +270,11 @@ public sealed class ModerationSnapshotTests
             CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            if (FailRevokes)
+            {
+                throw new InvalidOperationException("Simulated revoke failure.");
+            }
+
             var changed = new List<ModerationSanction>();
             for (var index = 0; index < _sanctions.Count; index++)
             {
