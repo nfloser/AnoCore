@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>AnoCore.Modules.Admin</AssemblyName>
+    <RootNamespace>AnoCore.Modules.Admin</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\AnoCore.Abstractions\AnoCore.Abstractions.csproj" />
+    <ProjectReference Include="..\AnoCore.Runtime\AnoCore.Runtime.csproj" />
+  </ItemGroup>
+</Project>
