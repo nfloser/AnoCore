@@ -18,14 +18,22 @@ public sealed class ModerationCommandController : IDisposable
         ArgumentNullException.ThrowIfNull(commands);
         _executor = executor ?? throw new ArgumentNullException(nameof(executor));
 
-        Register(commands, ModerationAdminOperation.Ban, "anoban", "Ban a player.", requiresDuration: true);
-        Register(commands, ModerationAdminOperation.Unban, "anounban", "Remove an active ban.", requiresDuration: false);
-        Register(commands, ModerationAdminOperation.Mute, "anomute", "Mute a player's voice.", requiresDuration: true);
-        Register(commands, ModerationAdminOperation.Unmute, "anounmute", "Remove an active voice mute.", requiresDuration: false);
-        Register(commands, ModerationAdminOperation.Gag, "anogag", "Gag a player's text chat.", requiresDuration: true);
-        Register(commands, ModerationAdminOperation.Ungag, "anoungag", "Remove an active chat gag.", requiresDuration: false);
-        Register(commands, ModerationAdminOperation.Silence, "anosilence", "Mute voice and text chat.", requiresDuration: true);
-        Register(commands, ModerationAdminOperation.Unsilence, "anounsilence", "Remove active voice and chat silence.", requiresDuration: false);
+        try
+        {
+            Register(commands, ModerationAdminOperation.Ban, "anoban", "Ban a player.", requiresDuration: true);
+            Register(commands, ModerationAdminOperation.Unban, "anounban", "Remove an active ban.", requiresDuration: false);
+            Register(commands, ModerationAdminOperation.Mute, "anomute", "Mute a player's voice.", requiresDuration: true);
+            Register(commands, ModerationAdminOperation.Unmute, "anounmute", "Remove an active voice mute.", requiresDuration: false);
+            Register(commands, ModerationAdminOperation.Gag, "anogag", "Gag a player's text chat.", requiresDuration: true);
+            Register(commands, ModerationAdminOperation.Ungag, "anoungag", "Remove an active chat gag.", requiresDuration: false);
+            Register(commands, ModerationAdminOperation.Silence, "anosilence", "Mute voice and text chat.", requiresDuration: true);
+            Register(commands, ModerationAdminOperation.Unsilence, "anounsilence", "Remove active voice and chat silence.", requiresDuration: false);
+        }
+        catch
+        {
+            Dispose();
+            throw;
+        }
     }
 
     public void Dispose()
