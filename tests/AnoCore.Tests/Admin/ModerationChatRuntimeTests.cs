@@ -9,13 +9,13 @@ using AnoCore.Runtime.Moderation;
 namespace AnoCore.Tests.Admin;
 
 [TestClass]
-public sealed class ModerationChatRuntimeTests
+public sealed class ModerationCommunicationRuntimeTests
 {
     private static readonly PlayerId Player = new(76561198000007011);
     private static readonly DateTimeOffset Now = new(2026, 9, 19, 19, 45, 0, TimeSpan.Zero);
 
     [TestMethod]
-    public async Task Connect_WarmsPersistedChatRestrictionAndDisconnectInvalidatesIt()
+    public async Task WarmExistingAsync_WarmsPersistedChatRestrictionAndTracksDisconnect()
     {
         var repository = new ReadOnlyRepository(
             new ModerationSanction(
@@ -28,39 +28,36 @@ public sealed class ModerationChatRuntimeTests
         var moderation = new ModerationService(repository);
         var events = new AnoEventBus();
 
-        using var runtime = new ModerationChatRuntime(
+        using var runtime = new ModerationCommunicationRuntime(
             events,
             moderation,
             moderation,
             new FixedTimeProvider(Now));
 
-        Assert.AreEqual(ChatInterceptionDecision.Block, runtime.Gate.Evaluate(Player));
-        Assert.IsFalse(((IModerationSnapshotProvider)moderation).TryGetRestrictions(Player, Now, out _));
-
-        var connected = Snapshot(PlayerSessionId.New(), isConnected: true);
-        await events.PublishAsync(new PlayerConnectedEvent(connected));
+        var existing = Snapshot(PlayerSessionId.New(), isConnected: true);
+        await runtime.WarmExistingAsync([existing]);
 
         Assert.IsTrue(((IModerationSnapshotProvider)moderation).TryGetRestrictions(
             Player,
             Now,
             out var restrictions));
         Assert.AreEqual(ModerationRestriction.Chat, restrictions);
-        Assert.AreEqual(ChatInterceptionDecision.Block, runtime.Gate.Evaluate(Player));
+        Assert.AreEqual(ChatInterceptionDecision.Block, runtime.ChatGate.Evaluate(Player));
 
         await events.PublishAsync(new PlayerDisconnectedEvent(
-            Snapshot(connected.SessionId, isConnected: false)));
+            Snapshot(existing.SessionId, isConnected: false)));
 
         Assert.IsFalse(((IModerationSnapshotProvider)moderation).TryGetRestrictions(Player, Now, out _));
-        Assert.AreEqual(ChatInterceptionDecision.Block, runtime.Gate.Evaluate(Player));
+        Assert.AreEqual(ChatInterceptionDecision.Block, runtime.ChatGate.Evaluate(Player));
     }
 
     [TestMethod]
-    public async Task Connect_WarmsUnrestrictedPlayerAndAllowsChat()
+    public async Task ConnectedPlayer_WarmsUnrestrictedPlayerAndAllowsChat()
     {
         var moderation = new ModerationService(new ReadOnlyRepository());
         var events = new AnoEventBus();
 
-        using var runtime = new ModerationChatRuntime(
+        using var runtime = new ModerationCommunicationRuntime(
             events,
             moderation,
             moderation,
@@ -69,14 +66,14 @@ public sealed class ModerationChatRuntimeTests
         await events.PublishAsync(new PlayerConnectedEvent(
             Snapshot(PlayerSessionId.New(), isConnected: true)));
 
-        Assert.AreEqual(ChatInterceptionDecision.Allow, runtime.Gate.Evaluate(Player));
+        Assert.AreEqual(ChatInterceptionDecision.Allow, runtime.ChatGate.Evaluate(Player));
     }
 
     private static PlayerSnapshot Snapshot(PlayerSessionId sessionId, bool isConnected)
         => new(
             Player,
             sessionId,
-            "Chat Runtime Player",
+            "Communication Runtime Player",
             isConnected,
             isAlive: isConnected,
             PlayerTeam.CounterTerrorist,
