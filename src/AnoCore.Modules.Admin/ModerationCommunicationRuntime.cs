@@ -26,11 +26,14 @@ public sealed class ModerationCommunicationRuntime : IDisposable
             clock);
         Policy = new ModerationCommunicationPolicy(snapshots, clock);
         ChatGate = new ModerationChatGate(Policy);
+        VoiceGate = new ModerationVoiceGate(Policy);
     }
 
     public IModerationCommunicationPolicy Policy { get; }
 
     public ModerationChatGate ChatGate { get; }
+
+    public ModerationVoiceGate VoiceGate { get; }
 
     public ValueTask WarmExistingAsync(
         IEnumerable<PlayerSnapshot> players,

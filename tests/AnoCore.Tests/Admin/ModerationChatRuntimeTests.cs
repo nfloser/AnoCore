@@ -43,6 +43,7 @@ public sealed class ModerationCommunicationRuntimeTests
             out var restrictions));
         Assert.AreEqual(ModerationRestriction.Chat, restrictions);
         Assert.AreEqual(ChatInterceptionDecision.Block, runtime.ChatGate.Evaluate(Player));
+        Assert.AreEqual(VoiceInterceptionDecision.Allow, runtime.VoiceGate.Evaluate(Player));
 
         await events.PublishAsync(new PlayerDisconnectedEvent(
             Snapshot(existing.SessionId, isConnected: false)));
@@ -67,6 +68,7 @@ public sealed class ModerationCommunicationRuntimeTests
             Snapshot(PlayerSessionId.New(), isConnected: true)));
 
         Assert.AreEqual(ChatInterceptionDecision.Allow, runtime.ChatGate.Evaluate(Player));
+        Assert.AreEqual(VoiceInterceptionDecision.Allow, runtime.VoiceGate.Evaluate(Player));
     }
 
     private static PlayerSnapshot Snapshot(PlayerSessionId sessionId, bool isConnected)
