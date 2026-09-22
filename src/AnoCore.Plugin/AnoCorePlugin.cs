@@ -5,6 +5,7 @@ using AnoCore.Modules.AnoVeto;
 using AnoCore.Plugin.Commands;
 using AnoCore.Plugin.Maps;
 using AnoCore.Plugin.Menus;
+using AnoCore.Plugin.Moderation;
 using AnoCore.Plugin.Players;
 using AnoCore.Runtime.Composition;
 using AnoCore.Runtime.Configuration;
@@ -34,6 +35,8 @@ public sealed class AnoCorePlugin : BasePlugin
     private RuntimeServices? _runtime;
     private AnoVetoModuleRuntime? _anoVeto;
     private ModerationCommandController? _adminCommands;
+    private ModerationCommunicationRuntime? _communicationModeration;
+    private CounterStrikeChatModerationAdapter? _chatModeration;
     private CounterStrikeCommandBridge? _commands;
     private CounterStrikeSharp.API.Modules.Timers.Timer? _anoVetoExpiryTimer;
     private string _runtimeStatus = "not started";
@@ -80,6 +83,10 @@ public sealed class AnoCorePlugin : BasePlugin
             _pendingRuntime?.Dispose();
             _pendingRuntime = null;
 
+            _chatModeration?.Dispose();
+            _chatModeration = null;
+            _communicationModeration?.Dispose();
+            _communicationModeration = null;
             _anoVeto?.Dispose();
             _anoVeto = null;
             _commands?.Dispose();
@@ -223,6 +230,8 @@ public sealed class AnoCorePlugin : BasePlugin
             _pendingRuntime = null;
             _pendingAnoVeto = null;
             ModerationCommandController? adminCommands = null;
+            ModerationCommunicationRuntime? communicationModeration = null;
+            CounterStrikeChatModerationAdapter? chatModeration = null;
             var presenter = new CounterStrikeMenuPresenter(this, runtime.Menus, Logger);
             var bridge = new CounterStrikeCommandBridge(
                 this,
@@ -249,6 +258,21 @@ public sealed class AnoCorePlugin : BasePlugin
                     runtime.Commands,
                     new ModerationCommandExecutor(targetGateway, runtime.Moderation));
 
+                var events = _eventBus
+                    ?? throw new InvalidOperationException("AnoCore event bus is unavailable during activation.");
+                communicationModeration = new ModerationCommunicationRuntime(
+                    events,
+                    runtime.Moderation,
+                    runtime.Moderation);
+                chatModeration = new CounterStrikeChatModerationAdapter(
+                    this,
+                    communicationModeration.ChatGate);
+                Observe(
+                    communicationModeration
+                        .WarmExistingAsync(runtime.Players.OnlinePlayers.ToArray())
+                        .AsTask(),
+                    "moderation_chat_bootstrap");
+
                 foreach (var descriptor in runtime.Commands.GetCommands())
                 {
                     bridge.Bind(descriptor);
@@ -264,6 +288,8 @@ public sealed class AnoCorePlugin : BasePlugin
 
                 MenuPresenter = presenter;
                 _adminCommands = adminCommands;
+                _communicationModeration = communicationModeration;
+                _chatModeration = chatModeration;
                 _commands = bridge;
                 _runtime = runtime;
                 _anoVeto = anoVeto;
@@ -276,6 +302,8 @@ public sealed class AnoCorePlugin : BasePlugin
             catch (Exception exception)
             {
                 expiryTimer?.Kill();
+                chatModeration?.Dispose();
+                communicationModeration?.Dispose();
                 anoVeto?.Dispose();
                 bridge.Dispose();
                 adminCommands?.Dispose();

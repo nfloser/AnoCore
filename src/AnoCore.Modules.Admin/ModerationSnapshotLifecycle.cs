@@ -35,6 +35,45 @@ public sealed class ModerationSnapshotLifecycle : IDisposable
         ];
     }
 
+    public async ValueTask WarmExistingAsync(
+        IEnumerable<PlayerSnapshot> players,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(players);
+        ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, this);
+
+        List<Exception>? failures = null;
+        foreach (var player in players
+                     .Where(value => value.IsConnected)
+                     .OrderBy(value => value.Id.SteamId64))
+        {
+            try
+            {
+                await WarmAsync(
+                        player,
+                        invalidateFirst: false,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception exception)
+            {
+                failures ??= [];
+                failures.Add(exception);
+            }
+        }
+
+        if (failures is { Count: > 0 })
+        {
+            throw new AggregateException(
+                "One or more moderation snapshots could not be warmed.",
+                failures);
+        }
+    }
+
     public void Dispose()
     {
         if (Interlocked.Exchange(ref _disposed, 1) != 0)

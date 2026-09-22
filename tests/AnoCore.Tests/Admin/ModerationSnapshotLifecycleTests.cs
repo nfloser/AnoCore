@@ -12,6 +12,7 @@ namespace AnoCore.Tests.Admin;
 public sealed class ModerationSnapshotLifecycleTests
 {
     private static readonly PlayerId Player = new(76561198000006001);
+    private static readonly PlayerId OtherPlayer = new(76561198000006002);
     private static readonly DateTimeOffset Now = new(2026, 9, 19, 19, 0, 0, TimeSpan.Zero);
 
     [TestMethod]
@@ -32,6 +33,65 @@ public sealed class ModerationSnapshotLifecycleTests
         Assert.AreEqual(Player, moderation.Warms[0].PlayerId);
         Assert.AreEqual(Now, moderation.Warms[0].AtUtc);
         Assert.AreEqual(0, moderation.Invalidations.Count);
+    }
+
+    [TestMethod]
+    public async Task WarmExistingAsync_TracksAlreadyOnlineSessionAndInvalidatesOnDisconnect()
+    {
+        var events = new AnoEventBus();
+        var moderation = new RecordingModeration();
+        using var lifecycle = new ModerationSnapshotLifecycle(
+            events,
+            moderation,
+            moderation,
+            new FixedTimeProvider(Now));
+
+        var existing = Snapshot(PlayerSessionId.New(), isConnected: true);
+        await lifecycle.WarmExistingAsync([existing]);
+
+        Assert.AreEqual(1, moderation.Warms.Count);
+        Assert.AreEqual(Player, moderation.Warms.Single().PlayerId);
+
+        moderation.ResetCalls();
+        await events.PublishAsync(new PlayerDisconnectedEvent(
+            Snapshot(existing.SessionId, isConnected: false)));
+
+        Assert.AreEqual(1, moderation.Invalidations.Count);
+        Assert.AreEqual(Player, moderation.Invalidations.Single());
+    }
+
+    [TestMethod]
+    public async Task WarmExistingAsync_IsolatesPlayerWarmFailuresAndContinuesRemainingPlayers()
+    {
+        var events = new AnoEventBus();
+        var moderation = new SelectiveWarmModeration(Player);
+        using var lifecycle = new ModerationSnapshotLifecycle(
+            events,
+            moderation,
+            moderation,
+            new FixedTimeProvider(Now));
+
+        var failed = Snapshot(PlayerSessionId.New(), isConnected: true);
+        var successful = new PlayerSnapshot(
+            OtherPlayer,
+            PlayerSessionId.New(),
+            "Other Lifecycle Player",
+            isConnected: true,
+            isAlive: true,
+            PlayerTeam.Terrorist,
+            Now,
+            Now);
+
+        var exception = await Assert.ThrowsExactlyAsync<AggregateException>(async () =>
+            await lifecycle.WarmExistingAsync([failed, successful]));
+
+        Assert.AreEqual(1, exception.InnerExceptions.Count);
+        CollectionAssert.AreEqual(
+            new[] { Player, OtherPlayer },
+            moderation.Attempts.ToArray());
+        CollectionAssert.AreEqual(
+            new[] { OtherPlayer },
+            moderation.Warmed.ToArray());
     }
 
     [TestMethod]
@@ -261,6 +321,76 @@ public sealed class ModerationSnapshotLifecycleTests
             string reason,
             DateTimeOffset atUtc,
             ModerationAuditEntry audit,
+            CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public ValueTask<IReadOnlyList<ModerationAuditEntry>> GetAuditHistoryAsync(
+            PlayerId targetId,
+            CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+    }
+
+    private sealed class SelectiveWarmModeration(PlayerId failingPlayer)
+        : IModerationService, IModerationSnapshotProvider
+    {
+        public List<PlayerId> Attempts { get; } = [];
+
+        public List<PlayerId> Warmed { get; } = [];
+
+        public ValueTask<ModerationState> GetStateAsync(
+            PlayerId targetId,
+            DateTimeOffset atUtc,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            Attempts.Add(targetId);
+            if (targetId == failingPlayer)
+            {
+                throw new InvalidOperationException("Simulated player-specific warm failure.");
+            }
+
+            Warmed.Add(targetId);
+            return ValueTask.FromResult(new ModerationState(
+                targetId,
+                ModerationRestriction.None,
+                []));
+        }
+
+        public bool TryGetRestrictions(
+            PlayerId targetId,
+            DateTimeOffset atUtc,
+            out ModerationRestriction restrictions)
+        {
+            restrictions = ModerationRestriction.None;
+            return Warmed.Contains(targetId);
+        }
+
+        public ValueTask InvalidateAsync(
+            PlayerId targetId,
+            CancellationToken cancellationToken = default)
+            => ValueTask.CompletedTask;
+
+        public ValueTask<IReadOnlyList<ModerationSanction>> ApplyAsync(
+            PlayerId targetId,
+            PlayerId? actorId,
+            ModerationRestriction restrictions,
+            string reason,
+            DateTimeOffset atUtc,
+            DateTimeOffset? expiresAtUtc = null,
+            CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public ValueTask<IReadOnlyList<ModerationSanction>> RevokeAsync(
+            PlayerId targetId,
+            PlayerId? actorId,
+            ModerationRestriction restrictions,
+            string reason,
+            DateTimeOffset atUtc,
+            CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public ValueTask<IReadOnlyList<ModerationSanction>> GetHistoryAsync(
+            PlayerId targetId,
             CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
 
