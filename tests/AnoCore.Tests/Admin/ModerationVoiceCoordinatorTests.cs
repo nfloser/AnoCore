@@ -84,6 +84,52 @@ public sealed class ModerationVoiceCoordinatorTests
     }
 
     [TestMethod]
+    public void Reconcile_UnmuteDoesNotOverwriteOverrideChangedByAnotherOwner()
+    {
+        var sender = Player(SenderId, "Sender");
+        var listener = Player(ListenerAId, "Listener");
+        var players = new StubPlayers(sender, listener);
+        var policy = new StubPolicy(SenderId);
+        var transport = new StubTransport();
+        transport.SetInitial(listener, sender, ModerationVoiceOverride.Default);
+        var coordinator = new ModerationVoiceCoordinator(
+            players,
+            new ModerationVoiceGate(policy),
+            transport);
+
+        coordinator.Reconcile();
+        transport.SetInitial(listener, sender, ModerationVoiceOverride.Hear);
+        policy.Blocked.Clear();
+        coordinator.Reconcile();
+
+        Assert.AreEqual(
+            ModerationVoiceOverride.Hear,
+            transport.Get(listener, sender));
+    }
+
+    [TestMethod]
+    public void Dispose_DoesNotOverwriteOverrideChangedByAnotherOwner()
+    {
+        var sender = Player(SenderId, "Sender");
+        var listener = Player(ListenerAId, "Listener");
+        var players = new StubPlayers(sender, listener);
+        var transport = new StubTransport();
+        transport.SetInitial(listener, sender, ModerationVoiceOverride.Default);
+        var coordinator = new ModerationVoiceCoordinator(
+            players,
+            new ModerationVoiceGate(new StubPolicy(SenderId)),
+            transport);
+
+        coordinator.Reconcile();
+        transport.SetInitial(listener, sender, ModerationVoiceOverride.Hear);
+        coordinator.Dispose();
+
+        Assert.AreEqual(
+            ModerationVoiceOverride.Hear,
+            transport.Get(listener, sender));
+    }
+
+    [TestMethod]
     public void Reconcile_NewListenerIsMutedWhileSenderRemainsBlocked()
     {
         var sender = Player(SenderId, "Sender");
