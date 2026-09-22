@@ -3,69 +3,61 @@
 ## Current workstreams
 
 - Full functional scope remains in `docs/functional-acceptance.md`; umbrella #11 remains open.
-- Targeting/immunity #37/#38, persistent moderation #41/#42, moderation commands #43/#44, connect-ban lifecycle/native enforcement #45-#50, live command composition #51/#52, moderation snapshots #53/#54, synchronous communication policy #55/#56 and lifecycle warming #57/#58 are merged.
-- Active native chat-gag enforcement: issue #59 / PR #60 / branch `feature/59-native-chat-gag`.
+- Targeting/immunity #37/#38, persistent moderation #41/#42, moderation commands #43/#44, connect-ban enforcement #45-#50, command composition #51/#52, moderation snapshots #53/#54, synchronous communication policy #55/#56, lifecycle warming #57/#58 and native chat gag #59/#60 are merged.
+- Active native voice-mute enforcement: issue #61 / PR #62 / branch `feature/61-native-voice-mute`.
 - Independent CustomHud/AnoVeto PR #40 remains draft until real CS2/DatHost Panorama acceptance.
-- Extended commands #36 and remaining #17 voice, tags, messaging and admin-UI packages remain separate.
+- Extended commands #36 and remaining #17 kick/warnings, tags, messaging and admin-UI packages remain separate.
 
-## Known-good #59 checkpoint
+## Known-good #61 checkpoint
 
-- Reviewed implementation head before this documentation checkpoint: `0895f2958b7bf82e74eb3fcc4d3526fb9fd89729`.
-- CI run: `35459178761` (#239).
+- Reviewed code head before documentation commits: `0dea275f7bbab9aa188eebe4abe89bdc2d516a25`.
+- CI run: `35749688740` (#253).
 - Release build: passed with zero warnings and zero errors.
-- Test suite: 210/210 passed, including MariaDB integration and moderation lifecycle/chat tests.
+- Test suite: 221/221 passed, including MariaDB integration plus voice gate/coordinator ownership tests.
 - Formatting: passed.
 - Development plugin publish: passed.
 - Deployment package validation: passed.
 - Artifact upload: passed.
-- After this documentation update, require one final exact-head CI run before merge.
+- Documentation-only commits follow this checkpoint; require final exact-head CI before merge.
 
-## Implemented in #59 / PR #60
+## Implemented in #61 / PR #62
 
-- Engine-independent `ModerationChatGate` with fail-closed behavior.
-- `ModerationCommunicationRuntime` composes the merged snapshot lifecycle, synchronous communication policy and chat gate.
-- Existing online players are warmed explicitly during live plugin activation.
-- Native CounterStrikeSharp pre-command listeners are registered for `say` and `say_team`.
-- Allowed cached state returns `HookResult.Continue`.
-- Active Chat restriction returns `HookResult.Handled`.
-- Snapshot unavailable/not-ready also returns `HookResult.Handled`.
-- Server/invalid/bot/HLTV callers are not mapped to a false moderation identity.
-- Valid human players without a SteamID yet are blocked fail-closed.
-- Chat listener performs no MariaDB read on the hot path.
-- Applying/revoking through shared moderation state updates loaded snapshots so gag/ungag changes can take effect without reconnect.
-- Listener registration rolls back if the second native listener fails to register.
-- Dispose removes both listeners idempotently.
-- Plugin activation failure and unload dispose native listener + communication lifecycle cleanly.
-- Native behavior and target-server verification checklist are documented in `docs/chat-moderation.md`.
+- Fail-closed `ModerationVoiceGate` reusing the existing synchronous communication policy.
+- Chat and voice gates share the same warmed moderation snapshot layer.
+- `ModerationVoiceCoordinator` enforces sender mutes through listener-specific overrides.
+- Administrative mute intentionally uses listen overrides instead of `VoiceFlags.Muted`, so a muted sender can still hear other players.
+- Existing `Default` / `Hear` overrides are remembered and restored after unmute.
+- Override ownership is keyed by listener and sender session IDs, preventing stale reconnect/slot state from leaking.
+- New listeners are reconciled while a sender remains muted.
+- AnoCore restores only overrides it still appears to own; later external override changes are not overwritten on release/unload.
+- `CounterStrikeVoiceModerationTransport` maps `Default/Mute/Hear` to CounterStrikeSharp and rejects stale/non-human/invalid sessions.
+- Live host performs a fail-closed initial reconcile and then repeats every 250 ms.
+- Unload and activation failure stop the timer and restore still-owned current-session overrides.
+- No database access occurs inside voice reconciliation; it reads the shared moderation snapshot policy.
+- Detailed behavior and real-server acceptance are documented in `docs/voice-moderation.md`.
 
 ## Review status
 
-Reviewed:
-- fail-closed decision mapping,
-- no-DB hot path,
-- online bootstrap,
-- reconnect/disconnect snapshot lifecycle reuse,
-- invalid/non-human caller behavior,
-- listener registration rollback,
-- unload and activation-failure cleanup,
-- command listener ownership and disposal ordering.
+Reviewed fail-closed voice decisions, listen-override semantics, preservation of existing/external overrides, reconnect/session safety, new-listener behavior, controller resolution, timer lifecycle, unload and activation-failure restoration.
 
-No code-review blocker is currently known. Real CS2 command/listener ordering and actual chat suppression still require disposable-server acceptance.
+Review finding fixed: unmute/unload no longer overwrites an override changed by another owner after AnoCore applied its mute.
+
+No known code-review blocker remains. Actual CS2 voice routing still requires disposable-server acceptance.
 
 ## Scope boundary
 
-#60 does not implement voice mute enforcement, chat/tag formatting, custom message rewriting or admin HUD. Those remain separate #17 packages.
+#62 does not implement kick/warnings, chat/tag formatting, custom chat rewriting or admin HUD. Those remain separate #17 packages.
 
 ## Next steps
 
-1. Run final exact-head CI after this documentation checkpoint; if green, update PR #60 metadata, self-review and merge with expected-head SHA.
-2. Implement native voice-mute enforcement as the next small #17 package, reusing the same moderation snapshot/policy layer.
+1. Run final exact-head CI after these documentation commits; if green, update PR #62 metadata, self-review and merge with expected-head SHA.
+2. Continue #17 in a fresh small branch: kick/silent-kick and warnings should reuse the merged target/authorization/moderation foundations.
 3. Keep PR #40 draft until real CustomHud acceptance is recorded.
-4. Keep #36 Extended Commands separate and reuse shared targeting/authorization/moderation foundations.
+4. Keep #36 Extended Commands separate and reuse shared administration foundations.
 5. Preserve small test-first commits, exact-head CI and this handoff before context boundaries.
 
 ## Integration rules
 
-Do not create duplicate moderation caches, stores or permission systems. High-frequency native adapters must evaluate the shared synchronous snapshot policy and must not query MariaDB directly. Engine mutations after asynchronous work must return to the server update thread where required.
+Do not create duplicate moderation caches, stores, player registries or permission systems. High-frequency communication enforcement must use shared warmed snapshots. Voice overrides must be session-safe and ownership-aware. Engine work must stay on the server thread where required.
 
 License, NOTICE and source provenance must remain intact.
