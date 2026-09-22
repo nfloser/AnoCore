@@ -111,7 +111,8 @@ public sealed class ModerationVoiceCoordinatorTests
         var oldSender = Player(SenderId, "Sender", PlayerSessionId.New());
         var listener = Player(ListenerAId, "Listener");
         var players = new StubPlayers(oldSender, listener);
-        var gate = new StubGate(SenderId);
+        var policy = new StubPolicy(SenderId);
+        var gate = new ModerationVoiceGate(policy);
         var transport = new StubTransport();
         transport.SetInitial(listener, oldSender, ModerationVoiceOverride.Hear);
         var coordinator = new ModerationVoiceCoordinator(players, gate, transport);
