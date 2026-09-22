@@ -117,10 +117,17 @@ public sealed class ModerationVoiceCoordinator : IDisposable
                 continue;
             }
 
-            _transport.TrySetOverride(
-                listener,
-                sender,
-                owned.Original);
+            if (_transport.TryGetOverride(
+                    listener,
+                    sender,
+                    out var current)
+                && current == ModerationVoiceOverride.Mute)
+            {
+                _transport.TrySetOverride(
+                    listener,
+                    sender,
+                    owned.Original);
+            }
         }
 
         _owned.Clear();
@@ -171,7 +178,16 @@ public sealed class ModerationVoiceCoordinator : IDisposable
             return;
         }
 
-        if (_transport.TrySetOverride(
+        if (!_transport.TryGetOverride(
+                listener,
+                sender,
+                out var current))
+        {
+            return;
+        }
+
+        if (current != ModerationVoiceOverride.Mute
+            || _transport.TrySetOverride(
                 listener,
                 sender,
                 owned.Original))
