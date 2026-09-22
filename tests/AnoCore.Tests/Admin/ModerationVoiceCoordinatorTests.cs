@@ -21,7 +21,7 @@ public sealed class ModerationVoiceCoordinatorTests
         var transport = new StubTransport();
         var coordinator = new ModerationVoiceCoordinator(
             players,
-            new StubGate(SenderId),
+            new ModerationVoiceGate(new StubPolicy(SenderId)),
             transport);
 
         coordinator.Reconcile();
@@ -42,14 +42,15 @@ public sealed class ModerationVoiceCoordinatorTests
         var listenerA = Player(ListenerAId, "A");
         var listenerB = Player(ListenerBId, "B");
         var players = new StubPlayers(sender, listenerA, listenerB);
-        var gate = new StubGate(SenderId);
+        var policy = new StubPolicy(SenderId);
+        var gate = new ModerationVoiceGate(policy);
         var transport = new StubTransport();
         transport.SetInitial(listenerA, sender, ModerationVoiceOverride.Default);
         transport.SetInitial(listenerB, sender, ModerationVoiceOverride.Hear);
         var coordinator = new ModerationVoiceCoordinator(players, gate, transport);
 
         coordinator.Reconcile();
-        gate.Blocked.Clear();
+        policy.Blocked.Clear();
         coordinator.Reconcile();
 
         Assert.AreEqual(
@@ -66,14 +67,15 @@ public sealed class ModerationVoiceCoordinatorTests
         var sender = Player(SenderId, "Sender");
         var listener = Player(ListenerAId, "Listener");
         var players = new StubPlayers(sender, listener);
-        var gate = new StubGate(SenderId);
+        var policy = new StubPolicy(SenderId);
+        var gate = new ModerationVoiceGate(policy);
         var transport = new StubTransport();
         transport.SetInitial(listener, sender, ModerationVoiceOverride.Hear);
         var coordinator = new ModerationVoiceCoordinator(players, gate, transport);
 
         coordinator.Reconcile();
         coordinator.Reconcile();
-        gate.Blocked.Clear();
+        policy.Blocked.Clear();
         coordinator.Reconcile();
 
         Assert.AreEqual(
@@ -91,7 +93,7 @@ public sealed class ModerationVoiceCoordinatorTests
         var transport = new StubTransport();
         var coordinator = new ModerationVoiceCoordinator(
             players,
-            new StubGate(SenderId),
+            new ModerationVoiceGate(new StubPolicy(SenderId)),
             transport);
 
         coordinator.Reconcile();
@@ -119,7 +121,7 @@ public sealed class ModerationVoiceCoordinatorTests
         var newSender = Player(SenderId, "Sender", PlayerSessionId.New());
         transport.SetInitial(listener, newSender, ModerationVoiceOverride.Default);
         players.Set(newSender, listener);
-        gate.Blocked.Clear();
+        policy.Blocked.Clear();
         coordinator.Reconcile();
 
         Assert.AreEqual(
@@ -140,7 +142,7 @@ public sealed class ModerationVoiceCoordinatorTests
         transport.SetInitial(listener, sender, ModerationVoiceOverride.Hear);
         var coordinator = new ModerationVoiceCoordinator(
             players,
-            new StubGate(SenderId),
+            new ModerationVoiceGate(new StubPolicy(SenderId)),
             transport);
 
         coordinator.Reconcile();
@@ -167,14 +169,20 @@ public sealed class ModerationVoiceCoordinatorTests
             Now,
             Now);
 
-    private sealed class StubGate(params PlayerId[] blocked)
+    private sealed class StubPolicy(params PlayerId[] blocked)
+        : IModerationCommunicationPolicy
     {
         public HashSet<PlayerId> Blocked { get; } = [.. blocked];
 
-        public VoiceInterceptionDecision Evaluate(PlayerId playerId)
-            => Blocked.Contains(playerId)
-                ? VoiceInterceptionDecision.Block
-                : VoiceInterceptionDecision.Allow;
+        public CommunicationRestrictionDecision Evaluate(
+            PlayerId playerId,
+            CommunicationChannel channel)
+        {
+            Assert.AreEqual(CommunicationChannel.Voice, channel);
+            return Blocked.Contains(playerId)
+                ? CommunicationRestrictionDecision.Blocked
+                : CommunicationRestrictionDecision.Allowed;
+        }
     }
 
     private sealed class StubPlayers(params PlayerSnapshot[] players) : IPlayerRegistry
