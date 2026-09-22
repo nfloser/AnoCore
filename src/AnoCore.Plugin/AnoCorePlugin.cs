@@ -37,8 +37,10 @@ public sealed class AnoCorePlugin : BasePlugin
     private ModerationCommandController? _adminCommands;
     private ModerationCommunicationRuntime? _communicationModeration;
     private CounterStrikeChatModerationAdapter? _chatModeration;
+    private ModerationVoiceCoordinator? _voiceModeration;
     private CounterStrikeCommandBridge? _commands;
     private CounterStrikeSharp.API.Modules.Timers.Timer? _anoVetoExpiryTimer;
+    private CounterStrikeSharp.API.Modules.Timers.Timer? _voiceModerationTimer;
     private string _runtimeStatus = "not started";
 
     public RuntimeServices? Runtime => _runtime;
@@ -77,12 +79,16 @@ public sealed class AnoCorePlugin : BasePlugin
 
             _anoVetoExpiryTimer?.Kill();
             _anoVetoExpiryTimer = null;
+            _voiceModerationTimer?.Kill();
+            _voiceModerationTimer = null;
 
             _pendingAnoVeto?.Dispose();
             _pendingAnoVeto = null;
             _pendingRuntime?.Dispose();
             _pendingRuntime = null;
 
+            _voiceModeration?.Dispose();
+            _voiceModeration = null;
             _chatModeration?.Dispose();
             _chatModeration = null;
             _communicationModeration?.Dispose();
@@ -232,6 +238,7 @@ public sealed class AnoCorePlugin : BasePlugin
             ModerationCommandController? adminCommands = null;
             ModerationCommunicationRuntime? communicationModeration = null;
             CounterStrikeChatModerationAdapter? chatModeration = null;
+            ModerationVoiceCoordinator? voiceModeration = null;
             var presenter = new CounterStrikeMenuPresenter(this, runtime.Menus, Logger);
             var bridge = new CounterStrikeCommandBridge(
                 this,
@@ -246,6 +253,7 @@ public sealed class AnoCorePlugin : BasePlugin
                     }
                 });
             CounterStrikeSharp.API.Modules.Timers.Timer? expiryTimer = null;
+            CounterStrikeSharp.API.Modules.Timers.Timer? voiceTimer = null;
 
             try
             {
@@ -267,11 +275,20 @@ public sealed class AnoCorePlugin : BasePlugin
                 chatModeration = new CounterStrikeChatModerationAdapter(
                     this,
                     communicationModeration.ChatGate);
+                voiceModeration = new ModerationVoiceCoordinator(
+                    runtime.Players,
+                    communicationModeration.VoiceGate,
+                    new CounterStrikeVoiceModerationTransport(runtime.Players));
+                voiceModeration.Reconcile();
                 Observe(
                     communicationModeration
                         .WarmExistingAsync(runtime.Players.OnlinePlayers.ToArray())
                         .AsTask(),
-                    "moderation_chat_bootstrap");
+                    "moderation_communication_bootstrap");
+                voiceTimer = AddTimer(
+                    0.25f,
+                    () => ReconcileVoiceModeration(voiceModeration),
+                    TimerFlags.REPEAT);
 
                 foreach (var descriptor in runtime.Commands.GetCommands())
                 {
@@ -290,10 +307,12 @@ public sealed class AnoCorePlugin : BasePlugin
                 _adminCommands = adminCommands;
                 _communicationModeration = communicationModeration;
                 _chatModeration = chatModeration;
+                _voiceModeration = voiceModeration;
                 _commands = bridge;
                 _runtime = runtime;
                 _anoVeto = anoVeto;
                 _anoVetoExpiryTimer = expiryTimer;
+                _voiceModerationTimer = voiceTimer;
                 _runtimeStatus = "ready";
                 Logger.LogInformation(
                     "AnoCore shared services ready; database/authorization initialized; AnoVeto {AnoVetoState}.",
@@ -302,6 +321,8 @@ public sealed class AnoCorePlugin : BasePlugin
             catch (Exception exception)
             {
                 expiryTimer?.Kill();
+                voiceTimer?.Kill();
+                voiceModeration?.Dispose();
                 chatModeration?.Dispose();
                 communicationModeration?.Dispose();
                 anoVeto?.Dispose();
@@ -312,6 +333,24 @@ public sealed class AnoCorePlugin : BasePlugin
                 _runtimeStatus = "activation failed";
                 Logger.LogError(exception, "AnoCore command/menu/module activation failed.");
             }
+        }
+    }
+
+    private void ReconcileVoiceModeration(ModerationVoiceCoordinator voiceModeration)
+    {
+        try
+        {
+            if (ReferenceEquals(_voiceModeration, voiceModeration))
+            {
+                voiceModeration.Reconcile();
+            }
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(
+                exception,
+                "AnoCore runtime operation {Operation} failed.",
+                "moderation_voice_reconcile");
         }
     }
 
