@@ -63,8 +63,8 @@ public sealed class AdminAuditContractTests
             new AdminActionId("server.restart"),
             actorId: null,
             targetId: null,
-            "scheduled maintenance",
-            DateTimeOffset.UtcNow);
+            reason: "scheduled maintenance",
+            occurredAtUtc: DateTimeOffset.UtcNow);
 
         Assert.IsNull(entry.ActorId);
         Assert.IsNull(entry.TargetId);
