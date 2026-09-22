@@ -279,7 +279,8 @@ public sealed class AnoCorePlugin : BasePlugin
                     runtime.Players,
                     communicationModeration.VoiceGate,
                     new CounterStrikeVoiceModerationTransport(runtime.Players));
-                voiceModeration.Reconcile();
+                var activeVoiceModeration = voiceModeration;
+                activeVoiceModeration.Reconcile();
                 Observe(
                     communicationModeration
                         .WarmExistingAsync(runtime.Players.OnlinePlayers.ToArray())
@@ -287,7 +288,7 @@ public sealed class AnoCorePlugin : BasePlugin
                     "moderation_communication_bootstrap");
                 voiceTimer = AddTimer(
                     0.25f,
-                    () => ReconcileVoiceModeration(voiceModeration),
+                    () => ReconcileVoiceModeration(activeVoiceModeration),
                     TimerFlags.REPEAT);
 
                 foreach (var descriptor in runtime.Commands.GetCommands())
