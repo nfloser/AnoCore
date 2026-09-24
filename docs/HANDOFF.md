@@ -2,14 +2,10 @@
 
 ## Current checkpoint — 2026-09-24
 
-- PR #64 merged as `105e88464d0e16f537021d26f0e6ed8db64be053`; generic audit persistence is now on `main`.
-- Issue #66 / draft PR #67, branch `fix/66-compose-connect-ban`: compose existing enforcement on activation, bootstrap existing players, dispose on rollback/unload and cancel scheduled native disconnect after unload. Native disconnect now waits for server-thread completion and reports stale session/controller failures so the policy can retry; head `83fb9123bf93bb87db0062d29933b4f84eb4ea97` before this handoff update. CI #275 passed build and tests, with formatting/packaging pending at handoff. A delayed native-failure retry regression test was added at `88142ae88127b997420b4ce094a007fa4ffc2a2d`; exact-head CI and actual CS2 session acceptance remain pending. Do not merge #67 until server behavior is verified.
-
-
-- Issue #63 / PR #64, branch `feature/63-admin-audit`: generic action audit contracts, service, MariaDB migration/repository, shared runtime registration, unit/integration tests and persistence documentation are implemented.
-- CI #268 passed build, tests, formatting, publish and package validation on `7b882e26711fd23c011bee322f75849e1ee91b1f`. Check exact-head CI after documentation updates before merging.
-- Self-review: repository queries select the newest bounded entries; the service returns selected entries ordered by UTC time and ID. SQL parameters and restart persistence are covered by MariaDB tests.
-- Next: merge #64 when exact-head CI passes; implement consuming kick/warning commands as separate #17 packages. Other roadmap items and real CS2 acceptance remain open. AnoCore is not production complete.
+- Issue #63 / PR #64 merged to `main` at `105e88464d0e16f537021d26f0e6ed8db64be053`; audit foundation is available.
+- Issue #66 / draft PR #67, branch `fix/66-compose-connect-ban`: live connect-ban composition and server-thread disconnect acknowledgment implemented; CI #279 passed on code head `00a6c48d5321348047fd2ec05ca4767c7266248e`. CS2 server acceptance remains required before merge.
+- Issue #68 / stacked draft PR #69, branch `feature/68-kick-commands`, based on PR #67: two permissioned kick commands, requested/completed durable audit, normal public notice, silent variant, tests and documentation. Current code head `aaa1811ace25b441be8d521a0ce8d75438956bf9` before this handoff update; CI #282 pending. Review/fix CI, validate real CS2 behavior, then merge #67 before retargeting #69 to main.
+- Remaining #11 scope includes warnings, admin UI, stats/ranks/playtime, extended commands, tournament/match, Web/API/SDK and deployment acceptance. Do not claim production completeness while these issues remain open.
 
 ## Current workstreams
 
