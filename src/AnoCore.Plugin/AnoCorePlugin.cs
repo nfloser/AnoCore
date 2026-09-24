@@ -35,6 +35,7 @@ public sealed class AnoCorePlugin : BasePlugin
     private RuntimeServices? _runtime;
     private AnoVetoModuleRuntime? _anoVeto;
     private ModerationCommandController? _adminCommands;
+    private ConnectBanEnforcement? _connectBan;
     private ModerationCommunicationRuntime? _communicationModeration;
     private CounterStrikeChatModerationAdapter? _chatModeration;
     private ModerationVoiceCoordinator? _voiceModeration;
@@ -99,6 +100,8 @@ public sealed class AnoCorePlugin : BasePlugin
             _commands = null;
             _adminCommands?.Dispose();
             _adminCommands = null;
+            _connectBan?.Dispose();
+            _connectBan = null;
             _runtime?.Dispose();
             _runtime = null;
             MenuPresenter = null;
@@ -236,6 +239,7 @@ public sealed class AnoCorePlugin : BasePlugin
             _pendingRuntime = null;
             _pendingAnoVeto = null;
             ModerationCommandController? adminCommands = null;
+            ConnectBanEnforcement? connectBan = null;
             ModerationCommunicationRuntime? communicationModeration = null;
             CounterStrikeChatModerationAdapter? chatModeration = null;
             ModerationVoiceCoordinator? voiceModeration = null;
@@ -268,6 +272,10 @@ public sealed class AnoCorePlugin : BasePlugin
 
                 var events = _eventBus
                     ?? throw new InvalidOperationException("AnoCore event bus is unavailable during activation.");
+                connectBan = new ConnectBanEnforcement(
+                    events,
+                    runtime.Moderation,
+                    new CounterStrikePlayerDisconnectAction(runtime.Players, cancellationToken));
                 communicationModeration = new ModerationCommunicationRuntime(
                     events,
                     runtime.Moderation,
@@ -306,6 +314,7 @@ public sealed class AnoCorePlugin : BasePlugin
 
                 MenuPresenter = presenter;
                 _adminCommands = adminCommands;
+                _connectBan = connectBan;
                 _communicationModeration = communicationModeration;
                 _chatModeration = chatModeration;
                 _voiceModeration = voiceModeration;
@@ -315,6 +324,11 @@ public sealed class AnoCorePlugin : BasePlugin
                 _anoVetoExpiryTimer = expiryTimer;
                 _voiceModerationTimer = voiceTimer;
                 _runtimeStatus = "ready";
+                foreach (var player in runtime.Players.OnlinePlayers.ToArray())
+                {
+                    Observe(connectBan.CheckAsync(player, cancellationToken).AsTask(), "connect_ban_bootstrap");
+                }
+
                 Logger.LogInformation(
                     "AnoCore shared services ready; database/authorization initialized; AnoVeto {AnoVetoState}.",
                     anoVeto is null ? "disabled" : "active");
@@ -329,6 +343,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 anoVeto?.Dispose();
                 bridge.Dispose();
                 adminCommands?.Dispose();
+                connectBan?.Dispose();
                 runtime.Dispose();
                 MenuPresenter = null;
                 _runtimeStatus = "activation failed";
