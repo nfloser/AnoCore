@@ -90,6 +90,39 @@ public sealed class KickCommandExecutorTests
         Assert.AreEqual(0, trace.Count);
     }
 
+    [TestMethod]
+    public async Task ImmuneTarget_IsRejectedBeforeAuditOrDisconnect()
+    {
+        var trace = new List<string>();
+        var executor = new KickCommandExecutor(
+            new FakeTargets(ModerationTargetResult.Reject(ModerationTargetFailure.TargetImmune)),
+            new MemoryAudit(trace), new FakeDisconnect(trace),
+            new FakeAnnouncement(trace), new FixedTime(Now));
+
+        var result = await executor.ExecuteAsync(false, ActorId, "Target", "reason");
+
+        Assert.IsFalse(result.Success);
+        Assert.AreEqual(CommandFailureReason.Forbidden, result.FailureReason);
+        Assert.AreEqual(0, trace.Count);
+    }
+
+    [TestMethod]
+    public async Task CompletionAuditFailure_ReportsPartialKickAndRetainsRequestedEntry()
+    {
+        var trace = new List<string>();
+        var audit = new MemoryAudit(trace) { FailAction = "kick" };
+        var executor = new KickCommandExecutor(
+            new FakeTargets(ModerationTargetResult.Success(Player())),
+            audit, new FakeDisconnect(trace),
+            new FakeAnnouncement(trace), new FixedTime(Now));
+
+        var result = await executor.ExecuteAsync(false, ActorId, "Target", "reason");
+
+        Assert.IsFalse(result.Success);
+        Assert.AreEqual(CommandFailureReason.HandlerFailed, result.FailureReason);
+        CollectionAssert.AreEqual(new[] { "kick.requested", "disconnect" }, trace);
+    }
+
     private static PlayerSnapshot Player() => new(
         TargetId, PlayerSessionId.New(), "Target", true, true,
         PlayerTeam.CounterTerrorist, Now, Now);
@@ -105,12 +138,13 @@ public sealed class KickCommandExecutorTests
     {
         public List<AdminAuditEntry> Entries { get; } = [];
         public bool FailNext { get; set; }
+        public string? FailAction { get; set; }
 
         public ValueTask<AdminAuditEntry> RecordAsync(
             AdminActionId action, PlayerId? actorId, PlayerId? targetId, string reason,
             DateTimeOffset occurredAtUtc, CancellationToken cancellationToken = default)
         {
-            if (FailNext)
+            if (FailNext || action.Value == FailAction)
             {
                 FailNext = false;
                 throw new InvalidOperationException("Database unavailable.");
