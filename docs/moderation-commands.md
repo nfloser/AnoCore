@@ -70,7 +70,7 @@ The controller is retained for the active runtime lifetime and disposed on unloa
 
 ## Remaining native enforcement boundary
 
-The commands are live and persist moderation state. Connect-ban enforcement is composed during plugin activation with the shared moderation service and event bus. Already connected players are checked on startup; subsequent connections and reconnections are checked by the subscribed policy. The native adapter rechecks the current session before a server-thread disconnect and cancels queued disconnects when the plugin unloads. Confirm actual disconnect behavior on a disposable CS2 server.
+The commands are live and persist moderation state. Connect-ban enforcement is composed during plugin activation with the shared moderation service and event bus. Already connected players are checked on startup; subsequent connections and reconnections are checked by the subscribed policy. The native adapter rechecks the current session on the server thread, completes only after the disconnect call succeeds, reports a stale session/controller as a failure that can be retried, and cancels queued disconnects when the plugin unloads. Confirm actual disconnect behavior on a disposable CS2 server.
 
 The existing voice/chat enforcement remains separate from generic admin action audit; admin UI remains later #17 work.
 
