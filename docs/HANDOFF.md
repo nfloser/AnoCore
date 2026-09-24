@@ -3,7 +3,7 @@
 ## Current checkpoint — 2026-09-24
 
 - PR #64 merged as `105e88464d0e16f537021d26f0e6ed8db64be053`; generic audit persistence is now on `main`.
-- Issue #66 / draft PR #67, branch `fix/66-compose-connect-ban`: compose existing enforcement on activation, bootstrap existing players, dispose on rollback/unload and cancel scheduled native disconnect after unload. Code head `56b2eb85d88184c119c03b7de6a3a7d10a8eef63` before this handoff update. CI and actual CS2 session acceptance remain pending. Do not merge #67 until server behavior is verified.
+- Issue #66 / draft PR #67, branch `fix/66-compose-connect-ban`: compose existing enforcement on activation, bootstrap existing players, dispose on rollback/unload and cancel scheduled native disconnect after unload. Native disconnect now waits for server-thread completion and reports stale session/controller failures so the policy can retry; head `83fb9123bf93bb87db0062d29933b4f84eb4ea97` before this handoff update. CI #275 passed build and tests, with formatting/packaging pending at handoff. Actual CS2 session acceptance remains pending. Do not merge #67 until server behavior is verified.
 
 
 - Issue #63 / PR #64, branch `feature/63-admin-audit`: generic action audit contracts, service, MariaDB migration/repository, shared runtime registration, unit/integration tests and persistence documentation are implemented.
