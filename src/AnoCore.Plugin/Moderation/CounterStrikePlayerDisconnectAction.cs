@@ -8,9 +8,15 @@ namespace AnoCore.Plugin.Moderation;
 public sealed class CounterStrikePlayerDisconnectAction : IPlayerDisconnectAction
 {
     private readonly IPlayerRegistry _players;
+    private readonly CancellationToken _lifetime;
 
-    public CounterStrikePlayerDisconnectAction(IPlayerRegistry players)
-        => _players = players ?? throw new ArgumentNullException(nameof(players));
+    public CounterStrikePlayerDisconnectAction(
+        IPlayerRegistry players,
+        CancellationToken lifetime = default)
+    {
+        _players = players ?? throw new ArgumentNullException(nameof(players));
+        _lifetime = lifetime;
+    }
 
     public ValueTask DisconnectAsync(
         PlayerSnapshot player,
@@ -19,10 +25,11 @@ public sealed class CounterStrikePlayerDisconnectAction : IPlayerDisconnectActio
     {
         ArgumentNullException.ThrowIfNull(player);
         cancellationToken.ThrowIfCancellationRequested();
+        _lifetime.ThrowIfCancellationRequested();
 
         Server.NextWorldUpdate(() =>
         {
-            if (cancellationToken.IsCancellationRequested)
+            if (cancellationToken.IsCancellationRequested || _lifetime.IsCancellationRequested)
             {
                 return;
             }
