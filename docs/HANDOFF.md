@@ -1,3 +1,7 @@
+## 2026-09-24 — PR #64 admin action audit
+
+Branch `feature/63-admin-audit`, head `c91016763bcd00ecdfff23285c74f91549efbeeb` (before this documentation commit). Issue #63 remains open and PR #64 remains draft. Public contracts and validation tests were already present; added runtime service tests and `AdminAuditService` in separate test-first commits. CI run #260 was pending at handoff. Next: inspect exact-head CI, add MariaDB migration and parameterized repository with restart-safe integration tests, compose with `RuntimeServices`, update persistence documentation, self-review, then rerun exact-head CI. Do not merge before these gates pass.
+
 # AnoCore development handoff
 
 ## Current workstreams
