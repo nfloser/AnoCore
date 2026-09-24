@@ -26,6 +26,8 @@ Migration requirements:
 
 `CoreSchemaMigration001` creates the player profile and module-data tables.
 
+`AdminAuditSchemaMigration003` adds an indexed generic administrative action audit table. Its records are separate from moderation sanction history. Action IDs and reasons are validated before insertion; actor and target are optional for console and server-wide actions. The repository uses parameters for all values, returns the newest bounded records and preserves them across service restarts. `IAdminAuditService` and `IAdminAuditRepository` are available through the shared runtime. Administrative commands must record through the service after a successful action; this migration does not itself add command handlers.
+
 ## Player persistence
 
 `MySqlPlayerRepository` stores one row per SteamID64. Upsert semantics preserve the earliest `first_seen_utc`, retain the latest `last_seen_utc`, and update the last known player name.
