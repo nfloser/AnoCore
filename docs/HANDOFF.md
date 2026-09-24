@@ -1,3 +1,7 @@
+## 2026-09-24 — Admin audit implementation checkpoint
+
+Issue #63 / draft PR #64, branch `feature/63-admin-audit`. Contracts, service, MariaDB migration 003, parameterized repository, shared `RuntimeServices` registration, unit and MariaDB integration tests, and persistence documentation are committed. CI run #268 on code/documentation head `7b882e26711fd23c011bee322f75849e1ee91b1f` passed build, tests and formatting; packaging was still running at this checkpoint. The initial MSTest obsolete-attribute build failure was fixed. Check CI on this documentation commit, self-review the PR, then merge #64 only after exact-head CI is green. Admin commands consume this service in later #17 slices. The project's other roadmap issues and real CS2 acceptance remain open; do not describe AnoCore as production complete.
+
 ## 2026-09-24 — PR #64 admin action audit
 
 Branch `feature/63-admin-audit`, head `c91016763bcd00ecdfff23285c74f91549efbeeb` (before this documentation commit). Issue #63 remains open and PR #64 remains draft. Public contracts and validation tests were already present; added runtime service tests and `AdminAuditService` in separate test-first commits. CI run #260 was pending at handoff. Next: inspect exact-head CI, add MariaDB migration and parameterized repository with restart-safe integration tests, compose with `RuntimeServices`, update persistence documentation, self-review, then rerun exact-head CI. Do not merge before these gates pass.
