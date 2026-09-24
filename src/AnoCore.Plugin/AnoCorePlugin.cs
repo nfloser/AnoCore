@@ -35,6 +35,7 @@ public sealed class AnoCorePlugin : BasePlugin
     private RuntimeServices? _runtime;
     private AnoVetoModuleRuntime? _anoVeto;
     private ModerationCommandController? _adminCommands;
+    private KickCommandController? _kickCommands;
     private ConnectBanEnforcement? _connectBan;
     private ModerationCommunicationRuntime? _communicationModeration;
     private CounterStrikeChatModerationAdapter? _chatModeration;
@@ -100,6 +101,8 @@ public sealed class AnoCorePlugin : BasePlugin
             _commands = null;
             _adminCommands?.Dispose();
             _adminCommands = null;
+            _kickCommands?.Dispose();
+            _kickCommands = null;
             _connectBan?.Dispose();
             _connectBan = null;
             _runtime?.Dispose();
@@ -239,6 +242,7 @@ public sealed class AnoCorePlugin : BasePlugin
             _pendingRuntime = null;
             _pendingAnoVeto = null;
             ModerationCommandController? adminCommands = null;
+            KickCommandController? kickCommands = null;
             ConnectBanEnforcement? connectBan = null;
             ModerationCommunicationRuntime? communicationModeration = null;
             CounterStrikeChatModerationAdapter? chatModeration = null;
@@ -269,13 +273,21 @@ public sealed class AnoCorePlugin : BasePlugin
                 adminCommands = new ModerationCommandController(
                     runtime.Commands,
                     new ModerationCommandExecutor(targetGateway, runtime.Moderation));
+                var disconnect = new CounterStrikePlayerDisconnectAction(runtime.Players, cancellationToken);
+                kickCommands = new KickCommandController(
+                    runtime.Commands,
+                    new KickCommandExecutor(
+                        targetGateway,
+                        runtime.AdminAudit,
+                        disconnect,
+                        new CounterStrikeKickAnnouncement(cancellationToken)));
 
                 var events = _eventBus
                     ?? throw new InvalidOperationException("AnoCore event bus is unavailable during activation.");
                 connectBan = new ConnectBanEnforcement(
                     events,
                     runtime.Moderation,
-                    new CounterStrikePlayerDisconnectAction(runtime.Players, cancellationToken));
+                    disconnect);
                 communicationModeration = new ModerationCommunicationRuntime(
                     events,
                     runtime.Moderation,
@@ -314,6 +326,7 @@ public sealed class AnoCorePlugin : BasePlugin
 
                 MenuPresenter = presenter;
                 _adminCommands = adminCommands;
+                _kickCommands = kickCommands;
                 _connectBan = connectBan;
                 _communicationModeration = communicationModeration;
                 _chatModeration = chatModeration;
@@ -343,6 +356,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 anoVeto?.Dispose();
                 bridge.Dispose();
                 adminCommands?.Dispose();
+                kickCommands?.Dispose();
                 connectBan?.Dispose();
                 runtime.Dispose();
                 MenuPresenter = null;
