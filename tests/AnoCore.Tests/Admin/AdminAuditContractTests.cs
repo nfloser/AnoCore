@@ -18,7 +18,7 @@ public sealed class AdminAuditContractTests
         Assert.AreEqual("kick.silent", action.ToString());
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DataRow("")]
     [DataRow("1kick")]
     [DataRow("kick/player")]
