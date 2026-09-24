@@ -25,49 +25,32 @@ public sealed class CounterStrikePlayerDisconnectAction : IPlayerDisconnectActio
     {
         ArgumentNullException.ThrowIfNull(player);
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _lifetime);
-        linked.Token.ThrowIfCancellationRequested();
-        var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        using var registration = linked.Token.Register(() => completion.TrySetCanceled(linked.Token));
+        var token = linked.Token;
+        token.ThrowIfCancellationRequested();
 
-        Server.NextWorldUpdate(() =>
+        await Server.NextWorldUpdateAsync(() =>
         {
-            if (linked.IsCancellationRequested)
+            token.ThrowIfCancellationRequested();
+            if (!_players.TryGet(player.Id, out var current)
+                || current is null
+                || !current.IsConnected
+                || current.SessionId != player.SessionId)
             {
-                return;
+                throw new InvalidOperationException(
+                    "The player session changed before the disconnect.");
             }
 
-            try
+            var controller = Utilities.GetPlayers()
+                .FirstOrDefault(value =>
+                    value is { IsValid: true, IsBot: false, IsHLTV: false }
+                    && value.SteamID == player.Id.SteamId64);
+            if (controller is null)
             {
-                if (!_players.TryGet(player.Id, out var current)
-                    || current is null
-                    || !current.IsConnected
-                    || current.SessionId != player.SessionId)
-                {
-                    completion.TrySetException(new InvalidOperationException(
-                        "The player session changed before the disconnect."));
-                    return;
-                }
-
-                var controller = Utilities.GetPlayers()
-                    .FirstOrDefault(value =>
-                        value is { IsValid: true, IsBot: false, IsHLTV: false }
-                        && value.SteamID == player.Id.SteamId64);
-                if (controller is null)
-                {
-                    completion.TrySetException(new InvalidOperationException(
-                        "The player controller is no longer available."));
-                    return;
-                }
-
-                controller.Disconnect(NetworkDisconnectionReason.NETWORK_DISCONNECT_KICKED);
-                completion.TrySetResult();
+                throw new InvalidOperationException(
+                    "The player controller is no longer available.");
             }
-            catch (Exception exception)
-            {
-                completion.TrySetException(exception);
-            }
-        });
 
-        await completion.Task.ConfigureAwait(false);
+            controller.Disconnect(NetworkDisconnectionReason.NETWORK_DISCONNECT_KICKED);
+        }).WaitAsync(token).ConfigureAwait(false);
     }
 }
