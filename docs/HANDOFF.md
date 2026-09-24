@@ -2,6 +2,10 @@
 
 ## Current checkpoint — 2026-09-24
 
+- PR #64 merged as `105e88464d0e16f537021d26f0e6ed8db64be053`; generic audit persistence is now on `main`.
+- Issue #66 / draft PR #67, branch `fix/66-compose-connect-ban`: compose existing enforcement on activation, bootstrap existing players, dispose on rollback/unload and cancel scheduled native disconnect after unload. Code head `56b2eb85d88184c119c03b7de6a3a7d10a8eef63` before this handoff update. CI and actual CS2 session acceptance remain pending. Do not merge #67 until server behavior is verified.
+
+
 - Issue #63 / PR #64, branch `feature/63-admin-audit`: generic action audit contracts, service, MariaDB migration/repository, shared runtime registration, unit/integration tests and persistence documentation are implemented.
 - CI #268 passed build, tests, formatting, publish and package validation on `7b882e26711fd23c011bee322f75849e1ee91b1f`. Check exact-head CI after documentation updates before merging.
 - Self-review: repository queries select the newest bounded entries; the service returns selected entries ordered by UTC time and ID. SQL parameters and restart persistence are covered by MariaDB tests.
