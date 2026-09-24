@@ -119,11 +119,10 @@ public sealed class MySqlWarningRepository : IWarningRepository
         {
             await using var command = connection.CreateCommand();
             command.CommandText = $"SELECT {Columns} FROM ano_admin_warnings WHERE target_steam_id = @target"
-                + (atUtc is null ? "" : """
-                     AND created_at_utc <= @at
-                     AND (cleared_at_utc IS NULL OR cleared_at_utc > @at)
-                     AND (expires_at_utc IS NULL OR expires_at_utc > @at)
-                    """)
+                + (atUtc is null ? "" :
+                    " AND created_at_utc <= @at"
+                    + " AND (cleared_at_utc IS NULL OR cleared_at_utc > @at)"
+                    + " AND (expires_at_utc IS NULL OR expires_at_utc > @at)")
                 + " ORDER BY created_at_utc DESC, warning_id DESC LIMIT @limit";
             Add(command, "@target", targetId.SteamId64);
             if (atUtc is not null) Add(command, "@at", atUtc.Value.UtcDateTime);
