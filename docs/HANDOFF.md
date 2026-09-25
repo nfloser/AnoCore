@@ -1,3 +1,8 @@
+## Rank leaderboard checkpoint — 2026-09-25
+
+- Issue #88 / draft PR to follow / branch `feature/88-rank-leaderboard` stacks on #87. Adds a bounded score query using the current rank weights and `anotopranks [page]`, with stable SteamID64 tie ordering and no duplicate score store.
+- Unit/MariaDB tests and exact-head CI remain to verify. Keep draft pending #79 native combat acceptance; rank administration, menus, tags and notifications remain open.
+
 ## Combat rank checkpoint — 2026-09-25
 
 - Issue #86 / draft PR to follow / branch `feature/86-combat-rank` stacks on #85. Adds `config/ranks.json`, validated combat-derived scoring and `anorank` with plugin lifecycle integration. See `docs/ranks.md`; exact-head CI and real-server acceptance remain to verify.
