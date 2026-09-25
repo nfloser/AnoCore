@@ -104,5 +104,8 @@ public sealed class PlaytimeModuleTests
         public ValueTask<PlaytimeTotals> ReadAsync(PlayerId playerId, DateOnly utcDay,
             CancellationToken cancellationToken = default)
             => ValueTask.FromResult(new PlaytimeTotals(TimeSpan.Zero, TimeSpan.Zero));
+        public ValueTask<IReadOnlyList<PlaytimeRankEntry>> GetTopAsync(int limit, int offset,
+            CancellationToken cancellationToken = default)
+            => ValueTask.FromResult<IReadOnlyList<PlaytimeRankEntry>>([]);
     }
 }
