@@ -351,7 +351,7 @@ public sealed class MySqlModerationRepositoryTests
         {
             foreach (var table in new[]
             {
-                "ano_playtime_sessions", "ano_admin_warnings",
+                "ano_combat_deaths", "ano_playtime_sessions", "ano_admin_warnings",
                 "ano_admin_action_audit",
                 "ano_moderation_audit",
                 "ano_moderation_sanctions",
