@@ -223,6 +223,7 @@ public sealed class AnoCorePlugin : BasePlugin
         catch (Exception exception)
         {
             createdAnoVeto?.Dispose();
+            createdPlaytime?.Dispose();
             created?.Dispose();
             lock (_startupGate)
             {
