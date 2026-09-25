@@ -102,6 +102,38 @@ public sealed class MySqlCombatRepositoryTests
             await restarted.GetTopKillsAsync(5, 10001));
     }
 
+    [TestMethod]
+    public async Task DeathAndAssistLeaderboards_SortAndExcludeInvalidAssists()
+    {
+        await new MigrationRunner(_database, [
+            new CoreSchemaMigration001(), new ModerationSchemaMigration002(),
+            new AdminAuditSchemaMigration003(), new WarningSchemaMigration004(),
+            new PlaytimeSchemaMigration005(), new CombatSchemaMigration006()]).ApplyPendingAsync();
+        var secondVictim = new PlayerId(76561198000012204);
+        var secondAssister = new PlayerId(76561198000012205);
+        var repo = new MySqlCombatRepository(_database);
+        await repo.RecordAsync(new CombatDeath(Guid.NewGuid(), Victim, Attacker, Assister, Now));
+        await repo.RecordAsync(new CombatDeath(Guid.NewGuid(), Victim, Attacker, Assister, Now.AddSeconds(1)));
+        await repo.RecordAsync(new CombatDeath(Guid.NewGuid(), secondVictim, null, null, Now.AddSeconds(2)));
+        await repo.RecordAsync(new CombatDeath(Guid.NewGuid(), secondVictim, Attacker, secondAssister,
+            Now.AddSeconds(3), isTeamKill: true));
+        await repo.RecordAsync(new CombatDeath(Guid.NewGuid(), Victim, Victim, null, Now.AddSeconds(4)));
+
+        var restarted = new MySqlCombatRepository(_database);
+        var deaths = await restarted.GetTopDeathsAsync(2, 0);
+        CollectionAssert.AreEqual(new[] { Victim, secondVictim },
+            deaths.Select(x => x.PlayerId).ToArray());
+        CollectionAssert.AreEqual(new long[] { 3, 2 }, deaths.Select(x => x.Count).ToArray());
+        var assists = await restarted.GetTopAssistsAsync(1, 0);
+        Assert.AreEqual(Assister, assists.Single().PlayerId);
+        Assert.AreEqual(2L, assists.Single().Count);
+        Assert.AreEqual(0, (await restarted.GetTopAssistsAsync(1, 1)).Count);
+        await Assert.ThrowsExactlyAsync<ArgumentOutOfRangeException>(async () =>
+            await restarted.GetTopDeathsAsync(0, 0));
+        await Assert.ThrowsExactlyAsync<ArgumentOutOfRangeException>(async () =>
+            await restarted.GetTopAssistsAsync(5, 10001));
+    }
+
     private async Task DropAsync()
     {
         await _database.WithConnectionAsync(async (connection, token) =>
