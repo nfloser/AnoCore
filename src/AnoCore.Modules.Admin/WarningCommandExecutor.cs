@@ -76,7 +76,7 @@ public sealed class WarningCommandExecutor
             cancellationToken).ConfigureAwait(false);
         var check = await ResolveAsync(selector, actor, ClearPermission, true, cancellationToken)
             .ConfigureAwait(false);
-        if (check.Error is not null || check.Id != target.Id)
+        if (check.Error is not null || check.Id != target.Id || check.Session != target.Session)
             return CommandResult.Fail(CommandFailureReason.InvalidInput, "Target changed while recording the clear request.");
         var cleared = await _warnings.ClearAsync(target.Id!, actor, validReason.Value!, now,
             cancellationToken).ConfigureAwait(false);
@@ -119,7 +119,7 @@ public sealed class WarningCommandExecutor
                 : CommandFailureReason.InvalidInput, $"Target unavailable: {result.Failure}."));
         }
         if (requireOnline && (result.Target.OnlinePlayer is null || !result.Target.OnlinePlayer.IsConnected))
-            return (null, CommandResult.Fail(CommandFailureReason.InvalidInput, "The target must be online."));
+            return (null, null, CommandResult.Fail(CommandFailureReason.InvalidInput, "The target must be online."));
         return (result.Target.Id, result.Target.OnlinePlayer?.SessionId, null);
     }
 
