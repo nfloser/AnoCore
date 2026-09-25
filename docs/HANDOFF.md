@@ -1,3 +1,8 @@
+## Combat top lists checkpoint — 2026-09-25
+
+- Issue #84 / draft PR to follow / branch `feature/84-combat-leaderboards` stacks on #81. Adds persisted death/assist top lists with deterministic ties, bounds, unit and MariaDB tests; CI and native acceptance remain to verify.
+- Separate main fix #82/PR #83 merged: generic command failure text and argument-safe dispatch logging. This stack was branched before that merge and may need an integration update later.
+
 ## Kill leaderboard checkpoint — 2026-09-25
 
 - Issue #80 / draft PR to follow / branch `feature/80-kill-leaderboard` is stacked on #79. Adds deterministic bounded MariaDB kill ranking and `anotopkills [page]`, with unit and integration tests. Verify CI on the final head; keep draft pending native dependency acceptance.
