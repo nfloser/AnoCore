@@ -51,6 +51,27 @@ public sealed class CombatModuleTests
             CombatEventIdentity.Create("server-process", "de_dust2", 1234, 26, Victim));
     }
 
+    [TestMethod]
+    public async Task TopKills_ValidatesPageAndDisplaysStablePositions()
+    {
+        var players = new PlayerRegistry(new AnoEventBus());
+        var registry = new CommandRegistry(new AllowAll());
+        var repository = new FakeRepository
+        {
+            TopEntries = [new CombatRankEntry(Attacker, 7, 6, "Leader | name")],
+        };
+        using var module = new CombatModule(registry, players, repository);
+        Assert.AreEqual(CommandFailureReason.InvalidInput,
+            (await registry.ExecuteAsync("!anotopkills 0", Attacker)).FailureReason);
+        Assert.AreEqual(0, repository.TopCalls);
+        var page = await registry.ExecuteAsync("!anotopkills 2", null);
+        Assert.IsTrue(page.Success);
+        StringAssert.Contains(page.Message!, "6.");
+        StringAssert.Contains(page.Message!, "Leader / name");
+        Assert.AreEqual(5, repository.LastOffset);
+        Assert.AreEqual(5, repository.LastLimit);
+    }
+
     private sealed class AllowAll : IPermissionEvaluator
     {
         public ValueTask<bool> HasPermissionAsync(PlayerId id, PermissionId permission,
@@ -60,6 +81,10 @@ public sealed class CombatModuleTests
     private sealed class FakeRepository : ICombatRepository
     {
         public CombatDeath? LastRecorded { get; private set; }
+        public IReadOnlyList<CombatRankEntry> TopEntries { get; set; } = [];
+        public int TopCalls { get; private set; }
+        public int LastOffset { get; private set; }
+        public int LastLimit { get; private set; }
         public ValueTask RecordAsync(CombatDeath death, CancellationToken cancellationToken = default)
         {
             LastRecorded = death;
@@ -68,5 +93,13 @@ public sealed class CombatModuleTests
         public ValueTask<CombatTotals> ReadAsync(PlayerId playerId,
             CancellationToken cancellationToken = default)
             => ValueTask.FromResult(new CombatTotals(1, 2, 3));
+        public ValueTask<IReadOnlyList<CombatRankEntry>> GetTopKillsAsync(int limit, int offset,
+            CancellationToken cancellationToken = default)
+        {
+            TopCalls++;
+            LastLimit = limit;
+            LastOffset = offset;
+            return ValueTask.FromResult(TopEntries);
+        }
     }
 }

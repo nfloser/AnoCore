@@ -1,3 +1,7 @@
+## Kill leaderboard checkpoint — 2026-09-25
+
+- Issue #80 / draft PR to follow / branch `feature/80-kill-leaderboard` is stacked on #79. Adds deterministic bounded MariaDB kill ranking and `anotopkills [page]`, with unit and integration tests. Verify CI on the final head; keep draft pending native dependency acceptance.
+
 ## Combat counters checkpoint — 2026-09-25
 
 - Issue #78 / draft PR #79 / branch `feature/78-combat-counters`, stacked on #77: migration 006, idempotent death-event ledger, own `anokda` command and native death hook.

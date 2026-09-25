@@ -28,9 +28,14 @@ public sealed record CombatDeath
 
 public sealed record CombatTotals(long Kills, long Deaths, long Assists);
 
+public sealed record CombatRankEntry(PlayerId PlayerId, long Kills, int Position,
+    string? DisplayName = null);
+
 public interface ICombatRepository
 {
     ValueTask RecordAsync(CombatDeath death, CancellationToken cancellationToken = default);
     ValueTask<CombatTotals> ReadAsync(PlayerId playerId,
+        CancellationToken cancellationToken = default);
+    ValueTask<IReadOnlyList<CombatRankEntry>> GetTopKillsAsync(int limit, int offset,
         CancellationToken cancellationToken = default);
 }

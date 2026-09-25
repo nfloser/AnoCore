@@ -72,6 +72,36 @@ public sealed class MySqlCombatRepositoryTests
         Assert.AreEqual(new CombatTotals(0, 0, 0), await repo.ReadAsync(Assister));
     }
 
+    [TestMethod]
+    public async Task KillLeaderboard_SortsTiesAndPagesAcrossRepositoryRestart()
+    {
+        await new MigrationRunner(_database, [
+            new CoreSchemaMigration001(), new ModerationSchemaMigration002(),
+            new AdminAuditSchemaMigration003(), new WarningSchemaMigration004(),
+            new PlaytimeSchemaMigration005(), new CombatSchemaMigration006()]).ApplyPendingAsync();
+        var repo = new MySqlCombatRepository(_database);
+        var lower = new PlayerId(76561198000012001);
+        var higher = new PlayerId(76561198000012002);
+        await repo.RecordAsync(new CombatDeath(Guid.NewGuid(), Victim, higher, null, Now));
+        await repo.RecordAsync(new CombatDeath(Guid.NewGuid(), Victim, lower, null, Now.AddSeconds(1)));
+        await repo.RecordAsync(new CombatDeath(Guid.NewGuid(), Victim, Attacker, null, Now.AddSeconds(2)));
+        await repo.RecordAsync(new CombatDeath(Guid.NewGuid(), Victim, Attacker, null, Now.AddSeconds(3)));
+        await repo.RecordAsync(new CombatDeath(Guid.NewGuid(), Victim, Attacker, null,
+            Now.AddSeconds(4), isTeamKill: true));
+
+        var restarted = new MySqlCombatRepository(_database);
+        var first = await restarted.GetTopKillsAsync(2, 0);
+        CollectionAssert.AreEqual(new[] { Attacker, lower }, first.Select(x => x.PlayerId).ToArray());
+        CollectionAssert.AreEqual(new long[] { 2, 1 }, first.Select(x => x.Kills).ToArray());
+        var second = await restarted.GetTopKillsAsync(2, 2);
+        Assert.AreEqual(higher, second.Single().PlayerId);
+        Assert.AreEqual(3, second.Single().Position);
+        await Assert.ThrowsExactlyAsync<ArgumentOutOfRangeException>(async () =>
+            await restarted.GetTopKillsAsync(0, 0));
+        await Assert.ThrowsExactlyAsync<ArgumentOutOfRangeException>(async () =>
+            await restarted.GetTopKillsAsync(5, 10001));
+    }
+
     private async Task DropAsync()
     {
         await _database.WithConnectionAsync(async (connection, token) =>
