@@ -34,6 +34,9 @@ public sealed record CombatRankEntry(PlayerId PlayerId, long Kills, int Position
 public sealed record CombatCountRankEntry(PlayerId PlayerId, long Count, int Position,
     string? DisplayName = null);
 
+public sealed record CombatScoreRankEntry(PlayerId PlayerId, long Points, int Position,
+    string? DisplayName = null);
+
 public interface ICombatRepository
 {
     ValueTask RecordAsync(CombatDeath death, CancellationToken cancellationToken = default);
@@ -45,4 +48,8 @@ public interface ICombatRepository
         CancellationToken cancellationToken = default);
     ValueTask<IReadOnlyList<CombatCountRankEntry>> GetTopAssistsAsync(int limit, int offset,
         CancellationToken cancellationToken = default);
+    ValueTask<IReadOnlyList<CombatScoreRankEntry>> GetTopScoresAsync(
+        int killPoints, int assistPoints, int deathPenalty, int limit, int offset,
+        CancellationToken cancellationToken = default)
+        => throw new NotSupportedException("Combat score ranking is not supported.");
 }
