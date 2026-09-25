@@ -281,6 +281,7 @@ public sealed class AnoCorePlugin : BasePlugin
             _pendingAnoVeto = null;
             _pendingPlaytime = null;
             ModerationCommandController? adminCommands = null;
+            CombatModule? combat = null;
             ModerationCommunicationRuntime? communicationModeration = null;
             CounterStrikeChatModerationAdapter? chatModeration = null;
             ModerationVoiceCoordinator? voiceModeration = null;
