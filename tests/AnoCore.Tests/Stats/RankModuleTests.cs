@@ -1,4 +1,5 @@
 using AnoCore.Abstractions.Commands;
+using AnoCore.Abstractions.Modules;
 using AnoCore.Abstractions.Players;
 using AnoCore.Abstractions.Stats;
 using AnoCore.Modules.Stats;
@@ -98,6 +99,23 @@ public sealed class RankModuleTests
         Assert.AreEqual((3, 1, 2, 5, 5), repository.LastScoreQuery);
         Assert.AreEqual(CommandFailureReason.InvalidInput,
             (await commands.ExecuteAsync("!anotopranks 0", null)).FailureReason);
+    }
+
+    [TestMethod]
+    public async Task TopRankCommandCollision_RollsBackOwnRankCommand()
+    {
+        var commands = new CommandRegistry(new AllowAll());
+        using var collision = commands.Register(new ModuleId("test.collision"),
+            new CommandDescriptor("anotopranks", "Reserved for collision test."),
+            _ => ValueTask.FromResult(CommandResult.Ok()));
+
+        await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () =>
+            await RankModule.CreateAsync(new JsonConfigStore(_root), commands,
+                new PlayerRegistry(new AnoEventBus()),
+                new FakeRepository(new CombatTotals(0, 0, 0))));
+
+        Assert.AreEqual(CommandFailureReason.NotFound,
+            (await commands.ExecuteAsync("!anorank", Player)).FailureReason);
     }
 
     [TestMethod]
