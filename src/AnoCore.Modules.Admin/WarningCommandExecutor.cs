@@ -140,13 +140,13 @@ public sealed class WarningCommandExecutor
         }
     }
 
-    private static string SingleLine(string value) => value.Replace('\\r', ' ').Replace('\\n', ' ');
+    private static string SingleLine(string value) => value.Replace('\r', ' ').Replace('\n', ' ');
 
     private static CommandResult Format(IReadOnlyList<WarningRecord> warnings, DateTimeOffset now)
     {
         if (warnings.Count == 0) return CommandResult.Ok("No warnings recorded.");
         return CommandResult.Ok(string.Join("\n", warnings.Select(warning =>
-            $"{warning.CreatedAtUtc:yyyy-MM-dd HH:mm} UTC: {warning.Reason} "
+            $"{warning.CreatedAtUtc:yyyy-MM-dd HH:mm} UTC: {SingleLine(warning.Reason)} "
             + $"({(warning.IsActiveAt(now) ? "active" : warning.ClearedAtUtc is not null ? "cleared" : "expired")})")));
     }
 }
