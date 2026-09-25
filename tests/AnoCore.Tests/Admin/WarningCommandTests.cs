@@ -57,7 +57,7 @@ public sealed class WarningCommandTests
             (await executor.WarnAsync(Actor, "Target", 5, "reason")).FailureReason);
         Assert.AreEqual(0, warnings.Writes);
         targets.Result = ModerationTargetResult.Success(
-            new PlayerSnapshot(Target, Guid.NewGuid(), "Target", true, null, null, Now));
+            new PlayerSnapshot(Target, PlayerSessionId.New(), "Target", true, true, PlayerTeam.Terrorist, Now, Now));
         var result = await executor.WarnAsync(Actor, "Target", 5, "reason");
         Assert.IsTrue(result.Success);
         Assert.AreEqual(Now.AddMinutes(5), warnings.LastExpires);
