@@ -115,6 +115,48 @@ public sealed class MySqlCombatRepository : ICombatRepository
         }, cancellationToken);
     }
 
+    public ValueTask<IReadOnlyList<CombatCountRankEntry>> GetTopDeathsAsync(int limit, int offset,
+        CancellationToken cancellationToken = default)
+        => GetTopCountAsync("victim_steam_id", limit, offset, cancellationToken);
+
+    public ValueTask<IReadOnlyList<CombatCountRankEntry>> GetTopAssistsAsync(int limit, int offset,
+        CancellationToken cancellationToken = default)
+        => GetTopCountAsync("assister_steam_id", limit, offset, cancellationToken);
+
+    private ValueTask<IReadOnlyList<CombatCountRankEntry>> GetTopCountAsync(
+        string column, int limit, int offset, CancellationToken cancellationToken)
+    {
+        if (limit is < 1 or > 100) throw new ArgumentOutOfRangeException(nameof(limit));
+        if (offset is < 0 or > 10000) throw new ArgumentOutOfRangeException(nameof(offset));
+        // Only the two fixed, internal column names above may reach this SQL template.
+        return _database.WithConnectionAsync<IReadOnlyList<CombatCountRankEntry>>(async (connection, token) =>
+        {
+            await using var command = connection.CreateCommand();
+            command.CommandText = $"""
+                SELECT ranked.steam_id, ranked.total, profiles.last_known_name
+                FROM (
+                    SELECT {column} AS steam_id, COUNT(*) AS total
+                    FROM ano_combat_deaths
+                    WHERE {column} IS NOT NULL
+                    GROUP BY {column}
+                ) AS ranked
+                LEFT JOIN ano_players AS profiles ON profiles.steam_id = ranked.steam_id
+                ORDER BY ranked.total DESC, ranked.steam_id ASC
+                LIMIT @limit OFFSET @offset
+                """;
+            Add(command, "@limit", limit);
+            Add(command, "@offset", offset);
+            var entries = new List<CombatCountRankEntry>();
+            await using var reader = await command.ExecuteReaderAsync(token).ConfigureAwait(false);
+            while (await reader.ReadAsync(token).ConfigureAwait(false))
+                entries.Add(new CombatCountRankEntry(
+                    new PlayerId(Convert.ToUInt64(reader.GetValue(0), CultureInfo.InvariantCulture)),
+                    reader.GetInt64(1), offset + entries.Count + 1,
+                    reader.IsDBNull(2) ? null : reader.GetString(2)));
+            return entries;
+        }, cancellationToken);
+    }
+
     private static PlayerId? ReadPlayer(DbDataReader reader, int index)
         => reader.IsDBNull(index) ? null
             : new PlayerId(Convert.ToUInt64(reader.GetValue(index), CultureInfo.InvariantCulture));
