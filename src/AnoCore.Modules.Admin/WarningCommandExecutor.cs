@@ -56,7 +56,7 @@ public sealed class WarningCommandExecutor
             cancellationToken).ConfigureAwait(false);
         await _audit.RecordAsync(WarnCompleted, actor, target.Id, validReason.Value!, now,
             cancellationToken).ConfigureAwait(false);
-        return CommandResult.Ok($"Warned {target.Id}; {(minutes == 0 ? "permanent" : $"{minutes} minute(s)")}."); 
+        return CommandResult.Ok($"Warned {target.Id}; {(minutes == 0 ? "permanent" : $"{minutes} minute(s)")}.");
     }
 
     public async ValueTask<CommandResult> ClearAsync(PlayerId? actor, string selector, string? reason,
