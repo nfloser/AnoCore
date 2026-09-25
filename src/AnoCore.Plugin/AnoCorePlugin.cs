@@ -1,5 +1,6 @@
 using AnoCore.Abstractions.Players;
 using AnoCore.Abstractions.Voting;
+using AnoCore.Modules.Stats;
 using AnoCore.Modules.Admin;
 using AnoCore.Modules.AnoVeto;
 using AnoCore.Plugin.Commands;
@@ -32,8 +33,10 @@ public sealed class AnoCorePlugin : BasePlugin
     private CancellationTokenSource? _startup;
     private RuntimeServices? _pendingRuntime;
     private AnoVetoModuleRuntime? _pendingAnoVeto;
+    private PlaytimeModule? _pendingPlaytime;
     private RuntimeServices? _runtime;
     private AnoVetoModuleRuntime? _anoVeto;
+    private PlaytimeModule? _playtime;
     private ModerationCommandController? _adminCommands;
     private ModerationCommunicationRuntime? _communicationModeration;
     private CounterStrikeChatModerationAdapter? _chatModeration;
@@ -41,6 +44,7 @@ public sealed class AnoCorePlugin : BasePlugin
     private CounterStrikeCommandBridge? _commands;
     private CounterStrikeSharp.API.Modules.Timers.Timer? _anoVetoExpiryTimer;
     private CounterStrikeSharp.API.Modules.Timers.Timer? _voiceModerationTimer;
+    private CounterStrikeSharp.API.Modules.Timers.Timer? _playtimeTimer;
     private string _runtimeStatus = "not started";
 
     public RuntimeServices? Runtime => _runtime;
@@ -81,6 +85,14 @@ public sealed class AnoCorePlugin : BasePlugin
             _anoVetoExpiryTimer = null;
             _voiceModerationTimer?.Kill();
             _voiceModerationTimer = null;
+            _playtimeTimer?.Kill();
+            _playtimeTimer = null;
+            if (_playtime is not null)
+                Observe(_playtime.CheckpointOnlineAsync(DateTimeOffset.UtcNow).AsTask(), "playtime_unload");
+            _playtime?.Dispose();
+            _playtime = null;
+            _pendingPlaytime?.Dispose();
+            _pendingPlaytime = null;
 
             _pendingAnoVeto?.Dispose();
             _pendingAnoVeto = null;
@@ -126,6 +138,7 @@ public sealed class AnoCorePlugin : BasePlugin
     {
         RuntimeServices? created = null;
         AnoVetoModuleRuntime? createdAnoVeto = null;
+        PlaytimeModule? createdPlaytime = null;
         try
         {
             var configuration = new JsonConfigStore(Path.Combine(ModuleDirectory, "config"));
@@ -160,6 +173,9 @@ public sealed class AnoCorePlugin : BasePlugin
                 players,
                 timeout.Token).ConfigureAwait(false);
 
+            createdPlaytime = await PlaytimeModule.CreateAsync(
+                events, players, created.Playtime, timeout.Token).ConfigureAwait(false);
+
             try
             {
                 var votes = created.GetService(typeof(IVoteService)) as IVoteService
@@ -191,14 +207,17 @@ public sealed class AnoCorePlugin : BasePlugin
                 cancellationToken.ThrowIfCancellationRequested();
                 _pendingRuntime = created;
                 _pendingAnoVeto = createdAnoVeto;
+                _pendingPlaytime = createdPlaytime;
                 created = null;
                 createdAnoVeto = null;
+                createdPlaytime = null;
                 Server.NextWorldUpdate(() => ActivateRuntime(cancellationToken));
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             createdAnoVeto?.Dispose();
+            createdPlaytime?.Dispose();
             created?.Dispose();
         }
         catch (Exception exception)
@@ -209,6 +228,8 @@ public sealed class AnoCorePlugin : BasePlugin
             {
                 if (!cancellationToken.IsCancellationRequested)
                 {
+                    _pendingPlaytime?.Dispose();
+                    _pendingPlaytime = null;
                     _pendingAnoVeto?.Dispose();
                     _pendingAnoVeto = null;
                     _pendingRuntime?.Dispose();
@@ -233,8 +254,10 @@ public sealed class AnoCorePlugin : BasePlugin
 
             var runtime = _pendingRuntime;
             var anoVeto = _pendingAnoVeto;
+            var playtime = _pendingPlaytime;
             _pendingRuntime = null;
             _pendingAnoVeto = null;
+            _pendingPlaytime = null;
             ModerationCommandController? adminCommands = null;
             ModerationCommunicationRuntime? communicationModeration = null;
             CounterStrikeChatModerationAdapter? chatModeration = null;
@@ -254,6 +277,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 });
             CounterStrikeSharp.API.Modules.Timers.Timer? expiryTimer = null;
             CounterStrikeSharp.API.Modules.Timers.Timer? voiceTimer = null;
+            CounterStrikeSharp.API.Modules.Timers.Timer? playtimeTimer = null;
 
             try
             {
@@ -291,6 +315,11 @@ public sealed class AnoCorePlugin : BasePlugin
                     () => ReconcileVoiceModeration(activeVoiceModeration),
                     TimerFlags.REPEAT);
 
+                if (playtime is not null)
+                    playtimeTimer = AddTimer(5.0f,
+                        () => Observe(playtime.CheckpointOnlineAsync(DateTimeOffset.UtcNow).AsTask(),
+                            "playtime_checkpoint"), TimerFlags.REPEAT);
+
                 foreach (var descriptor in runtime.Commands.GetCommands())
                 {
                     bridge.Bind(descriptor);
@@ -312,8 +341,10 @@ public sealed class AnoCorePlugin : BasePlugin
                 _commands = bridge;
                 _runtime = runtime;
                 _anoVeto = anoVeto;
+                _playtime = playtime;
                 _anoVetoExpiryTimer = expiryTimer;
                 _voiceModerationTimer = voiceTimer;
+                _playtimeTimer = playtimeTimer;
                 _runtimeStatus = "ready";
                 Logger.LogInformation(
                     "AnoCore shared services ready; database/authorization initialized; AnoVeto {AnoVetoState}.",
@@ -323,6 +354,8 @@ public sealed class AnoCorePlugin : BasePlugin
             {
                 expiryTimer?.Kill();
                 voiceTimer?.Kill();
+                playtimeTimer?.Kill();
+                playtime?.Dispose();
                 voiceModeration?.Dispose();
                 chatModeration?.Dispose();
                 communicationModeration?.Dispose();
