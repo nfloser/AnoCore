@@ -52,8 +52,6 @@ public sealed class CombatModule : IDisposable
             catch
             {
                 _topCommand.Dispose();
-        _deathCommand.Dispose();
-        _assistCommand.Dispose();
                 throw;
             }
         }
@@ -127,6 +125,8 @@ public sealed class CombatModule : IDisposable
     public void Dispose()
     {
         if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
+        _assistCommand.Dispose();
+        _deathCommand.Dispose();
         _topCommand.Dispose();
         _command.Dispose();
     }
