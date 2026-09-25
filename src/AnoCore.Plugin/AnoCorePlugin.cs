@@ -174,7 +174,8 @@ public sealed class AnoCorePlugin : BasePlugin
                 timeout.Token).ConfigureAwait(false);
 
             createdPlaytime = await PlaytimeModule.CreateAsync(
-                events, players, created.Playtime, timeout.Token).ConfigureAwait(false);
+                events, players, created.Playtime, created.Commands,
+                cancellationToken: timeout.Token).ConfigureAwait(false);
 
             try
             {
