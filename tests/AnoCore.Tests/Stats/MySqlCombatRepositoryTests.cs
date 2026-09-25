@@ -45,7 +45,8 @@ public sealed class MySqlCombatRepositoryTests
         var repo = new MySqlCombatRepository(_database);
         var death = new CombatDeath(Guid.NewGuid(), Victim, Attacker, Assister, Now);
         await repo.RecordAsync(death);
-        await repo.RecordAsync(death);
+        await repo.RecordAsync(new CombatDeath(death.EventId, Victim, Attacker, Assister,
+            Now.AddMilliseconds(20)));
         var restarted = new MySqlCombatRepository(_database);
         await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () =>
             await restarted.RecordAsync(new CombatDeath(death.EventId, Victim, Attacker, null, Now)));
