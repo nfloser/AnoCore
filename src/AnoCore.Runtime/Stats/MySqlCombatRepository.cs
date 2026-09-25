@@ -49,7 +49,6 @@ public sealed class MySqlCombatRepository : ICombatRepository
                 || ReadPlayer(reader, 0) != death.VictimId
                 || ReadPlayer(reader, 1) != death.AttackerId
                 || ReadPlayer(reader, 2) != death.AssisterId
-                || Math.Abs(reader.GetDateTime(3).Ticks - death.OccurredAtUtc.UtcDateTime.Ticks) >= 10
                 || reader.GetBoolean(4) != death.IsTeamKill)
             {
                 throw new InvalidOperationException("Combat event id conflicts with a different death.");
