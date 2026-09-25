@@ -99,6 +99,25 @@ public sealed class CombatModuleTests
             (await registry.ExecuteAsync("!anotopassists", null)).FailureReason);
     }
 
+    [TestMethod]
+    public async Task FailedCommandRegistration_RollsBackEarlierCombatCommands()
+    {
+        var registry = new CommandRegistry(new AllowAll());
+        using var occupied = registry.Register(new AnoCore.Abstractions.Modules.ModuleId("other"),
+            new CommandDescriptor("anotopassists", "Reserved"),
+            _ => ValueTask.FromResult(CommandResult.Ok("reserved")));
+        Assert.ThrowsExactly<InvalidOperationException>(() =>
+            new CombatModule(registry, new PlayerRegistry(new AnoEventBus()), new FakeRepository()));
+        Assert.AreEqual(CommandFailureReason.NotFound,
+            (await registry.ExecuteAsync("!anokda", null)).FailureReason);
+        Assert.AreEqual(CommandFailureReason.NotFound,
+            (await registry.ExecuteAsync("!anotopkills", null)).FailureReason);
+        Assert.AreEqual(CommandFailureReason.NotFound,
+            (await registry.ExecuteAsync("!anotopdeaths", null)).FailureReason);
+        Assert.AreEqual("reserved",
+            (await registry.ExecuteAsync("!anotopassists", null)).Message);
+    }
+
     private sealed class AllowAll : IPermissionEvaluator
     {
         public ValueTask<bool> HasPermissionAsync(PlayerId id, PermissionId permission,
