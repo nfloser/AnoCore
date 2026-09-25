@@ -173,9 +173,23 @@ public sealed class AnoCorePlugin : BasePlugin
                 players,
                 timeout.Token).ConfigureAwait(false);
 
-            createdPlaytime = await PlaytimeModule.CreateAsync(
-                events, players, created.Playtime, created.Commands,
-                cancellationToken: timeout.Token).ConfigureAwait(false);
+            try
+            {
+                createdPlaytime = await PlaytimeModule.CreateAsync(
+                    events, players, created.Playtime, created.Commands,
+                    cancellationToken: timeout.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception exception)
+            {
+                createdPlaytime?.Dispose();
+                createdPlaytime = null;
+                Logger.LogError(exception,
+                    "Stats composition failed; AnoCore will continue without playtime tracking.");
+            }
 
             try
             {
