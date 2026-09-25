@@ -12,7 +12,7 @@ Quoted arguments are parsed by the runtime so commands can safely receive values
 
 `CommandDescriptor.Usage` is generated from argument metadata unless a custom usage string is supplied. `IAnoCommandRegistry.GetCommands()` exposes immutable descriptor snapshots for future `!anohelp` and web/API surfaces.
 
-Handler exceptions are converted into a failed `CommandResult` instead of escaping into the game callback.
+Handler exceptions are converted into a failed `CommandResult` with a fixed, user-safe message instead of escaping into the game callback. Exception messages may contain database details, paths or configuration values and are never returned to players or the server console. `HandlerFailed` remains available to code consuming the result. Native dispatch failures log the logical command name without raw arguments. Operational handler failure diagnostics still require a separate, appropriately redacted logging path.
 
 Command registrations are owned by a `ModuleId`. Disposing a registration or calling `UnregisterAll(owner)` removes the command and all aliases, preventing hot-reload leaks.
 

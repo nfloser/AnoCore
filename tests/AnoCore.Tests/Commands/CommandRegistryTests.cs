@@ -182,6 +182,25 @@ public sealed class CommandRegistryTests
             registry.Register(Owner, new CommandDescriptor("anokick", "bad alias", aliases: ["k"]), _ => ValueTask.FromResult(CommandResult.Ok())));
     }
 
+    [TestMethod]
+    public async Task ExecuteAsync_HandlerFailure_DoesNotExposeExceptionMessage()
+    {
+        const string sensitiveDetail = "Password=private-example; /srv/private/config.json";
+        var registry = new CommandRegistry(new AllowAllPermissions());
+        registry.Register(Owner, new CommandDescriptor("anofail", "Fails"), _ =>
+            throw new InvalidOperationException(sensitiveDetail));
+
+        foreach (var caller in new PlayerId?[] { Player, null })
+        {
+            var result = await registry.ExecuteAsync("!anofail", caller);
+            Assert.IsFalse(result.Success);
+            Assert.AreEqual(CommandFailureReason.HandlerFailed, result.FailureReason);
+            Assert.IsFalse(string.IsNullOrWhiteSpace(result.Message));
+            Assert.IsFalse(result.Message.Contains(sensitiveDetail, StringComparison.Ordinal));
+            Assert.IsFalse(result.Message.Contains("Password=", StringComparison.Ordinal));
+        }
+    }
+
     private sealed class AllowAllPermissions : IPermissionEvaluator
     {
         public ValueTask<bool> HasPermissionAsync(PlayerId playerId, PermissionId permission, CancellationToken cancellationToken = default)

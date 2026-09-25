@@ -118,9 +118,10 @@ public sealed class CommandRegistry : IAnoCommandRegistry
         {
             throw;
         }
-        catch (Exception exception)
+        catch (Exception)
         {
-            return CommandResult.Fail(CommandFailureReason.HandlerFailed, exception.Message);
+            return CommandResult.Fail(CommandFailureReason.HandlerFailed,
+                "The command could not be completed. Please contact a server administrator.");
         }
     }
 
