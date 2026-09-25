@@ -35,6 +35,7 @@ public sealed class AnoCorePlugin : BasePlugin
     private RuntimeServices? _runtime;
     private AnoVetoModuleRuntime? _anoVeto;
     private ModerationCommandController? _adminCommands;
+    private WarningCommandController? _warningCommands;
     private ModerationCommunicationRuntime? _communicationModeration;
     private CounterStrikeChatModerationAdapter? _chatModeration;
     private ModerationVoiceCoordinator? _voiceModeration;
@@ -97,6 +98,8 @@ public sealed class AnoCorePlugin : BasePlugin
             _anoVeto = null;
             _commands?.Dispose();
             _commands = null;
+            _warningCommands?.Dispose();
+            _warningCommands = null;
             _adminCommands?.Dispose();
             _adminCommands = null;
             _runtime?.Dispose();
@@ -236,6 +239,7 @@ public sealed class AnoCorePlugin : BasePlugin
             _pendingRuntime = null;
             _pendingAnoVeto = null;
             ModerationCommandController? adminCommands = null;
+            WarningCommandController? warningCommands = null;
             ModerationCommunicationRuntime? communicationModeration = null;
             CounterStrikeChatModerationAdapter? chatModeration = null;
             ModerationVoiceCoordinator? voiceModeration = null;
@@ -265,6 +269,8 @@ public sealed class AnoCorePlugin : BasePlugin
                 adminCommands = new ModerationCommandController(
                     runtime.Commands,
                     new ModerationCommandExecutor(targetGateway, runtime.Moderation));
+                warningCommands = new WarningCommandController(runtime.Commands,
+                    new WarningCommandExecutor(targetGateway, runtime.Warnings, runtime.AdminAudit));
 
                 var events = _eventBus
                     ?? throw new InvalidOperationException("AnoCore event bus is unavailable during activation.");
@@ -306,6 +312,7 @@ public sealed class AnoCorePlugin : BasePlugin
 
                 MenuPresenter = presenter;
                 _adminCommands = adminCommands;
+                _warningCommands = warningCommands;
                 _communicationModeration = communicationModeration;
                 _chatModeration = chatModeration;
                 _voiceModeration = voiceModeration;
@@ -328,6 +335,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 communicationModeration?.Dispose();
                 anoVeto?.Dispose();
                 bridge.Dispose();
+                warningCommands?.Dispose();
                 adminCommands?.Dispose();
                 runtime.Dispose();
                 MenuPresenter = null;
