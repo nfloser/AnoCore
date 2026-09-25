@@ -157,6 +157,59 @@ public sealed class MySqlCombatRepository : ICombatRepository
         }, cancellationToken);
     }
 
+    public ValueTask<IReadOnlyList<CombatScoreRankEntry>> GetTopScoresAsync(
+        int killPoints, int assistPoints, int deathPenalty, int limit, int offset,
+        CancellationToken cancellationToken = default)
+    {
+        if (killPoints is < 1 or > 1000) throw new ArgumentOutOfRangeException(nameof(killPoints));
+        if (assistPoints is < 0 or > 1000) throw new ArgumentOutOfRangeException(nameof(assistPoints));
+        if (deathPenalty is < 0 or > 1000) throw new ArgumentOutOfRangeException(nameof(deathPenalty));
+        if (limit is < 1 or > 100) throw new ArgumentOutOfRangeException(nameof(limit));
+        if (offset is < 0 or > 10000) throw new ArgumentOutOfRangeException(nameof(offset));
+        return _database.WithConnectionAsync<IReadOnlyList<CombatScoreRankEntry>>(async (connection, token) =>
+        {
+            await using var command = connection.CreateCommand();
+            command.CommandText = """
+                SELECT players.steam_id,
+                    GREATEST(0,
+                        CAST((SELECT COUNT(*) FROM ano_combat_deaths
+                            WHERE attacker_steam_id = players.steam_id AND is_team_kill = 0) AS SIGNED)
+                            * @kill_points
+                        + CAST((SELECT COUNT(*) FROM ano_combat_deaths
+                            WHERE assister_steam_id = players.steam_id) AS SIGNED) * @assist_points
+                        - CAST((SELECT COUNT(*) FROM ano_combat_deaths
+                            WHERE victim_steam_id = players.steam_id) AS SIGNED) * @death_penalty
+                    ) AS points,
+                    profiles.last_known_name
+                FROM (
+                    SELECT victim_steam_id AS steam_id FROM ano_combat_deaths
+                    UNION
+                    SELECT attacker_steam_id FROM ano_combat_deaths
+                        WHERE attacker_steam_id IS NOT NULL
+                    UNION
+                    SELECT assister_steam_id FROM ano_combat_deaths
+                        WHERE assister_steam_id IS NOT NULL
+                ) AS players
+                LEFT JOIN ano_players AS profiles ON profiles.steam_id = players.steam_id
+                ORDER BY points DESC, players.steam_id ASC
+                LIMIT @limit OFFSET @offset
+                """;
+            Add(command, "@kill_points", killPoints);
+            Add(command, "@assist_points", assistPoints);
+            Add(command, "@death_penalty", deathPenalty);
+            Add(command, "@limit", limit);
+            Add(command, "@offset", offset);
+            var entries = new List<CombatScoreRankEntry>();
+            await using var reader = await command.ExecuteReaderAsync(token).ConfigureAwait(false);
+            while (await reader.ReadAsync(token).ConfigureAwait(false))
+                entries.Add(new CombatScoreRankEntry(
+                    new PlayerId(Convert.ToUInt64(reader.GetValue(0), CultureInfo.InvariantCulture)),
+                    reader.GetInt64(1), offset + entries.Count + 1,
+                    reader.IsDBNull(2) ? null : reader.GetString(2)));
+            return entries;
+        }, cancellationToken);
+    }
+
     private static PlayerId? ReadPlayer(DbDataReader reader, int index)
         => reader.IsDBNull(index) ? null
             : new PlayerId(Convert.ToUInt64(reader.GetValue(index), CultureInfo.InvariantCulture));
