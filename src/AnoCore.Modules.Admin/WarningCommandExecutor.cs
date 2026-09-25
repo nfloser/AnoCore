@@ -19,14 +19,16 @@ public sealed class WarningCommandExecutor
     private readonly IModerationTargetGateway _targets;
     private readonly IWarningService _warnings;
     private readonly IAdminAuditService _audit;
+    private readonly IWarningNotifier _notifier;
     private readonly TimeProvider _clock;
 
     public WarningCommandExecutor(IModerationTargetGateway targets, IWarningService warnings,
-        IAdminAuditService audit, TimeProvider? clock = null)
+        IAdminAuditService audit, IWarningNotifier notifier, TimeProvider? clock = null)
     {
         _targets = targets ?? throw new ArgumentNullException(nameof(targets));
         _warnings = warnings ?? throw new ArgumentNullException(nameof(warnings));
         _audit = audit ?? throw new ArgumentNullException(nameof(audit));
+        _notifier = notifier ?? throw new ArgumentNullException(nameof(notifier));
         _clock = clock ?? TimeProvider.System;
     }
 
@@ -60,6 +62,7 @@ public sealed class WarningCommandExecutor
             cancellationToken).ConfigureAwait(false);
         await _audit.RecordAsync(WarnCompleted, actor, target.Id, validReason.Value!, now,
             cancellationToken).ConfigureAwait(false);
+        _notifier.Notify(target.Id!, target.Session!, $"[ANO] Warning: {validReason.Value}");
         return CommandResult.Ok($"Warned {target.Id}; {(minutes == 0 ? "permanent" : $"{minutes} minute(s)")}.");
     }
 
@@ -82,9 +85,10 @@ public sealed class WarningCommandExecutor
             cancellationToken).ConfigureAwait(false);
         await _audit.RecordAsync(ClearCompleted, actor, target.Id, validReason.Value!, now,
             cancellationToken).ConfigureAwait(false);
-        return cleared.Count == 0
-            ? CommandResult.Fail(CommandFailureReason.InvalidInput, "No active warnings exist for this player.")
-            : CommandResult.Ok($"Cleared {cleared.Count} warning(s) for {target.Id}.");
+        if (cleared.Count == 0)
+            return CommandResult.Fail(CommandFailureReason.InvalidInput, "No active warnings exist for this player.");
+        _notifier.Notify(target.Id!, target.Session!, $"[ANO] Cleared {cleared.Count} warning(s).");
+        return CommandResult.Ok($"Cleared {cleared.Count} warning(s) for {target.Id}.");
     }
 
     public async ValueTask<CommandResult> OwnHistoryAsync(PlayerId? actor,
