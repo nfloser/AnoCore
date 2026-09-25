@@ -2,7 +2,7 @@
 
 - Issue #76 / draft PR #77 / branch `feature/76-time-toplist`, stacked on playtime PR #75: bounded `anotoptime [page]` command and deterministic MariaDB total-time ranking with SteamID64 tie ordering.
 - CI #313 passed build, 249 tests including MariaDB tie/pagination/restart tests, formatting, publish and package checks on the code/documentation head before this handoff edit. Verify exact head again.
-- Time entries show SteamID64; profile display names, rank/stat toplists, UI navigation and placement tags remain #18 work. User handles live CS2 testing; both PRs remain draft pending it.
+- Time entries show saved profile names when available and SteamID64 for identity/fallback; rank/stat toplists, UI navigation and placement tags remain #18 work. User handles live CS2 testing; both PRs remain draft pending it.
 
 ## Session playtime checkpoint — 2026-09-25
 
