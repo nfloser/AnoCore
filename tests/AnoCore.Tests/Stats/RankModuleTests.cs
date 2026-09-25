@@ -71,6 +71,36 @@ public sealed class RankModuleTests
     }
 
     [TestMethod]
+    public async Task RankLeaderboard_UsesConfiguredWeightsPagesAndSanitizesNames()
+    {
+        var store = new JsonConfigStore(_root);
+        await store.SaveAsync("ranks", new RankConfiguration
+        {
+            KillPoints = 3,
+            AssistPoints = 1,
+            DeathPenalty = 2,
+            Thresholds = [new RankThreshold("Recruit", 0), new RankThreshold("Veteran", 10)],
+        });
+        var commands = new CommandRegistry(new AllowAll());
+        var entries = new[]
+        {
+            new CombatScoreRankEntry(Player, 10, 6, "Name|With\nControl"),
+        };
+        var repository = new FakeRepository(new CombatTotals(0, 0, 0), entries);
+        using var module = await RankModule.CreateAsync(store, commands,
+            new PlayerRegistry(new AnoEventBus()), repository);
+
+        var result = await commands.ExecuteAsync("!anotopranks 2", null);
+
+        Assert.IsTrue(result.Success);
+        StringAssert.Contains(result.Message!, "6. Name/With Control");
+        StringAssert.Contains(result.Message!, "Veteran, 10 point");
+        Assert.AreEqual((3, 1, 2, 5, 5), repository.LastScoreQuery);
+        Assert.AreEqual(CommandFailureReason.InvalidInput,
+            (await commands.ExecuteAsync("!anotopranks 0", null)).FailureReason);
+    }
+
+    [TestMethod]
     public void Score_FloorsAtZeroAndRejectsOverflow()
     {
         var policy = RankConfiguration.Default;
@@ -86,9 +116,11 @@ public sealed class RankModuleTests
             CancellationToken cancellationToken = default) => ValueTask.FromResult(true);
     }
 
-    private sealed class FakeRepository(CombatTotals totals) : ICombatRepository
+    private sealed class FakeRepository(CombatTotals totals,
+        IReadOnlyList<CombatScoreRankEntry>? scores = null) : ICombatRepository
     {
         public PlayerId? LastRead { get; private set; }
+        public (int Kill, int Assist, int Death, int Limit, int Offset)? LastScoreQuery { get; private set; }
         public ValueTask RecordAsync(CombatDeath death, CancellationToken cancellationToken = default)
             => ValueTask.CompletedTask;
         public ValueTask<CombatTotals> ReadAsync(PlayerId id, CancellationToken cancellationToken = default)
@@ -105,5 +137,12 @@ public sealed class RankModuleTests
         public ValueTask<IReadOnlyList<CombatCountRankEntry>> GetTopAssistsAsync(int limit, int offset,
             CancellationToken cancellationToken = default)
             => ValueTask.FromResult<IReadOnlyList<CombatCountRankEntry>>([]);
+        public ValueTask<IReadOnlyList<CombatScoreRankEntry>> GetTopScoresAsync(
+            int killPoints, int assistPoints, int deathPenalty, int limit, int offset,
+            CancellationToken cancellationToken = default)
+        {
+            LastScoreQuery = (killPoints, assistPoints, deathPenalty, limit, offset);
+            return ValueTask.FromResult(scores ?? (IReadOnlyList<CombatScoreRankEntry>)[]);
+        }
     }
 }
