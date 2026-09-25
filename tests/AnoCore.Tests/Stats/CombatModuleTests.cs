@@ -78,7 +78,7 @@ public sealed class CombatModuleTests
         var registry = new CommandRegistry(new AllowAll());
         var repository = new FakeRepository
         {
-            TopCountEntries = [new CombatCountRankEntry(Victim, 4, 6, "Name |\\nline")],
+            TopCountEntries = [new CombatCountRankEntry(Victim, 4, 6, "Name |\nline")],
         };
         var module = new CombatModule(registry, new PlayerRegistry(new AnoEventBus()), repository);
         Assert.AreEqual(CommandFailureReason.InvalidInput,
