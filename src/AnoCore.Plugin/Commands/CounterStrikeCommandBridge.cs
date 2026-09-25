@@ -160,7 +160,7 @@ public sealed class CounterStrikeCommandBridge : IDisposable
         }
         catch (Exception exception)
         {
-            _logger.LogError(exception, "AnoCore command dispatch failed for {CommandInput}.", input);
+            _logger.LogError(exception, "AnoCore command dispatch failed for {CommandName}.", logicalName);
         }
     }
 
