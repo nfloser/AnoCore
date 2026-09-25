@@ -73,7 +73,7 @@ public sealed class WarningCommandTests
         var targets = new FakeTargets { Result = ModerationTargetResult.Reject(ModerationTargetFailure.TargetImmune) };
         var warnings = new FakeWarnings();
         var audit = new FakeAudit();
-        var executor = new WarningCommandExecutor(targets, warnings, audit, new FixedTime(Now));
+        var executor = new WarningCommandExecutor(targets, warnings, audit, new FakeNotifier(), new FixedTime(Now));
         Assert.AreEqual(CommandFailureReason.Forbidden,
             (await executor.ClearAsync(Actor, "Target", "resolved")).FailureReason);
         Assert.AreEqual(0, warnings.Writes);
@@ -91,7 +91,7 @@ public sealed class WarningCommandTests
         };
         var warnings = new FakeWarnings();
         var audit = new FakeAudit { RejectRequest = true };
-        var executor = new WarningCommandExecutor(targets, warnings, audit, new FixedTime(Now));
+        var executor = new WarningCommandExecutor(targets, warnings, audit, new FakeNotifier(), new FixedTime(Now));
 
         await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () =>
             await executor.WarnAsync(Actor, "Target", 10, "reason"));
@@ -112,7 +112,7 @@ public sealed class WarningCommandTests
         };
         var warnings = new FakeWarnings();
         var audit = new FakeAudit();
-        var executor = new WarningCommandExecutor(targets, warnings, audit, new FixedTime(Now));
+        var executor = new WarningCommandExecutor(targets, warnings, audit, new FakeNotifier(), new FixedTime(Now));
 
         var result = await executor.WarnAsync(Actor, "Target", 10, "reason");
         Assert.AreEqual(CommandFailureReason.InvalidInput, result.FailureReason);
