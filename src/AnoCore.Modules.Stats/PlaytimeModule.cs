@@ -98,8 +98,14 @@ public sealed class PlaytimeModule : IDisposable
             context.CancellationToken).ConfigureAwait(false);
         if (entries.Count == 0) return CommandResult.Ok("No playtime entries on this page.");
         return CommandResult.Ok(string.Join(" | ", entries.Select(entry =>
-            $"{entry.Position}. {entry.PlayerId.SteamId64}: {entry.Total:c}")));
+            $"{entry.Position}. {Display(entry)}: {entry.Total:c}")));
     }
+
+    private static string Display(PlaytimeRankEntry entry)
+        => string.IsNullOrWhiteSpace(entry.DisplayName)
+            ? entry.PlayerId.SteamId64.ToString(System.Globalization.CultureInfo.InvariantCulture)
+            : $"{entry.DisplayName.Replace('\\r', ' ').Replace('\\n', ' ').Replace('|', '/')} "
+                + $"({entry.PlayerId.SteamId64})";
 
     private ValueTask OpenAsync(PlayerSnapshot player, CancellationToken cancellationToken)
         => _repository.OpenAsync(player.Id, player.SessionId, player.ConnectedAtUtc, cancellationToken);
