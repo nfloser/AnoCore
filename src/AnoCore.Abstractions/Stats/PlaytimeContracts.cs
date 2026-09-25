@@ -38,7 +38,8 @@ public sealed record PlaytimeSession
 
 public sealed record PlaytimeTotals(TimeSpan Total, TimeSpan Today);
 
-public sealed record PlaytimeRankEntry(PlayerId PlayerId, TimeSpan Total, int Position);
+public sealed record PlaytimeRankEntry(PlayerId PlayerId, TimeSpan Total, int Position,
+    string? DisplayName = null);
 
 public interface IPlaytimeRepository
 {
