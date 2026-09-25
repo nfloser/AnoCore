@@ -88,9 +88,8 @@ public sealed class PlaytimeModule : IDisposable
 
     private async ValueTask<CommandResult> TopTimeAsync(CommandContext context)
     {
-        context.TryGet<int>("page", out var selectedPage);
-        var page = selectedPage == 0 && !context.ParsedArguments.ContainsKey("page")
-            ? 1 : selectedPage;
+        var page = context.ParsedArguments.TryGetValue("page", out var provided)
+            ? (int)provided! : 1;
         if (page is < 1 or > 1000)
             return CommandResult.Fail(CommandFailureReason.InvalidInput,
                 "Page must be between 1 and 1000.");
