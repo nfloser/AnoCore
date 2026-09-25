@@ -2,7 +2,7 @@
 
 Issue #78 extends the Stats module with persisted kills, deaths and assists. Migration 006 stores one row per player death and uses a deterministic event ID to make repeated delivery idempotent. Restarted repositories read the same totals. A conflicting payload under an existing ID raises an error instead of silently rewriting history.
 
-The `anotopkills [page]` command lists five ranked players per page, ordered by kills descending and SteamID64 ascending on ties. Pages are bounded to 1–1000; names come from saved profiles with SteamID64 fallback. Teamkills do not contribute. This reads persisted events only, so ranking reflects completed writes.
+The `anotopkills [page]`, `anotopdeaths [page]` and `anotopassists [page]` commands list five ranked players per page, ordered by the selected count descending and SteamID64 ascending on ties. Deaths include suicides, world deaths and teamkills; assists exclude invalid and teamkill events. Pages are bounded to 1–1000; names come from saved profiles with SteamID64 fallback. Teamkills do not contribute. This reads persisted events only, so ranking reflects completed writes.
 
 The native `player_death` hook records deaths only for tracked, connected human victims. A valid opposing human attacker gains one kill; world deaths, suicides and teamkills add no kill. The victim gains one death. A distinct, tracked, connected human assister gains one assist on a valid opposing-team kill. Bots and spectators do not gain credit. `anokda` displays the invoking player's saved kill/death/assist totals.
 
