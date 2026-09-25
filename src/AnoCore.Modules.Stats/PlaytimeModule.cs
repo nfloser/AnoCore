@@ -104,7 +104,7 @@ public sealed class PlaytimeModule : IDisposable
     private static string Display(PlaytimeRankEntry entry)
         => string.IsNullOrWhiteSpace(entry.DisplayName)
             ? entry.PlayerId.SteamId64.ToString(System.Globalization.CultureInfo.InvariantCulture)
-            : $"{entry.DisplayName.Replace('\\r', ' ').Replace('\\n', ' ').Replace('|', '/')} "
+            : $"{entry.DisplayName.Replace('\r', ' ').Replace('\n', ' ').Replace('|', '/')} "
                 + $"({entry.PlayerId.SteamId64})";
 
     private ValueTask OpenAsync(PlayerSnapshot player, CancellationToken cancellationToken)
