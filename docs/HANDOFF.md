@@ -1,3 +1,10 @@
+## Warning commands checkpoint — 2026-09-25
+
+- Issue #72 / draft PR #73 on `feature/72-warning-commands`: registered `anowarn`, `anoclearwarns`, `anowarns` and `anomywarns` with separate permissions and shared warning/audit services.
+- CI #287 built and passed 244 tests, but failed formatting due one trailing space; corrected on branch. Recheck exact-head CI before further review.
+- Real CS2 acceptance, player notification and session changes across audit awaits need review before marking #72 complete. PR stays draft. #67/#69 remain live-test gated.
+- The full functionality matrix in `docs/functional-acceptance.md` remains open; no production-ready release claim.
+
 # AnoCore development handoff
 
 ## Warning persistence checkpoint — 2026-09-24
