@@ -273,6 +273,7 @@ public sealed class AnoCorePlugin : BasePlugin
         {
             createdAnoVeto?.Dispose();
             createdPlaytime?.Dispose();
+            createdRank?.Dispose();
             created?.Dispose();
             lock (_startupGate)
             {
