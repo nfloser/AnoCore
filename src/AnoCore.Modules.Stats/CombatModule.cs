@@ -64,7 +64,7 @@ public sealed class CombatModule : IDisposable
     private static string Display(CombatRankEntry entry)
         => string.IsNullOrWhiteSpace(entry.DisplayName)
             ? entry.PlayerId.SteamId64.ToString(System.Globalization.CultureInfo.InvariantCulture)
-            : $"{entry.DisplayName.Replace('\\r', ' ').Replace('\\n', ' ').Replace('|', '/')} "
+            : $"{entry.DisplayName.Replace('\r', ' ').Replace('\n', ' ').Replace('|', '/')} "
                 + $"({entry.PlayerId.SteamId64})";
 
     public void Dispose()
