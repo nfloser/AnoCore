@@ -22,7 +22,7 @@ public sealed class WarningCommandTests
         var registry = new CommandRegistry(permissions);
         var warnings = new FakeWarnings();
         using var commands = new WarningCommandController(registry,
-            new WarningCommandExecutor(new FakeTargets(), warnings, new FakeAudit(), new FixedTime(Now)));
+            new WarningCommandExecutor(new FakeTargets(), warnings, new FakeAudit(), new FakeNotifier(), new FixedTime(Now)));
 
         Assert.AreEqual(new PermissionId("ano.admin.warn"),
             registry.GetCommands().Single(x => x.Name == "anowarn").Permission);
@@ -48,7 +48,8 @@ public sealed class WarningCommandTests
         var targets = new FakeTargets { Result = ModerationTargetResult.Success(Target) };
         var warnings = new FakeWarnings();
         var audit = new FakeAudit();
-        var executor = new WarningCommandExecutor(targets, warnings, audit, new FixedTime(Now));
+        var notifier = new FakeNotifier();
+        var executor = new WarningCommandExecutor(targets, warnings, audit, notifier, new FixedTime(Now));
 
         Assert.AreEqual(CommandFailureReason.InvalidInput,
             (await executor.WarnAsync(Actor, "Target", -1, "reason")).FailureReason);
@@ -61,6 +62,8 @@ public sealed class WarningCommandTests
         var result = await executor.WarnAsync(Actor, "Target", 5, "reason");
         Assert.IsTrue(result.Success);
         Assert.AreEqual(Now.AddMinutes(5), warnings.LastExpires);
+        Assert.AreEqual(Target, notifier.Target);
+        Assert.AreEqual(1, notifier.Calls);
         CollectionAssert.AreEqual(new[] { "warning.requested", "warning.completed" }, audit.Actions);
     }
 
@@ -115,6 +118,17 @@ public sealed class WarningCommandTests
         Assert.AreEqual(CommandFailureReason.InvalidInput, result.FailureReason);
         Assert.AreEqual(0, warnings.Writes);
         CollectionAssert.AreEqual(new[] { "warning.requested" }, audit.Actions);
+    }
+
+    private sealed class FakeNotifier : IWarningNotifier
+    {
+        public PlayerId? Target { get; private set; }
+        public int Calls { get; private set; }
+        public void Notify(PlayerId targetId, PlayerSessionId sessionId, string message)
+        {
+            Target = targetId;
+            Calls++;
+        }
     }
 
     private sealed class SelectivePermissions : IPermissionEvaluator
