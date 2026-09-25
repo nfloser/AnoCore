@@ -11,7 +11,7 @@ The plugin registers these commands after the MariaDB-backed runtime is ready:
 
 Use a quoted single argument for a reason containing spaces. Omitted reasons use `No reason provided.`. The existing target gateway applies actor permission, immunity, self-target and target-session checks. Mutations require an online player; administrative history may also use an explicit offline SteamID64. The server console may execute administrative commands; it cannot read personal warning history.
 
-Mutation audit records a requested action before storage, then a completed action after storage. A requested record without a matching completion requires investigation; database writes and audit entries cannot be one atomic operation. The warning table itself retains actor, reason, expiry, clear actor and clear reason. Query results are bounded to ten records.
+Mutation audit records a requested action before storage, then a completed action after storage. A requested record without a matching completion requires investigation; database writes and audit entries cannot be one atomic operation. The warning table itself retains actor, reason, expiry, clear actor and clear reason. Query results are bounded to ten records. Successful warnings and clears schedule a private chat notice for the targeted session; a reconnect or unload suppresses a stale queued notice.
 
 ## CS2 acceptance before marking complete
 
