@@ -62,7 +62,7 @@ public sealed class WarningCommandExecutor
             cancellationToken).ConfigureAwait(false);
         await _audit.RecordAsync(WarnCompleted, actor, target.Id, validReason.Value!, now,
             cancellationToken).ConfigureAwait(false);
-        _notifier.Notify(target.Id!, target.Session!, $"[ANO] Warning: {validReason.Value}");
+        _notifier.Notify(target.Id!, target.Session!, $"[ANO] Warning: {SingleLine(validReason.Value!)}");
         return CommandResult.Ok($"Warned {target.Id}; {(minutes == 0 ? "permanent" : $"{minutes} minute(s)")}.");
     }
 
@@ -139,6 +139,8 @@ public sealed class WarningCommandExecutor
             return (null, CommandResult.Fail(CommandFailureReason.InvalidInput, error.Message));
         }
     }
+
+    private static string SingleLine(string value) => value.Replace('\\r', ' ').Replace('\\n', ' ');
 
     private static CommandResult Format(IReadOnlyList<WarningRecord> warnings, DateTimeOffset now)
     {
