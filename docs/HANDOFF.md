@@ -1,3 +1,10 @@
+## Combat counters checkpoint — 2026-09-25
+
+- Issue #78 / draft PR #79 / branch `feature/78-combat-counters`, stacked on #77: migration 006, idempotent death-event ledger, own `anokda` command and native death hook.
+- MariaDB and contract tests cover replay/restart, conflicting event IDs, suicide, world death and teamkill. Verify exact-head CI after the final documentation commit.
+- Native map/tick identity and player mapping need disposable-server acceptance; the user handles CS2/DatHost tests. Keep #79 draft, along with #75/#77 and other native drafts. See `docs/combat-stats.md` for the acceptance steps.
+- Remaining #18 scope includes detailed stats, policies, ranks, menus and toplists; do not claim complete parity.
+
 ## Time leaderboard checkpoint — 2026-09-25
 
 - Issue #76 / draft PR #77 / branch `feature/76-time-toplist`, stacked on playtime PR #75: bounded `anotoptime [page]` command and deterministic MariaDB total-time ranking with SteamID64 tie ordering.
