@@ -55,6 +55,7 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
         Menus = new MenuService();
         Settings = new PlayerSettingsService(data);
         Playtime = new MySqlPlaytimeRepository(database);
+        Combat = new MySqlCombatRepository(database);
         WarningRepository = new MySqlWarningRepository(database);
         Warnings = new WarningService(WarningRepository);
         AdminAuditRepository = new MySqlAdminAuditRepository(database);
@@ -79,6 +80,7 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
         Add<IMenuService>(Menus);
         Add<IPlayerSettingsService>(Settings);
         Add<IPlaytimeRepository>(Playtime);
+        Add<ICombatRepository>(Combat);
         Add<IWarningRepository>(WarningRepository);
         Add<IWarningService>(Warnings);
         Add<IAdminAuditRepository>(AdminAuditRepository);
@@ -105,6 +107,8 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
     public PlayerSettingsService Settings { get; }
 
     public MySqlPlaytimeRepository Playtime { get; }
+
+    public MySqlCombatRepository Combat { get; }
 
     public MySqlWarningRepository WarningRepository { get; }
 
@@ -137,7 +141,7 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
         ArgumentNullException.ThrowIfNull(players);
         await new DatabaseStartupProbe(
             database,
-            [new CoreSchemaMigration001(), new ModerationSchemaMigration002(), new AdminAuditSchemaMigration003(), new WarningSchemaMigration004(), new PlaytimeSchemaMigration005()])
+            [new CoreSchemaMigration001(), new ModerationSchemaMigration002(), new AdminAuditSchemaMigration003(), new WarningSchemaMigration004(), new PlaytimeSchemaMigration005(), new CombatSchemaMigration006()])
             .EnsureReadyAsync(cancellationToken).ConfigureAwait(false);
         var runtime = new RuntimeServices(database, configuration, events, players);
         try
