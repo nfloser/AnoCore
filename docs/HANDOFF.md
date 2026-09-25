@@ -1,3 +1,8 @@
+## Combat rank checkpoint — 2026-09-25
+
+- Issue #86 / draft PR to follow / branch `feature/86-combat-rank` stacks on #85. Adds `config/ranks.json`, validated combat-derived scoring and `anorank` with plugin lifecycle integration. See `docs/ranks.md`; exact-head CI and real-server acceptance remain to verify.
+- Point weights rescore historical combat events. No rank overrides, menus, tags, notifications or toplist yet. Keep the PR draft pending the combat ingestion live gate.
+
 ## Combat top lists checkpoint — 2026-09-25
 
 - Issue #84 / draft PR to follow / branch `feature/84-combat-leaderboards` stacks on #81. Adds persisted death/assist top lists with deterministic ties, bounds, unit and MariaDB tests; CI and native acceptance remain to verify.
