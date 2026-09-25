@@ -74,6 +74,29 @@ public sealed class PlaytimeModuleTests
             (await commands.ExecuteAsync("!anoplaytime", Player)).FailureReason);
     }
 
+    [TestMethod]
+    public async Task TopTimeCommand_BoundsPageAndRendersStablePositions()
+    {
+        var events = new AnoEventBus();
+        var players = new PlayerRegistry(events);
+        var repository = new MemoryRepository
+        {
+            TopEntries = [new PlaytimeRankEntry(Player, TimeSpan.FromHours(2), 6)],
+        };
+        var commands = new CommandRegistry(new AllowAll());
+        using var module = await PlaytimeModule.CreateAsync(events, players, repository, commands);
+
+        Assert.AreEqual(CommandFailureReason.InvalidInput,
+            (await commands.ExecuteAsync("!anotoptime 0", Player)).FailureReason);
+        Assert.AreEqual(0, repository.TopCalls);
+        var page = await commands.ExecuteAsync("!anotoptime 2", Player);
+        Assert.IsTrue(page.Success);
+        StringAssert.Contains(page.Message!, "6.");
+        Assert.AreEqual(5, repository.LastOffset);
+        Assert.AreEqual(5, repository.LastLimit);
+        Assert.IsTrue((await commands.ExecuteAsync("!anotoptime", null)).Success);
+    }
+
     private sealed class AllowAll : IPermissionEvaluator
     {
         public ValueTask<bool> HasPermissionAsync(PlayerId id, PermissionId permission,
@@ -88,6 +111,10 @@ public sealed class PlaytimeModuleTests
     private sealed class MemoryRepository : IPlaytimeRepository
     {
         public List<PlayerSessionId> Opened { get; } = [];
+        public IReadOnlyList<PlaytimeRankEntry> TopEntries { get; set; } = [];
+        public int TopCalls { get; private set; }
+        public int LastLimit { get; private set; }
+        public int LastOffset { get; private set; }
         public List<(PlayerSessionId, DateTimeOffset, bool)> Advances { get; } = [];
         public ValueTask OpenAsync(PlayerId playerId, PlayerSessionId sessionId, DateTimeOffset startedAtUtc,
             CancellationToken cancellationToken = default)
@@ -106,6 +133,11 @@ public sealed class PlaytimeModuleTests
             => ValueTask.FromResult(new PlaytimeTotals(TimeSpan.Zero, TimeSpan.Zero));
         public ValueTask<IReadOnlyList<PlaytimeRankEntry>> GetTopAsync(int limit, int offset,
             CancellationToken cancellationToken = default)
-            => ValueTask.FromResult<IReadOnlyList<PlaytimeRankEntry>>([]);
+        {
+            TopCalls++;
+            LastLimit = limit;
+            LastOffset = offset;
+            return ValueTask.FromResult(TopEntries);
+        }
     }
 }
