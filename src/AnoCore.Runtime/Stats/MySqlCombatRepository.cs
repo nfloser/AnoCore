@@ -82,6 +82,39 @@ public sealed class MySqlCombatRepository : ICombatRepository
         }, cancellationToken);
     }
 
+    public ValueTask<IReadOnlyList<CombatRankEntry>> GetTopKillsAsync(int limit, int offset,
+        CancellationToken cancellationToken = default)
+    {
+        if (limit is < 1 or > 100) throw new ArgumentOutOfRangeException(nameof(limit));
+        if (offset is < 0 or > 10000) throw new ArgumentOutOfRangeException(nameof(offset));
+        return _database.WithConnectionAsync<IReadOnlyList<CombatRankEntry>>(async (connection, token) =>
+        {
+            await using var command = connection.CreateCommand();
+            command.CommandText = """
+                SELECT ranked.attacker_steam_id, ranked.kills, profiles.last_known_name
+                FROM (
+                    SELECT attacker_steam_id, COUNT(*) AS kills
+                    FROM ano_combat_deaths
+                    WHERE attacker_steam_id IS NOT NULL AND is_team_kill = 0
+                    GROUP BY attacker_steam_id
+                ) AS ranked
+                LEFT JOIN ano_players AS profiles ON profiles.steam_id = ranked.attacker_steam_id
+                ORDER BY ranked.kills DESC, ranked.attacker_steam_id ASC
+                LIMIT @limit OFFSET @offset
+                """;
+            Add(command, "@limit", limit);
+            Add(command, "@offset", offset);
+            var entries = new List<CombatRankEntry>();
+            await using var reader = await command.ExecuteReaderAsync(token).ConfigureAwait(false);
+            while (await reader.ReadAsync(token).ConfigureAwait(false))
+                entries.Add(new CombatRankEntry(
+                    new PlayerId(Convert.ToUInt64(reader.GetValue(0), CultureInfo.InvariantCulture)),
+                    reader.GetInt64(1), offset + entries.Count + 1,
+                    reader.IsDBNull(2) ? null : reader.GetString(2)));
+            return entries;
+        }, cancellationToken);
+    }
+
     private static PlayerId? ReadPlayer(DbDataReader reader, int index)
         => reader.IsDBNull(index) ? null
             : new PlayerId(Convert.ToUInt64(reader.GetValue(index), CultureInfo.InvariantCulture));
