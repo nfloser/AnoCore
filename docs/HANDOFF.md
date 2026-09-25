@@ -1,7 +1,8 @@
 ## Rank leaderboard checkpoint — 2026-09-25
 
 - Issue #88 / draft PR to follow / branch `feature/88-rank-leaderboard` stacks on #87. Adds a bounded score query using the current rank weights and `anotopranks [page]`, with stable SteamID64 tie ordering and no duplicate score store.
-- Unit/MariaDB tests and exact-head CI remain to verify. Keep draft pending #79 native combat acceptance; rank administration, menus, tags and notifications remain open.
+- CI #339 passed build, unit/MariaDB tests, formatting, publish and package validation on reviewed code head `c552e4ed031c6f03af22a9c5fe00cdafb1ccf19e`. Final documentation-only head CI remains to verify.
+- Review added command-registration rollback coverage. Keep draft pending #79 native combat acceptance; rank administration, menus, tags and notifications remain open.
 
 ## Combat rank checkpoint — 2026-09-25
 
