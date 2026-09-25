@@ -48,6 +48,12 @@ public sealed class PlaytimeModule : IDisposable
             module._subscriptions.Add(commands.Register(new ModuleId("ano.stats"),
                 new CommandDescriptor("anoplaytime", "Show your total and today's UTC playtime."),
                 context => module.OwnPlaytimeAsync(context.Caller, context.CancellationToken)));
+            module._subscriptions.Add(commands.Register(new ModuleId("ano.stats"),
+                new CommandDescriptor("anotoptime", "Show the playtime leaderboard.", arguments:
+                [
+                    new("page", CommandArgumentKind.Int32, "Page number.", required: false),
+                ]),
+                context => module.TopTimeAsync(context)));
             foreach (var player in players.OnlinePlayers)
                 await module.OpenAsync(player, cancellationToken).ConfigureAwait(false);
             return module;
@@ -79,6 +85,27 @@ public sealed class PlaytimeModule : IDisposable
             DateOnly.FromDateTime(now.UtcDateTime), cancellationToken).ConfigureAwait(false);
         return CommandResult.Ok($"[ANO] Playtime: {totals.Total:c}; today (UTC): {totals.Today:c}.");
     }
+
+    private async ValueTask<CommandResult> TopTimeAsync(CommandContext context)
+    {
+        var page = context.ParsedArguments.TryGetValue("page", out var provided)
+            ? (int)provided! : 1;
+        if (page is < 1 or > 1000)
+            return CommandResult.Fail(CommandFailureReason.InvalidInput,
+                "Page must be between 1 and 1000.");
+        const int pageSize = 5;
+        var entries = await _repository.GetTopAsync(pageSize, (page - 1) * pageSize,
+            context.CancellationToken).ConfigureAwait(false);
+        if (entries.Count == 0) return CommandResult.Ok("No playtime entries on this page.");
+        return CommandResult.Ok(string.Join(" | ", entries.Select(entry =>
+            $"{entry.Position}. {Display(entry)}: {entry.Total:c}")));
+    }
+
+    private static string Display(PlaytimeRankEntry entry)
+        => string.IsNullOrWhiteSpace(entry.DisplayName)
+            ? entry.PlayerId.SteamId64.ToString(System.Globalization.CultureInfo.InvariantCulture)
+            : $"{entry.DisplayName.Replace('\r', ' ').Replace('\n', ' ').Replace('|', '/')} "
+                + $"({entry.PlayerId.SteamId64})";
 
     private ValueTask OpenAsync(PlayerSnapshot player, CancellationToken cancellationToken)
         => _repository.OpenAsync(player.Id, player.SessionId, player.ConnectedAtUtc, cancellationToken);

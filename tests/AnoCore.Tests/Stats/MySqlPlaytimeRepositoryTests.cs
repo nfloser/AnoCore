@@ -1,3 +1,4 @@
+using AnoCore.Abstractions.Persistence;
 using AnoCore.Abstractions.Players;
 using AnoCore.Runtime.Persistence;
 using AnoCore.Runtime.Persistence.Migrations;
@@ -63,6 +64,42 @@ public sealed class MySqlPlaytimeRepositoryTests
         var afterReconnect = await restarted.ReadAsync(Player, new DateOnly(2026, 9, 26));
         Assert.AreEqual(TimeSpan.FromMinutes(3), afterReconnect.Total);
         Assert.AreEqual(TimeSpan.FromSeconds(150), afterReconnect.Today);
+    }
+
+    [TestMethod]
+    public async Task Toplist_OrdersTiesBySteamIdAndPaginatesAfterRestart()
+    {
+        await new MigrationRunner(_database, [
+            new CoreSchemaMigration001(), new ModerationSchemaMigration002(),
+            new AdminAuditSchemaMigration003(), new WarningSchemaMigration004(),
+            new PlaytimeSchemaMigration005()]).ApplyPendingAsync();
+        var repo = new MySqlPlaytimeRepository(_database);
+        var low = new PlayerId(76561198000011210);
+        var high = new PlayerId(76561198000011211);
+        var leader = new PlayerId(76561198000011212);
+        foreach (var (id, seconds) in new[] { (low, 60), (high, 60), (leader, 120) })
+        {
+            var session = PlayerSessionId.New();
+            await repo.OpenAsync(id, session, Start);
+            await repo.AdvanceAsync(id, session, Start.AddSeconds(seconds), close: true);
+        }
+        await repo.OpenAsync(Other, PlayerSessionId.New(), Start);
+
+        await new MySqlPlayerRepository(_database).UpsertAsync(
+            new PlayerProfile(leader, "Lead | player", Start, Start.AddMinutes(2)));
+        var restarted = new MySqlPlaytimeRepository(_database);
+        var firstPage = await restarted.GetTopAsync(2, 0);
+        var secondPage = await restarted.GetTopAsync(2, 2);
+        CollectionAssert.AreEqual(new[] { leader, low },
+            firstPage.Select(entry => entry.PlayerId).ToArray());
+        CollectionAssert.AreEqual(new[] { 1, 2 }, firstPage.Select(entry => entry.Position).ToArray());
+        Assert.AreEqual(TimeSpan.FromMinutes(2), firstPage[0].Total);
+        Assert.AreEqual("Lead | player", firstPage[0].DisplayName);
+        Assert.IsNull(firstPage[1].DisplayName);
+        Assert.AreEqual(high, secondPage.Single().PlayerId);
+        Assert.AreEqual(3, secondPage.Single().Position);
+        await Assert.ThrowsExactlyAsync<ArgumentOutOfRangeException>(async () =>
+            await restarted.GetTopAsync(0, 0));
     }
 
     private async Task DropAsync()
