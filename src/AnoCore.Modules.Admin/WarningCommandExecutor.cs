@@ -52,6 +52,10 @@ public sealed class WarningCommandExecutor
         if (target.Error is not null) return target.Error;
         await _audit.RecordAsync(WarnRequested, actor, target.Id, validReason.Value!, now,
             cancellationToken).ConfigureAwait(false);
+        var check = await ResolveAsync(selector, actor, WarnPermission, true, cancellationToken)
+            .ConfigureAwait(false);
+        if (check.Error is not null || check.Id != target.Id || check.Session != target.Session)
+            return CommandResult.Fail(CommandFailureReason.InvalidInput, "Target changed while recording the warning.");
         await _warnings.WarnAsync(target.Id!, actor, validReason.Value!, now, expires,
             cancellationToken).ConfigureAwait(false);
         await _audit.RecordAsync(WarnCompleted, actor, target.Id, validReason.Value!, now,
@@ -70,6 +74,10 @@ public sealed class WarningCommandExecutor
         var now = _clock.GetUtcNow();
         await _audit.RecordAsync(ClearRequested, actor, target.Id, validReason.Value!, now,
             cancellationToken).ConfigureAwait(false);
+        var check = await ResolveAsync(selector, actor, ClearPermission, true, cancellationToken)
+            .ConfigureAwait(false);
+        if (check.Error is not null || check.Id != target.Id)
+            return CommandResult.Fail(CommandFailureReason.InvalidInput, "Target changed while recording the clear request.");
         var cleared = await _warnings.ClearAsync(target.Id!, actor, validReason.Value!, now,
             cancellationToken).ConfigureAwait(false);
         await _audit.RecordAsync(ClearCompleted, actor, target.Id, validReason.Value!, now,
@@ -98,7 +106,7 @@ public sealed class WarningCommandExecutor
             .ConfigureAwait(false), _clock.GetUtcNow());
     }
 
-    private async ValueTask<(PlayerId? Id, CommandResult? Error)> ResolveAsync(string selector,
+    private async ValueTask<(PlayerId? Id, PlayerSessionId? Session, CommandResult? Error)> ResolveAsync(string selector,
         PlayerId? actor, PermissionId permission, bool requireOnline, CancellationToken cancellationToken)
     {
         var result = await _targets.ResolveAsync(selector, actor, permission, cancellationToken)
@@ -107,12 +115,12 @@ public sealed class WarningCommandExecutor
         {
             var forbidden = result.Failure is ModerationTargetFailure.PermissionDenied
                 or ModerationTargetFailure.TargetImmune or ModerationTargetFailure.SelfTargetNotAllowed;
-            return (null, CommandResult.Fail(forbidden ? CommandFailureReason.Forbidden
+            return (null, null, CommandResult.Fail(forbidden ? CommandFailureReason.Forbidden
                 : CommandFailureReason.InvalidInput, $"Target unavailable: {result.Failure}."));
         }
         if (requireOnline && (result.Target.OnlinePlayer is null || !result.Target.OnlinePlayer.IsConnected))
             return (null, CommandResult.Fail(CommandFailureReason.InvalidInput, "The target must be online."));
-        return (result.Target.Id, null);
+        return (result.Target.Id, result.Target.OnlinePlayer?.SessionId, null);
     }
 
     private static (string? Value, CommandResult? Error) ValidateReason(string? reason)
