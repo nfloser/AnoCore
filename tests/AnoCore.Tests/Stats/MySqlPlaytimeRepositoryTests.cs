@@ -65,6 +65,38 @@ public sealed class MySqlPlaytimeRepositoryTests
         Assert.AreEqual(TimeSpan.FromSeconds(150), afterReconnect.Today);
     }
 
+    [TestMethod]
+    public async Task Toplist_OrdersTiesBySteamIdAndPaginatesAfterRestart()
+    {
+        await new MigrationRunner(_database, [
+            new CoreSchemaMigration001(), new ModerationSchemaMigration002(),
+            new AdminAuditSchemaMigration003(), new WarningSchemaMigration004(),
+            new PlaytimeSchemaMigration005()]).ApplyPendingAsync();
+        var repo = new MySqlPlaytimeRepository(_database);
+        var low = new PlayerId(76561198000011210);
+        var high = new PlayerId(76561198000011211);
+        var leader = new PlayerId(76561198000011212);
+        foreach (var (id, seconds) in new[] { (low, 60), (high, 60), (leader, 120) })
+        {
+            var session = PlayerSessionId.New();
+            await repo.OpenAsync(id, session, Start);
+            await repo.AdvanceAsync(id, session, Start.AddSeconds(seconds), close: true);
+        }
+        await repo.OpenAsync(Other, PlayerSessionId.New(), Start);
+
+        var restarted = new MySqlPlaytimeRepository(_database);
+        var firstPage = await restarted.GetTopAsync(2, 0);
+        var secondPage = await restarted.GetTopAsync(2, 2);
+        CollectionAssert.AreEqual(new[] { leader, low },
+            firstPage.Select(entry => entry.PlayerId).ToArray());
+        CollectionAssert.AreEqual(new[] { 1, 2 }, firstPage.Select(entry => entry.Position).ToArray());
+        Assert.AreEqual(TimeSpan.FromMinutes(2), firstPage[0].Total);
+        Assert.AreEqual(high, secondPage.Single().PlayerId);
+        Assert.AreEqual(3, secondPage.Single().Position);
+        await Assert.ThrowsExactlyAsync<ArgumentOutOfRangeException>(async () =>
+            await restarted.GetTopAsync(0, 0));
+    }
+
     private async Task DropAsync()
     {
         await _database.WithConnectionAsync(async (connection, token) =>
