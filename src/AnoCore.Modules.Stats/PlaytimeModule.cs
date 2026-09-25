@@ -48,6 +48,12 @@ public sealed class PlaytimeModule : IDisposable
             module._subscriptions.Add(commands.Register(new ModuleId("ano.stats"),
                 new CommandDescriptor("anoplaytime", "Show your total and today's UTC playtime."),
                 context => module.OwnPlaytimeAsync(context.Caller, context.CancellationToken)));
+            module._subscriptions.Add(commands.Register(new ModuleId("ano.stats"),
+                new CommandDescriptor("anotoptime", "Show the playtime leaderboard.", arguments:
+                [
+                    new("page", CommandArgumentKind.Int32, "Page number.", required: false),
+                ]),
+                context => module.TopTimeAsync(context)));
             foreach (var player in players.OnlinePlayers)
                 await module.OpenAsync(player, cancellationToken).ConfigureAwait(false);
             return module;
@@ -78,6 +84,22 @@ public sealed class PlaytimeModule : IDisposable
         var totals = await _repository.ReadAsync(caller,
             DateOnly.FromDateTime(now.UtcDateTime), cancellationToken).ConfigureAwait(false);
         return CommandResult.Ok($"[ANO] Playtime: {totals.Total:c}; today (UTC): {totals.Today:c}.");
+    }
+
+    private async ValueTask<CommandResult> TopTimeAsync(CommandContext context)
+    {
+        context.TryGet<int>("page", out var selectedPage);
+        var page = selectedPage == 0 && !context.ParsedArguments.ContainsKey("page")
+            ? 1 : selectedPage;
+        if (page is < 1 or > 1000)
+            return CommandResult.Fail(CommandFailureReason.InvalidInput,
+                "Page must be between 1 and 1000.");
+        const int pageSize = 5;
+        var entries = await _repository.GetTopAsync(pageSize, (page - 1) * pageSize,
+            context.CancellationToken).ConfigureAwait(false);
+        if (entries.Count == 0) return CommandResult.Ok("No playtime entries on this page.");
+        return CommandResult.Ok(string.Join(" | ", entries.Select(entry =>
+            $"{entry.Position}. {entry.PlayerId.SteamId64}: {entry.Total:c}")));
     }
 
     private ValueTask OpenAsync(PlayerSnapshot player, CancellationToken cancellationToken)
