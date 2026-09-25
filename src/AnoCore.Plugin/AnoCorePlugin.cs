@@ -34,9 +34,11 @@ public sealed class AnoCorePlugin : BasePlugin
     private RuntimeServices? _pendingRuntime;
     private AnoVetoModuleRuntime? _pendingAnoVeto;
     private PlaytimeModule? _pendingPlaytime;
+    private RankModule? _pendingRank;
     private RuntimeServices? _runtime;
     private AnoVetoModuleRuntime? _anoVeto;
     private PlaytimeModule? _playtime;
+    private RankModule? _rank;
     private CombatModule? _combat;
     private string _combatServerInstance = string.Empty;
     private ModerationCommandController? _adminCommands;
@@ -95,10 +97,14 @@ public sealed class AnoCorePlugin : BasePlugin
                 Observe(_playtime.CheckpointOnlineAsync(DateTimeOffset.UtcNow).AsTask(), "playtime_unload");
             _playtime?.Dispose();
             _playtime = null;
+            _rank?.Dispose();
+            _rank = null;
             _combat?.Dispose();
             _combat = null;
             _pendingPlaytime?.Dispose();
             _pendingPlaytime = null;
+            _pendingRank?.Dispose();
+            _pendingRank = null;
 
             _pendingAnoVeto?.Dispose();
             _pendingAnoVeto = null;
@@ -145,6 +151,7 @@ public sealed class AnoCorePlugin : BasePlugin
         RuntimeServices? created = null;
         AnoVetoModuleRuntime? createdAnoVeto = null;
         PlaytimeModule? createdPlaytime = null;
+        RankModule? createdRank = null;
         try
         {
             var configuration = new JsonConfigStore(Path.Combine(ModuleDirectory, "config"));
@@ -199,6 +206,24 @@ public sealed class AnoCorePlugin : BasePlugin
 
             try
             {
+                createdRank = await RankModule.CreateAsync(
+                    configuration, created.Commands, players, created.Combat,
+                    timeout.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception exception)
+            {
+                createdRank?.Dispose();
+                createdRank = null;
+                Logger.LogError(exception,
+                    "Rank composition failed; AnoCore will continue without ranks.");
+            }
+
+            try
+            {
                 var votes = created.GetService(typeof(IVoteService)) as IVoteService
                     ?? throw new InvalidOperationException("AnoCore runtime did not provide the shared vote service.");
                 createdAnoVeto = await AnoVetoModuleRuntime.CreateAsync(
@@ -229,9 +254,11 @@ public sealed class AnoCorePlugin : BasePlugin
                 _pendingRuntime = created;
                 _pendingAnoVeto = createdAnoVeto;
                 _pendingPlaytime = createdPlaytime;
+                _pendingRank = createdRank;
                 created = null;
                 createdAnoVeto = null;
                 createdPlaytime = null;
+                createdRank = null;
                 Server.NextWorldUpdate(() => ActivateRuntime(cancellationToken));
             }
         }
@@ -239,12 +266,14 @@ public sealed class AnoCorePlugin : BasePlugin
         {
             createdAnoVeto?.Dispose();
             createdPlaytime?.Dispose();
+            createdRank?.Dispose();
             created?.Dispose();
         }
         catch (Exception exception)
         {
             createdAnoVeto?.Dispose();
             createdPlaytime?.Dispose();
+            createdRank?.Dispose();
             created?.Dispose();
             lock (_startupGate)
             {
@@ -252,6 +281,8 @@ public sealed class AnoCorePlugin : BasePlugin
                 {
                     _pendingPlaytime?.Dispose();
                     _pendingPlaytime = null;
+                    _pendingRank?.Dispose();
+                    _pendingRank = null;
                     _pendingAnoVeto?.Dispose();
                     _pendingAnoVeto = null;
                     _pendingRuntime?.Dispose();
@@ -277,9 +308,11 @@ public sealed class AnoCorePlugin : BasePlugin
             var runtime = _pendingRuntime;
             var anoVeto = _pendingAnoVeto;
             var playtime = _pendingPlaytime;
+            var rank = _pendingRank;
             _pendingRuntime = null;
             _pendingAnoVeto = null;
             _pendingPlaytime = null;
+            _pendingRank = null;
             ModerationCommandController? adminCommands = null;
             CombatModule? combat = null;
             ModerationCommunicationRuntime? communicationModeration = null;
@@ -366,6 +399,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 _runtime = runtime;
                 _anoVeto = anoVeto;
                 _playtime = playtime;
+                _rank = rank;
                 _combat = combat;
                 _anoVetoExpiryTimer = expiryTimer;
                 _voiceModerationTimer = voiceTimer;
@@ -381,6 +415,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 voiceTimer?.Kill();
                 playtimeTimer?.Kill();
                 playtime?.Dispose();
+                rank?.Dispose();
                 combat?.Dispose();
                 voiceModeration?.Dispose();
                 chatModeration?.Dispose();
