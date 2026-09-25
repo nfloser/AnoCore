@@ -1,3 +1,11 @@
+## Session playtime checkpoint — 2026-09-25
+
+- Issue #74 / draft PR #75 / branch `feature/74-session-playtime` adds a separate Stats module, migration 005, idempotent MariaDB session ledger, UTC-day totals and the own-playtime command.
+- Connect/reconnect/disconnect events plus five-second checkpoints are integrated in the plugin. Stats composition errors are isolated from the core runtime. Unload schedules a final checkpoint; abrupt server crashes may lose time since the last successful heartbeat.
+- CI #310 passed 247 tests, formatting, publish and package validation before the final composition-error correction. Check CI on the final head.
+- User will perform real CS2/DatHost acceptance. PR #67 connect-ban, #69 kick, #73 warnings and #75 playtime remain draft pending observed engine behavior; #40 CustomHud/AnoVeto remains draft as well.
+- #18 ranks, complete statistics, team/alive playtime and toplists, plus other acceptance rows remain open. Do not claim feature parity or a production release.
+
 # AnoCore development handoff
 
 ## Warning persistence checkpoint — 2026-09-24
