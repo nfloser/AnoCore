@@ -31,7 +31,9 @@ public sealed class RankModuleTests
         var store = new JsonConfigStore(_root);
         await store.SaveAsync("ranks", new RankConfiguration
         {
-            KillPoints = 3, AssistPoints = 1, DeathPenalty = 2,
+            KillPoints = 3,
+            AssistPoints = 1,
+            DeathPenalty = 2,
             Thresholds = [new RankThreshold("Recruit", 0), new RankThreshold("Veteran", 10)],
         });
         var players = new PlayerRegistry(new AnoEventBus());
