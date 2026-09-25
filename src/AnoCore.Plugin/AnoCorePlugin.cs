@@ -270,7 +270,9 @@ public sealed class AnoCorePlugin : BasePlugin
                     runtime.Commands,
                     new ModerationCommandExecutor(targetGateway, runtime.Moderation));
                 warningCommands = new WarningCommandController(runtime.Commands,
-                    new WarningCommandExecutor(targetGateway, runtime.Warnings, runtime.AdminAudit));
+                    new WarningCommandExecutor(targetGateway, runtime.Warnings, runtime.AdminAudit,
+                        new CounterStrikeWarningNotifier(runtime.Players, Logger,
+                            () => ReferenceEquals(_runtime, runtime))));
 
                 var events = _eventBus
                     ?? throw new InvalidOperationException("AnoCore event bus is unavailable during activation.");
