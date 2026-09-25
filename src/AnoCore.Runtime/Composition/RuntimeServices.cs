@@ -11,6 +11,7 @@ using AnoCore.Abstractions.Placeholders;
 using AnoCore.Abstractions.Players;
 using AnoCore.Abstractions.Players.Events;
 using AnoCore.Abstractions.Settings;
+using AnoCore.Abstractions.Stats;
 using AnoCore.Abstractions.Targeting;
 using AnoCore.Abstractions.Voting;
 using AnoCore.Abstractions.Warnings;
@@ -26,6 +27,7 @@ using AnoCore.Runtime.Persistence.Migrations;
 using AnoCore.Runtime.Placeholders;
 using AnoCore.Runtime.Players;
 using AnoCore.Runtime.Settings;
+using AnoCore.Runtime.Stats;
 using AnoCore.Runtime.Targeting;
 using AnoCore.Runtime.Voting;
 using AnoCore.Runtime.Warnings;
@@ -52,6 +54,7 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
         Commands = new CommandRegistry(Authorization);
         Menus = new MenuService();
         Settings = new PlayerSettingsService(data);
+        Playtime = new MySqlPlaytimeRepository(database);
         WarningRepository = new MySqlWarningRepository(database);
         Warnings = new WarningService(WarningRepository);
         AdminAuditRepository = new MySqlAdminAuditRepository(database);
@@ -75,6 +78,7 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
         Add<IAnoCommandRegistry>(Commands);
         Add<IMenuService>(Menus);
         Add<IPlayerSettingsService>(Settings);
+        Add<IPlaytimeRepository>(Playtime);
         Add<IWarningRepository>(WarningRepository);
         Add<IWarningService>(Warnings);
         Add<IAdminAuditRepository>(AdminAuditRepository);
@@ -99,6 +103,8 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
     public MenuService Menus { get; }
 
     public PlayerSettingsService Settings { get; }
+
+    public MySqlPlaytimeRepository Playtime { get; }
 
     public MySqlWarningRepository WarningRepository { get; }
 
@@ -131,7 +137,7 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
         ArgumentNullException.ThrowIfNull(players);
         await new DatabaseStartupProbe(
             database,
-            [new CoreSchemaMigration001(), new ModerationSchemaMigration002(), new AdminAuditSchemaMigration003(), new WarningSchemaMigration004()])
+            [new CoreSchemaMigration001(), new ModerationSchemaMigration002(), new AdminAuditSchemaMigration003(), new WarningSchemaMigration004(), new PlaytimeSchemaMigration005()])
             .EnsureReadyAsync(cancellationToken).ConfigureAwait(false);
         var runtime = new RuntimeServices(database, configuration, events, players);
         try
