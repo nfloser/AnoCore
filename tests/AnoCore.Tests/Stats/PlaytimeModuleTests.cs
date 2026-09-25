@@ -1,6 +1,9 @@
+using AnoCore.Abstractions.Commands;
+using AnoCore.Abstractions.Permissions;
 using AnoCore.Abstractions.Players;
 using AnoCore.Abstractions.Stats;
 using AnoCore.Modules.Stats;
+using AnoCore.Runtime.Commands;
 using AnoCore.Runtime.Events;
 using AnoCore.Runtime.Players;
 
@@ -18,7 +21,8 @@ public sealed class PlaytimeModuleTests
         var events = new AnoEventBus();
         var players = new PlayerRegistry(events);
         var repository = new MemoryRepository();
-        using var module = await PlaytimeModule.CreateAsync(events, players, repository);
+        var commands = new CommandRegistry(new AllowAll());
+        using var module = await PlaytimeModule.CreateAsync(events, players, repository, commands);
         var first = await players.ConnectAsync(new PlayerConnection(Player, "A", PlayerTeam.Terrorist, true, Start));
         await module.CheckpointOnlineAsync(Start.AddSeconds(30));
         var second = await players.ConnectAsync(new PlayerConnection(Player, "A", PlayerTeam.CounterTerrorist,
@@ -40,11 +44,45 @@ public sealed class PlaytimeModuleTests
         var players = new PlayerRegistry(events);
         var current = await players.ConnectAsync(new PlayerConnection(Player, "A", PlayerTeam.Terrorist, true, Start));
         var repository = new MemoryRepository();
-        var module = await PlaytimeModule.CreateAsync(events, players, repository);
+        var commands = new CommandRegistry(new AllowAll());
+        var module = await PlaytimeModule.CreateAsync(events, players, repository, commands);
         Assert.AreEqual(current.SessionId, repository.Opened.Single());
         module.Dispose();
         await players.DisconnectAsync(Player, current.SessionId, Start.AddMinutes(1));
         Assert.AreEqual(0, repository.Advances.Count);
+    }
+
+    [TestMethod]
+    public async Task OwnPlaytimeCommand_CheckpointsCallerAndRejectsConsole()
+    {
+        var events = new AnoEventBus();
+        var players = new PlayerRegistry(events);
+        var repository = new MemoryRepository();
+        var commands = new CommandRegistry(new AllowAll());
+        using var module = await PlaytimeModule.CreateAsync(events, players, repository, commands,
+            new FixedTime(Start.AddMinutes(2)));
+        var current = await players.ConnectAsync(new PlayerConnection(Player, "A",
+            PlayerTeam.Terrorist, true, Start));
+
+        Assert.AreEqual(CommandFailureReason.InvalidInput,
+            (await commands.ExecuteAsync("!anoplaytime", null)).FailureReason);
+        var result = await commands.ExecuteAsync("!anoplaytime", Player);
+        Assert.IsTrue(result.Success);
+        Assert.AreEqual((current.SessionId, Start.AddMinutes(2), false), repository.Advances.Single());
+        module.Dispose();
+        Assert.AreEqual(CommandFailureReason.NotFound,
+            (await commands.ExecuteAsync("!anoplaytime", Player)).FailureReason);
+    }
+
+    private sealed class AllowAll : IPermissionEvaluator
+    {
+        public ValueTask<bool> HasPermissionAsync(PlayerId id, PermissionId permission,
+            CancellationToken cancellationToken = default) => ValueTask.FromResult(true);
+    }
+
+    private sealed class FixedTime(DateTimeOffset now) : TimeProvider
+    {
+        public override DateTimeOffset GetUtcNow() => now;
     }
 
     private sealed class MemoryRepository : IPlaytimeRepository
