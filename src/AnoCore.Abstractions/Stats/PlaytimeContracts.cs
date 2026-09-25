@@ -38,6 +38,8 @@ public sealed record PlaytimeSession
 
 public sealed record PlaytimeTotals(TimeSpan Total, TimeSpan Today);
 
+public sealed record PlaytimeRankEntry(PlayerId PlayerId, TimeSpan Total, int Position);
+
 public interface IPlaytimeRepository
 {
     ValueTask OpenAsync(PlayerId playerId, PlayerSessionId sessionId, DateTimeOffset startedAtUtc,
@@ -45,5 +47,7 @@ public interface IPlaytimeRepository
     ValueTask AdvanceAsync(PlayerId playerId, PlayerSessionId sessionId, DateTimeOffset atUtc,
         bool close = false, CancellationToken cancellationToken = default);
     ValueTask<PlaytimeTotals> ReadAsync(PlayerId playerId, DateOnly utcDay,
+        CancellationToken cancellationToken = default);
+    ValueTask<IReadOnlyList<PlaytimeRankEntry>> GetTopAsync(int limit, int offset,
         CancellationToken cancellationToken = default);
 }
