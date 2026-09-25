@@ -95,6 +95,28 @@ public sealed class WarningCommandTests
         Assert.AreEqual(0, warnings.Writes);
     }
 
+    [TestMethod]
+    public async Task ReconnectDuringAudit_DoesNotWriteWarningToReplacementSession()
+    {
+        var current = new PlayerSnapshot(Target, PlayerSessionId.New(), "Target", true, true,
+            PlayerTeam.Terrorist, Now, Now);
+        var replacement = new PlayerSnapshot(Target, PlayerSessionId.New(), "Target", true, true,
+            PlayerTeam.Terrorist, Now, Now);
+        var targets = new FakeTargets
+        {
+            Result = ModerationTargetResult.Success(current),
+            SecondResult = ModerationTargetResult.Success(replacement),
+        };
+        var warnings = new FakeWarnings();
+        var audit = new FakeAudit();
+        var executor = new WarningCommandExecutor(targets, warnings, audit, new FixedTime(Now));
+
+        var result = await executor.WarnAsync(Actor, "Target", 10, "reason");
+        Assert.AreEqual(CommandFailureReason.InvalidInput, result.FailureReason);
+        Assert.AreEqual(0, warnings.Writes);
+        CollectionAssert.AreEqual(new[] { "warning.requested" }, audit.Actions);
+    }
+
     private sealed class SelectivePermissions : IPermissionEvaluator
     {
         public ValueTask<bool> HasPermissionAsync(PlayerId playerId, PermissionId permission,
@@ -104,12 +126,13 @@ public sealed class WarningCommandTests
     private sealed class FakeTargets : IModerationTargetGateway
     {
         public ModerationTargetResult Result { get; set; } = ModerationTargetResult.Success(Target);
+        public ModerationTargetResult? SecondResult { get; set; }
         public int Calls { get; private set; }
         public ValueTask<ModerationTargetResult> ResolveAsync(string selector, PlayerId? actor,
             PermissionId permission, CancellationToken cancellationToken = default)
         {
             Calls++;
-            return ValueTask.FromResult(Result);
+            return ValueTask.FromResult(Calls == 2 && SecondResult is not null ? SecondResult : Result);
         }
     }
 
