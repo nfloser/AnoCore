@@ -13,7 +13,7 @@ public sealed record CombatDeath
         VictimId = victimId ?? throw new ArgumentNullException(nameof(victimId));
         AttackerId = attackerId == victimId ? null : attackerId;
         IsTeamKill = isTeamKill && AttackerId is not null;
-        AssisterId = IsTeamKill || assisterId == victimId || assisterId == AttackerId
+        AssisterId = AttackerId is null || IsTeamKill || assisterId == victimId || assisterId == AttackerId
             ? null : assisterId;
         OccurredAtUtc = occurredAtUtc.ToUniversalTime();
     }
