@@ -1,0 +1,151 @@
+using AnoCore.Abstractions.Auditing;
+using AnoCore.Abstractions.Commands;
+using AnoCore.Abstractions.Permissions;
+using AnoCore.Abstractions.Players;
+using AnoCore.Abstractions.Warnings;
+using AnoCore.Modules.Admin;
+using AnoCore.Runtime.Commands;
+
+namespace AnoCore.Tests.Admin;
+
+[TestClass]
+public sealed class WarningCommandTests
+{
+    private static readonly PlayerId Actor = new(76561198000009701);
+    private static readonly PlayerId Target = new(76561198000009702);
+    private static readonly DateTimeOffset Now = new(2026, 9, 25, 10, 0, 0, TimeSpan.Zero);
+
+    [TestMethod]
+    public async Task Registry_RequiresSeparatePermissionsAndSelfHistoryRequiresCaller()
+    {
+        var permissions = new SelectivePermissions();
+        var registry = new CommandRegistry(permissions);
+        var warnings = new FakeWarnings();
+        using var commands = new WarningCommandController(registry,
+            new WarningCommandExecutor(new FakeTargets(), warnings, new FakeAudit(), new FixedTime(Now)));
+
+        Assert.AreEqual(new PermissionId("ano.admin.warn"),
+            registry.GetCommands().Single(x => x.Name == "anowarn").Permission);
+        Assert.AreEqual(new PermissionId("ano.admin.warns"),
+            registry.GetCommands().Single(x => x.Name == "anowarns").Permission);
+        Assert.AreEqual(new PermissionId("ano.admin.clearwarns"),
+            registry.GetCommands().Single(x => x.Name == "anoclearwarns").Permission);
+        Assert.IsNull(registry.GetCommands().Single(x => x.Name == "anomywarns").Permission);
+        Assert.AreEqual(CommandFailureReason.Forbidden,
+            (await registry.ExecuteAsync("!anowarn Target 5 reason", Actor)).FailureReason);
+        Assert.AreEqual(0, warnings.Writes);
+        Assert.AreEqual(CommandFailureReason.InvalidInput,
+            (await registry.ExecuteAsync("!anomywarns", null)).FailureReason);
+        Assert.IsTrue((await registry.ExecuteAsync("!anomywarns", Actor)).Success);
+        Assert.AreEqual(Actor, warnings.LastReadTarget);
+        commands.Dispose();
+        Assert.AreEqual(0, registry.GetCommands().Count);
+    }
+
+    [TestMethod]
+    public async Task Warn_ValidatesBeforeResolutionAndRequiresOnlineTarget()
+    {
+        var targets = new FakeTargets { Result = ModerationTargetResult.Success(Target) };
+        var warnings = new FakeWarnings();
+        var audit = new FakeAudit();
+        var executor = new WarningCommandExecutor(targets, warnings, audit, new FixedTime(Now));
+
+        Assert.AreEqual(CommandFailureReason.InvalidInput,
+            (await executor.WarnAsync(Actor, "Target", -1, "reason")).FailureReason);
+        Assert.AreEqual(0, targets.Calls);
+        Assert.AreEqual(CommandFailureReason.InvalidInput,
+            (await executor.WarnAsync(Actor, "Target", 5, "reason")).FailureReason);
+        Assert.AreEqual(0, warnings.Writes);
+        targets.Result = ModerationTargetResult.Success(
+            new PlayerSnapshot(Target, Guid.NewGuid(), "Target", true, null, null, Now));
+        var result = await executor.WarnAsync(Actor, "Target", 5, "reason");
+        Assert.IsTrue(result.Success);
+        Assert.AreEqual(Now.AddMinutes(5), warnings.LastExpires);
+        CollectionAssert.AreEqual(new[] { "warning.requested", "warning.completed" }, audit.Actions);
+    }
+
+    [TestMethod]
+    public async Task Clear_PersistsAttemptAndReturnsNoSuccessForEmptyOrDeniedTarget()
+    {
+        var targets = new FakeTargets { Result = ModerationTargetResult.Reject(ModerationTargetFailure.TargetImmune) };
+        var warnings = new FakeWarnings();
+        var audit = new FakeAudit();
+        var executor = new WarningCommandExecutor(targets, warnings, audit, new FixedTime(Now));
+        Assert.AreEqual(CommandFailureReason.Forbidden,
+            (await executor.ClearAsync(Actor, "Target", "resolved")).FailureReason);
+        Assert.AreEqual(0, warnings.Writes);
+        Assert.AreEqual(0, audit.Actions.Count);
+    }
+
+    private sealed class SelectivePermissions : IPermissionEvaluator
+    {
+        public ValueTask<bool> HasPermissionAsync(PlayerId playerId, PermissionId permission,
+            CancellationToken cancellationToken = default) => ValueTask.FromResult(false);
+    }
+
+    private sealed class FakeTargets : IModerationTargetGateway
+    {
+        public ModerationTargetResult Result { get; set; } = ModerationTargetResult.Success(Target);
+        public int Calls { get; private set; }
+        public ValueTask<ModerationTargetResult> ResolveAsync(string selector, PlayerId? actor,
+            PermissionId permission, CancellationToken cancellationToken = default)
+        {
+            Calls++;
+            return ValueTask.FromResult(Result);
+        }
+    }
+
+    private sealed class FakeWarnings : IWarningService
+    {
+        public int Writes { get; private set; }
+        public PlayerId? LastReadTarget { get; private set; }
+        public DateTimeOffset? LastExpires { get; private set; }
+        public ValueTask<WarningRecord> WarnAsync(PlayerId targetId, PlayerId? actorId, string reason,
+            DateTimeOffset atUtc, DateTimeOffset? expiresAtUtc = null, CancellationToken cancellationToken = default)
+        {
+            Writes++;
+            LastExpires = expiresAtUtc;
+            return ValueTask.FromResult(new WarningRecord(Guid.NewGuid(), targetId, actorId, reason, atUtc, expiresAtUtc));
+        }
+        public ValueTask<IReadOnlyList<WarningRecord>> GetActiveAsync(PlayerId targetId, DateTimeOffset atUtc,
+            int limit = 100, CancellationToken cancellationToken = default)
+        {
+            LastReadTarget = targetId;
+            return ValueTask.FromResult<IReadOnlyList<WarningRecord>>([]);
+        }
+        public ValueTask<IReadOnlyList<WarningRecord>> GetHistoryAsync(PlayerId targetId, int limit = 100,
+            CancellationToken cancellationToken = default)
+        {
+            LastReadTarget = targetId;
+            return ValueTask.FromResult<IReadOnlyList<WarningRecord>>([]);
+        }
+        public ValueTask<IReadOnlyList<WarningRecord>> ClearAsync(PlayerId targetId, PlayerId? actorId,
+            string reason, DateTimeOffset atUtc, CancellationToken cancellationToken = default)
+        {
+            Writes++;
+            return ValueTask.FromResult<IReadOnlyList<WarningRecord>>([]);
+        }
+    }
+
+    private sealed class FakeAudit : IAdminAuditService
+    {
+        public List<string> Actions { get; } = [];
+        public ValueTask<AdminAuditEntry> RecordAsync(AdminActionId action, PlayerId? actorId,
+            PlayerId? targetId, string reason, DateTimeOffset occurredAtUtc,
+            CancellationToken cancellationToken = default)
+        {
+            Actions.Add(action.Value);
+            return ValueTask.FromResult(new AdminAuditEntry(Guid.NewGuid(), action, actorId,
+                targetId, reason, occurredAtUtc));
+        }
+        public ValueTask<IReadOnlyList<AdminAuditEntry>> GetRecentAsync(int limit = 100,
+            CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public ValueTask<IReadOnlyList<AdminAuditEntry>> GetTargetHistoryAsync(PlayerId targetId,
+            int limit = 100, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+    }
+
+    private sealed class FixedTime(DateTimeOffset now) : TimeProvider
+    {
+        public override DateTimeOffset GetUtcNow() => now;
+    }
+}
