@@ -72,6 +72,33 @@ public sealed class CombatModuleTests
         Assert.AreEqual(5, repository.LastLimit);
     }
 
+    [TestMethod]
+    public async Task DeathAndAssistCommands_BoundPagesAndDisposeAllRegistrations()
+    {
+        var registry = new CommandRegistry(new AllowAll());
+        var repository = new FakeRepository
+        {
+            TopCountEntries = [new CombatCountRankEntry(Victim, 4, 6, "Name |\\nline")],
+        };
+        var module = new CombatModule(registry, new PlayerRegistry(new AnoEventBus()), repository);
+        Assert.AreEqual(CommandFailureReason.InvalidInput,
+            (await registry.ExecuteAsync("!anotopdeaths 0", null)).FailureReason);
+        Assert.AreEqual(0, repository.DeathCalls);
+        var deaths = await registry.ExecuteAsync("!anotopdeaths 2", null);
+        Assert.IsTrue(deaths.Success);
+        StringAssert.Contains(deaths.Message!, "6.");
+        StringAssert.Contains(deaths.Message!, "Name / line");
+        Assert.AreEqual(5, repository.LastOffset);
+        var assists = await registry.ExecuteAsync("!anotopassists", null);
+        Assert.IsTrue(assists.Success);
+        Assert.AreEqual(1, repository.AssistCalls);
+        module.Dispose();
+        Assert.AreEqual(CommandFailureReason.NotFound,
+            (await registry.ExecuteAsync("!anotopdeaths", null)).FailureReason);
+        Assert.AreEqual(CommandFailureReason.NotFound,
+            (await registry.ExecuteAsync("!anotopassists", null)).FailureReason);
+    }
+
     private sealed class AllowAll : IPermissionEvaluator
     {
         public ValueTask<bool> HasPermissionAsync(PlayerId id, PermissionId permission,
@@ -82,6 +109,9 @@ public sealed class CombatModuleTests
     {
         public CombatDeath? LastRecorded { get; private set; }
         public IReadOnlyList<CombatRankEntry> TopEntries { get; set; } = [];
+        public IReadOnlyList<CombatCountRankEntry> TopCountEntries { get; set; } = [];
+        public int DeathCalls { get; private set; }
+        public int AssistCalls { get; private set; }
         public int TopCalls { get; private set; }
         public int LastOffset { get; private set; }
         public int LastLimit { get; private set; }
@@ -100,6 +130,20 @@ public sealed class CombatModuleTests
             LastLimit = limit;
             LastOffset = offset;
             return ValueTask.FromResult(TopEntries);
+        }
+        public ValueTask<IReadOnlyList<CombatCountRankEntry>> GetTopDeathsAsync(int limit,
+            int offset, CancellationToken cancellationToken = default)
+        {
+            DeathCalls++;
+            LastOffset = offset;
+            return ValueTask.FromResult(TopCountEntries);
+        }
+        public ValueTask<IReadOnlyList<CombatCountRankEntry>> GetTopAssistsAsync(int limit,
+            int offset, CancellationToken cancellationToken = default)
+        {
+            AssistCalls++;
+            LastOffset = offset;
+            return ValueTask.FromResult(TopCountEntries);
         }
     }
 }
