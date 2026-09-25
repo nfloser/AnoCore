@@ -93,6 +93,39 @@ public sealed class MySqlPlaytimeRepository : IPlaytimeRepository
         }, cancellationToken);
     }
 
+    public ValueTask<IReadOnlyList<PlaytimeRankEntry>> GetTopAsync(int limit, int offset,
+        CancellationToken cancellationToken = default)
+    {
+        if (limit is < 1 or > 100) throw new ArgumentOutOfRangeException(nameof(limit));
+        if (offset is < 0 or > 10000) throw new ArgumentOutOfRangeException(nameof(offset));
+        return _database.WithConnectionAsync<IReadOnlyList<PlaytimeRankEntry>>(async (connection, token) =>
+        {
+            await using var command = connection.CreateCommand();
+            command.CommandText = """
+                SELECT steam_id,
+                    SUM(TIMESTAMPDIFF(MICROSECOND, started_at_utc, accounted_until_utc))
+                        AS total_microseconds
+                FROM ano_playtime_sessions
+                GROUP BY steam_id
+                HAVING total_microseconds > 0
+                ORDER BY total_microseconds DESC, steam_id ASC
+                LIMIT @limit OFFSET @offset
+                """;
+            Add(command, "@limit", limit);
+            Add(command, "@offset", offset);
+            var entries = new List<PlaytimeRankEntry>();
+            await using var reader = await command.ExecuteReaderAsync(token).ConfigureAwait(false);
+            while (await reader.ReadAsync(token).ConfigureAwait(false))
+            {
+                var id = new PlayerId(Convert.ToUInt64(reader.GetValue(0), CultureInfo.InvariantCulture));
+                var microseconds = Convert.ToInt64(reader.GetValue(1), CultureInfo.InvariantCulture);
+                entries.Add(new PlaytimeRankEntry(id,
+                    TimeSpan.FromTicks(checked(microseconds * 10)), offset + entries.Count + 1));
+            }
+            return entries;
+        }, cancellationToken);
+    }
+
     private static void Add(DbCommand command, string name, object value)
         => MigrationRunner.AddParameter(command, name, value);
 }
