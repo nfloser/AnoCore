@@ -81,7 +81,7 @@ public sealed class PlaytimeModuleTests
         var players = new PlayerRegistry(events);
         var repository = new MemoryRepository
         {
-            TopEntries = [new PlaytimeRankEntry(Player, TimeSpan.FromHours(2), 6)],
+            TopEntries = [new PlaytimeRankEntry(Player, TimeSpan.FromHours(2), 6, "Lead | player")],
         };
         var commands = new CommandRegistry(new AllowAll());
         using var module = await PlaytimeModule.CreateAsync(events, players, repository, commands);
@@ -92,6 +92,7 @@ public sealed class PlaytimeModuleTests
         var page = await commands.ExecuteAsync("!anotoptime 2", Player);
         Assert.IsTrue(page.Success);
         StringAssert.Contains(page.Message!, "6.");
+        StringAssert.Contains(page.Message!, "Lead / player");
         Assert.AreEqual(5, repository.LastOffset);
         Assert.AreEqual(5, repository.LastLimit);
         Assert.IsTrue((await commands.ExecuteAsync("!anotoptime", null)).Success);
