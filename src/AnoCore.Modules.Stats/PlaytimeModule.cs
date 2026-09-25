@@ -1,4 +1,6 @@
+using AnoCore.Abstractions.Commands;
 using AnoCore.Abstractions.Events;
+using AnoCore.Abstractions.Modules;
 using AnoCore.Abstractions.Players;
 using AnoCore.Abstractions.Players.Events;
 using AnoCore.Abstractions.Stats;
@@ -9,23 +11,27 @@ public sealed class PlaytimeModule : IDisposable
 {
     private readonly IPlayerRegistry _players;
     private readonly IPlaytimeRepository _repository;
+    private readonly TimeProvider _clock;
     private readonly List<IDisposable> _subscriptions = [];
     private int _disposed;
 
-    private PlaytimeModule(IPlayerRegistry players, IPlaytimeRepository repository)
+    private PlaytimeModule(IPlayerRegistry players, IPlaytimeRepository repository, TimeProvider clock)
     {
         _players = players;
         _repository = repository;
+        _clock = clock;
     }
 
     public static async Task<PlaytimeModule> CreateAsync(IAnoEventBus events,
         IPlayerRegistry players, IPlaytimeRepository repository,
+        IAnoCommandRegistry commands, TimeProvider? clock = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(events);
         ArgumentNullException.ThrowIfNull(players);
         ArgumentNullException.ThrowIfNull(repository);
-        var module = new PlaytimeModule(players, repository);
+        ArgumentNullException.ThrowIfNull(commands);
+        var module = new PlaytimeModule(players, repository, clock ?? TimeProvider.System);
         try
         {
             module._subscriptions.Add(events.Subscribe<PlayerConnectedEvent>(
@@ -39,6 +45,9 @@ public sealed class PlaytimeModule : IDisposable
             module._subscriptions.Add(events.Subscribe<PlayerDisconnectedEvent>(
                 (value, token) => module.RecordAsync(
                     value.Player, value.Player.LastUpdatedAtUtc, true, token)));
+            module._subscriptions.Add(commands.Register(new ModuleId("ano.stats"),
+                new CommandDescriptor("anoplaytime", "Show your total and today's UTC playtime."),
+                context => module.OwnPlaytimeAsync(context.Caller, context.CancellationToken)));
             foreach (var player in players.OnlinePlayers)
                 await module.OpenAsync(player, cancellationToken).ConfigureAwait(false);
             return module;
@@ -56,6 +65,19 @@ public sealed class PlaytimeModule : IDisposable
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, this);
         foreach (var player in _players.OnlinePlayers)
             await RecordAsync(player, atUtc, false, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async ValueTask<CommandResult> OwnPlaytimeAsync(PlayerId? caller,
+        CancellationToken cancellationToken)
+    {
+        if (caller is null || !_players.TryGet(caller, out var player)
+            || player is null || !player.IsConnected)
+            return CommandResult.Fail(CommandFailureReason.InvalidInput, "A connected player is required.");
+        var now = _clock.GetUtcNow();
+        await RecordAsync(player, now, false, cancellationToken).ConfigureAwait(false);
+        var totals = await _repository.ReadAsync(caller,
+            DateOnly.FromDateTime(now.UtcDateTime), cancellationToken).ConfigureAwait(false);
+        return CommandResult.Ok($"[ANO] Playtime: {totals.Total:c}; today (UTC): {totals.Today:c}.");
     }
 
     private ValueTask OpenAsync(PlayerSnapshot player, CancellationToken cancellationToken)
