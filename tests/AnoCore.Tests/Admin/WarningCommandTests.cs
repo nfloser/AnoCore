@@ -77,6 +77,24 @@ public sealed class WarningCommandTests
         Assert.AreEqual(0, audit.Actions.Count);
     }
 
+    [TestMethod]
+    public async Task RequestedAuditFailure_PreventsWarningWrite()
+    {
+        var targets = new FakeTargets
+        {
+            Result = ModerationTargetResult.Success(
+                new PlayerSnapshot(Target, PlayerSessionId.New(), "Target", true, true,
+                    PlayerTeam.Terrorist, Now, Now)),
+        };
+        var warnings = new FakeWarnings();
+        var audit = new FakeAudit { RejectRequest = true };
+        var executor = new WarningCommandExecutor(targets, warnings, audit, new FixedTime(Now));
+
+        await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () =>
+            await executor.WarnAsync(Actor, "Target", 10, "reason"));
+        Assert.AreEqual(0, warnings.Writes);
+    }
+
     private sealed class SelectivePermissions : IPermissionEvaluator
     {
         public ValueTask<bool> HasPermissionAsync(PlayerId playerId, PermissionId permission,
@@ -130,10 +148,13 @@ public sealed class WarningCommandTests
     private sealed class FakeAudit : IAdminAuditService
     {
         public List<string> Actions { get; } = [];
+        public bool RejectRequest { get; set; }
         public ValueTask<AdminAuditEntry> RecordAsync(AdminActionId action, PlayerId? actorId,
             PlayerId? targetId, string reason, DateTimeOffset occurredAtUtc,
             CancellationToken cancellationToken = default)
         {
+            if (RejectRequest && action.Value.EndsWith(".requested", StringComparison.Ordinal))
+                throw new InvalidOperationException("Audit storage unavailable.");
             Actions.Add(action.Value);
             return ValueTask.FromResult(new AdminAuditEntry(Guid.NewGuid(), action, actorId,
                 targetId, reason, occurredAtUtc));
