@@ -102,13 +102,17 @@ public sealed class MySqlPlaytimeRepository : IPlaytimeRepository
         {
             await using var command = connection.CreateCommand();
             command.CommandText = """
-                SELECT steam_id,
-                    SUM(TIMESTAMPDIFF(MICROSECOND, started_at_utc, accounted_until_utc))
-                        AS total_microseconds
-                FROM ano_playtime_sessions
-                GROUP BY steam_id
-                HAVING total_microseconds > 0
-                ORDER BY total_microseconds DESC, steam_id ASC
+                SELECT ranked.steam_id, ranked.total_microseconds, profiles.last_known_name
+                FROM (
+                    SELECT steam_id,
+                        SUM(TIMESTAMPDIFF(MICROSECOND, started_at_utc, accounted_until_utc))
+                            AS total_microseconds
+                    FROM ano_playtime_sessions
+                    GROUP BY steam_id
+                    HAVING total_microseconds > 0
+                ) AS ranked
+                LEFT JOIN ano_players AS profiles ON profiles.steam_id = ranked.steam_id
+                ORDER BY ranked.total_microseconds DESC, ranked.steam_id ASC
                 LIMIT @limit OFFSET @offset
                 """;
             Add(command, "@limit", limit);
@@ -120,7 +124,8 @@ public sealed class MySqlPlaytimeRepository : IPlaytimeRepository
                 var id = new PlayerId(Convert.ToUInt64(reader.GetValue(0), CultureInfo.InvariantCulture));
                 var microseconds = Convert.ToInt64(reader.GetValue(1), CultureInfo.InvariantCulture);
                 entries.Add(new PlaytimeRankEntry(id,
-                    TimeSpan.FromTicks(checked(microseconds * 10)), offset + entries.Count + 1));
+                    TimeSpan.FromTicks(checked(microseconds * 10)), offset + entries.Count + 1,
+                    reader.IsDBNull(2) ? null : reader.GetString(2)));
             }
             return entries;
         }, cancellationToken);
