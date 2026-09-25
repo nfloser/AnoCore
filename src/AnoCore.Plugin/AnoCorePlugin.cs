@@ -37,6 +37,8 @@ public sealed class AnoCorePlugin : BasePlugin
     private RuntimeServices? _runtime;
     private AnoVetoModuleRuntime? _anoVeto;
     private PlaytimeModule? _playtime;
+    private CombatModule? _combat;
+    private string _combatServerInstance = string.Empty;
     private ModerationCommandController? _adminCommands;
     private ModerationCommunicationRuntime? _communicationModeration;
     private CounterStrikeChatModerationAdapter? _chatModeration;
@@ -61,6 +63,8 @@ public sealed class AnoCorePlugin : BasePlugin
 
     public override void Load(bool hotReload)
     {
+        using var process = System.Diagnostics.Process.GetCurrentProcess();
+        _combatServerInstance = $"{Environment.ProcessId}-{process.StartTime.ToUniversalTime().Ticks}";
         _eventBus = new AnoEventBus();
         _players = new PlayerRegistry(_eventBus);
 
@@ -91,6 +95,8 @@ public sealed class AnoCorePlugin : BasePlugin
                 Observe(_playtime.CheckpointOnlineAsync(DateTimeOffset.UtcNow).AsTask(), "playtime_unload");
             _playtime?.Dispose();
             _playtime = null;
+            _combat?.Dispose();
+            _combat = null;
             _pendingPlaytime?.Dispose();
             _pendingPlaytime = null;
 
@@ -306,6 +312,7 @@ public sealed class AnoCorePlugin : BasePlugin
                     runtime.Commands,
                     new ModerationCommandExecutor(targetGateway, runtime.Moderation));
 
+                combat = new CombatModule(runtime.Commands, runtime.Players, runtime.Combat);
                 var events = _eventBus
                     ?? throw new InvalidOperationException("AnoCore event bus is unavailable during activation.");
                 communicationModeration = new ModerationCommunicationRuntime(
@@ -358,6 +365,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 _runtime = runtime;
                 _anoVeto = anoVeto;
                 _playtime = playtime;
+                _combat = combat;
                 _anoVetoExpiryTimer = expiryTimer;
                 _voiceModerationTimer = voiceTimer;
                 _playtimeTimer = playtimeTimer;
@@ -372,6 +380,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 voiceTimer?.Kill();
                 playtimeTimer?.Kill();
                 playtime?.Dispose();
+                combat?.Dispose();
                 voiceModeration?.Dispose();
                 chatModeration?.Dispose();
                 communicationModeration?.Dispose();
@@ -510,8 +519,45 @@ public sealed class AnoCorePlugin : BasePlugin
 
     private HookResult OnPlayerDeath(EventPlayerDeath @event, GameEventInfo _)
     {
+        RecordCombatDeath(@event);
         RefreshNextFrame(@event.Userid, "player_death");
         return HookResult.Continue;
+    }
+
+    private void RecordCombatDeath(EventPlayerDeath @event)
+    {
+        var combat = _combat;
+        if (combat is null) return;
+        try
+        {
+            var victim = CombatPlayer(@event.Userid);
+            if (victim is null) return;
+            var attacker = CombatPlayer(@event.Attacker);
+            var assister = CombatPlayer(@event.Assister);
+            var teamKill = attacker is not null && attacker.Id != victim.Id
+                && victim.Team is PlayerTeam.Terrorist or PlayerTeam.CounterTerrorist
+                && attacker.Team == victim.Team;
+            var mapEpoch = checked((long)Math.Round(Server.EngineTime - Server.CurrentTime));
+            var eventId = CombatEventIdentity.Create(_combatServerInstance, Server.MapName,
+                mapEpoch, Server.TickCount, victim.Id);
+            var death = new AnoCore.Abstractions.Stats.CombatDeath(eventId, victim.Id,
+                attacker?.Id, assister?.Id, DateTimeOffset.UtcNow, teamKill);
+            Observe(combat.RecordAsync(death).AsTask(), "combat_death");
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Could not record combat death.");
+        }
+    }
+
+    private PlayerSnapshot? CombatPlayer(CCSPlayerController? controller)
+    {
+        if (controller is not { IsValid: true, IsBot: false, IsHLTV: false }
+            || controller.SteamID == 0 || _players is null)
+            return null;
+        var id = new PlayerId(controller.SteamID);
+        return _players.TryGet(id, out var player) && player?.IsConnected == true
+            ? player : null;
     }
 
     private void BootstrapConnectedPlayers()
