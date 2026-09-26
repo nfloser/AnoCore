@@ -81,7 +81,8 @@ public sealed class RankAdjustmentCommandControllerTests
     public async Task ImmuneTarget_IsRejectedWithoutMutation()
     {
         var registry = new CommandRegistry(new AllowAllPermissions());
-        var targets = new StubTargetGateway(Target) {
+        var targets = new StubTargetGateway(Target)
+        {
             Result = ModerationTargetResult.Reject(ModerationTargetFailure.TargetImmune)
         };
         var administration = new StubAdministrationService();
