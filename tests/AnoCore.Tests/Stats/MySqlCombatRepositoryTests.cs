@@ -38,7 +38,8 @@ public sealed class MySqlCombatRepositoryTests
         var migrations = new MigrationRunner(_database, [
             new CoreSchemaMigration001(), new ModerationSchemaMigration002(),
             new AdminAuditSchemaMigration003(), new WarningSchemaMigration004(),
-            new PlaytimeSchemaMigration005(), new CombatSchemaMigration006()]);
+            new PlaytimeSchemaMigration005(), new CombatSchemaMigration006(),
+            new RankAdjustmentSchemaMigration007()]);
         Assert.AreEqual(6, await migrations.ApplyPendingAsync());
         Assert.AreEqual(0, await migrations.ApplyPendingAsync());
 
