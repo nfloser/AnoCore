@@ -1,7 +1,7 @@
 ## Atomic rank administration checkpoint — 2026-09-26
 
 - Issue #100 / draft PR to follow / branch `feature/100-rank-adjustment-admin-service` stacks on #99. A shared runtime service applies give/take/set/reset adjustments with row locking and writes the matching action audit inside the same MariaDB transaction.
-- MariaDB tests cover the operation sequence, restart-visible state, actor/reason metadata, bounds and rollback when audit insertion fails. Exact-head CI and review remain.
+- MariaDB tests cover the operation sequence, restart-visible state, actor/reason metadata, bounds and rollback when audit insertion fails. CI #360 passed build, 276 tests including MariaDB, formatting, publish and package validation on reviewed code head `718732221759be93ad0d950784c41ed6a54be7a1`. Review checked row-locking, missing-row seeding, bounded arithmetic, reset idempotency and transactional audit rollback; no known code-review blocker remains.
 - No commands, permissions, target resolution or native notifications are claimed in this package; those remain the next rank-administration step.
 
 ## Applied rank adjustments checkpoint — 2026-09-26
