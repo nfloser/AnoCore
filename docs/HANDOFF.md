@@ -1,3 +1,9 @@
+## Applied rank adjustments checkpoint — 2026-09-26
+
+- Issue #98 / draft PR to follow / branch `feature/98-apply-rank-adjustments` stacks on #97. Rank view and top-list queries combine combat score and durable adjustment in one snapshot, floor at zero and include adjustment-only offline SteamIDs.
+- MariaDB coverage checks positive/negative adjustments, zero flooring, deterministic ties, own placement and offline-only entries. Exact-head CI and review remain.
+- This package does not add give/take/set/reset commands, permissions, audit, tags, menus or native notifications. Keep draft pending the combat/live-acceptance chain.
+
 ## Rank adjustment persistence checkpoint — 2026-09-26
 
 - Issue #96 / draft PR #97 / branch `feature/96-rank-adjustments` stacks on #95. Migration 007 and `IRankAdjustmentRepository` persist bounded per-player point adjustments with actor/time metadata, overwrite and idempotent reset, including offline SteamIDs.
