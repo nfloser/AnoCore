@@ -1,7 +1,6 @@
 using AnoCore.Abstractions.Players;
 using AnoCore.Runtime.Persistence;
 using AnoCore.Runtime.Persistence.Migrations;
-using AnoCore.Runtime.Players;
 using AnoCore.Runtime.Stats;
 
 namespace AnoCore.Tests.Stats;
@@ -27,9 +26,17 @@ public sealed class MySqlRankAdjustmentRepositoryTests
             new AdminAuditSchemaMigration003(), new WarningSchemaMigration004(),
             new PlaytimeSchemaMigration005(), new CombatSchemaMigration006(),
             new RankAdjustmentSchemaMigration007()]).ApplyPendingAsync();
-        var now = DateTimeOffset.UtcNow;
-        await new MySqlPlayerRepository(_database).UpsertAsync(
-            new PlayerProfile(Player, "Player", now, now));
+        await _database.WithConnectionAsync(async (connection, token) =>
+        {
+            await using var command = connection.CreateCommand();
+            command.CommandText = """
+                INSERT INTO ano_players (
+                    steam_id, last_known_name, first_seen_utc, last_seen_utc)
+                VALUES (76561198000012901, 'Player', UTC_TIMESTAMP(6), UTC_TIMESTAMP(6))
+                """;
+            await command.ExecuteNonQueryAsync(token);
+            return true;
+        });
     }
 
     [TestCleanup]
