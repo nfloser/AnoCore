@@ -87,10 +87,10 @@ public sealed class MySqlRankAdjustmentAdministrationService
                 _ => throw new ArgumentOutOfRangeException(nameof(operation)),
             };
         }
-        catch (OverflowException exception)
+        catch (OverflowException)
         {
             throw new ArgumentOutOfRangeException(nameof(points),
-                "The resulting rank adjustment is outside the supported range.", exception);
+                "The resulting rank adjustment is outside the supported range.");
         }
 
         if (current is < -MySqlRankAdjustmentRepository.MaximumAbsolutePoints
