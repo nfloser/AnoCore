@@ -37,13 +37,13 @@ public sealed class MySqlRankAdjustmentRepository : IRankAdjustmentRepository
         }, cancellationToken);
     }
 
-    public ValueTask SetAsync(PlayerId playerId, long points, PlayerId? updatedBy,
+    public async ValueTask SetAsync(PlayerId playerId, long points, PlayerId? updatedBy,
         DateTimeOffset updatedAtUtc, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(playerId);
         if (points is < -MaximumAbsolutePoints or > MaximumAbsolutePoints)
             throw new ArgumentOutOfRangeException(nameof(points));
-        return _database.WithConnectionAsync(async (connection, token) =>
+        await _database.WithConnectionAsync(async (connection, token) =>
         {
             await using var command = connection.CreateCommand();
             command.CommandText = """
@@ -60,13 +60,13 @@ public sealed class MySqlRankAdjustmentRepository : IRankAdjustmentRepository
             Add(command, "@updated", updatedAtUtc.ToUniversalTime().UtcDateTime);
             await command.ExecuteNonQueryAsync(token).ConfigureAwait(false);
             return true;
-        }, cancellationToken);
+        }, cancellationToken).ConfigureAwait(false);
     }
 
-    public ValueTask ResetAsync(PlayerId playerId, CancellationToken cancellationToken = default)
+    public async ValueTask ResetAsync(PlayerId playerId, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(playerId);
-        return _database.WithConnectionAsync(async (connection, token) =>
+        await _database.WithConnectionAsync(async (connection, token) =>
         {
             await using var command = connection.CreateCommand();
             command.CommandText =
@@ -74,7 +74,7 @@ public sealed class MySqlRankAdjustmentRepository : IRankAdjustmentRepository
             Add(command, "@player", playerId.SteamId64);
             await command.ExecuteNonQueryAsync(token).ConfigureAwait(false);
             return true;
-        }, cancellationToken);
+        }, cancellationToken).ConfigureAwait(false);
     }
 
     private static PlayerId? ReadPlayer(DbDataReader reader, int index)
