@@ -1,6 +1,6 @@
 # Combat rank (development)
 
-The Ranks module reads durable kill, death and assist totals from the Stats combat ledger. It does not maintain a second counter store. A connected player can use `css_anorank` (chat: `!anorank`) to display the rank name, points and exact points remaining to the next configured threshold. At the final threshold it reports that the highest configured rank was reached. Console and disconnected callers are rejected. `css_anotopranks [page]` is available to players and the server console and shows five persisted score entries per page, ordered by points descending and SteamID64 ascending on ties. Pages are limited to 1–1000.
+The Ranks module reads durable kill, death and assist totals from the Stats combat ledger. It does not maintain a second counter store. A connected player can use `css_anorank` (chat: `!anorank`) to display the rank name, points and deterministic leaderboard placement and exact points remaining to the next configured threshold. Players without persisted combat events are shown as unranked. At the final threshold it reports that the highest configured rank was reached. Console and disconnected callers are rejected. `css_anotopranks [page]` is available to players and the server console and shows five persisted score entries per page, ordered by points descending and SteamID64 ascending on ties. Pages are limited to 1–1000.
 
 On startup `config/ranks.json` is created with the defaults below if missing:
 

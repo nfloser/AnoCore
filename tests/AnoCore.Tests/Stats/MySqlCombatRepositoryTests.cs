@@ -159,6 +159,13 @@ public sealed class MySqlCombatRepositoryTests
             ranked.Select(x => x.Points).ToArray());
         CollectionAssert.AreEqual(new[] { 1, 2, 3 },
             ranked.Select(x => x.Position).ToArray());
+        var lowerPlacement = await new MySqlCombatRepository(_database)
+            .GetScorePlacementAsync(lower, 2, 1, 1);
+        Assert.IsNotNull(lowerPlacement);
+        Assert.AreEqual(2, lowerPlacement.Position);
+        Assert.AreEqual(1L, lowerPlacement.Points);
+        Assert.IsNull(await repo.GetScorePlacementAsync(
+            new PlayerId(76561198000999999), 2, 1, 1));
         Assert.AreEqual(Victim, (await repo.GetTopScoresAsync(2, 1, 1, 3, 3)).Single().PlayerId);
         await Assert.ThrowsExactlyAsync<ArgumentOutOfRangeException>(async () =>
             await repo.GetTopScoresAsync(0, 1, 1, 5, 0));
