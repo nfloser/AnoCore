@@ -399,7 +399,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 }
 
                 MenuPresenter = presenter;
-_adminCommands = adminCommands;
+                _adminCommands = adminCommands;
                 _rankAdminCommands = rankAdminCommands;
                 _communicationModeration = communicationModeration;
                 _chatModeration = chatModeration;
