@@ -40,7 +40,8 @@ public sealed class RankModuleTests
         });
         var players = new PlayerRegistry(new AnoEventBus());
         var commands = new CommandRegistry(new AllowAll());
-        var repository = new FakeRepository(new CombatTotals(4, 2, 2));
+        var repository = new FakeRepository(new CombatTotals(4, 2, 2), placement:
+            new CombatScoreRankEntry(Player, 10, 7));
         using var module = await RankModule.CreateAsync(store, commands, players, repository);
         Assert.AreEqual(CommandFailureReason.InvalidInput,
             (await commands.ExecuteAsync("!anorank", null)).FailureReason);
@@ -49,6 +50,7 @@ public sealed class RankModuleTests
         var result = await commands.ExecuteAsync("!anorank", Player);
         Assert.IsTrue(result.Success);
         StringAssert.Contains(result.Message!, "Veteran");
+        StringAssert.Contains(result.Message!, "Placement: #7");
         StringAssert.Contains(result.Message!, "10 point(s) to Elite");
         Assert.AreEqual(Player, repository.LastRead);
         module.Dispose();
@@ -74,6 +76,7 @@ public sealed class RankModuleTests
         var result = await commands.ExecuteAsync("!anorank", Player);
 
         Assert.IsTrue(result.Success);
+        StringAssert.Contains(result.Message!, "Unranked");
         StringAssert.Contains(result.Message!, "Highest configured rank reached");
     }
 
@@ -161,7 +164,8 @@ public sealed class RankModuleTests
     }
 
     private sealed class FakeRepository(CombatTotals totals,
-        IReadOnlyList<CombatScoreRankEntry>? scores = null) : ICombatRepository
+        IReadOnlyList<CombatScoreRankEntry>? scores = null,
+        CombatScoreRankEntry? placement = null) : ICombatRepository
     {
         public PlayerId? LastRead { get; private set; }
         public (int Kill, int Assist, int Death, int Limit, int Offset)? LastScoreQuery { get; private set; }
@@ -181,6 +185,10 @@ public sealed class RankModuleTests
         public ValueTask<IReadOnlyList<CombatCountRankEntry>> GetTopAssistsAsync(int limit, int offset,
             CancellationToken cancellationToken = default)
             => ValueTask.FromResult<IReadOnlyList<CombatCountRankEntry>>([]);
+        public ValueTask<CombatScoreRankEntry?> GetScorePlacementAsync(PlayerId playerId,
+            int killPoints, int assistPoints, int deathPenalty,
+            CancellationToken cancellationToken = default)
+            => ValueTask.FromResult(placement);
         public ValueTask<IReadOnlyList<CombatScoreRankEntry>> GetTopScoresAsync(
             int killPoints, int assistPoints, int deathPenalty, int limit, int offset,
             CancellationToken cancellationToken = default)
