@@ -1,7 +1,7 @@
 ## Applied rank adjustments checkpoint — 2026-09-26
 
 - Issue #98 / draft PR to follow / branch `feature/98-apply-rank-adjustments` stacks on #97. Rank view and top-list queries combine combat score and durable adjustment in one snapshot, floor at zero and include adjustment-only offline SteamIDs.
-- MariaDB coverage checks positive/negative adjustments, zero flooring, deterministic ties, own placement and offline-only entries. Exact-head CI and review remain.
+- MariaDB coverage checks positive/negative adjustments, zero flooring, deterministic ties, own placement and offline-only entries. CI #356 passed build, 273 tests including MariaDB, formatting, publish and package validation on reviewed code head `198998861d13b53b73ca010567e25d8d8c256968`. Review fixed incomplete migration setup in existing score tests; no known code-review blocker remains.
 - This package does not add give/take/set/reset commands, permissions, audit, tags, menus or native notifications. Keep draft pending the combat/live-acceptance chain.
 
 ## Rank adjustment persistence checkpoint — 2026-09-26
