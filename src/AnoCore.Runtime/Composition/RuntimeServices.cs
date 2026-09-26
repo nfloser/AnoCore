@@ -56,6 +56,7 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
         Settings = new PlayerSettingsService(data);
         Playtime = new MySqlPlaytimeRepository(database);
         Combat = new MySqlCombatRepository(database);
+        RankAdjustments = new MySqlRankAdjustmentRepository(database);
         WarningRepository = new MySqlWarningRepository(database);
         Warnings = new WarningService(WarningRepository);
         AdminAuditRepository = new MySqlAdminAuditRepository(database);
@@ -81,6 +82,7 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
         Add<IPlayerSettingsService>(Settings);
         Add<IPlaytimeRepository>(Playtime);
         Add<ICombatRepository>(Combat);
+        Add<IRankAdjustmentRepository>(RankAdjustments);
         Add<IWarningRepository>(WarningRepository);
         Add<IWarningService>(Warnings);
         Add<IAdminAuditRepository>(AdminAuditRepository);
@@ -109,6 +111,8 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
     public MySqlPlaytimeRepository Playtime { get; }
 
     public MySqlCombatRepository Combat { get; }
+
+    public MySqlRankAdjustmentRepository RankAdjustments { get; }
 
     public MySqlWarningRepository WarningRepository { get; }
 
@@ -141,7 +145,7 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
         ArgumentNullException.ThrowIfNull(players);
         await new DatabaseStartupProbe(
             database,
-            [new CoreSchemaMigration001(), new ModerationSchemaMigration002(), new AdminAuditSchemaMigration003(), new WarningSchemaMigration004(), new PlaytimeSchemaMigration005(), new CombatSchemaMigration006()])
+            [new CoreSchemaMigration001(), new ModerationSchemaMigration002(), new AdminAuditSchemaMigration003(), new WarningSchemaMigration004(), new PlaytimeSchemaMigration005(), new CombatSchemaMigration006(), new RankAdjustmentSchemaMigration007()])
             .EnsureReadyAsync(cancellationToken).ConfigureAwait(false);
         var runtime = new RuntimeServices(database, configuration, events, players);
         try
