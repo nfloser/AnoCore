@@ -1,3 +1,8 @@
+## Rank transition checkpoint — 2026-09-26
+
+- Issue #94 / draft PR to follow / branch `feature/94-rank-transitions` stacks on #93. Adds engine-independent promotion/demotion evaluation across exact and multi-rank threshold changes.
+- This is shared policy only, not native player notification. CI #347 passed build, tests, formatting, publish and package validation on reviewed code head `9c8a1f4a9ad84cc8dffaaa468de6d30e67cae22f`; final documentation-only head CI remains.
+
 ## Own rank placement checkpoint — 2026-09-26
 
 - Issue #92 / draft PR to follow / branch `feature/92-rank-placement` stacks on #91. `anorank` shows deterministic placement using the same weighted score and SteamID64 tie order as `anotopranks`; players without combat rows are unranked.
