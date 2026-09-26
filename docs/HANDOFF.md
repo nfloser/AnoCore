@@ -1,7 +1,8 @@
 ## Rank adjustment persistence checkpoint — 2026-09-26
 
-- Issue #96 / draft PR to follow / branch `feature/96-rank-adjustments` stacks on #95. Migration 007 and `IRankAdjustmentRepository` persist bounded per-player point adjustments with actor/time metadata, overwrite and idempotent reset.
-- This is backend only: score queries and give/take/set/reset commands do not consume adjustments yet. MariaDB tests, review and exact-head CI remain.
+- Issue #96 / draft PR #97 / branch `feature/96-rank-adjustments` stacks on #95. Migration 007 and `IRankAdjustmentRepository` persist bounded per-player point adjustments with actor/time metadata, overwrite and idempotent reset, including offline SteamIDs.
+- CI #353 passed build, 272 tests including MariaDB, formatting, publish and package validation on reviewed code head `018c33f2ba4c96db1f2a6b111378879f46028a46`. Review removed a player-table foreign key that broke established database cleanup and unnecessarily prevented offline adjustments.
+- This is backend only: score queries and give/take/set/reset commands do not consume adjustments yet. Keep #97 draft pending the native combat dependency and later end-to-end administration acceptance.
 
 ## Rank transition checkpoint — 2026-09-26
 
