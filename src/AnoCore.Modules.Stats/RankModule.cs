@@ -64,11 +64,16 @@ public sealed class RankModule : IDisposable
         var totals = await _combat.ReadAsync(caller, cancellationToken).ConfigureAwait(false);
         var points = _configuration.Score(totals);
         var rank = _configuration.ForScore(points);
+        var placement = await _combat.GetScorePlacementAsync(caller,
+            _configuration.KillPoints, _configuration.AssistPoints,
+            _configuration.DeathPenalty, cancellationToken).ConfigureAwait(false);
+        var position = placement is null ? " Unranked." : $" Placement: #{placement.Position}.";
         var next = _configuration.NextAfter(points);
         var progress = next is null
             ? " Highest configured rank reached."
             : $" {next.MinimumPoints - points} point(s) to {next.Name}.";
-        return CommandResult.Ok($"[ANO] Rank: {rank.Name}; {points} point(s).{progress}");
+        return CommandResult.Ok(
+            $"[ANO] Rank: {rank.Name}; {points} point(s).{position}{progress}");
     }
 
     private async ValueTask<CommandResult> ShowTopRanksAsync(CommandContext context)
