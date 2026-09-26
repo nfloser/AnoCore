@@ -1,7 +1,8 @@
 ## Own rank placement checkpoint — 2026-09-26
 
 - Issue #92 / draft PR to follow / branch `feature/92-rank-placement` stacks on #91. `anorank` shows deterministic placement using the same weighted score and SteamID64 tie order as `anotopranks`; players without combat rows are unranked.
-- MariaDB tie/missing-player tests, review and exact-head CI remain. Keep draft pending #79 native acceptance.
+- Initial CI #343 passed. Review removed a two-query consistency window: `anorank` now derives points, rank and placement from one score-placement snapshot. Final exact-head CI remains.
+- MariaDB ties and missing players are covered. Keep draft pending #79 native acceptance.
 
 ## Rank progress checkpoint — 2026-09-26
 
