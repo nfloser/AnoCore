@@ -1,3 +1,8 @@
+## Rank progress checkpoint — 2026-09-26
+
+- Issue #90 / draft PR to follow / branch `feature/90-rank-progress` stacks on #89. `anorank` reports exact points remaining to the next validated threshold or that the highest configured rank has been reached.
+- Boundary/max-rank tests, review and exact-head CI remain to verify. Keep draft pending #79 native combat acceptance; this is not rank administration or automatic promotion notification.
+
 ## Rank leaderboard checkpoint — 2026-09-25
 
 - Issue #88 / draft PR to follow / branch `feature/88-rank-leaderboard` stacks on #87. Adds a bounded score query using the current rank weights and `anotopranks [page]`, with stable SteamID64 tie ordering and no duplicate score store.
