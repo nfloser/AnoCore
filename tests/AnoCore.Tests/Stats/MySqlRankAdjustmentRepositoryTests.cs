@@ -26,17 +26,6 @@ public sealed class MySqlRankAdjustmentRepositoryTests
             new AdminAuditSchemaMigration003(), new WarningSchemaMigration004(),
             new PlaytimeSchemaMigration005(), new CombatSchemaMigration006(),
             new RankAdjustmentSchemaMigration007()]).ApplyPendingAsync();
-        await _database.WithConnectionAsync(async (connection, token) =>
-        {
-            await using var command = connection.CreateCommand();
-            command.CommandText = """
-                INSERT INTO ano_players (
-                    steam_id, last_known_name, first_seen_utc, last_seen_utc)
-                VALUES (76561198000012901, 'Player', UTC_TIMESTAMP(6), UTC_TIMESTAMP(6))
-                """;
-            await command.ExecuteNonQueryAsync(token);
-            return true;
-        });
     }
 
     [TestCleanup]
@@ -46,7 +35,7 @@ public sealed class MySqlRankAdjustmentRepositoryTests
     }
 
     [TestMethod]
-    public async Task SetOverwriteRestartAndReset_AreDurable()
+    public async Task SetOverwriteRestartAndReset_AreDurableForOfflinePlayer()
     {
         var first = new DateTimeOffset(2026, 9, 26, 8, 0, 0, TimeSpan.Zero);
         var repository = new MySqlRankAdjustmentRepository(_database);
