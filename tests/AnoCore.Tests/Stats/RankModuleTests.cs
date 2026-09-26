@@ -35,7 +35,8 @@ public sealed class RankModuleTests
             KillPoints = 3,
             AssistPoints = 1,
             DeathPenalty = 2,
-            Thresholds = [new RankThreshold("Recruit", 0), new RankThreshold("Veteran", 10)],
+            Thresholds = [new RankThreshold("Recruit", 0), new RankThreshold("Veteran", 10),
+                new RankThreshold("Elite", 20)],
         });
         var players = new PlayerRegistry(new AnoEventBus());
         var commands = new CommandRegistry(new AllowAll());
@@ -48,11 +49,32 @@ public sealed class RankModuleTests
         var result = await commands.ExecuteAsync("!anorank", Player);
         Assert.IsTrue(result.Success);
         StringAssert.Contains(result.Message!, "Veteran");
-        StringAssert.Contains(result.Message!, "10 point");
+        StringAssert.Contains(result.Message!, "10 point(s) to Elite");
         Assert.AreEqual(Player, repository.LastRead);
         module.Dispose();
         Assert.AreEqual(CommandFailureReason.NotFound,
             (await commands.ExecuteAsync("!anorank", Player)).FailureReason);
+    }
+
+    [TestMethod]
+    public async Task RankCommand_ReportsHighestConfiguredRank()
+    {
+        var store = new JsonConfigStore(_root);
+        await store.SaveAsync("ranks", new RankConfiguration
+        {
+            Thresholds = [new RankThreshold("Only", 0)],
+        });
+        var players = new PlayerRegistry(new AnoEventBus());
+        await players.ConnectAsync(new PlayerConnection(Player, "Player", PlayerTeam.Terrorist,
+            true, DateTimeOffset.UtcNow));
+        var commands = new CommandRegistry(new AllowAll());
+        using var module = await RankModule.CreateAsync(store, commands, players,
+            new FakeRepository(new CombatTotals(0, 0, 0)));
+
+        var result = await commands.ExecuteAsync("!anorank", Player);
+
+        Assert.IsTrue(result.Success);
+        StringAssert.Contains(result.Message!, "Highest configured rank reached");
     }
 
     [TestMethod]
@@ -125,6 +147,10 @@ public sealed class RankModuleTests
         Assert.AreEqual(0, policy.Score(new CombatTotals(0, 100, 0)));
         Assert.ThrowsExactly<OverflowException>(() =>
             policy.Score(new CombatTotals(long.MaxValue, 0, 0)));
+        Assert.AreEqual("Veteran", policy.NextAfter(0)!.Name);
+        Assert.AreEqual("Elite", policy.NextAfter(10)!.Name);
+        Assert.IsNull(policy.NextAfter(100));
+        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => policy.NextAfter(-1));
     }
 
     private sealed class AllowAll : AnoCore.Abstractions.Permissions.IPermissionEvaluator

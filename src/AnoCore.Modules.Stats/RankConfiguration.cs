@@ -32,6 +32,12 @@ public sealed class RankConfiguration
     public RankThreshold ForScore(long points)
         => Thresholds.Last(threshold => points >= threshold.MinimumPoints);
 
+    public RankThreshold? NextAfter(long points)
+    {
+        if (points < 0) throw new ArgumentOutOfRangeException(nameof(points));
+        return Thresholds.FirstOrDefault(threshold => threshold.MinimumPoints > points);
+    }
+
     public static IReadOnlyCollection<string> Validate(RankConfiguration configuration)
     {
         if (configuration is null) return ["Rank configuration is required."];
