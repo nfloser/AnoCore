@@ -16,10 +16,7 @@ public sealed class RankAdjustmentSchemaMigration007 : IDatabaseMigration
                 player_steam_id BIGINT UNSIGNED NOT NULL PRIMARY KEY,
                 points BIGINT NOT NULL,
                 updated_by_steam_id BIGINT UNSIGNED NULL,
-                updated_at_utc DATETIME(6) NOT NULL,
-                CONSTRAINT fk_ano_rank_adjustment_player
-                    FOREIGN KEY (player_steam_id) REFERENCES ano_players (steam_id)
-                    ON DELETE CASCADE
+                updated_at_utc DATETIME(6) NOT NULL
             ) ENGINE=InnoDB
             """;
         await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
