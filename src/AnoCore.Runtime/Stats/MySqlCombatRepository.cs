@@ -170,18 +170,7 @@ public sealed class MySqlCombatRepository : ICombatRepository
         {
             await using var command = connection.CreateCommand();
             command.CommandText = """
-                SELECT players.steam_id,
-                    GREATEST(0,
-                        CAST((SELECT COUNT(*) FROM ano_combat_deaths
-                            WHERE attacker_steam_id = players.steam_id AND is_team_kill = 0) AS SIGNED)
-                            * @kill_points
-                        + CAST((SELECT COUNT(*) FROM ano_combat_deaths
-                            WHERE assister_steam_id = players.steam_id) AS SIGNED) * @assist_points
-                        - CAST((SELECT COUNT(*) FROM ano_combat_deaths
-                            WHERE victim_steam_id = players.steam_id) AS SIGNED) * @death_penalty
-                    ) AS points,
-                    profiles.last_known_name
-                FROM (
+                WITH players AS (
                     SELECT victim_steam_id AS steam_id FROM ano_combat_deaths
                     UNION
                     SELECT attacker_steam_id FROM ano_combat_deaths
@@ -189,9 +178,28 @@ public sealed class MySqlCombatRepository : ICombatRepository
                     UNION
                     SELECT assister_steam_id FROM ano_combat_deaths
                         WHERE assister_steam_id IS NOT NULL
-                ) AS players
-                LEFT JOIN ano_players AS profiles ON profiles.steam_id = players.steam_id
-                ORDER BY points DESC, players.steam_id ASC
+                    UNION
+                    SELECT player_steam_id FROM ano_rank_adjustments
+                ), scored AS (
+                    SELECT players.steam_id,
+                        GREATEST(0,
+                            CAST((SELECT COUNT(*) FROM ano_combat_deaths
+                                WHERE attacker_steam_id = players.steam_id AND is_team_kill = 0) AS SIGNED)
+                                * @kill_points
+                            + CAST((SELECT COUNT(*) FROM ano_combat_deaths
+                                WHERE assister_steam_id = players.steam_id) AS SIGNED) * @assist_points
+                            - CAST((SELECT COUNT(*) FROM ano_combat_deaths
+                                WHERE victim_steam_id = players.steam_id) AS SIGNED) * @death_penalty
+                            + COALESCE(adjustments.points, 0)
+                        ) AS points
+                    FROM players
+                    LEFT JOIN ano_rank_adjustments AS adjustments
+                        ON adjustments.player_steam_id = players.steam_id
+                )
+                SELECT scored.steam_id, scored.points, profiles.last_known_name
+                FROM scored
+                LEFT JOIN ano_players AS profiles ON profiles.steam_id = scored.steam_id
+                ORDER BY scored.points DESC, scored.steam_id ASC
                 LIMIT @limit OFFSET @offset
                 """;
             Add(command, "@kill_points", killPoints);
@@ -230,6 +238,8 @@ public sealed class MySqlCombatRepository : ICombatRepository
                     UNION
                     SELECT assister_steam_id FROM ano_combat_deaths
                         WHERE assister_steam_id IS NOT NULL
+                    UNION
+                    SELECT player_steam_id FROM ano_rank_adjustments
                 ), scored AS (
                     SELECT players.steam_id,
                         GREATEST(0,
@@ -240,8 +250,11 @@ public sealed class MySqlCombatRepository : ICombatRepository
                                 WHERE assister_steam_id = players.steam_id) AS SIGNED) * @assist_points
                             - CAST((SELECT COUNT(*) FROM ano_combat_deaths
                                 WHERE victim_steam_id = players.steam_id) AS SIGNED) * @death_penalty
+                            + COALESCE(adjustments.points, 0)
                         ) AS points
                     FROM players
+                    LEFT JOIN ano_rank_adjustments AS adjustments
+                        ON adjustments.player_steam_id = players.steam_id
                 ), ranked AS (
                     SELECT steam_id, points,
                         ROW_NUMBER() OVER (ORDER BY points DESC, steam_id ASC) AS position

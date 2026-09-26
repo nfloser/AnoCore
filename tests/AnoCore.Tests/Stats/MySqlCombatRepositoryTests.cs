@@ -38,8 +38,9 @@ public sealed class MySqlCombatRepositoryTests
         var migrations = new MigrationRunner(_database, [
             new CoreSchemaMigration001(), new ModerationSchemaMigration002(),
             new AdminAuditSchemaMigration003(), new WarningSchemaMigration004(),
-            new PlaytimeSchemaMigration005(), new CombatSchemaMigration006()]);
-        Assert.AreEqual(6, await migrations.ApplyPendingAsync());
+            new PlaytimeSchemaMigration005(), new CombatSchemaMigration006(),
+            new RankAdjustmentSchemaMigration007()]);
+        Assert.AreEqual(7, await migrations.ApplyPendingAsync());
         Assert.AreEqual(0, await migrations.ApplyPendingAsync());
 
         var repo = new MySqlCombatRepository(_database);
@@ -61,7 +62,8 @@ public sealed class MySqlCombatRepositoryTests
         await new MigrationRunner(_database, [
             new CoreSchemaMigration001(), new ModerationSchemaMigration002(),
             new AdminAuditSchemaMigration003(), new WarningSchemaMigration004(),
-            new PlaytimeSchemaMigration005(), new CombatSchemaMigration006()]).ApplyPendingAsync();
+            new PlaytimeSchemaMigration005(), new CombatSchemaMigration006(),
+            new RankAdjustmentSchemaMigration007()]).ApplyPendingAsync();
         var repo = new MySqlCombatRepository(_database);
         await repo.RecordAsync(new CombatDeath(Guid.NewGuid(), Victim, Victim, null, Now));
         await repo.RecordAsync(new CombatDeath(Guid.NewGuid(), Victim, null, null, Now.AddSeconds(1)));
@@ -78,7 +80,8 @@ public sealed class MySqlCombatRepositoryTests
         await new MigrationRunner(_database, [
             new CoreSchemaMigration001(), new ModerationSchemaMigration002(),
             new AdminAuditSchemaMigration003(), new WarningSchemaMigration004(),
-            new PlaytimeSchemaMigration005(), new CombatSchemaMigration006()]).ApplyPendingAsync();
+            new PlaytimeSchemaMigration005(), new CombatSchemaMigration006(),
+            new RankAdjustmentSchemaMigration007()]).ApplyPendingAsync();
         var repo = new MySqlCombatRepository(_database);
         var lower = new PlayerId(76561198000012001);
         var higher = new PlayerId(76561198000012002);
@@ -108,7 +111,8 @@ public sealed class MySqlCombatRepositoryTests
         await new MigrationRunner(_database, [
             new CoreSchemaMigration001(), new ModerationSchemaMigration002(),
             new AdminAuditSchemaMigration003(), new WarningSchemaMigration004(),
-            new PlaytimeSchemaMigration005(), new CombatSchemaMigration006()]).ApplyPendingAsync();
+            new PlaytimeSchemaMigration005(), new CombatSchemaMigration006(),
+            new RankAdjustmentSchemaMigration007()]).ApplyPendingAsync();
         var secondVictim = new PlayerId(76561198000012204);
         var secondAssister = new PlayerId(76561198000012205);
         var repo = new MySqlCombatRepository(_database);
@@ -140,7 +144,8 @@ public sealed class MySqlCombatRepositoryTests
         await new MigrationRunner(_database, [
             new CoreSchemaMigration001(), new ModerationSchemaMigration002(),
             new AdminAuditSchemaMigration003(), new WarningSchemaMigration004(),
-            new PlaytimeSchemaMigration005(), new CombatSchemaMigration006()]).ApplyPendingAsync();
+            new PlaytimeSchemaMigration005(), new CombatSchemaMigration006(),
+            new RankAdjustmentSchemaMigration007()]).ApplyPendingAsync();
         var lower = new PlayerId(76561198000012001);
         var higher = new PlayerId(76561198000012002);
         var repo = new MySqlCombatRepository(_database);
@@ -173,12 +178,49 @@ public sealed class MySqlCombatRepositoryTests
             await repo.GetTopScoresAsync(2, 1, 1, 5, 10001));
     }
 
+    [TestMethod]
+    public async Task AdjustedScoreLeaderboard_IncludesOfflinePlayersAndFloorsAtZero()
+    {
+        await new MigrationRunner(_database, [
+            new CoreSchemaMigration001(), new ModerationSchemaMigration002(),
+            new AdminAuditSchemaMigration003(), new WarningSchemaMigration004(),
+            new PlaytimeSchemaMigration005(), new CombatSchemaMigration006(),
+            new RankAdjustmentSchemaMigration007()]).ApplyPendingAsync();
+        var lower = new PlayerId(76561198000012001);
+        var higher = new PlayerId(76561198000012002);
+        var adjustedOnly = new PlayerId(76561198000012003);
+        var repo = new MySqlCombatRepository(_database);
+        await repo.RecordAsync(new CombatDeath(Guid.NewGuid(), Victim, lower, null, Now));
+        await repo.RecordAsync(new CombatDeath(Guid.NewGuid(), Victim, higher, null, Now.AddSeconds(1)));
+        var adjustments = new MySqlRankAdjustmentRepository(_database);
+        await adjustments.SetAsync(lower, -50, null, Now);
+        await adjustments.SetAsync(higher, 3, null, Now);
+        await adjustments.SetAsync(adjustedOnly, 4, null, Now);
+
+        var ranked = await new MySqlCombatRepository(_database)
+            .GetTopScoresAsync(2, 1, 1, 5, 0);
+
+        CollectionAssert.AreEqual(new[] { higher, adjustedOnly, lower, Victim },
+            ranked.Select(x => x.PlayerId).ToArray());
+        CollectionAssert.AreEqual(new long[] { 5, 4, 0, 0 },
+            ranked.Select(x => x.Points).ToArray());
+        var lowerPlacement = await repo.GetScorePlacementAsync(lower, 2, 1, 1);
+        Assert.IsNotNull(lowerPlacement);
+        Assert.AreEqual(3, lowerPlacement.Position);
+        Assert.AreEqual(0L, lowerPlacement.Points);
+        var adjustedOnlyPlacement = await repo.GetScorePlacementAsync(
+            adjustedOnly, 2, 1, 1);
+        Assert.IsNotNull(adjustedOnlyPlacement);
+        Assert.AreEqual(2, adjustedOnlyPlacement.Position);
+        Assert.AreEqual(4L, adjustedOnlyPlacement.Points);
+    }
+
     private async Task DropAsync()
     {
         await _database.WithConnectionAsync(async (connection, token) =>
         {
             foreach (var table in new[] {
-                "ano_combat_deaths", "ano_playtime_sessions", "ano_admin_warnings",
+                "ano_rank_adjustments", "ano_combat_deaths", "ano_playtime_sessions", "ano_admin_warnings",
                 "ano_admin_action_audit", "ano_moderation_audit", "ano_moderation_sanctions",
                 "ano_module_data", "ano_players", "ano_schema_migrations" })
             {
