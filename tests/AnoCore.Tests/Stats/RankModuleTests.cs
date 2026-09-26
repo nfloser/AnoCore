@@ -27,7 +27,7 @@ public sealed class RankModuleTests
     }
 
     [TestMethod]
-    public async Task RankCommand_UsesPersistedTotalsAndConfiguredExactThreshold()
+    public async Task RankCommand_UsesPersistedPlacementAndConfiguredExactThreshold()
     {
         var store = new JsonConfigStore(_root);
         await store.SaveAsync("ranks", new RankConfiguration
@@ -52,7 +52,7 @@ public sealed class RankModuleTests
         StringAssert.Contains(result.Message!, "Veteran");
         StringAssert.Contains(result.Message!, "Placement: #7");
         StringAssert.Contains(result.Message!, "10 point(s) to Elite");
-        Assert.AreEqual(Player, repository.LastRead);
+        Assert.IsNull(repository.LastRead);
         module.Dispose();
         Assert.AreEqual(CommandFailureReason.NotFound,
             (await commands.ExecuteAsync("!anorank", Player)).FailureReason);
