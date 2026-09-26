@@ -52,4 +52,8 @@ public interface ICombatRepository
         int killPoints, int assistPoints, int deathPenalty, int limit, int offset,
         CancellationToken cancellationToken = default)
         => throw new NotSupportedException("Combat score ranking is not supported.");
+    ValueTask<CombatScoreRankEntry?> GetScorePlacementAsync(PlayerId playerId,
+        int killPoints, int assistPoints, int deathPenalty,
+        CancellationToken cancellationToken = default)
+        => throw new NotSupportedException("Combat score placement is not supported.");
 }
