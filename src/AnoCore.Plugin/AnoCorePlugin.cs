@@ -42,6 +42,7 @@ public sealed class AnoCorePlugin : BasePlugin
     private CombatModule? _combat;
     private string _combatServerInstance = string.Empty;
     private ModerationCommandController? _adminCommands;
+    private RankAdjustmentCommandController? _rankAdminCommands;
     private ModerationCommunicationRuntime? _communicationModeration;
     private CounterStrikeChatModerationAdapter? _chatModeration;
     private ModerationVoiceCoordinator? _voiceModeration;
@@ -121,6 +122,8 @@ public sealed class AnoCorePlugin : BasePlugin
             _anoVeto = null;
             _commands?.Dispose();
             _commands = null;
+            _rankAdminCommands?.Dispose();
+            _rankAdminCommands = null;
             _adminCommands?.Dispose();
             _adminCommands = null;
             _runtime?.Dispose();
@@ -314,6 +317,7 @@ public sealed class AnoCorePlugin : BasePlugin
             _pendingPlaytime = null;
             _pendingRank = null;
             ModerationCommandController? adminCommands = null;
+            RankAdjustmentCommandController? rankAdminCommands = null;
             CombatModule? combat = null;
             ModerationCommunicationRuntime? communicationModeration = null;
             CounterStrikeChatModerationAdapter? chatModeration = null;
@@ -345,6 +349,10 @@ public sealed class AnoCorePlugin : BasePlugin
                 adminCommands = new ModerationCommandController(
                     runtime.Commands,
                     new ModerationCommandExecutor(targetGateway, runtime.Moderation));
+                rankAdminCommands = new RankAdjustmentCommandController(
+                    runtime.Commands,
+                    new RankAdjustmentCommandExecutor(
+                        targetGateway, runtime.RankAdjustmentAdministration));
 
                 combat = new CombatModule(runtime.Commands, runtime.Players, runtime.Combat);
                 var events = _eventBus
@@ -391,7 +399,8 @@ public sealed class AnoCorePlugin : BasePlugin
                 }
 
                 MenuPresenter = presenter;
-                _adminCommands = adminCommands;
+_adminCommands = adminCommands;
+                _rankAdminCommands = rankAdminCommands;
                 _communicationModeration = communicationModeration;
                 _chatModeration = chatModeration;
                 _voiceModeration = voiceModeration;
@@ -422,6 +431,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 communicationModeration?.Dispose();
                 anoVeto?.Dispose();
                 bridge.Dispose();
+                rankAdminCommands?.Dispose();
                 adminCommands?.Dispose();
                 runtime.Dispose();
                 MenuPresenter = null;
