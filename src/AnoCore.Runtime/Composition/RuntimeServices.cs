@@ -57,6 +57,7 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
         Playtime = new MySqlPlaytimeRepository(database);
         Combat = new MySqlCombatRepository(database);
         RankAdjustments = new MySqlRankAdjustmentRepository(database);
+        RankAdjustmentAdministration = new MySqlRankAdjustmentAdministrationService(database);
         WarningRepository = new MySqlWarningRepository(database);
         Warnings = new WarningService(WarningRepository);
         AdminAuditRepository = new MySqlAdminAuditRepository(database);
@@ -83,6 +84,7 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
         Add<IPlaytimeRepository>(Playtime);
         Add<ICombatRepository>(Combat);
         Add<IRankAdjustmentRepository>(RankAdjustments);
+        Add<IRankAdjustmentAdministrationService>(RankAdjustmentAdministration);
         Add<IWarningRepository>(WarningRepository);
         Add<IWarningService>(Warnings);
         Add<IAdminAuditRepository>(AdminAuditRepository);
@@ -113,6 +115,8 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
     public MySqlCombatRepository Combat { get; }
 
     public MySqlRankAdjustmentRepository RankAdjustments { get; }
+
+    public MySqlRankAdjustmentAdministrationService RankAdjustmentAdministration { get; }
 
     public MySqlWarningRepository WarningRepository { get; }
 
