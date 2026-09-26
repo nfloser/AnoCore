@@ -1,7 +1,8 @@
 ## Rank progress checkpoint — 2026-09-26
 
 - Issue #90 / draft PR to follow / branch `feature/90-rank-progress` stacks on #89. `anorank` reports exact points remaining to the next validated threshold or that the highest configured rank has been reached.
-- Boundary/max-rank tests, review and exact-head CI remain to verify. Keep draft pending #79 native combat acceptance; this is not rank administration or automatic promotion notification.
+- CI #341 passed build, tests, formatting, publish and package validation on reviewed code head `0e63d40220cadb3247f1dfc70d3075d6ba04479a`; final documentation-only head CI remains to verify.
+- Review checked exact thresholds, the highest rank and negative input. Keep draft pending #79 native combat acceptance; this is not rank administration or automatic promotion notification.
 
 ## Rank leaderboard checkpoint — 2026-09-25
 
