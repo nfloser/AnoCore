@@ -1,3 +1,9 @@
+## Rank administration commands checkpoint — 2026-09-26
+
+- Issue #102 / draft PR to follow / branch `feature/102-rank-admin-commands` stacks on #101. Four explicit give/take/set/reset commands use per-operation permissions, shared online/offline target resolution, immunity and the atomic audited service.
+- Tests cover descriptors, routing, default/quoted reasons, permission-before-resolution, immune targets, registration rollback and unload cleanup. Exact-head CI and review remain.
+- Native command dispatch still requires the user's CS2/DatHost acceptance. Rank notifications, tags and menus remain open.
+
 ## Atomic rank administration checkpoint — 2026-09-26
 
 - Issue #100 / draft PR to follow / branch `feature/100-rank-adjustment-admin-service` stacks on #99. A shared runtime service applies give/take/set/reset adjustments with row locking and writes the matching action audit inside the same MariaDB transaction.
