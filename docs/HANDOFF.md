@@ -1,3 +1,8 @@
+## Rank adjustment persistence checkpoint — 2026-09-26
+
+- Issue #96 / draft PR to follow / branch `feature/96-rank-adjustments` stacks on #95. Migration 007 and `IRankAdjustmentRepository` persist bounded per-player point adjustments with actor/time metadata, overwrite and idempotent reset.
+- This is backend only: score queries and give/take/set/reset commands do not consume adjustments yet. MariaDB tests, review and exact-head CI remain.
+
 ## Rank transition checkpoint — 2026-09-26
 
 - Issue #94 / draft PR to follow / branch `feature/94-rank-transitions` stacks on #93. Adds engine-independent promotion/demotion evaluation across exact and multi-rank threshold changes.
