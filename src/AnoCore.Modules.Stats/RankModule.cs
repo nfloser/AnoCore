@@ -166,6 +166,9 @@ public sealed class RankModule : IDisposable
             _configuration.DeathPenalty, PageSize + 1, (page - 1) * PageSize,
             cancellationToken).ConfigureAwait(false);
 
+        if (Volatile.Read(ref _disposed) != 0
+            || !TryGetConnected(playerId, out _))
+            return;
         var options = BuildMenuOptions(playerId, page, placement, entries);
         var menuId = new MenuId($"ano.ranks.{playerId.SteamId64}");
         var definition = new MenuDefinition(menuId, $"Ranks — page {page}", options);
@@ -227,6 +230,9 @@ public sealed class RankModule : IDisposable
         IDisposable registration;
         lock (_menuGate)
         {
+            if (Volatile.Read(ref _disposed) != 0
+                || !TryGetConnected(playerId, out _))
+                return;
             var online = _players.OnlinePlayers
                 .Where(player => player.IsConnected)
                 .Select(player => player.Id)
@@ -279,7 +285,8 @@ public sealed class RankModule : IDisposable
     }
 
     private static string Sanitize(string value)
-        => value.Replace('\r', ' ').Replace('\n', ' ').Replace('|', '/');
+        => string.Concat(value.Select(character => char.IsControl(character)
+            ? ' ' : character == '|' ? '/' : character));
 
     public void Dispose()
     {
