@@ -354,7 +354,14 @@ public sealed class AnoCorePlugin : BasePlugin
                     new RankAdjustmentCommandExecutor(
                         targetGateway, runtime.RankAdjustmentAdministration));
 
-                combat = new CombatModule(runtime.Commands, runtime.Players, runtime.Combat);
+                var transitionMonitor = rank is null
+                    ? null
+                    : new RankTransitionMonitor(
+                        rank.Configuration,
+                        runtime.Combat,
+                        new CounterStrikeRankTransitionNotifier(runtime.Players));
+                combat = new CombatModule(
+                    runtime.Commands, runtime.Players, runtime.Combat, transitionMonitor);
                 var events = _eventBus
                     ?? throw new InvalidOperationException("AnoCore event bus is unavailable during activation.");
                 communicationModeration = new ModerationCommunicationRuntime(
