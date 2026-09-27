@@ -9,6 +9,7 @@ public sealed class RankConfiguration
     public int KillPoints { get; set; } = 2;
     public int AssistPoints { get; set; } = 1;
     public int DeathPenalty { get; set; } = 1;
+    public bool NotifyRankChanges { get; set; } = true;
     public List<RankThreshold> Thresholds { get; set; } =
     [
         new("Recruit", 0),
