@@ -2,7 +2,7 @@ using AnoCore.Abstractions.Stats;
 
 namespace AnoCore.Modules.Stats;
 
-public sealed record RankThreshold(string Name, long MinimumPoints);
+public sealed record RankThreshold(string Name, long MinimumPoints, string Tag = "");
 
 public sealed class RankConfiguration
 {
@@ -13,9 +13,9 @@ public sealed class RankConfiguration
     public bool NotifyAdministrativeRankChanges { get; set; } = true;
     public List<RankThreshold> Thresholds { get; set; } =
     [
-        new("Recruit", 0),
-        new("Veteran", 10),
-        new("Elite", 100),
+        new("Recruit", 0, "[Recruit]"),
+        new("Veteran", 10, "[Veteran]"),
+        new("Elite", 100, "[Elite]"),
     ];
 
     public static RankConfiguration Default => new();
@@ -62,6 +62,9 @@ public sealed class RankConfiguration
                 || threshold.Name.Length > 48
                 || threshold.Name.Any(char.IsControl))
                 errors.Add("Rank names must contain 1 to 48 printable characters.");
+            if (threshold is not null
+                && (threshold.Tag.Length > 24 || threshold.Tag.Any(char.IsControl)))
+                errors.Add("Rank tags must contain at most 24 printable characters.");
             if (threshold is null || threshold.MinimumPoints <= previous
                 || threshold.MinimumPoints < 0)
                 errors.Add("Rank thresholds must be strictly increasing and start at zero.");
