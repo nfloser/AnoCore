@@ -51,7 +51,7 @@ public sealed class RankAdjustmentNotificationService
         {
             var totals = await _combat.ReadAsync(targetId, CancellationToken.None)
                 .ConfigureAwait(false);
-            var combatPoints = _configuration.Score(totals);
+            var combatPoints = _configuration.RawScore(totals);
             var previousPoints = Adjust(combatPoints, result.PreviousPoints);
             var currentPoints = Adjust(combatPoints, result.CurrentPoints);
             var transition = RankTransitionEvaluator.Evaluate(
