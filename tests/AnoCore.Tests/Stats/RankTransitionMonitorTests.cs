@@ -117,10 +117,13 @@ public sealed class RankTransitionMonitorTests
     public async Task Dispose_RejectsNewWrites()
     {
         var repository = new FakeRepository();
+        var sink = new RecordingSink(repository);
         var monitor = new RankTransitionMonitor(
-            Configuration(), repository, new RecordingSink(repository));
+            Configuration(), repository, sink);
+        monitor.Dispose();
         monitor.Dispose();
 
+        Assert.AreEqual(1, sink.Disposals);
         await Assert.ThrowsExactlyAsync<ObjectDisposedException>(
             async () => await monitor.RecordAsync(new CombatDeath(
                 Guid.NewGuid(), Victim, Attacker, null, Now)).AsTask());
@@ -128,10 +131,11 @@ public sealed class RankTransitionMonitorTests
     }
 
     private sealed class RecordingSink(FakeRepository repository)
-        : IRankTransitionNotificationSink
+        : IRankTransitionNotificationSink, IDisposable
     {
         public List<(PlayerId PlayerId, RankTransition Transition)> Notifications { get; } = [];
         public bool AllObservedAfterWrite { get; private set; } = true;
+        public int Disposals { get; private set; }
 
         public ValueTask NotifyAsync(PlayerId playerId, RankTransition transition,
             CancellationToken cancellationToken = default)
@@ -141,6 +145,8 @@ public sealed class RankTransitionMonitorTests
             Notifications.Add((playerId, transition));
             return ValueTask.CompletedTask;
         }
+
+        public void Dispose() => Disposals++;
     }
 
     private sealed class FakeRepository : ICombatRepository
