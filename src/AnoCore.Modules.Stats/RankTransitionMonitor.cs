@@ -69,7 +69,12 @@ public sealed class RankTransitionMonitor : IDisposable
         }
     }
 
-    public void Dispose() => Interlocked.Exchange(ref _disposed, 1);
+    public void Dispose()
+    {
+        if (Interlocked.Exchange(ref _disposed, 1) == 0
+            && _notifications is IDisposable disposable)
+            disposable.Dispose();
+    }
 
     private async ValueTask<long> ReadPointsAsync(PlayerId playerId,
         CancellationToken cancellationToken)
