@@ -151,6 +151,26 @@ public sealed class ChatFormatSnapshotLifecycleTests
             Player, player.SessionId, "x", false, out _));
     }
 
+    [TestMethod]
+    public async Task Bootstrap_PropagatesRequestedCancellation()
+    {
+        var events = new AnoEventBus();
+        var placeholders = Tags(async (_, token) =>
+        {
+            await Task.Delay(Timeout.InfiniteTimeSpan, token);
+            return "[R]";
+        });
+        var formatter = await ChatMessageFormatter.CreateAsync(
+            new JsonConfigStore(_root), placeholders);
+        using var snapshots = new ChatFormatSnapshotLifecycle(events, formatter);
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        await Assert.ThrowsExactlyAsync<OperationCanceledException>(async () =>
+            await snapshots.WarmExistingAsync(
+                [Snapshot(PlayerSessionId.New(), "Player")], cancellation.Token));
+    }
+
     private static PlaceholderRegistry Tags(PlaceholderResolver resolver)
     {
         var placeholders = new PlaceholderRegistry();
