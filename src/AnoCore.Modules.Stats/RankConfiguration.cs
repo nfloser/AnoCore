@@ -10,6 +10,7 @@ public sealed class RankConfiguration
     public int AssistPoints { get; set; } = 1;
     public int DeathPenalty { get; set; } = 1;
     public bool NotifyRankChanges { get; set; } = true;
+    public bool NotifyAdministrativeRankChanges { get; set; } = true;
     public List<RankThreshold> Thresholds { get; set; } =
     [
         new("Recruit", 0),
@@ -19,15 +20,16 @@ public sealed class RankConfiguration
 
     public static RankConfiguration Default => new();
 
-    public long Score(CombatTotals totals)
+    public long Score(CombatTotals totals) => Math.Max(0, RawScore(totals));
+
+    public long RawScore(CombatTotals totals)
     {
         ArgumentNullException.ThrowIfNull(totals);
         if (totals.Kills < 0 || totals.Deaths < 0 || totals.Assists < 0)
             throw new ArgumentOutOfRangeException(nameof(totals));
-        var points = checked(checked(totals.Kills * KillPoints)
+        return checked(checked(totals.Kills * KillPoints)
             + checked(totals.Assists * AssistPoints)
             - checked(totals.Deaths * DeathPenalty));
-        return Math.Max(0, points);
     }
 
     public RankThreshold ForScore(long points)

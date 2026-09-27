@@ -1,3 +1,9 @@
+## Administrative rank notification checkpoint — 2026-09-27
+
+- Issue #106 / draft PR #107 / branch `feature/106-rank-admin-notifications` stacks on #105. Successful give/take/set/reset operations derive previous/current total score from returned durable adjustments plus one combat snapshot, then reuse the session-safe transition notifier.
+- Notification work is best-effort after the atomic mutation/audit and cannot turn a committed command into a reported mutation failure. Tests cover promotion, demotion, within-rank suppression, disablement, failure isolation, mutation failure, disposal and adjustment-before-floor behavior. CI #372 passed build, tests including MariaDB, formatting, publish and package validation on reviewed code head `0d7256bfc311783e94a59e652b0effcad85cb265`.
+- Review corrected the score order for negative raw combat totals so notifications now match rank queries exactly; no known code blocker remains. Native chat delivery requires the user's CS2/DatHost acceptance. Rank tags and menus remain open.
+
 ## Combat rank notification checkpoint — 2026-09-27
 
 - Issue #104 / draft PR #105 / branch `feature/104-rank-transition-notifications` stacks on #103. Durable combat writes snapshot affected adjusted scores, serialize local callbacks, reuse the shared transition evaluator and schedule session-safe promotion/demotion chat messages.
