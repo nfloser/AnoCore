@@ -108,10 +108,10 @@ public sealed class AnoCorePlugin : BasePlugin
                 Observe(_playtime.CheckpointOnlineAsync(DateTimeOffset.UtcNow).AsTask(), "playtime_unload");
             _playtime?.Dispose();
             _playtime = null;
-            _rank?.Dispose();
-            _rank = null;
             _chatFormatSnapshots?.Dispose();
             _chatFormatSnapshots = null;
+            _rank?.Dispose();
+            _rank = null;
             _chatFormatter = null;
             _combat?.Dispose();
             _combat = null;
@@ -490,7 +490,6 @@ public sealed class AnoCorePlugin : BasePlugin
                 _communicationModeration = communicationModeration;
                 _chatModeration = chatModeration;
                 _chatFormatSnapshots = chatFormatSnapshots;
-                chatFormatSnapshots = null;
                 _voiceModeration = voiceModeration;
                 _commands = bridge;
                 _runtime = runtime;
