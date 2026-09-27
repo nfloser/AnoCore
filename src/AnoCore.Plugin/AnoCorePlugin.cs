@@ -318,6 +318,7 @@ public sealed class AnoCorePlugin : BasePlugin
             _pendingRank = null;
             ModerationCommandController? adminCommands = null;
             RankAdjustmentCommandController? rankAdminCommands = null;
+            RankTransitionMonitor? transitionMonitor = null;
             CombatModule? combat = null;
             ModerationCommunicationRuntime? communicationModeration = null;
             CounterStrikeChatModerationAdapter? chatModeration = null;
@@ -354,7 +355,7 @@ public sealed class AnoCorePlugin : BasePlugin
                     new RankAdjustmentCommandExecutor(
                         targetGateway, runtime.RankAdjustmentAdministration));
 
-                var transitionMonitor = rank is null
+                transitionMonitor = rank is null
                     ? null
                     : new RankTransitionMonitor(
                         rank.Configuration,
@@ -362,6 +363,7 @@ public sealed class AnoCorePlugin : BasePlugin
                         new CounterStrikeRankTransitionNotifier(runtime.Players));
                 combat = new CombatModule(
                     runtime.Commands, runtime.Players, runtime.Combat, transitionMonitor);
+                transitionMonitor = null;
                 var events = _eventBus
                     ?? throw new InvalidOperationException("AnoCore event bus is unavailable during activation.");
                 communicationModeration = new ModerationCommunicationRuntime(
@@ -433,6 +435,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 playtime?.Dispose();
                 rank?.Dispose();
                 combat?.Dispose();
+                transitionMonitor?.Dispose();
                 voiceModeration?.Dispose();
                 chatModeration?.Dispose();
                 communicationModeration?.Dispose();
