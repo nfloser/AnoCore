@@ -215,7 +215,7 @@ public sealed class AnoCorePlugin : BasePlugin
             {
                 createdRank = await RankModule.CreateAsync(
                     configuration, created.Commands, players, created.Combat,
-                    timeout.Token).ConfigureAwait(false);
+                    created.Menus, timeout.Token).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
@@ -335,7 +335,9 @@ public sealed class AnoCorePlugin : BasePlugin
                 Logger,
                 (commandName, player) =>
                 {
-                    if (string.Equals(commandName, "anoveto", StringComparison.Ordinal))
+                    if (string.Equals(commandName, "anoveto", StringComparison.Ordinal)
+                        || string.Equals(commandName, RankModule.MenuCommandName,
+                            StringComparison.Ordinal))
                     {
                         presenter.Reconcile();
                         presenter.Open(player);
