@@ -1,3 +1,9 @@
+## Rank menu checkpoint — 2026-09-27
+
+- Issue #108 / draft PR #109 / branch `feature/108-rank-menu` stacks on #107. `anoranks [page]` opens a per-player shared menu with own adjusted rank/points/placement/progress, five deterministic leaderboard entries and bounded previous/next navigation.
+- The module reuses `IMenuService`, existing score queries and the native presenter callback; it keeps no second score store. Tests cover data/labels, page bounds, navigation, console rejection, registration rollback, control-character sanitization and unload cleanup. CI #377 passed build, 297 tests including MariaDB, formatting, publish and package validation on reviewed code head `31f6a7539634cc14109949414a0e769ba5a82474`.
+- Review added a second lifecycle/session gate so an in-flight query cannot register a menu after unload or disconnect; no known code blocker remains. Native CenterHtml rendering requires the user's CS2/DatHost acceptance. Rank tags remain open.
+
 ## Administrative rank notification checkpoint — 2026-09-27
 
 - Issue #106 / draft PR #107 / branch `feature/106-rank-admin-notifications` stacks on #105. Successful give/take/set/reset operations derive previous/current total score from returned durable adjustments plus one combat snapshot, then reuse the session-safe transition notifier.
