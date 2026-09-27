@@ -43,6 +43,7 @@ public sealed class AnoCorePlugin : BasePlugin
     private PlaytimeModule? _playtime;
     private RankModule? _rank;
     private ChatMessageFormatter? _chatFormatter;
+    private ChatFormatSnapshotLifecycle? _chatFormatSnapshots;
     private CombatModule? _combat;
     private string _combatServerInstance = string.Empty;
     private ModerationCommandController? _adminCommands;
@@ -62,6 +63,8 @@ public sealed class AnoCorePlugin : BasePlugin
     public CounterStrikeMenuPresenter? MenuPresenter { get; private set; }
 
     public ChatMessageFormatter? ChatFormatter => _chatFormatter;
+
+    public ChatFormatSnapshotLifecycle? ChatFormatSnapshots => _chatFormatSnapshots;
 
     public override string ModuleName => "AnoCore";
 
@@ -107,6 +110,8 @@ public sealed class AnoCorePlugin : BasePlugin
             _playtime = null;
             _rank?.Dispose();
             _rank = null;
+            _chatFormatSnapshots?.Dispose();
+            _chatFormatSnapshots = null;
             _chatFormatter = null;
             _combat?.Dispose();
             _combat = null;
@@ -364,6 +369,7 @@ public sealed class AnoCorePlugin : BasePlugin
             CombatModule? combat = null;
             ModerationCommunicationRuntime? communicationModeration = null;
             CounterStrikeChatModerationAdapter? chatModeration = null;
+            ChatFormatSnapshotLifecycle? chatFormatSnapshots = null;
             ModerationVoiceCoordinator? voiceModeration = null;
             var presenter = new CounterStrikeMenuPresenter(this, runtime.Menus, Logger);
             var bridge = new CounterStrikeCommandBridge(
@@ -422,6 +428,19 @@ public sealed class AnoCorePlugin : BasePlugin
                 transitionMonitor = null;
                 var events = _eventBus
                     ?? throw new InvalidOperationException("AnoCore event bus is unavailable during activation.");
+                if (chatFormatter is not null)
+                {
+                    chatFormatSnapshots = new ChatFormatSnapshotLifecycle(
+                        events,
+                        chatFormatter,
+                        exception => Logger.LogError(
+                            exception, "Chat format snapshot warm failed."));
+                    Observe(
+                        chatFormatSnapshots.WarmExistingAsync(
+                            runtime.Players.OnlinePlayers.ToArray()).AsTask(),
+                        "chat_format_snapshot_bootstrap");
+                }
+
                 communicationModeration = new ModerationCommunicationRuntime(
                     events,
                     runtime.Moderation,
@@ -470,6 +489,8 @@ public sealed class AnoCorePlugin : BasePlugin
                 rankAdminNotifications = null;
                 _communicationModeration = communicationModeration;
                 _chatModeration = chatModeration;
+                _chatFormatSnapshots = chatFormatSnapshots;
+                chatFormatSnapshots = null;
                 _voiceModeration = voiceModeration;
                 _commands = bridge;
                 _runtime = runtime;
@@ -496,6 +517,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 combat?.Dispose();
                 transitionMonitor?.Dispose();
                 voiceModeration?.Dispose();
+                chatFormatSnapshots?.Dispose();
                 chatModeration?.Dispose();
                 communicationModeration?.Dispose();
                 anoVeto?.Dispose();
