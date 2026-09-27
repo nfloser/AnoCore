@@ -37,10 +37,12 @@ public sealed class AnoCorePlugin : BasePlugin
     private AnoVetoModuleRuntime? _pendingAnoVeto;
     private PlaytimeModule? _pendingPlaytime;
     private RankModule? _pendingRank;
+    private ChatMessageFormatter? _pendingChatFormatter;
     private RuntimeServices? _runtime;
     private AnoVetoModuleRuntime? _anoVeto;
     private PlaytimeModule? _playtime;
     private RankModule? _rank;
+    private ChatMessageFormatter? _chatFormatter;
     private CombatModule? _combat;
     private string _combatServerInstance = string.Empty;
     private ModerationCommandController? _adminCommands;
@@ -58,6 +60,8 @@ public sealed class AnoCorePlugin : BasePlugin
     public RuntimeServices? Runtime => _runtime;
 
     public CounterStrikeMenuPresenter? MenuPresenter { get; private set; }
+
+    public ChatMessageFormatter? ChatFormatter => _chatFormatter;
 
     public override string ModuleName => "AnoCore";
 
@@ -103,12 +107,14 @@ public sealed class AnoCorePlugin : BasePlugin
             _playtime = null;
             _rank?.Dispose();
             _rank = null;
+            _chatFormatter = null;
             _combat?.Dispose();
             _combat = null;
             _pendingPlaytime?.Dispose();
             _pendingPlaytime = null;
             _pendingRank?.Dispose();
             _pendingRank = null;
+            _pendingChatFormatter = null;
 
             _pendingAnoVeto?.Dispose();
             _pendingAnoVeto = null;
@@ -160,6 +166,7 @@ public sealed class AnoCorePlugin : BasePlugin
         AnoVetoModuleRuntime? createdAnoVeto = null;
         PlaytimeModule? createdPlaytime = null;
         RankModule? createdRank = null;
+        ChatMessageFormatter? createdChatFormatter = null;
         try
         {
             var configuration = new JsonConfigStore(Path.Combine(ModuleDirectory, "config"));
@@ -236,6 +243,26 @@ public sealed class AnoCorePlugin : BasePlugin
 
             try
             {
+                var placeholders = created.GetService(typeof(IPlaceholderRegistry))
+                    as IPlaceholderRegistry
+                    ?? throw new InvalidOperationException(
+                        "AnoCore runtime did not provide the shared placeholder registry.");
+                createdChatFormatter = await ChatMessageFormatter.CreateAsync(
+                    configuration, placeholders, timeout.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception exception)
+            {
+                createdChatFormatter = null;
+                Logger.LogError(exception,
+                    "Chat formatting composition failed; AnoCore will continue without chat formatting.");
+            }
+
+            try
+            {
                 var votes = created.GetService(typeof(IVoteService)) as IVoteService
                     ?? throw new InvalidOperationException("AnoCore runtime did not provide the shared vote service.");
                 createdAnoVeto = await AnoVetoModuleRuntime.CreateAsync(
@@ -267,10 +294,12 @@ public sealed class AnoCorePlugin : BasePlugin
                 _pendingAnoVeto = createdAnoVeto;
                 _pendingPlaytime = createdPlaytime;
                 _pendingRank = createdRank;
+                _pendingChatFormatter = createdChatFormatter;
                 created = null;
                 createdAnoVeto = null;
                 createdPlaytime = null;
                 createdRank = null;
+                createdChatFormatter = null;
                 Server.NextWorldUpdate(() => ActivateRuntime(cancellationToken));
             }
         }
@@ -295,6 +324,7 @@ public sealed class AnoCorePlugin : BasePlugin
                     _pendingPlaytime = null;
                     _pendingRank?.Dispose();
                     _pendingRank = null;
+                    _pendingChatFormatter = null;
                     _pendingAnoVeto?.Dispose();
                     _pendingAnoVeto = null;
                     _pendingRuntime?.Dispose();
@@ -321,10 +351,12 @@ public sealed class AnoCorePlugin : BasePlugin
             var anoVeto = _pendingAnoVeto;
             var playtime = _pendingPlaytime;
             var rank = _pendingRank;
+            var chatFormatter = _pendingChatFormatter;
             _pendingRuntime = null;
             _pendingAnoVeto = null;
             _pendingPlaytime = null;
             _pendingRank = null;
+            _pendingChatFormatter = null;
             ModerationCommandController? adminCommands = null;
             RankAdjustmentCommandController? rankAdminCommands = null;
             RankAdjustmentNotificationService? rankAdminNotifications = null;
@@ -444,6 +476,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 _anoVeto = anoVeto;
                 _playtime = playtime;
                 _rank = rank;
+                _chatFormatter = chatFormatter;
                 _combat = combat;
                 _anoVetoExpiryTimer = expiryTimer;
                 _voiceModerationTimer = voiceTimer;
