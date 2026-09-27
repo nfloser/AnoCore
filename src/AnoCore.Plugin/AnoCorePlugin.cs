@@ -43,6 +43,7 @@ public sealed class AnoCorePlugin : BasePlugin
     private string _combatServerInstance = string.Empty;
     private ModerationCommandController? _adminCommands;
     private RankAdjustmentCommandController? _rankAdminCommands;
+    private RankAdjustmentNotificationService? _rankAdminNotifications;
     private ModerationCommunicationRuntime? _communicationModeration;
     private CounterStrikeChatModerationAdapter? _chatModeration;
     private ModerationVoiceCoordinator? _voiceModeration;
@@ -124,6 +125,8 @@ public sealed class AnoCorePlugin : BasePlugin
             _commands = null;
             _rankAdminCommands?.Dispose();
             _rankAdminCommands = null;
+            _rankAdminNotifications?.Dispose();
+            _rankAdminNotifications = null;
             _adminCommands?.Dispose();
             _adminCommands = null;
             _runtime?.Dispose();
@@ -318,6 +321,7 @@ public sealed class AnoCorePlugin : BasePlugin
             _pendingRank = null;
             ModerationCommandController? adminCommands = null;
             RankAdjustmentCommandController? rankAdminCommands = null;
+            RankAdjustmentNotificationService? rankAdminNotifications = null;
             RankTransitionMonitor? transitionMonitor = null;
             CombatModule? combat = null;
             ModerationCommunicationRuntime? communicationModeration = null;
@@ -350,10 +354,20 @@ public sealed class AnoCorePlugin : BasePlugin
                 adminCommands = new ModerationCommandController(
                     runtime.Commands,
                     new ModerationCommandExecutor(targetGateway, runtime.Moderation));
+                rankAdminNotifications = rank is null
+                    ? null
+                    : new RankAdjustmentNotificationService(
+                        rank.Configuration,
+                        runtime.RankAdjustmentAdministration,
+                        runtime.Combat,
+                        new CounterStrikeRankTransitionNotifier(runtime.Players),
+                        exception => Logger.LogError(
+                            exception, "Rank adjustment notification failed."));
                 rankAdminCommands = new RankAdjustmentCommandController(
                     runtime.Commands,
                     new RankAdjustmentCommandExecutor(
-                        targetGateway, runtime.RankAdjustmentAdministration));
+                        targetGateway,
+                        rankAdminNotifications ?? runtime.RankAdjustmentAdministration));
 
                 transitionMonitor = rank is null
                     ? null
@@ -410,6 +424,8 @@ public sealed class AnoCorePlugin : BasePlugin
                 MenuPresenter = presenter;
                 _adminCommands = adminCommands;
                 _rankAdminCommands = rankAdminCommands;
+                _rankAdminNotifications = rankAdminNotifications;
+                rankAdminNotifications = null;
                 _communicationModeration = communicationModeration;
                 _chatModeration = chatModeration;
                 _voiceModeration = voiceModeration;
@@ -442,6 +458,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 anoVeto?.Dispose();
                 bridge.Dispose();
                 rankAdminCommands?.Dispose();
+                rankAdminNotifications?.Dispose();
                 adminCommands?.Dispose();
                 runtime.Dispose();
                 MenuPresenter = null;
