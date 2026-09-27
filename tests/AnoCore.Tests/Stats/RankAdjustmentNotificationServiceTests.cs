@@ -49,6 +49,25 @@ public sealed class RankAdjustmentNotificationServiceTests
     }
 
     [TestMethod]
+    public async Task ApplyAsync_CombinesAdjustmentBeforeFlooringNegativeCombatScore()
+    {
+        var combat = new StubCombat(new CombatTotals(0, 5, 0));
+        var sink = new RecordingSink();
+        using var service = new RankAdjustmentNotificationService(
+            Configuration(),
+            new StubAdministration(new RankAdjustmentAdminResult(14, 15, Guid.NewGuid())),
+            combat, sink);
+
+        await service.ApplyAsync(RankAdjustmentAdminOperation.Give,
+            Target, 1, Actor, "reward", Now);
+
+        var transition = sink.Notifications.Single().Transition;
+        Assert.AreEqual(9L, transition.PreviousPoints);
+        Assert.AreEqual(10L, transition.CurrentPoints);
+        Assert.AreEqual(RankTransitionKind.Promotion, transition.Kind);
+    }
+
+    [TestMethod]
     public async Task ApplyAsync_NotifiesDemotionAndSkipsWithinRankChange()
     {
         var combat = new StubCombat(new CombatTotals(4, 0, 0));
