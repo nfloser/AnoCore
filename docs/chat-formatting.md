@@ -1,6 +1,6 @@
 # Shared chat formatting (development)
 
-The engine-independent formatter loads `config/chat-format.json` and combines trusted templates with the shared asynchronous placeholder registry. Its defaults are:
+Plugin startup creates and validates the engine-independent formatter from `config/chat-format.json`; a formatting failure is isolated from other modules. The formatter combines trusted templates with the shared asynchronous placeholder registry. Its defaults are:
 
 ```json
 {
