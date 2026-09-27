@@ -148,7 +148,7 @@ public sealed class ChatMessageFormatter
             request.DisplayName,
             isConnected: true,
             isAlive: false,
-            PlayerTeam.None,
+            PlayerTeam.Unknown,
             DateTimeOffset.UnixEpoch,
             DateTimeOffset.UnixEpoch);
         var prepared = await PrepareAsync(player, cancellationToken).ConfigureAwait(false);
