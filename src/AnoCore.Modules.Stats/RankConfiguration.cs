@@ -63,7 +63,8 @@ public sealed class RankConfiguration
                 || threshold.Name.Any(char.IsControl))
                 errors.Add("Rank names must contain 1 to 48 printable characters.");
             if (threshold is not null
-                && (threshold.Tag.Length > 24 || threshold.Tag.Any(char.IsControl)))
+                && (threshold.Tag is null || threshold.Tag.Length > 24
+                    || threshold.Tag.Any(char.IsControl)))
                 errors.Add("Rank tags must contain at most 24 printable characters.");
             if (threshold is null || threshold.MinimumPoints <= previous
                 || threshold.MinimumPoints < 0)
