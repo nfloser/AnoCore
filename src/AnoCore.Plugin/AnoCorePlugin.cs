@@ -1,4 +1,5 @@
 using AnoCore.Abstractions.Players;
+using AnoCore.Abstractions.Stats;
 using AnoCore.Abstractions.Voting;
 using AnoCore.Modules.Admin;
 using AnoCore.Modules.AnoVeto;
@@ -364,7 +365,8 @@ public sealed class AnoCorePlugin : BasePlugin
                         exception => Logger.LogError(
                             exception, "Rank adjustment notification failed."));
                 IRankAdjustmentAdministrationService rankAdministration =
-                    rankAdminNotifications ?? runtime.RankAdjustmentAdministration;
+                    (IRankAdjustmentAdministrationService?)rankAdminNotifications
+                    ?? runtime.RankAdjustmentAdministration;
                 rankAdminCommands = new RankAdjustmentCommandController(
                     runtime.Commands,
                     new RankAdjustmentCommandExecutor(
