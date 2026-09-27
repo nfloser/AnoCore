@@ -1,3 +1,4 @@
+using AnoCore.Abstractions.Placeholders;
 using AnoCore.Abstractions.Players;
 using AnoCore.Abstractions.Stats;
 using AnoCore.Abstractions.Voting;
@@ -213,9 +214,13 @@ public sealed class AnoCorePlugin : BasePlugin
 
             try
             {
+                var placeholders = created.GetService(typeof(IPlaceholderRegistry))
+                    as IPlaceholderRegistry
+                    ?? throw new InvalidOperationException(
+                        "AnoCore runtime did not provide the shared placeholder registry.");
                 createdRank = await RankModule.CreateAsync(
                     configuration, created.Commands, players, created.Combat,
-                    created.Menus, timeout.Token).ConfigureAwait(false);
+                    created.Menus, placeholders, timeout.Token).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {

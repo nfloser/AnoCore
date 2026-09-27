@@ -3,6 +3,7 @@ using AnoCore.Abstractions.Commands;
 using AnoCore.Abstractions.Configuration;
 using AnoCore.Abstractions.Menus;
 using AnoCore.Abstractions.Modules;
+using AnoCore.Abstractions.Placeholders;
 using AnoCore.Abstractions.Players;
 using AnoCore.Abstractions.Stats;
 
@@ -23,10 +24,12 @@ public sealed class RankModule : IDisposable
     private readonly IDisposable _command;
     private readonly IDisposable _topCommand;
     private readonly IDisposable? _menuCommand;
+    private readonly IReadOnlyList<IDisposable> _placeholders;
     private int _disposed;
 
     private RankModule(RankConfiguration configuration, IAnoCommandRegistry commands,
-        IPlayerRegistry players, ICombatRepository combat, IMenuService? menus)
+        IPlayerRegistry players, ICombatRepository combat, IMenuService? menus,
+        IPlaceholderRegistry? placeholders)
     {
         _configuration = configuration;
         _players = players;
@@ -65,6 +68,20 @@ public sealed class RankModule : IDisposable
             _command.Dispose();
             throw;
         }
+
+        try
+        {
+            _placeholders = placeholders is null
+                ? []
+                : RegisterPlaceholders(placeholders);
+        }
+        catch
+        {
+            _menuCommand?.Dispose();
+            _topCommand.Dispose();
+            _command.Dispose();
+            throw;
+        }
     }
 
     public RankConfiguration Configuration => _configuration;
@@ -72,7 +89,17 @@ public sealed class RankModule : IDisposable
     public static Task<RankModule> CreateAsync(IConfigStore configuration,
         IAnoCommandRegistry commands, IPlayerRegistry players, ICombatRepository combat,
         CancellationToken cancellationToken = default)
-        => CreateCoreAsync(configuration, commands, players, combat, null, cancellationToken);
+        => CreateCoreAsync(configuration, commands, players, combat, null, null,
+            cancellationToken);
+
+    public static Task<RankModule> CreateAsync(IConfigStore configuration,
+        IAnoCommandRegistry commands, IPlayerRegistry players, ICombatRepository combat,
+        IPlaceholderRegistry placeholders, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(placeholders);
+        return CreateCoreAsync(configuration, commands, players, combat, null, placeholders,
+            cancellationToken);
+    }
 
     public static Task<RankModule> CreateAsync(IConfigStore configuration,
         IAnoCommandRegistry commands, IPlayerRegistry players, ICombatRepository combat,
@@ -80,12 +107,24 @@ public sealed class RankModule : IDisposable
     {
         ArgumentNullException.ThrowIfNull(menus);
         return CreateCoreAsync(
-            configuration, commands, players, combat, menus, cancellationToken);
+            configuration, commands, players, combat, menus, null, cancellationToken);
+    }
+
+    public static Task<RankModule> CreateAsync(IConfigStore configuration,
+        IAnoCommandRegistry commands, IPlayerRegistry players, ICombatRepository combat,
+        IMenuService menus, IPlaceholderRegistry placeholders,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(menus);
+        ArgumentNullException.ThrowIfNull(placeholders);
+        return CreateCoreAsync(configuration, commands, players, combat, menus, placeholders,
+            cancellationToken);
     }
 
     private static async Task<RankModule> CreateCoreAsync(IConfigStore configuration,
         IAnoCommandRegistry commands, IPlayerRegistry players, ICombatRepository combat,
-        IMenuService? menus, CancellationToken cancellationToken)
+        IMenuService? menus, IPlaceholderRegistry? placeholders,
+        CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(configuration);
         ArgumentNullException.ThrowIfNull(commands);
@@ -95,7 +134,61 @@ public sealed class RankModule : IDisposable
             () => RankConfiguration.Default, RankConfiguration.Validate, cancellationToken)
             .ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
-        return new RankModule(settings, commands, players, combat, menus);
+        return new RankModule(settings, commands, players, combat, menus, placeholders);
+    }
+
+    private IReadOnlyList<IDisposable> RegisterPlaceholders(
+        IPlaceholderRegistry placeholders)
+    {
+        var registrations = new List<IDisposable>();
+        try
+        {
+            registrations.Add(placeholders.Register(Owner, "rank.tag",
+                (context, token) => ResolvePlaceholderAsync(
+                    context, threshold => threshold.Tag ?? string.Empty, token)));
+            registrations.Add(placeholders.Register(Owner, "rank.name",
+                (context, token) => ResolvePlaceholderAsync(
+                    context, threshold => threshold.Name, token)));
+            registrations.Add(placeholders.Register(Owner, "rank.points",
+                (context, token) => ResolvePointsPlaceholderAsync(context, token)));
+            return registrations;
+        }
+        catch
+        {
+            foreach (var registration in registrations)
+                registration.Dispose();
+            throw;
+        }
+    }
+
+    private async ValueTask<string?> ResolvePlaceholderAsync(
+        PlaceholderContext context, Func<RankThreshold, string> selector,
+        CancellationToken cancellationToken)
+    {
+        var points = await ResolvePointsAsync(context, cancellationToken)
+            .ConfigureAwait(false);
+        return points is null ? null : selector(_configuration.ForScore(points.Value));
+    }
+
+    private async ValueTask<string?> ResolvePointsPlaceholderAsync(
+        PlaceholderContext context, CancellationToken cancellationToken)
+    {
+        var points = await ResolvePointsAsync(context, cancellationToken)
+            .ConfigureAwait(false);
+        return points?.ToString(CultureInfo.InvariantCulture);
+    }
+
+    private async ValueTask<long?> ResolvePointsAsync(
+        PlaceholderContext context, CancellationToken cancellationToken)
+    {
+        var player = context.Values.FirstOrDefault(pair =>
+            string.Equals(pair.Key, "player", StringComparison.OrdinalIgnoreCase)).Value;
+        if (player is not PlayerId playerId)
+            return null;
+        var placement = await _combat.GetScorePlacementAsync(playerId,
+            _configuration.KillPoints, _configuration.AssistPoints,
+            _configuration.DeathPenalty, cancellationToken).ConfigureAwait(false);
+        return placement?.Points ?? 0;
     }
 
     private async ValueTask<CommandResult> ShowRankAsync(PlayerId? caller,
@@ -300,6 +393,8 @@ public sealed class RankModule : IDisposable
 
         foreach (var registration in registrations)
             registration.Dispose();
+        foreach (var placeholder in _placeholders)
+            placeholder.Dispose();
         _menuCommand?.Dispose();
         _topCommand.Dispose();
         _command.Dispose();

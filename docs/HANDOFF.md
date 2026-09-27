@@ -1,3 +1,9 @@
+## Shared rank tag checkpoint — 2026-09-27
+
+- Issue #110 / draft PR #111 / branch `feature/110-rank-tags` stacks on #109. The Ranks module registers `{rank.tag}`, `{rank.name}` and `{rank.points}` in the existing shared asynchronous placeholder registry, backed by the same adjusted score-placement query and configured thresholds.
+- Tags are configurable per threshold, printable, bounded to 24 characters and may be empty. Creation rolls back partial placeholder and command registration; unload removes owned registrations. Tests cover exact threshold values, query weights, missing context, invalid tags, collision rollback and disposal. CI #380 passed build, 302 tests including MariaDB, formatting, publish and package validation on reviewed code head `1153dd79bc08d07b95f5a4c3654ce60b2e97cbb2`.
+- Review found and corrected import formatting; no code blocker remains. This package provides the common data source only. Native chat/clan formatting and CS2/DatHost acceptance remain open; verify the final documentation-only head.
+
 ## Rank menu checkpoint — 2026-09-27
 
 - Issue #108 / draft PR #109 / branch `feature/108-rank-menu` stacks on #107. `anoranks [page]` opens a per-player shared menu with own adjusted rank/points/placement/progress, five deterministic leaderboard entries and bounded previous/next navigation.
