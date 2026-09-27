@@ -5,16 +5,17 @@ using CounterStrikeSharp.API;
 namespace AnoCore.Plugin.Players;
 
 public sealed class CounterStrikeRankTransitionNotifier(
-    IPlayerRegistry players) : IRankTransitionNotificationSink
+    IPlayerRegistry players) : IRankTransitionNotificationSink, IDisposable
 {
     private readonly IPlayerRegistry _players =
         players ?? throw new ArgumentNullException(nameof(players));
+    private int _disposed;
 
     public ValueTask NotifyAsync(PlayerId playerId, RankTransition transition,
         CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        if (!_players.TryGet(playerId, out var expected)
+        if (Volatile.Read(ref _disposed) != 0 || !_players.TryGet(playerId, out var expected)
             || expected is null || !expected.IsConnected)
             return ValueTask.CompletedTask;
 
@@ -27,7 +28,7 @@ public sealed class CounterStrikeRankTransitionNotifier(
 
         Server.NextWorldUpdate(() =>
         {
-            if (!_players.TryGet(playerId, out var current)
+            if (Volatile.Read(ref _disposed) != 0 || !_players.TryGet(playerId, out var current)
                 || current is null || !current.IsConnected
                 || current.SessionId != expectedSession)
                 return;
@@ -38,4 +39,6 @@ public sealed class CounterStrikeRankTransitionNotifier(
         });
         return ValueTask.CompletedTask;
     }
+
+    public void Dispose() => Interlocked.Exchange(ref _disposed, 1);
 }
