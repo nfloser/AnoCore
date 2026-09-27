@@ -1,4 +1,5 @@
 using AnoCore.Abstractions.Commands;
+using AnoCore.Abstractions.Menus;
 using AnoCore.Abstractions.Modules;
 using AnoCore.Abstractions.Players;
 using AnoCore.Abstractions.Stats;
@@ -6,6 +7,7 @@ using AnoCore.Modules.Stats;
 using AnoCore.Runtime.Commands;
 using AnoCore.Runtime.Configuration;
 using AnoCore.Runtime.Events;
+using AnoCore.Runtime.Menus;
 using AnoCore.Runtime.Players;
 
 namespace AnoCore.Tests.Stats;
@@ -124,6 +126,100 @@ public sealed class RankModuleTests
         Assert.AreEqual((3, 1, 2, 5, 5), repository.LastScoreQuery);
         Assert.AreEqual(CommandFailureReason.InvalidInput,
             (await commands.ExecuteAsync("!anotopranks 0", null)).FailureReason);
+    }
+
+    [TestMethod]
+    public async Task RankMenu_UsesSharedScoresAndNavigatesBoundedPages()
+    {
+        var store = new JsonConfigStore(_root);
+        await store.SaveAsync("ranks", new RankConfiguration
+        {
+            Thresholds =
+            [
+                new RankThreshold("Recruit", 0),
+                new RankThreshold("Veteran", 10),
+                new RankThreshold("Elite", 20),
+            ],
+        });
+        var events = new AnoEventBus();
+        var players = new PlayerRegistry(events);
+        await players.ConnectAsync(new PlayerConnection(Player, "Player",
+            PlayerTeam.Terrorist, true, DateTimeOffset.UtcNow));
+        var commands = new CommandRegistry(new AllowAll());
+        var menus = new MenuService();
+        var scores = new[]
+        {
+            new CombatScoreRankEntry(Player, 10, 6, "Player"),
+            new CombatScoreRankEntry(new PlayerId(76561198000012602), 9, 7, "Other|Name"),
+        };
+        var repository = new FakeRepository(new CombatTotals(0, 0, 0), scores,
+            new CombatScoreRankEntry(Player, 10, 6, "Player"));
+        using var module = await RankModule.CreateAsync(
+            store, commands, players, repository, menus);
+
+        var result = await commands.ExecuteAsync("!anoranks 2", Player);
+
+        Assert.IsTrue(result.Success);
+        Assert.IsTrue(menus.TryGetOpenMenu(Player, out var pageTwo));
+        Assert.IsNotNull(pageTwo);
+        StringAssert.Contains(pageTwo.Title, "page 2");
+        Assert.IsTrue(pageTwo.Options.Any(option =>
+            option.Label.Contains("Veteran", StringComparison.Ordinal)));
+        Assert.IsTrue(pageTwo.Options.Any(option =>
+            option.Label.Contains("Other/Name", StringComparison.Ordinal)));
+        Assert.IsTrue(pageTwo.Options.Any(option => option.Id == "previous"));
+        Assert.IsFalse(pageTwo.Options.Any(option => option.Id == "next"));
+        Assert.AreEqual((2, 1, 1, 6, 5), repository.LastScoreQuery);
+
+        var selected = await menus.SelectAsync(Player, "previous");
+
+        Assert.IsTrue(selected.Accepted);
+        Assert.IsTrue(menus.TryGetOpenMenu(Player, out var pageOne));
+        StringAssert.Contains(pageOne!.Title, "page 1");
+        Assert.AreEqual((2, 1, 1, 6, 0), repository.LastScoreQuery);
+        module.Dispose();
+        Assert.IsFalse(menus.TryGetOpenMenu(Player, out _));
+        Assert.AreEqual(CommandFailureReason.NotFound,
+            (await commands.ExecuteAsync("!anoranks", Player)).FailureReason);
+    }
+
+    [TestMethod]
+    public async Task RankMenu_RejectsConsoleAndInvalidPageBeforeQueries()
+    {
+        var commands = new CommandRegistry(new AllowAll());
+        var menus = new MenuService();
+        var repository = new FakeRepository(new CombatTotals(0, 0, 0));
+        using var module = await RankModule.CreateAsync(
+            new JsonConfigStore(_root), commands,
+            new PlayerRegistry(new AnoEventBus()), repository, menus);
+
+        Assert.AreEqual(CommandFailureReason.InvalidInput,
+            (await commands.ExecuteAsync("!anoranks", null)).FailureReason);
+        Assert.AreEqual(CommandFailureReason.InvalidInput,
+            (await commands.ExecuteAsync("!anoranks 0", Player)).FailureReason);
+        Assert.IsNull(repository.LastScoreQuery);
+    }
+
+    [TestMethod]
+    public async Task RankMenuCommandCollision_RollsBackEarlierRankCommands()
+    {
+        var commands = new CommandRegistry(new AllowAll());
+        using var collision = commands.Register(new ModuleId("test.collision"),
+            new CommandDescriptor("anoranks", "Reserved for collision test."),
+            _ => ValueTask.FromResult(CommandResult.Ok()));
+
+        await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () =>
+            await RankModule.CreateAsync(new JsonConfigStore(_root), commands,
+                new PlayerRegistry(new AnoEventBus()),
+                new FakeRepository(new CombatTotals(0, 0, 0)),
+                new MenuService()));
+
+        Assert.AreEqual(CommandFailureReason.NotFound,
+            (await commands.ExecuteAsync("!anorank", Player)).FailureReason);
+        Assert.AreEqual(CommandFailureReason.NotFound,
+            (await commands.ExecuteAsync("!anotopranks", Player)).FailureReason);
+        Assert.AreEqual("Reserved for collision test.",
+            (await commands.ExecuteAsync("!anoranks", Player)).Message);
     }
 
     [TestMethod]
