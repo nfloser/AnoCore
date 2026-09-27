@@ -1,3 +1,9 @@
+## Combat rank notification checkpoint — 2026-09-27
+
+- Issue #104 / draft PR #105 / branch `feature/104-rank-transition-notifications` stacks on #103. Durable combat writes snapshot affected adjusted scores, serialize local callbacks, reuse the shared transition evaluator and schedule session-safe promotion/demotion chat messages.
+- Tests cover promotion, demotion, multiple affected players, replay/within-rank suppression, disabled notifications, cancellation and disposal. CI #367 passed build, tests including MariaDB, formatting, publish and package validation on reviewed code head `77933afb5f497c916f8c4cab6980c2e0a4b2cbbc`. Review fixed notifier ownership on activation failure and suppression of queued messages after unload; no known code blocker remains.
+- Native chat delivery and the underlying combat event mapping require the user's CS2/DatHost acceptance. Administrative-change notifications, rank tags and menus remain open.
+
 ## Rank administration commands checkpoint — 2026-09-26
 
 - Issue #102 / draft PR #103 / branch `feature/102-rank-admin-commands` stacks on #101. Four explicit give/take/set/reset commands use per-operation permissions, shared online/offline target resolution, immunity and the atomic audited service.

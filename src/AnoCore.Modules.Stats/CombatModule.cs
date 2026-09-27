@@ -9,6 +9,7 @@ public sealed class CombatModule : IDisposable
 {
     private readonly IPlayerRegistry _players;
     private readonly ICombatRepository _repository;
+    private readonly RankTransitionMonitor? _transitionMonitor;
     private readonly IDisposable _command;
     private readonly IDisposable _topCommand;
     private readonly IDisposable _deathCommand;
@@ -16,11 +17,12 @@ public sealed class CombatModule : IDisposable
     private int _disposed;
 
     public CombatModule(IAnoCommandRegistry commands, IPlayerRegistry players,
-        ICombatRepository repository)
+        ICombatRepository repository, RankTransitionMonitor? transitionMonitor = null)
     {
         ArgumentNullException.ThrowIfNull(commands);
         _players = players ?? throw new ArgumentNullException(nameof(players));
         _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+        _transitionMonitor = transitionMonitor;
         _command = commands.Register(new ModuleId("ano.stats"),
             new CommandDescriptor("anokda", "Show your kill, death and assist totals."),
             context => OwnStatsAsync(context.Caller, context.CancellationToken));
@@ -65,7 +67,9 @@ public sealed class CombatModule : IDisposable
     public ValueTask RecordAsync(CombatDeath death, CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, this);
-        return _repository.RecordAsync(death, cancellationToken);
+        return _transitionMonitor is null
+            ? _repository.RecordAsync(death, cancellationToken)
+            : _transitionMonitor.RecordAsync(death, cancellationToken);
     }
 
     private async ValueTask<CommandResult> OwnStatsAsync(PlayerId? caller,
@@ -125,6 +129,7 @@ public sealed class CombatModule : IDisposable
     public void Dispose()
     {
         if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
+        _transitionMonitor?.Dispose();
         _assistCommand.Dispose();
         _deathCommand.Dispose();
         _topCommand.Dispose();
