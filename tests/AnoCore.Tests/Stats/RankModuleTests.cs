@@ -150,7 +150,7 @@ public sealed class RankModuleTests
         var scores = new[]
         {
             new CombatScoreRankEntry(Player, 10, 6, "Player"),
-            new CombatScoreRankEntry(new PlayerId(76561198000012602), 9, 7, "Other|Name"),
+            new CombatScoreRankEntry(new PlayerId(76561198000012602), 9, 7, "Other|\tName"),
         };
         var repository = new FakeRepository(new CombatTotals(0, 0, 0), scores,
             new CombatScoreRankEntry(Player, 10, 6, "Player"));
@@ -166,7 +166,7 @@ public sealed class RankModuleTests
         Assert.IsTrue(pageTwo.Options.Any(option =>
             option.Label.Contains("Veteran", StringComparison.Ordinal)));
         Assert.IsTrue(pageTwo.Options.Any(option =>
-            option.Label.Contains("Other/Name", StringComparison.Ordinal)));
+            option.Label.Contains("Other/ Name", StringComparison.Ordinal)));
         Assert.IsTrue(pageTwo.Options.Any(option => option.Id == "previous"));
         Assert.IsFalse(pageTwo.Options.Any(option => option.Id == "next"));
         Assert.AreEqual((2, 1, 1, 6, 5), repository.LastScoreQuery);
