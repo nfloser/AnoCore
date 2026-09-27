@@ -1,8 +1,8 @@
 ## Shared chat formatting checkpoint — 2026-09-27
 
-- Issue #112 / draft PR to follow / branch `feature/112-chat-formatting` stacks on #111. A validated engine-independent formatter loads separate public/team templates, resolves shared placeholders with player context, then safely substitutes bounded player name and message data.
-- Required data tokens occur exactly once; templates and untrusted fields reject/replace control characters and enforce bounds. Tests cover rank-tag composition, routing, literal user braces, sanitization, cancellation and invalid configuration.
-- This is formatting policy, not native chat interception. The existing native hook is synchronous; a later adapter needs a session-safe warmed snapshot and CS2/DatHost acceptance. Exact-head CI and review remain.
+- Issue #112 / draft PR #113 / branch `feature/112-chat-formatting` stacks on #111. A validated engine-independent formatter loads separate public/team templates, resolves shared placeholders with player context, then safely substitutes bounded player name and message data.
+- Required data tokens occur exactly once; templates and untrusted fields reject/replace control characters and enforce bounds. Tests cover rank-tag composition, routing, literal user braces, sanitization, cancellation and invalid configuration. Plugin startup creates/validates the formatter and isolates configuration failure. CI #384 passed build, 308 tests including MariaDB, formatting, publish and package validation on reviewed code head `8d9919a2eae493fef37e30bab60fd15e36030282`.
+- Review found and fixed missing plugin composition; no known code blocker remains. This is formatting policy, not native chat interception. The existing native hook is synchronous; a later adapter needs a session-safe warmed snapshot and CS2/DatHost acceptance. Verify the final documentation-only head.
 
 ## Shared rank tag checkpoint — 2026-09-27
 
