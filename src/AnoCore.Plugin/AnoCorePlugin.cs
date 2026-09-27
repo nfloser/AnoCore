@@ -363,11 +363,12 @@ public sealed class AnoCorePlugin : BasePlugin
                         new CounterStrikeRankTransitionNotifier(runtime.Players),
                         exception => Logger.LogError(
                             exception, "Rank adjustment notification failed."));
+                IRankAdjustmentAdministrationService rankAdministration =
+                    rankAdminNotifications ?? runtime.RankAdjustmentAdministration;
                 rankAdminCommands = new RankAdjustmentCommandController(
                     runtime.Commands,
                     new RankAdjustmentCommandExecutor(
-                        targetGateway,
-                        rankAdminNotifications ?? runtime.RankAdjustmentAdministration));
+                        targetGateway, rankAdministration));
 
                 transitionMonitor = rank is null
                     ? null
