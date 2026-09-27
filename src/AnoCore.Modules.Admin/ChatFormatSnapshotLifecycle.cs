@@ -166,6 +166,10 @@ public sealed class ChatFormatSnapshotLifecycle : IDisposable
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
         {
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception exception)
         {
             lock (_sync)
