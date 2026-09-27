@@ -1,3 +1,9 @@
+## Warmed chat format snapshot checkpoint — 2026-09-27
+
+- Issue #114 / draft PR to follow / branch `feature/114-chat-format-snapshots` stacks on #113. Prepared public/team formats resolve asynchronous placeholders once per current player session; synchronous `TryFormat` only validates SteamID/session and substitutes a bounded sanitized message.
+- Connect/reconnect, name updates, disconnect, already-online bootstrap, stale in-flight warms and unload are session-safe. Bootstrap failures are isolated. Plugin unload disposes the snapshot lifecycle before rank placeholder providers.
+- This package does not intercept or broadcast native CS2 chat. That adapter and CS2/DatHost acceptance remain open; exact-head CI and review remain.
+
 ## Shared chat formatting checkpoint — 2026-09-27
 
 - Issue #112 / draft PR #113 / branch `feature/112-chat-formatting` stacks on #111. A validated engine-independent formatter loads separate public/team templates, resolves shared placeholders with player context, then safely substitutes bounded player name and message data.
