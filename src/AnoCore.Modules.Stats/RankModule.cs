@@ -39,6 +39,8 @@ public sealed class RankModule : IDisposable
         }
     }
 
+    public RankConfiguration Configuration => _configuration;
+
     public static async Task<RankModule> CreateAsync(IConfigStore configuration,
         IAnoCommandRegistry commands, IPlayerRegistry players, ICombatRepository combat,
         CancellationToken cancellationToken = default)
