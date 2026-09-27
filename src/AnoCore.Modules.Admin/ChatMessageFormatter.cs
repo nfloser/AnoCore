@@ -65,10 +65,30 @@ public sealed record ChatFormatRequest(
     string Message,
     bool IsTeamMessage);
 
+public sealed class PreparedChatFormat
+{
+    private readonly string _publicTemplate;
+    private readonly string _teamTemplate;
+
+    internal PreparedChatFormat(string publicTemplate, string teamTemplate)
+    {
+        _publicTemplate = publicTemplate;
+        _teamTemplate = teamTemplate;
+    }
+
+    public string Format(string? message, bool isTeamMessage)
+    {
+        var sanitized = ChatMessageFormatter.Sanitize(
+            message ?? string.Empty, ChatMessageFormatter.MaximumMessageLength);
+        return (isTeamMessage ? _teamTemplate : _publicTemplate)
+            .Replace("{message}", sanitized, StringComparison.OrdinalIgnoreCase);
+    }
+}
+
 public sealed class ChatMessageFormatter
 {
+    internal const int MaximumMessageLength = 256;
     private const int MaximumNameLength = 48;
-    private const int MaximumMessageLength = 256;
     private readonly ChatFormatConfiguration _configuration;
     private readonly IPlaceholderRegistry _placeholders;
 
@@ -96,34 +116,63 @@ public sealed class ChatMessageFormatter
         return new ChatMessageFormatter(settings, placeholders);
     }
 
+    public async ValueTask<PreparedChatFormat> PrepareAsync(
+        PlayerSnapshot player,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(player);
+        cancellationToken.ThrowIfCancellationRequested();
+        var context = new PlaceholderContext(
+            new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["player"] = player.Id,
+                ["session"] = player.SessionId,
+            });
+        var publicTemplate = await PrepareTemplateAsync(
+            _configuration.PublicTemplate, player, context, cancellationToken)
+            .ConfigureAwait(false);
+        var teamTemplate = await PrepareTemplateAsync(
+            _configuration.TeamTemplate, player, context, cancellationToken)
+            .ConfigureAwait(false);
+        return new PreparedChatFormat(publicTemplate, teamTemplate);
+    }
+
     public async ValueTask<string> FormatAsync(
         ChatFormatRequest request,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        cancellationToken.ThrowIfCancellationRequested();
-
-        var template = request.IsTeamMessage
-            ? _configuration.TeamTemplate
-            : _configuration.PublicTemplate;
-        var context = new PlaceholderContext(
-            new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase)
-            {
-                ["player"] = request.PlayerId,
-            });
-        var resolved = await _placeholders.ResolveAsync(
-            template, context, cancellationToken).ConfigureAwait(false);
-
-        var name = string.IsNullOrWhiteSpace(request.DisplayName)
-            ? request.PlayerId.SteamId64.ToString(CultureInfo.InvariantCulture)
-            : Sanitize(request.DisplayName, MaximumNameLength);
-        var message = Sanitize(request.Message ?? string.Empty, MaximumMessageLength);
-        return resolved
-            .Replace("{player.name}", name, StringComparison.OrdinalIgnoreCase)
-            .Replace("{message}", message, StringComparison.OrdinalIgnoreCase);
+        var player = new PlayerSnapshot(
+            request.PlayerId,
+            PlayerSessionId.New(),
+            string.IsNullOrWhiteSpace(request.DisplayName)
+                ? request.PlayerId.SteamId64.ToString(CultureInfo.InvariantCulture)
+                : request.DisplayName,
+            isConnected: true,
+            isAlive: false,
+            PlayerTeam.Unknown,
+            DateTimeOffset.UnixEpoch,
+            DateTimeOffset.UnixEpoch);
+        var prepared = await PrepareAsync(player, cancellationToken).ConfigureAwait(false);
+        return prepared.Format(request.Message, request.IsTeamMessage);
     }
 
-    private static string Sanitize(string value, int maximumLength)
+    private async ValueTask<string> PrepareTemplateAsync(
+        string template,
+        PlayerSnapshot player,
+        PlaceholderContext context,
+        CancellationToken cancellationToken)
+    {
+        var resolved = await _placeholders.ResolveAsync(
+            template, context, cancellationToken).ConfigureAwait(false);
+        var name = string.IsNullOrWhiteSpace(player.Name)
+            ? player.Id.SteamId64.ToString(CultureInfo.InvariantCulture)
+            : Sanitize(player.Name, MaximumNameLength);
+        return resolved.Replace(
+            "{player.name}", name, StringComparison.OrdinalIgnoreCase);
+    }
+
+    internal static string Sanitize(string value, int maximumLength)
     {
         var sanitized = string.Concat(value.Select(character =>
             char.IsControl(character) ? ' ' : character));
