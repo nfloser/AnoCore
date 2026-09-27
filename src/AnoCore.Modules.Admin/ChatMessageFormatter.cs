@@ -145,7 +145,9 @@ public sealed class ChatMessageFormatter
         var player = new PlayerSnapshot(
             request.PlayerId,
             PlayerSessionId.New(),
-            request.DisplayName,
+            string.IsNullOrWhiteSpace(request.DisplayName)
+                ? request.PlayerId.SteamId64.ToString(CultureInfo.InvariantCulture)
+                : request.DisplayName,
             isConnected: true,
             isAlive: false,
             PlayerTeam.Unknown,
