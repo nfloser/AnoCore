@@ -206,7 +206,8 @@ public sealed class RankModuleTests
         var commands = new CommandRegistry(new AllowAll());
         using var collision = commands.Register(new ModuleId("test.collision"),
             new CommandDescriptor("anoranks", "Reserved for collision test."),
-            _ => ValueTask.FromResult(CommandResult.Ok()));
+            _ => ValueTask.FromResult(
+                CommandResult.Ok("Reserved for collision test.")));
 
         await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () =>
             await RankModule.CreateAsync(new JsonConfigStore(_root), commands,
