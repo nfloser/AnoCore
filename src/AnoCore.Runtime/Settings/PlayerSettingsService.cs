@@ -16,14 +16,20 @@ public sealed class PlayerSettingsService : IPlayerSettingsService
     private readonly JsonSerializerOptions _serializerOptions;
 
     public PlayerSettingsService(
-        IModuleDataStore store,
-        JsonSerializerOptions? serializerOptions = null,
-        IAnoEventBus? events = null,
-        Action<Exception>? onEventFailure = null)
+        IModuleDataStore store, JsonSerializerOptions? serializerOptions = null)
     {
         _store = store ?? throw new ArgumentNullException(nameof(store));
         _serializerOptions = serializerOptions ?? new JsonSerializerOptions(JsonSerializerDefaults.Web);
-        _events = events;
+    }
+
+    public PlayerSettingsService(
+        IModuleDataStore store,
+        JsonSerializerOptions? serializerOptions,
+        IAnoEventBus events,
+        Action<Exception>? onEventFailure = null)
+        : this(store, serializerOptions)
+    {
+        _events = events ?? throw new ArgumentNullException(nameof(events));
         _onEventFailure = onEventFailure;
     }
 

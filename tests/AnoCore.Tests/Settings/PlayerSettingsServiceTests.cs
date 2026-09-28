@@ -47,7 +47,7 @@ public sealed class PlayerSettingsServiceTests
                 observed.Add(value);
                 return ValueTask.CompletedTask;
             });
-        var service = new PlayerSettingsService(store, events: events);
+        var service = new PlayerSettingsService(store, null, events);
         var key = new PlayerSettingKey<string>("chat.preference", "default");
 
         Assert.IsFalse(await service.ResetAsync(Player, key));
@@ -77,7 +77,7 @@ public sealed class PlayerSettingsServiceTests
                 observed++;
                 return ValueTask.CompletedTask;
             });
-        var service = new PlayerSettingsService(store, events: events);
+        var service = new PlayerSettingsService(store, null, events);
         var key = new PlayerSettingKey<int>("ui.scale", 1);
 
         await Assert.ThrowsExactlyAsync<InvalidOperationException>(
@@ -97,7 +97,7 @@ public sealed class PlayerSettingsServiceTests
                 published++;
                 return ValueTask.CompletedTask;
             });
-        var service = new PlayerSettingsService(store, events: events);
+        var service = new PlayerSettingsService(store, null, events);
         var key = new PlayerSettingKey<int>("ui.scale", 1);
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
@@ -124,7 +124,7 @@ public sealed class PlayerSettingsServiceTests
         using var subscription = events.Subscribe<PlayerSettingChangedEvent>(
             (_, _) => throw new InvalidOperationException("observer failed"));
         var service = new PlayerSettingsService(
-            store, events: events, onEventFailure: reported.Add);
+            store, null, events, onEventFailure: reported.Add);
         var key = new PlayerSettingKey<int>("ui.scale", 1);
 
         await service.SetAsync(Player, key, 2);
