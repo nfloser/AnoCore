@@ -1,4 +1,5 @@
 using AnoCore.Abstractions.Commands;
+using AnoCore.Abstractions.Menus;
 using AnoCore.Abstractions.Permissions;
 using AnoCore.Abstractions.Placeholders;
 using AnoCore.Abstractions.Players;
@@ -7,6 +8,7 @@ using AnoCore.Modules.Admin;
 using AnoCore.Runtime.Commands;
 using AnoCore.Runtime.Configuration;
 using AnoCore.Runtime.Events;
+using AnoCore.Runtime.Menus;
 using AnoCore.Runtime.Placeholders;
 using AnoCore.Runtime.Players;
 
@@ -98,7 +100,6 @@ public sealed class SelectableChatTagModuleTests
             (await commands.ExecuteAsync("!anosettag staff", Player)).FailureReason);
 
         permissions.Allowed = true;
-        var old = players.OnlinePlayers.Single();
         await players.DisconnectAsync(Player, old.SessionId, DateTimeOffset.UtcNow);
         permissions.RaiseReload();
         Assert.AreEqual(0, refreshes);
@@ -131,6 +132,88 @@ public sealed class SelectableChatTagModuleTests
         CollectionAssert.AreEquivalent(
             new[] { Player, other }, started.ToArray());
         blocker.SetResult();
+    }
+
+    [TestMethod]
+    public async Task MenuShowsFiveEligibleTagsAndNavigatesBoundedPages()
+    {
+        var config = new JsonConfigStore(_root);
+        await config.SaveAsync("chat-tags", new SelectableChatTagConfiguration
+        {
+            Tags = Enumerable.Range(1, 7)
+                .Select(index => new SelectableChatTag(
+                    $"tag{index}", $"[Tag {index}]", "ano.chat.staff"))
+                .ToList(),
+        });
+        var permissions = new Permissions { Allowed = true };
+        var players = await ConnectedAsync();
+        var menus = new MenuService();
+        var commands = new CommandRegistry(permissions);
+        using var module = await SelectableChatTagModule.CreateAsync(
+            config, commands, new PlaceholderRegistry(), players,
+            new Settings(), permissions, permissions,
+            (_, _) => ValueTask.CompletedTask, menus: menus);
+
+        Assert.IsTrue((await commands.ExecuteAsync("!anochatmenu", Player)).Success);
+        Assert.IsTrue(menus.TryGetOpenMenu(Player, out var first));
+        Assert.AreEqual(5, first!.Options.Count(option =>
+            option.Label.StartsWith("[Tag", StringComparison.Ordinal)));
+        Assert.IsTrue(first.Options.Any(option => option.Id == "next"));
+        Assert.IsFalse(first.Options.Any(option => option.Id == "previous"));
+
+        await menus.SelectAsync(Player, "next");
+        Assert.IsTrue(menus.TryGetOpenMenu(Player, out var second));
+        Assert.AreEqual(2, second!.Options.Count(option =>
+            option.Label.StartsWith("[Tag", StringComparison.Ordinal)));
+        Assert.IsTrue(second.Options.Any(option => option.Id == "previous"));
+        Assert.IsFalse(second.Options.Any(option => option.Id == "next"));
+    }
+
+    [TestMethod]
+    public async Task MenuSelectionRechecksPermissionAndSessionBeforeSaving()
+    {
+        var permissions = new Permissions { Allowed = true };
+        var settings = new Settings();
+        var players = await ConnectedAsync();
+        var menus = new MenuService();
+        var commands = new CommandRegistry(permissions);
+        var refreshes = 0;
+        using var module = await SelectableChatTagModule.CreateAsync(
+            await ConfigAsync(), commands, new PlaceholderRegistry(), players,
+            settings, permissions, permissions,
+            (_, _) =>
+            {
+                refreshes++;
+                return ValueTask.CompletedTask;
+            }, menus: menus);
+
+        await commands.ExecuteAsync("!anochatmenu", Player);
+        permissions.Allowed = false;
+        await menus.SelectAsync(Player, "tag0");
+        Assert.AreEqual("", await settings.GetAsync(
+            Player, new PlayerSettingKey<string>("chat.tag.selected", "")));
+        Assert.AreEqual(0, refreshes);
+
+        permissions.Allowed = true;
+        await commands.ExecuteAsync("!anochatmenu", Player);
+        var old = players.OnlinePlayers.Single();
+        await players.ConnectAsync(new PlayerConnection(
+            Player, "Reconnected", PlayerTeam.Terrorist,
+            true, DateTimeOffset.UtcNow));
+        await menus.SelectAsync(Player, "tag0");
+        Assert.AreEqual("", await settings.GetAsync(
+            Player, new PlayerSettingKey<string>("chat.tag.selected", "")));
+
+        await commands.ExecuteAsync("!anochatmenu", Player);
+        await menus.SelectAsync(Player, "tag0");
+        Assert.AreEqual("staff", await settings.GetAsync(
+            Player, new PlayerSettingKey<string>("chat.tag.selected", "")));
+        Assert.AreEqual(1, refreshes);
+
+        module.Dispose();
+        Assert.IsFalse(menus.TryGetOpenMenu(Player, out _));
+        Assert.AreEqual(CommandFailureReason.NotFound,
+            (await commands.ExecuteAsync("!anochatmenu", Player)).FailureReason);
     }
 
     [TestMethod]
