@@ -1,5 +1,11 @@
 # AnoCore development handoff
 
+## Player toggle commands checkpoint — 2026-09-28
+
+- Issue #132 / draft PR pending on `feature/132-toggle-commands`, based on merged #130 / PR #131. `anosettings [page]` lists effective values; `anotoggle <key> on|off|default` saves self-service choices through typed player settings and emits existing change events.
+- Unit tests cover bounds, console/disconnect rejection, unknown keys, persistence and registration rollback. MariaDB runtime composition checks command lifecycle and event delivery. CI and native CS2/DatHost command acceptance follow this checkpoint.
+- No feature module has registered its own option yet. A menu and permission-based discovery remain open.
+
 ## Toggle settings catalog checkpoint — 2026-09-28
 
 - Issue #130 / branch `feature/130-player-toggle-catalog` starts from main after the merged #128 / PR #129 settings event package. Modules register validated bool options by owner, receive stable sorted snapshots and release descriptors on unload.
