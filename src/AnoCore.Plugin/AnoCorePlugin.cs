@@ -12,6 +12,7 @@ using AnoCore.Runtime.Configuration;
 using AnoCore.Runtime.Events;
 using AnoCore.Runtime.Persistence;
 using AnoCore.Runtime.Players;
+using AnoCore.Runtime.Settings;
 using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Core.Attributes;
@@ -246,7 +247,10 @@ public sealed class AnoCorePlugin : BasePlugin
                 Logger,
                 (commandName, player) =>
                 {
-                    if (string.Equals(commandName, "anoveto", StringComparison.Ordinal))
+                    if (string.Equals(commandName, "anoveto", StringComparison.Ordinal)
+                        || string.Equals(commandName,
+                            PlayerToggleCommandModule.MenuCommandName,
+                            StringComparison.Ordinal))
                     {
                         presenter.Reconcile();
                         presenter.Open(player);
