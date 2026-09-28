@@ -5,7 +5,7 @@ using AnoCore.Runtime.Persistence.Migrations;
 
 namespace AnoCore.Runtime.Persistence;
 
-public sealed class MySqlModuleDataStore : IModuleDataStore
+public sealed class MySqlModuleDataStore : IModuleDataStore, IModuleDataPrefixStore
 {
     private static readonly Regex ValidKey = new(
         "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$",
@@ -85,6 +85,27 @@ public sealed class MySqlModuleDataStore : IModuleDataStore
             MigrationRunner.AddParameter(command, "@moduleId", module.Value);
             MigrationRunner.AddParameter(command, "@key", normalizedKey);
             return await command.ExecuteNonQueryAsync(token).ConfigureAwait(false) > 0;
+        }, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async ValueTask<int> DeleteByPrefixAsync(
+        ModuleId module,
+        string keyPrefix,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(module);
+        var normalizedPrefix = NormalizeKey(keyPrefix);
+        return await _database.WithConnectionAsync(async (connection, token) =>
+        {
+            await using var command = connection.CreateCommand();
+            command.CommandText = """
+                DELETE FROM ano_module_data
+                WHERE module_id = @moduleId
+                  AND LEFT(data_key, CHAR_LENGTH(@prefix)) = @prefix
+                """;
+            MigrationRunner.AddParameter(command, "@moduleId", module.Value);
+            MigrationRunner.AddParameter(command, "@prefix", normalizedPrefix);
+            return await command.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         }, cancellationToken).ConfigureAwait(false);
     }
 

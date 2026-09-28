@@ -7,10 +7,11 @@ using AnoCore.Abstractions.Settings;
 
 namespace AnoCore.Runtime.Settings;
 
-public sealed class PlayerSettingsService : IPlayerSettingsService
+public sealed class PlayerSettingsService : IPlayerSettingsService, IPlayerSettingsResetService
 {
     private static readonly ModuleId SettingsModule = new("settings");
     private readonly IModuleDataStore _store;
+    private readonly IModuleDataPrefixStore? _prefixStore;
     private readonly IAnoEventBus? _events;
     private readonly Action<Exception>? _onEventFailure;
     private readonly JsonSerializerOptions _serializerOptions;
@@ -19,6 +20,7 @@ public sealed class PlayerSettingsService : IPlayerSettingsService
         IModuleDataStore store, JsonSerializerOptions? serializerOptions = null)
     {
         _store = store ?? throw new ArgumentNullException(nameof(store));
+        _prefixStore = store as IModuleDataPrefixStore;
         _serializerOptions = serializerOptions ?? new JsonSerializerOptions(JsonSerializerDefaults.Web);
     }
 
@@ -82,17 +84,34 @@ public sealed class PlayerSettingsService : IPlayerSettingsService
         return removed;
     }
 
-    private async ValueTask PublishChangeAsync(
+    public async ValueTask<int> ResetAllAsync(
+        PlayerId playerId,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(playerId);
+        cancellationToken.ThrowIfCancellationRequested();
+        var prefixStore = _prefixStore ?? throw new NotSupportedException(
+            "The configured module data store does not support prefix deletion.");
+        var removed = await prefixStore.DeleteByPrefixAsync(
+            SettingsModule, BuildPrefix(playerId), cancellationToken).ConfigureAwait(false);
+        if (removed > 0)
+            await PublishEventAsync(new PlayerSettingsResetEvent(playerId, removed)).ConfigureAwait(false);
+        return removed;
+    }
+
+    private ValueTask PublishChangeAsync(
         PlayerId playerId, string name, PlayerSettingChangeKind kind)
+        => PublishEventAsync(new PlayerSettingChangedEvent(playerId, name, kind));
+
+    private async ValueTask PublishEventAsync<TEvent>(TEvent value)
+        where TEvent : IAnoEvent
     {
         if (_events is null)
             return;
         try
         {
             // The write is already durable; observer cancellation cannot undo it.
-            await _events.PublishAsync(
-                new PlayerSettingChangedEvent(playerId, name, kind), CancellationToken.None)
-                .ConfigureAwait(false);
+            await _events.PublishAsync(value, CancellationToken.None).ConfigureAwait(false);
         }
         catch (Exception exception)
         {
@@ -108,5 +127,8 @@ public sealed class PlayerSettingsService : IPlayerSettingsService
     }
 
     private static string BuildKey(PlayerId playerId, string settingName)
-        => $"player.{playerId.SteamId64}.setting.{settingName}";
+        => $"{BuildPrefix(playerId)}{settingName}";
+
+    private static string BuildPrefix(PlayerId playerId)
+        => $"player.{playerId.SteamId64}.setting.";
 }
