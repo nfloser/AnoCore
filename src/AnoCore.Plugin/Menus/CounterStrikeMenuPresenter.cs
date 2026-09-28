@@ -40,22 +40,23 @@ public sealed class CounterStrikeMenuPresenter
             ExitButton = true,
         };
 
+        IMenuInstance? openedInstance = null;
         foreach (var option in definition.Options)
         {
             menu.AddMenuOption(option.Label, (controller, menuOption) =>
             {
                 _ = menuOption;
-                _ = SelectAsync(controller, playerId, option);
+                _ = SelectAsync(controller, playerId, definition, option, openedInstance);
             });
         }
 
         menu.Open(player);
-        var instance = MenuManager.GetActiveMenu(player);
-        if (instance is not null)
+        openedInstance = MenuManager.GetActiveMenu(player);
+        if (openedInstance is not null)
         {
             lock (_gate)
             {
-                _renderedMenus[playerId] = new RenderedMenu(definition.Id, instance);
+                _renderedMenus[playerId] = new RenderedMenu(definition.Id, openedInstance);
             }
         }
 
@@ -102,19 +103,21 @@ public sealed class CounterStrikeMenuPresenter
         }
     }
 
-    private async Task SelectAsync(CCSPlayerController player, PlayerId playerId, MenuOption option)
+    private async Task SelectAsync(
+        CCSPlayerController player, PlayerId playerId, MenuDefinition definition,
+        MenuOption option, IMenuInstance? instance)
     {
         try
         {
-            var result = await _menus.SelectAsync(playerId, option.Id).ConfigureAwait(false);
+            if (!IsCurrent(player, playerId, instance))
+                return;
+            var result = await _menus.SelectAsync(playerId, definition, option.Id)
+                .ConfigureAwait(false);
             Server.NextFrame(() =>
             {
-                Reconcile();
-                if (!player.IsValid)
-                {
+                if (!IsCurrent(player, playerId, instance))
                     return;
-                }
-
+                Reconcile();
                 if (!result.Accepted)
                 {
                     if (!string.IsNullOrWhiteSpace(result.Error))
@@ -135,6 +138,18 @@ public sealed class CounterStrikeMenuPresenter
         {
             _logger.LogError(exception, "AnoCore menu selection failed for player {PlayerId} and option {OptionId}.", playerId, option.Id);
         }
+    }
+
+    private bool IsCurrent(
+        CCSPlayerController player, PlayerId playerId, IMenuInstance? instance)
+    {
+        if (instance is null || !TryGetPlayerId(player, out var currentId)
+            || currentId != playerId
+            || !ReferenceEquals(MenuManager.GetActiveMenu(player), instance))
+            return false;
+        lock (_gate)
+            return _renderedMenus.TryGetValue(playerId, out var rendered)
+                && ReferenceEquals(rendered.Instance, instance);
     }
 
     private void RemoveTracked(PlayerId playerId, RenderedMenu expected)

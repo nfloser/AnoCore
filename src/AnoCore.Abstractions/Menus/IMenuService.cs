@@ -17,6 +17,12 @@ public interface IMenuService
 
     ValueTask<MenuSelectionResult> SelectAsync(
         PlayerId playerId,
+        MenuDefinition expectedMenu,
+        string optionId,
+        CancellationToken cancellationToken = default);
+
+    ValueTask<MenuSelectionResult> SelectAsync(
+        PlayerId playerId,
         string optionId,
         CancellationToken cancellationToken = default);
 }
