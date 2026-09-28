@@ -1,3 +1,9 @@
+## Prioritized chat-tag ownership checkpoint — 2026-09-28
+
+- Issue #122 / draft PR pending / branch `feature/122-chat-tag-priority` stacks on #121. The shared `chat.tag` placeholder has deterministic provider priorities: `null` falls back, while an empty value explicitly suppresses lower tags.
+- The rank module supplies priority 0 and retains `rank.tag` compatibility. Existing chat configurations using `{rank.tag}` migrate through the shared slot during formatting; unload/disposal reveals the next owner safely.
+- Native display and module-specific permission/custom tag providers remain separate work and require CS2/DatHost acceptance.
+
 ## Validated native chat colors checkpoint — 2026-09-28
 
 - Issue #120 / draft PR pending / branch `feature/120-chat-colors` stacks on #119. Chat configuration now supports allow-listed named colors or sender-team color independently for the rank tag, player name and message; existing defaults remain uncolored.

@@ -4,17 +4,23 @@ Plugin startup creates and validates the engine-independent formatter from `conf
 
 ```json
 {
-  "PublicTemplate": "{rank.tag} {player.name}: {message}",
-  "TeamTemplate": "(TEAM) {rank.tag} {player.name}: {message}",
+  "PublicTemplate": "{chat.tag} {player.name}: {message}",
+  "TeamTemplate": "(TEAM) {chat.tag} {player.name}: {message}",
   "RankColor": "None",
   "NameColor": "None",
   "MessageColor": "None"
 }
 ```
 
-Each template must contain `{player.name}` and `{message}` exactly once, contain only printable characters and be at most 256 characters. Other registered placeholders, including `{rank.tag}`, may be used. An empty configured rank tag intentionally produces no tag.
+Each template must contain `{player.name}` and `{message}` exactly once, contain only printable characters and be at most 256 characters. Other registered placeholders may be used. `{chat.tag}` is the shared prioritized tag slot; `{rank.tag}` remains available and legacy templates using it are routed through the shared slot when a chat-tag provider is registered. An empty selected tag intentionally produces no tag.
 
 `RankColor`, `NameColor` and `MessageColor` accept only `None`, `Team` or the documented native names: `Default`, `White`, `DarkRed`, `LightPurple`, `Green`, `Olive`, `Lime`, `Red`, `Grey`, `Yellow`, `Silver`, `LightBlue`, `DarkBlue`, `Purple`, `LightRed` and `Orange`. Existing installations remain uncolored by default. `Team` resolves to the sender's current team color. Every colored rank, name or message slot is followed by the native default reset so colors cannot bleed into later text.
+
+## Tag ownership and priority
+
+Modules register `chat.tag` providers with distinct integer priorities. The highest-priority provider that returns a value owns the displayed tag. Returning `null` means “not applicable” and falls back to the next provider; returning an empty string intentionally suppresses all lower-priority tags. The rank module owns priority `0`, leaving positive priorities for administrative, permission or temporary tags and negative priorities for fallbacks.
+
+Equal priorities are rejected, as is mixing exclusive and prioritized ownership for one placeholder. Disposing a registration or unloading its owner reveals the next applicable provider without disturbing other owners. Tag providers are evaluated while warming a session snapshot, never in the synchronous native chat hook.
 
 ## Safe evaluation order
 
