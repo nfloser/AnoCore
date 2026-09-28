@@ -1,5 +1,5 @@
-using AnoCore.Abstractions.Settings;
 using AnoCore.Abstractions.Players;
+using AnoCore.Abstractions.Settings;
 using AnoCore.Runtime.Composition;
 using AnoCore.Runtime.Configuration;
 using AnoCore.Runtime.Events;
