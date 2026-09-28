@@ -84,12 +84,13 @@ public sealed class PlayerToggleCatalogTests
             () => catalog.Register(Owner, new PlayerToggleSetting(
                 new PlayerSettingKey<bool>("test.overflow", false), "Overflow", "")));
         var errors = new System.Collections.Concurrent.ConcurrentQueue<Exception>();
-        Parallel.For(0, 32, _ =>
+        Parallel.For(0, 32, iteration =>
         {
             try
             {
                 Assert.AreEqual(64, catalog.GetAll().Count);
-                Assert.IsTrue(catalog.TryGet("test.0", out _));
+                Assert.IsTrue(catalog.TryGet($"test.{iteration}", out var found));
+                Assert.IsNotNull(found);
             }
             catch (Exception exception)
             {
