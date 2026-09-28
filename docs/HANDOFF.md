@@ -1,5 +1,11 @@
 # AnoCore development handoff
 
+## Toggle settings catalog checkpoint — 2026-09-28
+
+- Issue #130 / branch `feature/130-player-toggle-catalog` starts from main after the merged #128 / PR #129 settings event package. Modules register validated bool options by owner, receive stable sorted snapshots and release descriptors on unload.
+- Unit tests cover validation, bounds, duplicate ownership and stale handles; the MariaDB runtime composition test checks the shared catalog. Docs: `docs/sdk-settings-events.md`. CI and PR review follow this checkpoint.
+- Existing module options, player-facing menu, commands and full SDK #22 still need separate work. Native draft PRs remain gated on real CS2/DatHost tests.
+
 ## Settings change event checkpoint — 2026-09-28
 
 - Issue #128 / branch `feature/128-player-setting-events` starts from main. Durable settings mutations publish value-free `PlayerSettingChangedEvent` after success; no-op reset and storage failures are silent.
