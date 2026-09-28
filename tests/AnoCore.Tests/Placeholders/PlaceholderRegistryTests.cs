@@ -116,6 +116,27 @@ public sealed class PlaceholderRegistryTests
     }
 
     [TestMethod]
+    public async Task Prioritized_CancellationBetweenProvidersStopsFallback()
+    {
+        var registry = new PlaceholderRegistry();
+        using var cancellation = new CancellationTokenSource();
+        using var fallback = registry.RegisterPrioritized(
+            new ModuleId("fallback"), "chat.tag", 0,
+            (_, _) => ValueTask.FromResult<string?>("[Fallback]"));
+        using var cancelling = registry.RegisterPrioritized(
+            new ModuleId("cancelling"), "chat.tag", 100,
+            (_, _) =>
+            {
+                cancellation.Cancel();
+                return ValueTask.FromResult<string?>(null);
+            });
+
+        await Assert.ThrowsExactlyAsync<OperationCanceledException>(async () =>
+            await registry.ResolveAsync(
+                "{chat.tag}", PlaceholderContext.Empty, cancellation.Token));
+    }
+
+    [TestMethod]
     public void Prioritized_RejectsAmbiguousOrMixedOwnership()
     {
         var registry = new PlaceholderRegistry();

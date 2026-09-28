@@ -158,6 +158,7 @@ public sealed class PlaceholderRegistry : IPlaceholderRegistry
             {
                 foreach (var candidate in prioritized!)
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     value = await candidate.Resolver(context, cancellationToken)
                         .ConfigureAwait(false);
                     if (value is not null)
