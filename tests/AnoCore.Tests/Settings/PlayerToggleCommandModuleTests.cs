@@ -1,10 +1,12 @@
 using AnoCore.Abstractions.Commands;
+using AnoCore.Abstractions.Menus;
 using AnoCore.Abstractions.Modules;
 using AnoCore.Abstractions.Permissions;
 using AnoCore.Abstractions.Players;
 using AnoCore.Abstractions.Settings;
 using AnoCore.Runtime.Commands;
 using AnoCore.Runtime.Events;
+using AnoCore.Runtime.Menus;
 using AnoCore.Runtime.Players;
 using AnoCore.Runtime.Settings;
 
@@ -109,6 +111,88 @@ public sealed class PlayerToggleCommandModuleTests
         var result = await pending;
         Assert.IsFalse(result.Success);
         Assert.AreEqual(CommandFailureReason.InvalidInput, result.FailureReason);
+    }
+
+    [TestMethod]
+    public async Task Menu_NavigatesAndTogglesOrResetsRegisteredChoices()
+    {
+        var players = await ConnectedAsync();
+        var catalog = new PlayerToggleCatalog();
+        for (var index = 1; index <= 4; index++)
+            catalog.Register(new ModuleId("tests"), new PlayerToggleSetting(
+                new PlayerSettingKey<bool>($"test.option{index}", index == 4),
+                $"Option {index}", ""));
+        var settings = new MemorySettings();
+        var commands = new CommandRegistry(new AllowAll());
+        var menus = new MenuService();
+        using var module = new PlayerToggleCommandModule(
+            commands, players, catalog, settings, menus: menus);
+
+        Assert.IsTrue((await commands.ExecuteAsync("!anosettingsmenu", Player)).Success);
+        Assert.IsTrue(menus.TryGetOpenMenu(Player, out var first));
+        Assert.AreEqual(3, first!.Options.Count(option =>
+            option.Label.StartsWith("Option", StringComparison.Ordinal)));
+        var firstToggle = first.Options.Single(option =>
+            option.Label.StartsWith("Option 1", StringComparison.Ordinal));
+        Assert.IsTrue((await menus.SelectAsync(Player, firstToggle.Id)).Accepted);
+        Assert.IsTrue(await settings.GetAsync(Player,
+            new PlayerSettingKey<bool>("test.option1", false)));
+        Assert.IsTrue(menus.TryGetOpenMenu(Player, out var updated));
+        Assert.IsFalse((await menus.SelectAsync(Player, firstToggle.Id)).Accepted);
+        var reset = updated!.Options.Single(option =>
+            option.Label == "Default: Option 1");
+        Assert.IsTrue((await menus.SelectAsync(Player, reset.Id)).Accepted);
+        Assert.IsFalse(await settings.GetAsync(Player,
+            new PlayerSettingKey<bool>("test.option1", false)));
+        Assert.AreEqual(1, settings.ResetCount);
+
+        Assert.IsTrue(menus.TryGetOpenMenu(Player, out var afterReset));
+        var next = afterReset!.Options.Single(option => option.Label == "Next page");
+        await menus.SelectAsync(Player, next.Id);
+        Assert.IsTrue(menus.TryGetOpenMenu(Player, out var second));
+        StringAssert.Contains(second!.Title, "page 2");
+        Assert.IsTrue(second.Options.Any(option =>
+            option.Label.StartsWith("Option 4", StringComparison.Ordinal)));
+        Assert.IsFalse(second.Options.Any(option =>
+            option.Label == "Next page"));
+    }
+
+    [TestMethod]
+    public async Task Menu_RejectsOldSessionAndRemovesMatchingRegistrations()
+    {
+        var events = new AnoEventBus();
+        var players = new PlayerRegistry(events);
+        await players.ConnectAsync(new PlayerConnection(
+            Player, "First", PlayerTeam.Terrorist, true, DateTimeOffset.UtcNow));
+        var catalog = new PlayerToggleCatalog();
+        catalog.Register(new ModuleId("tests"), new PlayerToggleSetting(
+            new PlayerSettingKey<bool>("test.option", false), "Option", ""));
+        var menus = new MenuService();
+        var settings = new MemorySettings();
+        var commands = new CommandRegistry(new AllowAll());
+        using var module = new PlayerToggleCommandModule(
+            commands, players, catalog, settings, menus, events);
+        await commands.ExecuteAsync("!anosettingsmenu", Player);
+        Assert.IsTrue(menus.TryGetOpenMenu(Player, out var oldMenu));
+        var staleOption = oldMenu!.Options.Single(option =>
+            option.Label.StartsWith("Option", StringComparison.Ordinal));
+
+        var old = players.OnlinePlayers.Single();
+        await players.ConnectAsync(new PlayerConnection(
+            Player, "Second", PlayerTeam.CounterTerrorist,
+            true, DateTimeOffset.UtcNow));
+        Assert.IsFalse(menus.TryGetOpenMenu(Player, out _));
+        await commands.ExecuteAsync("!anosettingsmenu", Player);
+        await events.PublishAsync(new AnoCore.Abstractions.Players.Events.PlayerDisconnectedEvent(
+            old));
+        Assert.IsTrue(menus.TryGetOpenMenu(Player, out _));
+        Assert.IsFalse((await menus.SelectAsync(Player, staleOption.Id)).Accepted);
+        Assert.AreEqual(0, settings.SetCount);
+
+        module.Dispose();
+        Assert.IsFalse(menus.TryGetOpenMenu(Player, out _));
+        Assert.AreEqual(CommandFailureReason.NotFound,
+            (await commands.ExecuteAsync("!anosettingsmenu", Player)).FailureReason);
     }
 
     [TestMethod]
