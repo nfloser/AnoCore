@@ -105,6 +105,35 @@ public sealed class SelectableChatTagModuleTests
     }
 
     [TestMethod]
+    public async Task AuthorizationReloadStartsRefreshForEveryPlayerBeforeSlowReadCompletes()
+    {
+        var config = await ConfigAsync();
+        var permissions = new Permissions { Allowed = true };
+        var settings = new Settings();
+        var players = await ConnectedAsync();
+        var other = new PlayerId(76561198000012632);
+        await players.ConnectAsync(new PlayerConnection(
+            other, "Other", PlayerTeam.Terrorist, true, DateTimeOffset.UtcNow));
+        var blocker = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var started = new HashSet<PlayerId>();
+        using var module = await SelectableChatTagModule.CreateAsync(
+            config, new CommandRegistry(permissions),
+            new PlaceholderRegistry(), players, settings, permissions, permissions,
+            async (player, token) =>
+            {
+                started.Add(player.Id);
+                if (player.Id == Player)
+                    await blocker.Task.WaitAsync(token);
+            });
+
+        permissions.RaiseReload();
+
+        CollectionAssert.AreEquivalent(
+            new[] { Player, other }, started.ToArray());
+        blocker.SetResult();
+    }
+
+    [TestMethod]
     public async Task ConfigurationRejectsUnsafeTextAndDuplicateIdentifiers()
     {
         var config = new JsonConfigStore(_root);

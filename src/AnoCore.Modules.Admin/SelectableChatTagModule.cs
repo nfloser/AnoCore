@@ -218,24 +218,31 @@ public sealed class SelectableChatTagModule : IDisposable
 
     private async Task RefreshAllAsync()
     {
+        var work = new List<Task>();
         foreach (var player in _players.OnlinePlayers.ToArray())
         {
             if (Volatile.Read(ref _disposed) != 0)
-                return;
-            try
-            {
-                using var linked = CancellationTokenSource.CreateLinkedTokenSource(
-                    _lifetimeToken);
-                await RefreshCurrentAsync(player, linked.Token).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException) when (_lifetimeToken.IsCancellationRequested)
-            {
-                return;
-            }
-            catch (Exception exception)
-            {
-                _onFailure?.Invoke(exception);
-            }
+                break;
+            work.Add(RefreshOneAsync(player));
+        }
+
+        await Task.WhenAll(work).ConfigureAwait(false);
+    }
+
+    private async Task RefreshOneAsync(PlayerSnapshot player)
+    {
+        try
+        {
+            using var linked = CancellationTokenSource.CreateLinkedTokenSource(
+                _lifetimeToken);
+            await RefreshCurrentAsync(player, linked.Token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (_lifetimeToken.IsCancellationRequested)
+        {
+        }
+        catch (Exception exception)
+        {
+            _onFailure?.Invoke(exception);
         }
     }
 
