@@ -149,6 +149,44 @@ public sealed class ChatFormatSnapshotLifecycleTests
     }
 
     [TestMethod]
+    public async Task ConcurrentRefresh_LatestGenerationWinsAndKeepsPreviousUntilReady()
+    {
+        var events = new AnoEventBus();
+        var calls = 0;
+        var releaseOlder = new TaskCompletionSource(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        var formatter = await ChatMessageFormatter.CreateAsync(
+            new JsonConfigStore(_root),
+            Tags(async (_, token) =>
+            {
+                var call = Interlocked.Increment(ref calls);
+                if (call == 2)
+                    await releaseOlder.Task.WaitAsync(token);
+                return call switch
+                {
+                    1 => "[BASE]",
+                    2 => "[OLDER]",
+                    _ => "[LATEST]",
+                };
+            }));
+        using var snapshots = new ChatFormatSnapshotLifecycle(events, formatter);
+        var player = Snapshot(PlayerSessionId.New(), "Player");
+        await events.PublishAsync(new PlayerConnectedEvent(player));
+
+        var older = snapshots.RefreshAsync(player).AsTask();
+        Assert.IsTrue(snapshots.TryFormat(
+            Player, player.SessionId, "during", false, out var during));
+        Assert.AreEqual("[BASE] Player: during", during);
+        await snapshots.RefreshAsync(player);
+        releaseOlder.SetResult();
+        await older;
+
+        Assert.IsTrue(snapshots.TryFormat(
+            Player, player.SessionId, "after", false, out var after));
+        Assert.AreEqual("[LATEST] Player: after", after);
+    }
+
+    [TestMethod]
     public async Task DisconnectAndDispose_ClearSnapshotsAndUnsubscribe()
     {
         var events = new AnoEventBus();
