@@ -86,6 +86,36 @@ public sealed class PlayerSettingsServiceTests
     }
 
     [TestMethod]
+    public async Task SettingsChanged_CancelledOrFailedDeleteNeverPublishes()
+    {
+        var store = new MemoryStore();
+        var events = new AnoEventBus();
+        var published = 0;
+        using var subscription = events.Subscribe<PlayerSettingChangedEvent>(
+            (_, _) =>
+            {
+                published++;
+                return ValueTask.CompletedTask;
+            });
+        var service = new PlayerSettingsService(store, events: events);
+        var key = new PlayerSettingKey<int>("ui.scale", 1);
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        await Assert.ThrowsExactlyAsync<OperationCanceledException>(
+            async () => await service.SetAsync(Player, key, 2, cancellation.Token));
+        Assert.AreEqual(1, await service.GetAsync(Player, key));
+        Assert.AreEqual(0, published);
+
+        await service.SetAsync(Player, key, 2);
+        store.FailDeletes = true;
+        await Assert.ThrowsExactlyAsync<InvalidOperationException>(
+            async () => await service.ResetAsync(Player, key));
+        Assert.AreEqual(2, await service.GetAsync(Player, key));
+        Assert.AreEqual(1, published);
+    }
+
+    [TestMethod]
     public async Task SettingsChanged_SubscriberFailureCannotFailCommittedMutation()
     {
         var store = new MemoryStore();
@@ -115,6 +145,7 @@ public sealed class PlayerSettingsServiceTests
     {
         private readonly Dictionary<string, string> _values = new(StringComparer.Ordinal);
         public bool FailWrites { get; set; }
+        public bool FailDeletes { get; set; }
 
         public ValueTask<string?> GetAsync(ModuleId module, string key, CancellationToken cancellationToken = default)
             => ValueTask.FromResult(_values.GetValueOrDefault($"{module.Value}:{key}"));
@@ -128,6 +159,10 @@ public sealed class PlayerSettingsServiceTests
         }
 
         public ValueTask<bool> DeleteAsync(ModuleId module, string key, CancellationToken cancellationToken = default)
-            => ValueTask.FromResult(_values.Remove($"{module.Value}:{key}"));
+        {
+            if (FailDeletes)
+                throw new InvalidOperationException("Storage unavailable.");
+            return ValueTask.FromResult(_values.Remove($"{module.Value}:{key}"));
+        }
     }
 }
