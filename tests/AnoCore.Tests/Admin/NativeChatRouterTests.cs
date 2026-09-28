@@ -46,7 +46,7 @@ public sealed class NativeChatRouterTests
         Assert.AreEqual("(TEAM) [R] Player: team", route.FormattedMessage);
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DataRow("!anorank")]
     [DataRow(" /anotopranks 2")]
     public async Task Commands_PassThroughWithoutModerationOrFormatting(string message)
@@ -156,7 +156,7 @@ public sealed class NativeChatRouterTests
         => players.ConnectAsync(new PlayerConnection(
             new PlayerId(steamId),
             "Player",
-            isAlive: true,
             team,
+            isAlive: true,
             Now));
 }
