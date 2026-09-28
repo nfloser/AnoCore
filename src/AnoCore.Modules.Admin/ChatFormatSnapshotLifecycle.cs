@@ -12,6 +12,7 @@ public sealed class ChatFormatSnapshotLifecycle : IDisposable
     private readonly CancellationTokenSource _lifetime = new();
     private readonly IDisposable[] _subscriptions;
     private readonly Dictionary<PlayerId, PlayerSessionId> _sessions = [];
+    private readonly Dictionary<PlayerId, long> _revisions = [];
     private readonly Dictionary<PlayerId, SnapshotEntry> _snapshots = [];
     private int _disposed;
 
@@ -58,6 +59,14 @@ public sealed class ChatFormatSnapshotLifecycle : IDisposable
         return false;
     }
 
+    public ValueTask RefreshAsync(
+        PlayerSnapshot player,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(player);
+        return WarmAsync(player, false, cancellationToken);
+    }
+
     public async ValueTask WarmExistingAsync(
         IEnumerable<PlayerSnapshot> players,
         CancellationToken cancellationToken = default)
@@ -91,6 +100,7 @@ public sealed class ChatFormatSnapshotLifecycle : IDisposable
         lock (_sync)
         {
             _sessions.Clear();
+            _revisions.Clear();
             _snapshots.Clear();
         }
 
@@ -119,6 +129,7 @@ public sealed class ChatFormatSnapshotLifecycle : IDisposable
                 && current == @event.Player.SessionId)
             {
                 _sessions.Remove(@event.Player.Id);
+                _revisions.Remove(@event.Player.Id);
                 _snapshots.Remove(@event.Player.Id);
             }
         }
@@ -134,6 +145,7 @@ public sealed class ChatFormatSnapshotLifecycle : IDisposable
         ArgumentNullException.ThrowIfNull(player);
         if (!player.IsConnected)
             return;
+        long revision;
         lock (_sync)
         {
             if (Volatile.Read(ref _disposed) != 0)
@@ -143,7 +155,10 @@ public sealed class ChatFormatSnapshotLifecycle : IDisposable
                     || current != player.SessionId))
                 return;
             _sessions[player.Id] = player.SessionId;
-            _snapshots.Remove(player.Id);
+            revision = _revisions.GetValueOrDefault(player.Id) + 1;
+            _revisions[player.Id] = revision;
+            if (replaceSession)
+                _snapshots.Remove(player.Id);
         }
 
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(
@@ -156,7 +171,9 @@ public sealed class ChatFormatSnapshotLifecycle : IDisposable
             {
                 if (Volatile.Read(ref _disposed) == 0
                     && _sessions.TryGetValue(player.Id, out var current)
-                    && current == player.SessionId)
+                    && current == player.SessionId
+                    && _revisions.TryGetValue(player.Id, out var currentRevision)
+                    && currentRevision == revision)
                 {
                     _snapshots[player.Id] =
                         new SnapshotEntry(player.SessionId, prepared);
@@ -174,8 +191,11 @@ public sealed class ChatFormatSnapshotLifecycle : IDisposable
         {
             lock (_sync)
             {
-                if (_sessions.TryGetValue(player.Id, out var current)
-                    && current == player.SessionId)
+                if (replaceSession
+                    && _sessions.TryGetValue(player.Id, out var current)
+                    && current == player.SessionId
+                    && _revisions.TryGetValue(player.Id, out var currentRevision)
+                    && currentRevision == revision)
                     _snapshots.Remove(player.Id);
             }
 

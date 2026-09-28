@@ -111,6 +111,43 @@ public sealed class RankAdjustmentNotificationServiceTests
     }
 
     [TestMethod]
+    public async Task DisabledRankNotification_StillPublishesScoreChange()
+    {
+        var changes = new RecordingScoreSink();
+        using var service = new RankAdjustmentNotificationService(
+            Configuration(notify: false),
+            new StubAdministration(new RankAdjustmentAdminResult(3, 4, Guid.NewGuid())),
+            new StubCombat(new CombatTotals(0, 0, 0)),
+            new RecordingSink(),
+            scoreChanges: changes);
+
+        await service.ApplyAsync(RankAdjustmentAdminOperation.Give,
+            Target, 1, Actor, "reward", Now);
+
+        CollectionAssert.AreEqual(new[] { Target }, changes.Players.ToArray());
+    }
+
+    [TestMethod]
+    public async Task ScoreRefreshFailure_DoesNotFailCommittedMutation()
+    {
+        var expected = new RankAdjustmentAdminResult(3, 4, Guid.NewGuid());
+        var errors = new List<Exception>();
+        using var service = new RankAdjustmentNotificationService(
+            Configuration(notify: false),
+            new StubAdministration(expected),
+            new StubCombat(new CombatTotals(0, 0, 0)),
+            new RecordingSink(),
+            errors.Add,
+            new ThrowingScoreSink());
+
+        var actual = await service.ApplyAsync(RankAdjustmentAdminOperation.Give,
+            Target, 1, Actor, "reward", Now);
+
+        Assert.AreSame(expected, actual);
+        Assert.AreEqual(1, errors.Count);
+    }
+
+    [TestMethod]
     public async Task NotificationFailure_DoesNotTurnCommittedMutationIntoFailure()
     {
         var expected = new RankAdjustmentAdminResult(1, 2, Guid.NewGuid());
@@ -222,6 +259,25 @@ public sealed class RankAdjustmentNotificationServiceTests
         }
 
         public void Dispose() => Disposals++;
+    }
+
+    private sealed class RecordingScoreSink : IRankScoreChangeSink
+    {
+        public List<PlayerId> Players { get; } = [];
+
+        public ValueTask ScoreChangedAsync(PlayerId playerId,
+            CancellationToken cancellationToken = default)
+        {
+            Players.Add(playerId);
+            return ValueTask.CompletedTask;
+        }
+    }
+
+    private sealed class ThrowingScoreSink : IRankScoreChangeSink
+    {
+        public ValueTask ScoreChangedAsync(PlayerId playerId,
+            CancellationToken cancellationToken = default)
+            => ValueTask.FromException(new InvalidOperationException("refresh failed"));
     }
 
     private sealed class ThrowingSink : IRankTransitionNotificationSink

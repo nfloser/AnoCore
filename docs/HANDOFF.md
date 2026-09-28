@@ -1,3 +1,9 @@
+## Rank chat snapshot refresh checkpoint — 2026-09-28
+
+- Issue #118 / draft PR pending / branch `feature/118-refresh-rank-chat-snapshots` stacks on #117. Every persisted combat event publishes best-effort refreshes for distinct affected players, and every committed rank give/take/set/reset refreshes the target even when notification options are disabled or the player stays within one rank.
+- The refresh resolves placeholders asynchronously outside the synchronous chat hook and publishes only for the still-current connected session. Refresh failures cannot change durable combat/admin outcomes. Tests cover disabled notifications, duplicate affected players, failure isolation and explicit current-session refresh. The lifecycle retains the prior valid snapshot during refresh, and a monotonic generation prevents older same-session work from overwriting a newer result.
+- Native chat/rank display remains a draft stack pending CS2/DatHost acceptance.
+
 ## Native formatted chat routing checkpoint — 2026-09-28
 
 - Issue #116 / draft PR pending / branch `feature/116-native-chat-formatting` stacks on #115. A pure synchronous router applies command pass-through, moderation, current-session formatting and deterministic public/team recipient selection; the CounterStrikeSharp pre-listener suppresses the original line and prints the formatted result only to those recipients.

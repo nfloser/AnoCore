@@ -11,6 +11,7 @@ public sealed class RankAdjustmentNotificationService
     private readonly ICombatRepository _combat;
     private readonly IRankTransitionNotificationSink _notifications;
     private readonly Action<Exception>? _reportError;
+    private readonly IRankScoreChangeSink? _scoreChanges;
     private int _disposed;
 
     public RankAdjustmentNotificationService(
@@ -18,7 +19,8 @@ public sealed class RankAdjustmentNotificationService
         IRankAdjustmentAdministrationService inner,
         ICombatRepository combat,
         IRankTransitionNotificationSink notifications,
-        Action<Exception>? reportError = null)
+        Action<Exception>? reportError = null,
+        IRankScoreChangeSink? scoreChanges = null)
     {
         _configuration = configuration
             ?? throw new ArgumentNullException(nameof(configuration));
@@ -27,6 +29,7 @@ public sealed class RankAdjustmentNotificationService
         _notifications = notifications
             ?? throw new ArgumentNullException(nameof(notifications));
         _reportError = reportError;
+        _scoreChanges = scoreChanges;
         var errors = RankConfiguration.Validate(configuration);
         if (errors.Count > 0)
             throw new ArgumentException(string.Join(" ", errors), nameof(configuration));
@@ -44,6 +47,19 @@ public sealed class RankAdjustmentNotificationService
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, this);
         var result = await _inner.ApplyAsync(operation, targetId, points, actorId,
             reason, occurredAtUtc, cancellationToken).ConfigureAwait(false);
+        if (_scoreChanges is not null)
+        {
+            try
+            {
+                await _scoreChanges.ScoreChangedAsync(targetId, CancellationToken.None)
+                    .ConfigureAwait(false);
+            }
+            catch (Exception exception)
+            {
+                Report(exception);
+            }
+        }
+
         if (!_configuration.NotifyAdministrativeRankChanges)
             return result;
 

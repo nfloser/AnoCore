@@ -98,6 +98,43 @@ public sealed class RankTransitionMonitorTests
     }
 
     [TestMethod]
+    public async Task DisabledRankNotifications_StillPublishDistinctScoreChanges()
+    {
+        var repository = new FakeRepository();
+        var changes = new RecordingScoreSink();
+        using var monitor = new RankTransitionMonitor(
+            Configuration(notify: false),
+            repository,
+            new RecordingSink(repository),
+            changes);
+        var death = new CombatDeath(
+            Guid.NewGuid(), Victim, Attacker, Attacker, Now);
+
+        await monitor.RecordAsync(death);
+
+        CollectionAssert.AreEquivalent(
+            new[] { Victim, Attacker },
+            changes.Players.ToArray());
+        Assert.AreEqual(0, repository.ScoreReads);
+    }
+
+    [TestMethod]
+    public async Task ScoreChangeFailure_DoesNotFailPersistedCombatEvent()
+    {
+        var repository = new FakeRepository();
+        using var monitor = new RankTransitionMonitor(
+            Configuration(notify: false),
+            repository,
+            new RecordingSink(repository),
+            new ThrowingScoreSink());
+
+        await monitor.RecordAsync(new CombatDeath(
+            Guid.NewGuid(), Victim, Attacker, null, Now));
+
+        Assert.AreEqual(1, repository.Writes);
+    }
+
+    [TestMethod]
     public async Task RecordAsync_PropagatesCancellationBeforeWrite()
     {
         var repository = new FakeRepository();
@@ -147,6 +184,25 @@ public sealed class RankTransitionMonitorTests
         }
 
         public void Dispose() => Disposals++;
+    }
+
+    private sealed class RecordingScoreSink : IRankScoreChangeSink
+    {
+        public List<PlayerId> Players { get; } = [];
+
+        public ValueTask ScoreChangedAsync(PlayerId playerId,
+            CancellationToken cancellationToken = default)
+        {
+            Players.Add(playerId);
+            return ValueTask.CompletedTask;
+        }
+    }
+
+    private sealed class ThrowingScoreSink : IRankScoreChangeSink
+    {
+        public ValueTask ScoreChangedAsync(PlayerId playerId,
+            CancellationToken cancellationToken = default)
+            => ValueTask.FromException(new InvalidOperationException("refresh failed"));
     }
 
     private sealed class FakeRepository : ICombatRepository

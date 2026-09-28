@@ -9,20 +9,29 @@ public interface IRankTransitionNotificationSink
         CancellationToken cancellationToken = default);
 }
 
+public interface IRankScoreChangeSink
+{
+    ValueTask ScoreChangedAsync(PlayerId playerId,
+        CancellationToken cancellationToken = default);
+}
+
 public sealed class RankTransitionMonitor : IDisposable
 {
     private readonly RankConfiguration _configuration;
     private readonly ICombatRepository _repository;
     private readonly IRankTransitionNotificationSink _notifications;
+    private readonly IRankScoreChangeSink? _scoreChanges;
     private readonly SemaphoreSlim _writeGate = new(1, 1);
     private int _disposed;
 
     public RankTransitionMonitor(RankConfiguration configuration,
-        ICombatRepository repository, IRankTransitionNotificationSink notifications)
+        ICombatRepository repository, IRankTransitionNotificationSink notifications,
+        IRankScoreChangeSink? scoreChanges = null)
     {
         _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
         _repository = repository ?? throw new ArgumentNullException(nameof(repository));
         _notifications = notifications ?? throw new ArgumentNullException(nameof(notifications));
+        _scoreChanges = scoreChanges;
         var errors = RankConfiguration.Validate(configuration);
         if (errors.Count > 0)
             throw new ArgumentException(string.Join(" ", errors), nameof(configuration));
@@ -34,9 +43,11 @@ public sealed class RankTransitionMonitor : IDisposable
         ArgumentNullException.ThrowIfNull(death);
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, this);
         cancellationToken.ThrowIfCancellationRequested();
+        var affected = AffectedPlayers(death);
         if (!_configuration.NotifyRankChanges)
         {
             await _repository.RecordAsync(death, cancellationToken).ConfigureAwait(false);
+            await PublishScoreChangesAsync(affected, cancellationToken).ConfigureAwait(false);
             return;
         }
 
@@ -44,7 +55,6 @@ public sealed class RankTransitionMonitor : IDisposable
         try
         {
             ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, this);
-            var affected = AffectedPlayers(death);
             var previous = new Dictionary<PlayerId, long>(affected.Count);
             foreach (var playerId in affected)
                 previous[playerId] = await ReadPointsAsync(playerId, cancellationToken)
@@ -62,6 +72,8 @@ public sealed class RankTransitionMonitor : IDisposable
                     await _notifications.NotifyAsync(playerId, transition, cancellationToken)
                         .ConfigureAwait(false);
             }
+
+            await PublishScoreChangesAsync(affected, cancellationToken).ConfigureAwait(false);
         }
         finally
         {
@@ -74,6 +86,31 @@ public sealed class RankTransitionMonitor : IDisposable
         if (Interlocked.Exchange(ref _disposed, 1) == 0
             && _notifications is IDisposable disposable)
             disposable.Dispose();
+    }
+
+    private async ValueTask PublishScoreChangesAsync(
+        IReadOnlyList<PlayerId> affected,
+        CancellationToken cancellationToken)
+    {
+        if (_scoreChanges is null)
+            return;
+
+        foreach (var playerId in affected)
+        {
+            try
+            {
+                await _scoreChanges.ScoreChangedAsync(playerId, cancellationToken)
+                    .ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch
+            {
+                // The combat write is already durable; presentation refresh is best-effort.
+            }
+        }
     }
 
     private async ValueTask<long> ReadPointsAsync(PlayerId playerId,
