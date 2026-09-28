@@ -103,7 +103,8 @@ public sealed class PlayerSettingsService : IPlayerSettingsService, IPlayerSetti
         PlayerId playerId, string name, PlayerSettingChangeKind kind)
         => PublishEventAsync(new PlayerSettingChangedEvent(playerId, name, kind));
 
-    private async ValueTask PublishEventAsync(IAnoEvent value)
+    private async ValueTask PublishEventAsync<TEvent>(TEvent value)
+        where TEvent : IAnoEvent
     {
         if (_events is null)
             return;
