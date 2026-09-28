@@ -8,6 +8,7 @@ using AnoCore.Plugin.Menus;
 using AnoCore.Plugin.Moderation;
 using AnoCore.Plugin.Players;
 using AnoCore.Runtime.Composition;
+using AnoCore.Runtime.Settings;
 using AnoCore.Runtime.Configuration;
 using AnoCore.Runtime.Events;
 using AnoCore.Runtime.Persistence;
@@ -246,7 +247,10 @@ public sealed class AnoCorePlugin : BasePlugin
                 Logger,
                 (commandName, player) =>
                 {
-                    if (string.Equals(commandName, "anoveto", StringComparison.Ordinal))
+                    if (string.Equals(commandName, "anoveto", StringComparison.Ordinal)
+                        || string.Equals(commandName,
+                            PlayerToggleCommandModule.MenuCommandName,
+                            StringComparison.Ordinal))
                     {
                         presenter.Reconcile();
                         presenter.Open(player);

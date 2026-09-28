@@ -147,7 +147,7 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
                 await runtime.SaveAsync(player, cancellationToken).ConfigureAwait(false);
             }
 
-            runtime.RegisterCommands();
+            runtime.RegisterCommands(events);
             cancellationToken.ThrowIfCancellationRequested();
             return runtime;
         }
@@ -217,10 +217,10 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
             new PlayerProfile(player.Id, player.Name, player.ConnectedAtUtc, player.LastUpdatedAtUtc),
             cancellationToken);
 
-    private void RegisterCommands()
+    private void RegisterCommands(AnoEventBus events)
     {
         _registrations.Add(new PlayerToggleCommandModule(
-            Commands, Players, ToggleCatalog, Settings));
+            Commands, Players, ToggleCatalog, Settings, Menus, events));
         _registrations.Add(Commands.Register(
             CoreModule,
             new CommandDescriptor("anocommands", "List registered AnoCore commands"),
