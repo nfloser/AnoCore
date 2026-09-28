@@ -77,7 +77,6 @@ public sealed class PlaceholderRegistryTests
         Assert.AreEqual("{one}-{two}-A", result);
     }
 
-
     [TestMethod]
     public async Task Prioritized_HighestApplicableWinsAndNullFallsBack()
     {
@@ -132,6 +131,15 @@ public sealed class PlaceholderRegistryTests
             registry.Register(
                 new ModuleId("exclusive"), "chat.tag",
                 (_, _) => ValueTask.FromResult<string?>("[Exclusive]")));
+
+        var exclusiveRegistry = new PlaceholderRegistry();
+        using var exclusive = exclusiveRegistry.Register(
+            new ModuleId("exclusive"), "chat.tag",
+            (_, _) => ValueTask.FromResult<string?>("[Exclusive]"));
+        Assert.ThrowsExactly<InvalidOperationException>(() =>
+            exclusiveRegistry.RegisterPrioritized(
+                new ModuleId("other"), "chat.tag", 10,
+                (_, _) => ValueTask.FromResult<string?>("[Other]")));
     }
 
     [TestMethod]

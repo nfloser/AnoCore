@@ -8,10 +8,10 @@ namespace AnoCore.Modules.Admin;
 public sealed class ChatFormatConfiguration
 {
     public string PublicTemplate { get; set; } =
-        "{chat.tag} {player.name}: {message}";
+        "{rank.tag} {player.name}: {message}";
 
     public string TeamTemplate { get; set; } =
-        "(TEAM) {chat.tag} {player.name}: {message}";
+        "(TEAM) {rank.tag} {player.name}: {message}";
 
     public string RankColor { get; set; } = "None";
 

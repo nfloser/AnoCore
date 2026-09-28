@@ -4,8 +4,8 @@ Plugin startup creates and validates the engine-independent formatter from `conf
 
 ```json
 {
-  "PublicTemplate": "{chat.tag} {player.name}: {message}",
-  "TeamTemplate": "(TEAM) {chat.tag} {player.name}: {message}",
+  "PublicTemplate": "{rank.tag} {player.name}: {message}",
+  "TeamTemplate": "(TEAM) {rank.tag} {player.name}: {message}",
   "RankColor": "None",
   "NameColor": "None",
   "MessageColor": "None"
