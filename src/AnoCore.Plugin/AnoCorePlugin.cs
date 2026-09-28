@@ -283,7 +283,7 @@ public sealed class AnoCorePlugin : BasePlugin
                     configuration, created.Commands, placeholders, players, created.Settings,
                     created.Authorization, created.Authorization,
                     (player, token) => _chatFormatSnapshots is { } snapshots
-                        ? snapshots.RefreshAsync(player, token)
+                        ? snapshots.RefreshTagPolicyAsync(player, token)
                         : ValueTask.CompletedTask,
                     exception => Logger.LogError(
                         exception, "Chat tag snapshot refresh failed."),
