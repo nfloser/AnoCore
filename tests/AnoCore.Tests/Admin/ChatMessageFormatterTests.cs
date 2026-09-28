@@ -113,8 +113,13 @@ public sealed class ChatMessageFormatterTests
         {
             RankColor = "Green",
         });
+        var placeholders = new PlaceholderRegistry();
+        using var rank = placeholders.Register(
+            new ModuleId("test"),
+            "rank.tag",
+            (_, _) => ValueTask.FromResult<string?>(string.Empty));
         var formatter = await ChatMessageFormatter.CreateAsync(
-            store, new PlaceholderRegistry());
+            store, placeholders);
 
         var formatted = await formatter.FormatAsync(
             new ChatFormatRequest(Player, "Player", "hello", false));
