@@ -181,14 +181,22 @@ public sealed class ChatMessageFormatter
         PlaceholderContext context,
         CancellationToken cancellationToken)
     {
+        var rankColor = ChatColorPalette.Resolve(
+            _configuration.RankColor, player.Team);
         var decorated = Decorate(
             template,
-            player.Team,
-            _configuration.RankColor,
-            _configuration.NameColor,
-            _configuration.MessageColor);
+            rankColor,
+            ChatColorPalette.Resolve(_configuration.NameColor, player.Team),
+            ChatColorPalette.Resolve(_configuration.MessageColor, player.Team));
         var resolved = await _placeholders.ResolveAsync(
             decorated, context, cancellationToken).ConfigureAwait(false);
+        if (rankColor is not null)
+        {
+            resolved = resolved.Replace(
+                $"{rankColor}{ChatColorPalette.Default}",
+                string.Empty,
+                StringComparison.Ordinal);
+        }
         var name = string.IsNullOrWhiteSpace(player.Name)
             ? player.Id.SteamId64.ToString(CultureInfo.InvariantCulture)
             : Sanitize(player.Name, MaximumNameLength);
@@ -198,16 +206,14 @@ public sealed class ChatMessageFormatter
 
     private static string Decorate(
         string template,
-        PlayerTeam team,
-        string rankColor,
-        string nameColor,
-        string messageColor)
+        char? rankColor,
+        char? nameColor,
+        char? messageColor)
         => DecorateToken(
             DecorateToken(
-                DecorateToken(template, "{rank.tag}",
-                    ChatColorPalette.Resolve(rankColor, team)),
-                "{player.name}", ChatColorPalette.Resolve(nameColor, team)),
-            "{message}", ChatColorPalette.Resolve(messageColor, team));
+                DecorateToken(template, "{rank.tag}", rankColor),
+                "{player.name}", nameColor),
+            "{message}", messageColor);
 
     private static string DecorateToken(
         string template,

@@ -106,6 +106,25 @@ public sealed class ChatMessageFormatterTests
     }
 
     [TestMethod]
+    public async Task Format_EmptyRankTagDoesNotEmitOrphanedColorCodes()
+    {
+        var store = new JsonConfigStore(_root);
+        await store.SaveAsync("chat-format", new ChatFormatConfiguration
+        {
+            RankColor = "Green",
+        });
+        var formatter = await ChatMessageFormatter.CreateAsync(
+            store, new PlaceholderRegistry());
+
+        var formatted = await formatter.FormatAsync(
+            new ChatFormatRequest(Player, "Player", "hello", false));
+
+        Assert.IsFalse(formatted.Contains('\x04'));
+        Assert.IsFalse(formatted.Contains('\x01'));
+        Assert.AreEqual(" Player: hello", formatted);
+    }
+
+    [TestMethod]
     public async Task Format_UserControlCharactersCannotInjectColors()
     {
         var store = new JsonConfigStore(_root);
