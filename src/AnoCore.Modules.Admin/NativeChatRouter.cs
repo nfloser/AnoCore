@@ -48,6 +48,9 @@ public sealed class NativeChatRouter
         if (input.StartsWith('!') || input.StartsWith('/'))
             return NativeChatRoute.PassThrough;
 
+        if (string.IsNullOrWhiteSpace(input))
+            return NativeChatRoute.Suppress;
+
         if (_moderation(senderId) != ChatInterceptionDecision.Allow)
             return NativeChatRoute.Suppress;
 

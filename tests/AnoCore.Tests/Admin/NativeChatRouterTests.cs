@@ -77,6 +77,28 @@ public sealed class NativeChatRouterTests
     }
 
     [TestMethod]
+    public async Task EmptyMessage_IsSuppressedWithoutFormatting()
+    {
+        var players = new PlayerRegistry(new AnoEventBus());
+        var sender = await ConnectAsync(players, 76561198000012651, PlayerTeam.Terrorist);
+        var formatCalls = 0;
+        var router = Router(
+            players,
+            (PlayerId _, PlayerSessionId _, string? _, bool _, out string? formatted) =>
+            {
+                formatCalls++;
+                formatted = "unexpected";
+                return true;
+            });
+
+        var route = router.Route(sender.Id, "   ", false);
+
+        Assert.IsTrue(route.ShouldIntercept);
+        Assert.IsNull(route.FormattedMessage);
+        Assert.AreEqual(0, formatCalls);
+    }
+
+    [TestMethod]
     public async Task BlockedSender_IsSuppressedBeforeFormatting()
     {
         var players = new PlayerRegistry(new AnoEventBus());
