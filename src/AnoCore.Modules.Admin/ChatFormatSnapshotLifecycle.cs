@@ -67,6 +67,14 @@ public sealed class ChatFormatSnapshotLifecycle : IDisposable
         return WarmAsync(player, false, cancellationToken);
     }
 
+    public ValueTask RefreshTagPolicyAsync(
+        PlayerSnapshot player,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(player);
+        return WarmAsync(player, false, cancellationToken, invalidate: true);
+    }
+
     public async ValueTask WarmExistingAsync(
         IEnumerable<PlayerSnapshot> players,
         CancellationToken cancellationToken = default)
@@ -140,7 +148,8 @@ public sealed class ChatFormatSnapshotLifecycle : IDisposable
     private async ValueTask WarmAsync(
         PlayerSnapshot player,
         bool replaceSession,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool invalidate = false)
     {
         ArgumentNullException.ThrowIfNull(player);
         if (!player.IsConnected)
@@ -157,7 +166,7 @@ public sealed class ChatFormatSnapshotLifecycle : IDisposable
             _sessions[player.Id] = player.SessionId;
             revision = _revisions.GetValueOrDefault(player.Id) + 1;
             _revisions[player.Id] = revision;
-            if (replaceSession)
+            if (replaceSession || invalidate)
                 _snapshots.Remove(player.Id);
         }
 

@@ -22,6 +22,20 @@ Modules register `chat.tag` providers with distinct integer priorities. The high
 
 Equal priorities are rejected, as is mixing exclusive and prioritized ownership for one placeholder. Disposing a registration or unloading its owner reveals the next applicable provider without disturbing other owners. Tag providers are evaluated while warming a session snapshot, never in the synchronous native chat hook.
 
+## Player-selectable tags
+
+`config/chat-tags.json` defines up to 32 choices with `Id`, `Text` (at most 24 printable characters) and an `ano.*` `Permission`. The default is an empty choice list. For example:
+
+```json
+{
+  "Tags": [
+    { "Id": "staff", "Text": "[Staff]", "Permission": "ano.chat.staff" }
+  ]
+}
+```
+
+A connected player uses `anotags` to list only permitted choices, `anosettag staff` to select one, and `anocleartag` to return to the rank tag. Choices are persisted in the shared typed player settings. The selected tag provider has priority 100; it returns `null` when the choice is missing, removed or permission is denied, revealing the rank tag at priority 0. Tag text is validated against native controls and braces. Successful changes refresh the current session's prepared chat format. Authorization reload starts invalidation and refresh for every connected player without waiting for one slow player before processing the next. A failed refresh cannot keep a revoked tag in native chat. The native `say` hook reads only these prepared snapshots.
+
 ## Safe evaluation order
 
 `ChatMessageFormatter` first resolves trusted shared placeholders with the sender's `PlayerId` in the `player` context. It substitutes the player name and message only afterwards. Braces in a player's name or message are therefore literal data and cannot invoke another placeholder.

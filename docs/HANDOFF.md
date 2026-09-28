@@ -1,3 +1,8 @@
+## Selectable chat tags checkpoint — 2026-09-28
+
+- Issue #124 / draft PR #125 / branch `feature/124-selectable-chat-tags` stacks on #123. Server-configured `ano.*` permissions gate the `anotags`, `anosettag` and `anocleartag` choices; player settings persist selection and the priority-100 provider falls back to rank when access is lost.
+- Changes and authorization reload invalidate prior current-session chat snapshots before refreshing them; failed reads cannot retain a revoked tag. CS2/DatHost display, native command dispatch and reload/unload acceptance remain unverified.
+
 ## Prioritized chat-tag ownership checkpoint — 2026-09-28
 
 - Issue #122 / draft PR #123 / branch `feature/122-chat-tag-priority` stacks on #121. The shared `chat.tag` placeholder has deterministic provider priorities: `null` falls back, while an empty value explicitly suppresses lower tags.

@@ -149,6 +149,30 @@ public sealed class ChatFormatSnapshotLifecycleTests
     }
 
     [TestMethod]
+    public async Task TagPolicyRefreshFailureInvalidatesOldAuthorizedTag()
+    {
+        var events = new AnoEventBus();
+        var permissionStoreFails = false;
+        var formatter = await ChatMessageFormatter.CreateAsync(
+            new JsonConfigStore(_root),
+            Tags((_, _) => permissionStoreFails
+                ? ValueTask.FromException<string?>(
+                    new InvalidOperationException("permission read failed"))
+                : ValueTask.FromResult<string?>("[Staff]")));
+        using var snapshots = new ChatFormatSnapshotLifecycle(events, formatter);
+        var player = Snapshot(PlayerSessionId.New(), "Player");
+        await events.PublishAsync(new PlayerConnectedEvent(player));
+        Assert.IsTrue(snapshots.TryFormat(
+            Player, player.SessionId, "before", false, out _));
+
+        permissionStoreFails = true;
+        await snapshots.RefreshTagPolicyAsync(player);
+
+        Assert.IsFalse(snapshots.TryFormat(
+            Player, player.SessionId, "after", false, out _));
+    }
+
+    [TestMethod]
     public async Task DisconnectAndDispose_ClearSnapshotsAndUnsubscribe()
     {
         var events = new AnoEventBus();
