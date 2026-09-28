@@ -219,6 +219,8 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
 
     private void RegisterCommands()
     {
+        _registrations.Add(new PlayerToggleCommandModule(
+            Commands, Players, ToggleCatalog, Settings));
         _registrations.Add(Commands.Register(
             CoreModule,
             new CommandDescriptor("anocommands", "List registered AnoCore commands"),
