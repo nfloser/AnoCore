@@ -51,7 +51,7 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
         Authorization = new AuthorizationService(authorizationStore);
         Commands = new CommandRegistry(Authorization);
         Menus = new MenuService();
-        Settings = new PlayerSettingsService(data);
+        Settings = new PlayerSettingsService(data, events: events);
         WarningRepository = new MySqlWarningRepository(database);
         Warnings = new WarningService(WarningRepository);
         AdminAuditRepository = new MySqlAdminAuditRepository(database);
