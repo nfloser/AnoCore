@@ -1,3 +1,4 @@
+using AnoCore.Abstractions.Modules;
 using AnoCore.Abstractions.Players;
 using AnoCore.Abstractions.Settings;
 using AnoCore.Runtime.Composition;
@@ -29,6 +30,16 @@ public sealed class RuntimeSettingsCompositionTests
             events,
             players);
         Assert.AreSame(runtime.Settings, runtime.GetService(typeof(IPlayerSettingsService)));
+        Assert.AreSame(runtime.ToggleCatalog,
+            runtime.GetService(typeof(IPlayerToggleCatalog)));
+        var toggle = new PlayerToggleSetting(
+            new PlayerSettingKey<bool>("test.shared.toggle", false),
+            "Shared toggle", "A module-owned preference.");
+        using (runtime.ToggleCatalog.Register(new ModuleId("tests"), toggle))
+        {
+            Assert.IsTrue(runtime.ToggleCatalog.TryGet(toggle.Key.Name, out _));
+        }
+        Assert.IsFalse(runtime.ToggleCatalog.TryGet(toggle.Key.Name, out _));
         var changes = new List<PlayerSettingChangedEvent>();
         using var subscription = events.Subscribe<PlayerSettingChangedEvent>(
             (value, _) =>
