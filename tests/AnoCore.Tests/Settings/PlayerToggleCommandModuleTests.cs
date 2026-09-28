@@ -83,6 +83,35 @@ public sealed class PlayerToggleCommandModuleTests
     }
 
     [TestMethod]
+    public async Task DelayedSettingsList_RejectsPreviousSessionAfterReconnect()
+    {
+        var players = await ConnectedAsync();
+        var catalog = new PlayerToggleCatalog();
+        catalog.Register(new ModuleId("tests"), new PlayerToggleSetting(
+            new PlayerSettingKey<bool>("test.option", false), "Option", ""));
+        var settings = new MemorySettings
+        {
+            ReadStarted = new TaskCompletionSource(
+                TaskCreationOptions.RunContinuationsAsynchronously),
+            ReleaseRead = new TaskCompletionSource(
+                TaskCreationOptions.RunContinuationsAsynchronously),
+        };
+        var commands = new CommandRegistry(new AllowAll());
+        using var module = new PlayerToggleCommandModule(
+            commands, players, catalog, settings);
+        var pending = commands.ExecuteAsync("!anosettings", Player).AsTask();
+        await settings.ReadStarted.Task;
+        await players.ConnectAsync(new PlayerConnection(
+            Player, "New session", PlayerTeam.CounterTerrorist,
+            true, DateTimeOffset.UtcNow));
+        settings.ReleaseRead.SetResult();
+
+        var result = await pending;
+        Assert.IsFalse(result.Success);
+        Assert.AreEqual(CommandFailureReason.InvalidInput, result.FailureReason);
+    }
+
+    [TestMethod]
     public async Task RegistrationCollision_RollsBackFirstCommand()
     {
         var players = await ConnectedAsync();
@@ -119,11 +148,18 @@ public sealed class PlayerToggleCommandModuleTests
         private readonly Dictionary<string, bool> _values = [];
         public int SetCount { get; private set; }
         public int ResetCount { get; private set; }
+        public TaskCompletionSource? ReadStarted { get; set; }
+        public TaskCompletionSource? ReleaseRead { get; set; }
 
-        public ValueTask<T> GetAsync<T>(PlayerId id, PlayerSettingKey<T> key,
+        public async ValueTask<T> GetAsync<T>(PlayerId id, PlayerSettingKey<T> key,
             CancellationToken cancellationToken = default)
-            => ValueTask.FromResult(_values.TryGetValue(key.Name, out var value)
-                ? (T)(object)value : key.DefaultValue);
+        {
+            ReadStarted?.TrySetResult();
+            if (ReleaseRead is not null)
+                await ReleaseRead.Task.WaitAsync(cancellationToken);
+            return _values.TryGetValue(key.Name, out var value)
+                ? (T)(object)value : key.DefaultValue;
+        }
 
         public ValueTask SetAsync<T>(PlayerId id, PlayerSettingKey<T> key, T value,
             CancellationToken cancellationToken = default)
