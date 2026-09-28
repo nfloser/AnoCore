@@ -218,6 +218,41 @@ public sealed class SelectableChatTagModuleTests
     }
 
     [TestMethod]
+    public async Task MenuRegistrationsFollowMatchingSessionEvents()
+    {
+        var events = new AnoEventBus();
+        var players = new PlayerRegistry(events);
+        await players.ConnectAsync(new PlayerConnection(
+            Player, "First", PlayerTeam.Terrorist,
+            true, DateTimeOffset.UtcNow));
+        var permissions = new Permissions { Allowed = true };
+        var menus = new MenuService();
+        var commands = new CommandRegistry(permissions);
+        using var module = await SelectableChatTagModule.CreateAsync(
+            await ConfigAsync(), commands, new PlaceholderRegistry(), players,
+            new Settings(), permissions, permissions,
+            (_, _) => ValueTask.CompletedTask, menus: menus, events: events);
+        var old = players.OnlinePlayers.Single();
+        await commands.ExecuteAsync("!anochatmenu", Player);
+        Assert.IsTrue(menus.TryGetOpenMenu(Player, out _));
+
+        await players.ConnectAsync(new PlayerConnection(
+            Player, "Second", PlayerTeam.CounterTerrorist,
+            true, DateTimeOffset.UtcNow));
+        Assert.IsFalse(menus.TryGetOpenMenu(Player, out _));
+
+        await commands.ExecuteAsync("!anochatmenu", Player);
+        Assert.IsTrue(menus.TryGetOpenMenu(Player, out _));
+        await events.PublishAsync(new AnoCore.Abstractions.Players.Events.PlayerDisconnectedEvent(
+            old));
+        Assert.IsTrue(menus.TryGetOpenMenu(Player, out _));
+
+        var current = players.OnlinePlayers.Single();
+        await players.DisconnectAsync(Player, current.SessionId, DateTimeOffset.UtcNow);
+        Assert.IsFalse(menus.TryGetOpenMenu(Player, out _));
+    }
+
+    [TestMethod]
     public async Task ConfigurationRejectsUnsafeTextAndDuplicateIdentifiers()
     {
         var config = new JsonConfigStore(_root);

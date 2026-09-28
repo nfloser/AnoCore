@@ -286,6 +286,7 @@ public sealed class AnoCorePlugin : BasePlugin
                         ? snapshots.RefreshTagPolicyAsync(player, token)
                         : ValueTask.CompletedTask,
                     created.Menus,
+                    events,
                     exception => Logger.LogError(
                         exception, "Chat tag snapshot refresh failed."),
                     timeout.Token).ConfigureAwait(false);

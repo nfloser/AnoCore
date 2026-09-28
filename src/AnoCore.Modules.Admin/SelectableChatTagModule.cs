@@ -1,10 +1,12 @@
 using AnoCore.Abstractions.Commands;
 using AnoCore.Abstractions.Configuration;
+using AnoCore.Abstractions.Events;
 using AnoCore.Abstractions.Menus;
 using AnoCore.Abstractions.Modules;
 using AnoCore.Abstractions.Permissions;
 using AnoCore.Abstractions.Placeholders;
 using AnoCore.Abstractions.Players;
+using AnoCore.Abstractions.Players.Events;
 using AnoCore.Abstractions.Settings;
 
 namespace AnoCore.Modules.Admin;
@@ -18,7 +20,8 @@ public sealed class SelectableChatTagModule : IDisposable
     private readonly object _menuGate = new();
     private readonly IPlayerRegistry _players;
     private readonly IMenuService? _menus;
-    private readonly Dictionary<PlayerId, IDisposable> _playerMenus = [];
+    private readonly Dictionary<PlayerId, MenuRegistration> _playerMenus = [];
+    private readonly IDisposable[] _subscriptions;
     private readonly IPlayerSettingsService _settings;
     private readonly IPermissionEvaluator _permissions;
     private readonly IAuthorizationReloadEvents _reloadEvents;
@@ -41,6 +44,7 @@ public sealed class SelectableChatTagModule : IDisposable
         IAuthorizationReloadEvents reloadEvents,
         Func<PlayerSnapshot, CancellationToken, ValueTask> refresh,
         IMenuService? menus,
+        IAnoEventBus? events,
         Action<Exception>? onFailure)
     {
         _lifetimeToken = _lifetime.Token;
@@ -58,6 +62,7 @@ public sealed class SelectableChatTagModule : IDisposable
         _provider = placeholders.RegisterPrioritized(
             Owner, "chat.tag", 100, ResolveTagAsync);
         var registrations = new List<IDisposable>();
+        var subscriptions = new List<IDisposable>();
         try
         {
             registrations.Add(commands.Register(
@@ -84,9 +89,29 @@ public sealed class SelectableChatTagModule : IDisposable
 
             _commands = registrations.ToArray();
             _reloadEvents.Reloaded += OnReloaded;
+            if (events is not null)
+            {
+                subscriptions.Add(events.Subscribe<PlayerDisconnectedEvent>(
+                    (value, _) =>
+                    {
+                        RemoveSessionMenu(value.Player);
+                        return ValueTask.CompletedTask;
+                    }));
+                subscriptions.Add(events.Subscribe<PlayerReconnectedEvent>(
+                    (value, _) =>
+                    {
+                        RemoveSessionMenu(value.Previous);
+                        return ValueTask.CompletedTask;
+                    }));
+            }
+
+            _subscriptions = subscriptions.ToArray();
         }
         catch
         {
+            _reloadEvents.Reloaded -= OnReloaded;
+            foreach (var subscription in subscriptions)
+                subscription.Dispose();
             foreach (var registration in registrations)
                 registration.Dispose();
             _provider.Dispose();
@@ -105,6 +130,7 @@ public sealed class SelectableChatTagModule : IDisposable
         IAuthorizationReloadEvents reloadEvents,
         Func<PlayerSnapshot, CancellationToken, ValueTask> refresh,
         IMenuService? menus = null,
+        IAnoEventBus? events = null,
         Action<Exception>? onFailure = null,
         CancellationToken cancellationToken = default)
     {
@@ -123,7 +149,8 @@ public sealed class SelectableChatTagModule : IDisposable
             cancellationToken).ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
         return new SelectableChatTagModule(loaded, commands, placeholders,
-            players, settings, permissions, reloadEvents, refresh, menus, onFailure);
+            players, settings, permissions, reloadEvents, refresh, menus, events,
+            onFailure);
     }
 
     private async ValueTask<string?> ResolveTagAsync(
@@ -284,10 +311,24 @@ public sealed class SelectableChatTagModule : IDisposable
             if (!TryCurrentSession(player))
                 return;
             if (_playerMenus.Remove(player.Id, out var previous))
-                previous.Dispose();
+                previous.Handle.Dispose();
             var registration = _menus.Register(Owner, definition);
-            _playerMenus[player.Id] = registration;
+            _playerMenus[player.Id] =
+                new MenuRegistration(player.SessionId, registration);
             _menus.Open(player.Id, definition.Id);
+        }
+    }
+
+    private void RemoveSessionMenu(PlayerSnapshot player)
+    {
+        lock (_menuGate)
+        {
+            if (_playerMenus.TryGetValue(player.Id, out var registration)
+                && registration.SessionId == player.SessionId)
+            {
+                _playerMenus.Remove(player.Id);
+                registration.Handle.Dispose();
+            }
         }
     }
 
@@ -393,10 +434,12 @@ public sealed class SelectableChatTagModule : IDisposable
             return;
         _reloadEvents.Reloaded -= OnReloaded;
         _lifetime.Cancel();
+        foreach (var subscription in _subscriptions)
+            subscription.Dispose();
         lock (_menuGate)
         {
             foreach (var registration in _playerMenus.Values)
-                registration.Dispose();
+                registration.Handle.Dispose();
             _playerMenus.Clear();
         }
 
@@ -407,4 +450,6 @@ public sealed class SelectableChatTagModule : IDisposable
     }
 
     private sealed record TagOption(string Text, PermissionId Permission);
+
+    private sealed record MenuRegistration(PlayerSessionId SessionId, IDisposable Handle);
 }
