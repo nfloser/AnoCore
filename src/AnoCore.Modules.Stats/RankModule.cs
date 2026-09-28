@@ -146,6 +146,10 @@ public sealed class RankModule : IDisposable
             registrations.Add(placeholders.Register(Owner, "rank.tag",
                 (context, token) => ResolvePlaceholderAsync(
                     context, threshold => threshold.Tag ?? string.Empty, token)));
+            registrations.Add(placeholders.RegisterPrioritized(
+                Owner, "chat.tag", 0,
+                (context, token) => ResolvePlaceholderAsync(
+                    context, threshold => threshold.Tag ?? string.Empty, token)));
             registrations.Add(placeholders.Register(Owner, "rank.name",
                 (context, token) => ResolvePlaceholderAsync(
                     context, threshold => threshold.Name, token)));

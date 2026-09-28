@@ -52,9 +52,9 @@ public sealed class RankPlaceholderTests
         var context = new PlaceholderContext(
             new Dictionary<string, object?> { ["player"] = Player });
         var value = await placeholders.ResolveAsync(
-            "{rank.tag}|{rank.name}|{rank.points}", context);
+            "{rank.tag}|{chat.tag}|{rank.name}|{rank.points}", context);
 
-        Assert.AreEqual("[V]|Veteran|10", value);
+        Assert.AreEqual("[V]|[V]|Veteran|10", value);
         Assert.AreEqual((3, 2, 1), repository.LastWeights);
     }
 
@@ -87,6 +87,7 @@ public sealed class RankPlaceholderTests
                 new FakeRepository(null), placeholders));
 
         Assert.IsFalse(placeholders.Contains("rank.tag"));
+        Assert.IsFalse(placeholders.Contains("chat.tag"));
         Assert.IsFalse(placeholders.Contains("rank.name"));
         Assert.IsTrue(placeholders.Contains("rank.points"));
         Assert.AreEqual(CommandFailureReason.NotFound,
@@ -104,6 +105,7 @@ public sealed class RankPlaceholderTests
         module.Dispose();
 
         Assert.IsFalse(placeholders.Contains("rank.tag"));
+        Assert.IsFalse(placeholders.Contains("chat.tag"));
         Assert.IsFalse(placeholders.Contains("rank.name"));
         Assert.IsFalse(placeholders.Contains("rank.points"));
     }

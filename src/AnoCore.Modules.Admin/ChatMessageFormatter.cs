@@ -183,8 +183,12 @@ public sealed class ChatMessageFormatter
     {
         var rankColor = ChatColorPalette.Resolve(
             _configuration.RankColor, player.Team);
+        var effectiveTemplate = _placeholders.Contains("chat.tag")
+            ? template.Replace(
+                "{rank.tag}", "{chat.tag}", StringComparison.OrdinalIgnoreCase)
+            : template;
         var decorated = Decorate(
-            template,
+            effectiveTemplate,
             rankColor,
             ChatColorPalette.Resolve(_configuration.NameColor, player.Team),
             ChatColorPalette.Resolve(_configuration.MessageColor, player.Team));
@@ -211,7 +215,9 @@ public sealed class ChatMessageFormatter
         char? messageColor)
         => DecorateToken(
             DecorateToken(
-                DecorateToken(template, "{rank.tag}", rankColor),
+                DecorateToken(
+                    DecorateToken(template, "{chat.tag}", rankColor),
+                    "{rank.tag}", rankColor),
                 "{player.name}", nameColor),
             "{message}", messageColor);
 

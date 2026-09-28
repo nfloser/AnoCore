@@ -40,6 +40,31 @@ public sealed class ChatMessageFormatterTests
     }
 
     [TestMethod]
+    public async Task Format_LegacyRankTagUsesPrioritizedChatTag()
+    {
+        var store = new JsonConfigStore(_root);
+        await store.SaveAsync("chat-format", new ChatFormatConfiguration
+        {
+            PublicTemplate = "{rank.tag} {player.name}: {message}",
+            TeamTemplate = "{rank.tag} {player.name}: {message}",
+            RankColor = "Green",
+        });
+        var placeholders = new PlaceholderRegistry();
+        using var rank = placeholders.RegisterPrioritized(
+            new ModuleId("ranks"), "chat.tag", 0,
+            (_, _) => ValueTask.FromResult<string?>("[Rank]"));
+        using var staff = placeholders.RegisterPrioritized(
+            new ModuleId("staff"), "chat.tag", 100,
+            (_, _) => ValueTask.FromResult<string?>("[Staff]"));
+        var formatter = await ChatMessageFormatter.CreateAsync(store, placeholders);
+
+        var formatted = await formatter.FormatAsync(
+            new ChatFormatRequest(Player, "Nils", "hello", false));
+
+        Assert.AreEqual("\x04[Staff]\x01 Nils: hello", formatted);
+    }
+
+    [TestMethod]
     public async Task Format_UsesSeparateTeamAndPublicTemplates()
     {
         var store = new JsonConfigStore(_root);
