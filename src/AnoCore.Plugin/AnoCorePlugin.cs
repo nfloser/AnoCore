@@ -38,11 +38,13 @@ public sealed class AnoCorePlugin : BasePlugin
     private PlaytimeModule? _pendingPlaytime;
     private RankModule? _pendingRank;
     private ChatMessageFormatter? _pendingChatFormatter;
+    private SelectableChatTagModule? _pendingChatTags;
     private RuntimeServices? _runtime;
     private AnoVetoModuleRuntime? _anoVeto;
     private PlaytimeModule? _playtime;
     private RankModule? _rank;
     private ChatMessageFormatter? _chatFormatter;
+    private SelectableChatTagModule? _chatTags;
     private ChatFormatSnapshotLifecycle? _chatFormatSnapshots;
     private CombatModule? _combat;
     private string _combatServerInstance = string.Empty;
@@ -110,6 +112,8 @@ public sealed class AnoCorePlugin : BasePlugin
             _playtime = null;
             _chatFormatSnapshots?.Dispose();
             _chatFormatSnapshots = null;
+            _chatTags?.Dispose();
+            _chatTags = null;
             _rank?.Dispose();
             _rank = null;
             _chatFormatter = null;
@@ -120,6 +124,8 @@ public sealed class AnoCorePlugin : BasePlugin
             _pendingRank?.Dispose();
             _pendingRank = null;
             _pendingChatFormatter = null;
+            _pendingChatTags?.Dispose();
+            _pendingChatTags = null;
 
             _pendingAnoVeto?.Dispose();
             _pendingAnoVeto = null;
@@ -172,6 +178,7 @@ public sealed class AnoCorePlugin : BasePlugin
         PlaytimeModule? createdPlaytime = null;
         RankModule? createdRank = null;
         ChatMessageFormatter? createdChatFormatter = null;
+        SelectableChatTagModule? createdChatTags = null;
         try
         {
             var configuration = new JsonConfigStore(Path.Combine(ModuleDirectory, "config"));
@@ -262,8 +269,37 @@ public sealed class AnoCorePlugin : BasePlugin
             catch (Exception exception)
             {
                 createdChatFormatter = null;
+                createdChatTags = null;
                 Logger.LogError(exception,
                     "Chat formatting composition failed; AnoCore will continue without chat formatting.");
+            }
+
+            try
+            {
+                var placeholders = created.GetService(typeof(IPlaceholderRegistry))
+                    as IPlaceholderRegistry
+                    ?? throw new InvalidOperationException(
+                        "AnoCore runtime did not provide the shared placeholder registry.");
+                createdChatTags = await SelectableChatTagModule.CreateAsync(
+                    configuration, created.Commands, placeholders, players, created.Settings,
+                    created.Authorization, created.Authorization,
+                    (player, token) => _chatFormatSnapshots is { } snapshots
+                        ? snapshots.RefreshAsync(player, token)
+                        : ValueTask.CompletedTask,
+                    exception => Logger.LogError(
+                        exception, "Chat tag snapshot refresh failed."),
+                    timeout.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception exception)
+            {
+                createdChatTags?.Dispose();
+                createdChatTags = null;
+                Logger.LogError(exception,
+                    "Chat tag composition failed; AnoCore will continue without selectable tags.");
             }
 
             try
@@ -300,6 +336,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 _pendingPlaytime = createdPlaytime;
                 _pendingRank = createdRank;
                 _pendingChatFormatter = createdChatFormatter;
+                _pendingChatTags = createdChatTags;
                 created = null;
                 createdAnoVeto = null;
                 createdPlaytime = null;
@@ -313,6 +350,7 @@ public sealed class AnoCorePlugin : BasePlugin
             createdAnoVeto?.Dispose();
             createdPlaytime?.Dispose();
             createdRank?.Dispose();
+            createdChatTags?.Dispose();
             created?.Dispose();
         }
         catch (Exception exception)
@@ -320,6 +358,7 @@ public sealed class AnoCorePlugin : BasePlugin
             createdAnoVeto?.Dispose();
             createdPlaytime?.Dispose();
             createdRank?.Dispose();
+            createdChatTags?.Dispose();
             created?.Dispose();
             lock (_startupGate)
             {
@@ -330,6 +369,8 @@ public sealed class AnoCorePlugin : BasePlugin
                     _pendingRank?.Dispose();
                     _pendingRank = null;
                     _pendingChatFormatter = null;
+                    _pendingChatTags?.Dispose();
+                    _pendingChatTags = null;
                     _pendingAnoVeto?.Dispose();
                     _pendingAnoVeto = null;
                     _pendingRuntime?.Dispose();
@@ -357,11 +398,13 @@ public sealed class AnoCorePlugin : BasePlugin
             var playtime = _pendingPlaytime;
             var rank = _pendingRank;
             var chatFormatter = _pendingChatFormatter;
+            var chatTags = _pendingChatTags;
             _pendingRuntime = null;
             _pendingAnoVeto = null;
             _pendingPlaytime = null;
             _pendingRank = null;
             _pendingChatFormatter = null;
+            _pendingChatTags = null;
             ModerationCommandController? adminCommands = null;
             RankAdjustmentCommandController? rankAdminCommands = null;
             RankAdjustmentNotificationService? rankAdminNotifications = null;
@@ -508,6 +551,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 _playtime = playtime;
                 _rank = rank;
                 _chatFormatter = chatFormatter;
+                _chatTags = chatTags;
                 _combat = combat;
                 _anoVetoExpiryTimer = expiryTimer;
                 _voiceModerationTimer = voiceTimer;
@@ -524,6 +568,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 playtimeTimer?.Kill();
                 playtime?.Dispose();
                 rank?.Dispose();
+                chatTags?.Dispose();
                 combat?.Dispose();
                 transitionMonitor?.Dispose();
                 voiceModeration?.Dispose();
