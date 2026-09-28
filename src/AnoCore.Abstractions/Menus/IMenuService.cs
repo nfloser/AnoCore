@@ -15,11 +15,20 @@ public interface IMenuService
 
     bool TryGetOpenMenu(PlayerId playerId, out MenuDefinition? menu);
 
-    ValueTask<MenuSelectionResult> SelectAsync(
+    async ValueTask<MenuSelectionResult> SelectAsync(
         PlayerId playerId,
         MenuDefinition expectedMenu,
         string optionId,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(expectedMenu);
+        if (!TryGetOpenMenu(playerId, out var current)
+            || !ReferenceEquals(current, expectedMenu))
+            return MenuSelectionResult.Rejected("This menu is no longer open.");
+
+        return await SelectAsync(playerId, optionId, cancellationToken)
+            .ConfigureAwait(false);
+    }
 
     ValueTask<MenuSelectionResult> SelectAsync(
         PlayerId playerId,
