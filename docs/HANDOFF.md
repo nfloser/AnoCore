@@ -1,3 +1,8 @@
+## Chat-tag selection menu checkpoint — 2026-09-28
+
+- Issue #126 / draft PR pending / branch `feature/126-chat-tag-menu` stacks on #125. `anochatmenu [page]` opens a five-choice navigable menu using the same persistent settings and permission checks as the chat commands.
+- Menu clicks recheck permission and session identity, with per-player registrations disposed on unload. Native menu rendering and interaction require CS2/DatHost acceptance.
+
 ## Selectable chat tags checkpoint — 2026-09-28
 
 - Issue #124 / draft PR #125 / branch `feature/124-selectable-chat-tags` stacks on #123. Server-configured `ano.*` permissions gate the `anotags`, `anosettag` and `anocleartag` choices; player settings persist selection and the priority-100 provider falls back to rank when access is lost.

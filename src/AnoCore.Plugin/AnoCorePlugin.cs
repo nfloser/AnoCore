@@ -285,6 +285,7 @@ public sealed class AnoCorePlugin : BasePlugin
                     (player, token) => _chatFormatSnapshots is { } snapshots
                         ? snapshots.RefreshTagPolicyAsync(player, token)
                         : ValueTask.CompletedTask,
+                    created.Menus,
                     exception => Logger.LogError(
                         exception, "Chat tag snapshot refresh failed."),
                     timeout.Token).ConfigureAwait(false);
@@ -423,6 +424,8 @@ public sealed class AnoCorePlugin : BasePlugin
                 {
                     if (string.Equals(commandName, "anoveto", StringComparison.Ordinal)
                         || string.Equals(commandName, RankModule.MenuCommandName,
+                            StringComparison.Ordinal)
+                        || string.Equals(commandName, SelectableChatTagModule.MenuCommandName,
                             StringComparison.Ordinal))
                     {
                         presenter.Reconcile();
