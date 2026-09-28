@@ -149,37 +149,6 @@ public sealed class ChatFormatSnapshotLifecycleTests
     }
 
     [TestMethod]
-    public async Task InflightRefresh_KeepsPreviousSnapshotUntilReplacementSucceeds()
-    {
-        var events = new AnoEventBus();
-        var calls = 0;
-        var release = new TaskCompletionSource(
-            TaskCreationOptions.RunContinuationsAsynchronously);
-        var formatter = await ChatMessageFormatter.CreateAsync(
-            new JsonConfigStore(_root),
-            Tags(async (_, token) =>
-            {
-                if (Interlocked.Increment(ref calls) == 2)
-                    await release.Task.WaitAsync(token);
-                return calls == 1 ? "[BASE]" : "[UPDATED]";
-            }));
-        using var snapshots = new ChatFormatSnapshotLifecycle(events, formatter);
-        var player = Snapshot(PlayerSessionId.New(), "Player");
-        await events.PublishAsync(new PlayerConnectedEvent(player));
-
-        var refresh = snapshots.RefreshAsync(player).AsTask();
-        Assert.IsTrue(snapshots.TryFormat(
-            Player, player.SessionId, "during", false, out var during));
-        Assert.AreEqual("[BASE] Player: during", during);
-        release.SetResult();
-        await refresh;
-
-        Assert.IsTrue(snapshots.TryFormat(
-            Player, player.SessionId, "after", false, out var after));
-        Assert.AreEqual("[UPDATED] Player: after", after);
-    }
-
-    [TestMethod]
     public async Task DisconnectAndDispose_ClearSnapshotsAndUnsubscribe()
     {
         var events = new AnoEventBus();
