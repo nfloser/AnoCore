@@ -1,5 +1,11 @@
 # AnoCore development handoff
 
+## Settings menu checkpoint — 2026-09-28
+
+- Issue #134 / branch `feature/134-toggle-menu` stacks on draft #133. `anosettingsmenu [page]` exposes registered bool settings, toggle/reset and bounded navigation through the shared menu service.
+- Choice callbacks recheck player session and descriptor identity. Per-render option IDs prevent an old native callback selecting a newly registered option. Matching reconnect/disconnect and unload release menu registrations.
+- Tests and CI are pending at this checkpoint; CS2/DatHost rendering and interaction require live acceptance. The CustomHud renderer and concrete feature registrations remain separate work.
+
 ## Player toggle commands checkpoint — 2026-09-28
 
 - Issue #132 / draft PR pending on `feature/132-toggle-commands`, based on merged #130 / PR #131. `anosettings [page]` lists effective values; `anotoggle <key> on|off|default` saves self-service choices through typed player settings and emits existing change events.
