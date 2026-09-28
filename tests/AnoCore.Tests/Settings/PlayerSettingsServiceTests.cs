@@ -135,17 +135,77 @@ public sealed class PlayerSettingsServiceTests
     }
 
     [TestMethod]
+    public async Task ResetAllAsync_RemovesOnlySelectedPlayerAndPublishesOneValueFreeEvent()
+    {
+        var store = new MemoryStore();
+        var events = new AnoEventBus();
+        var observed = new List<PlayerSettingsResetEvent>();
+        using var subscription = events.Subscribe<PlayerSettingsResetEvent>((value, _) =>
+        {
+            observed.Add(value);
+            return ValueTask.CompletedTask;
+        });
+        var service = new PlayerSettingsService(store, null, events);
+        var first = new PlayerSettingKey<int>("ui.scale", 1);
+        var second = new PlayerSettingKey<bool>("chat.compact", false);
+        var other = new PlayerId(76561198000000994);
+        await service.SetAsync(Player, first, 2);
+        await service.SetAsync(Player, second, true);
+        await service.SetAsync(other, first, 3);
+
+        Assert.AreEqual(2, await service.ResetAllAsync(Player));
+        Assert.AreEqual(1, await service.GetAsync(Player, first));
+        Assert.IsFalse(await service.GetAsync(Player, second));
+        Assert.AreEqual(3, await service.GetAsync(other, first));
+        Assert.AreEqual(1, observed.Count);
+        Assert.AreEqual(Player, observed[0].Player);
+        Assert.AreEqual(2, observed[0].RemovedSettings);
+        Assert.IsFalse(observed[0].ToString()!.Contains("chat.compact", StringComparison.Ordinal));
+        Assert.AreEqual(0, await service.ResetAllAsync(Player));
+        Assert.AreEqual(1, observed.Count);
+    }
+
+    [TestMethod]
+    public async Task ResetAllAsync_FailureDoesNotPublishAndObserverFailureDoesNotUndoCommit()
+    {
+        var store = new MemoryStore();
+        var events = new AnoEventBus();
+        var reported = new List<Exception>();
+        var published = 0;
+        using var subscription = events.Subscribe<PlayerSettingsResetEvent>((_, _) =>
+        {
+            published++;
+            throw new InvalidOperationException("observer failed");
+        });
+        var service = new PlayerSettingsService(store, null, events, reported.Add);
+        var key = new PlayerSettingKey<int>("ui.scale", 1);
+        await service.SetAsync(Player, key, 2);
+        store.FailPrefixDeletes = true;
+        await Assert.ThrowsExactlyAsync<InvalidOperationException>(
+            async () => await service.ResetAllAsync(Player));
+        Assert.AreEqual(0, published);
+        Assert.AreEqual(2, await service.GetAsync(Player, key));
+
+        store.FailPrefixDeletes = false;
+        Assert.AreEqual(1, await service.ResetAllAsync(Player));
+        Assert.AreEqual(1, published);
+        Assert.AreEqual(1, reported.Count);
+        Assert.AreEqual(1, await service.GetAsync(Player, key));
+    }
+
+    [TestMethod]
     public void SettingKey_RejectsUnsafeNames()
     {
         Assert.ThrowsExactly<ArgumentException>(() => new PlayerSettingKey<string>("../secret", "x"));
         Assert.ThrowsExactly<ArgumentException>(() => new PlayerSettingKey<string>("Upper Case", "x"));
     }
 
-    private sealed class MemoryStore : IModuleDataStore
+    private sealed class MemoryStore : IModuleDataStore, IModuleDataPrefixStore
     {
         private readonly Dictionary<string, string> _values = new(StringComparer.Ordinal);
         public bool FailWrites { get; set; }
         public bool FailDeletes { get; set; }
+        public bool FailPrefixDeletes { get; set; }
 
         public ValueTask<string?> GetAsync(ModuleId module, string key, CancellationToken cancellationToken = default)
             => ValueTask.FromResult(_values.GetValueOrDefault($"{module.Value}:{key}"));
@@ -163,6 +223,19 @@ public sealed class PlayerSettingsServiceTests
             if (FailDeletes)
                 throw new InvalidOperationException("Storage unavailable.");
             return ValueTask.FromResult(_values.Remove($"{module.Value}:{key}"));
+        }
+
+        public ValueTask<int> DeleteByPrefixAsync(
+            ModuleId module, string keyPrefix, CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (FailPrefixDeletes)
+                throw new InvalidOperationException("Storage unavailable.");
+            var prefix = $"{module.Value}:{keyPrefix}";
+            var keys = _values.Keys.Where(key => key.StartsWith(prefix, StringComparison.Ordinal)).ToArray();
+            foreach (var key in keys)
+                _values.Remove(key);
+            return ValueTask.FromResult(keys.Length);
         }
     }
 }

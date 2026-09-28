@@ -145,6 +145,26 @@ public sealed class PersistenceIntegrationTests
     }
 
     [TestMethod]
+    public async Task ModuleDataStore_DeleteByPrefixIsExactAndModuleScoped()
+    {
+        await new MigrationRunner(_database, [new CoreSchemaMigration001()]).ApplyPendingAsync();
+        var store = new MySqlModuleDataStore(_database);
+        var settings = new ModuleId("settings");
+        var other = new ModuleId("other");
+        await store.SetAsync(settings, "player.10.setting.chat_compact", "true");
+        await store.SetAsync(settings, "player.10.setting.ui_scale", "2");
+        await store.SetAsync(settings, "player.100.setting.ui_scale", "3");
+        await store.SetAsync(other, "player.10.setting.ui_scale", "4");
+
+        Assert.AreEqual(2, await store.DeleteByPrefixAsync(settings, "player.10.setting."));
+        Assert.IsNull(await store.GetAsync(settings, "player.10.setting.chat_compact"));
+        Assert.IsNull(await store.GetAsync(settings, "player.10.setting.ui_scale"));
+        Assert.AreEqual("3", await store.GetAsync(settings, "player.100.setting.ui_scale"));
+        Assert.AreEqual("4", await store.GetAsync(other, "player.10.setting.ui_scale"));
+        Assert.AreEqual(0, await store.DeleteByPrefixAsync(settings, "player.10.setting."));
+    }
+
+    [TestMethod]
     public void MigrationRunner_RejectsDuplicateVersions()
     {
         var migrations = new IDatabaseMigration[]

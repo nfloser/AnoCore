@@ -1,3 +1,9 @@
+# Player settings bulk-reset checkpoint — 2026-09-28
+
+- Issue #136 / branch `feature/136-player-settings-reset` adds an optional prefix-delete store contract and an SDK reset service/event.
+- MariaDB deletes exactly one player's settings namespace in one statement. Unit and MariaDB tests cover exact player/module isolation, no-op, failure, cancellation behavior and post-commit observer isolation.
+- This backend package does not claim native CS2 behavior. Settings commands/menu remain in draft PRs #133/#135; broader registration/batching and SDK work remain open.
+
 # AnoCore development handoff
 
 ## Toggle settings catalog checkpoint — 2026-09-28
