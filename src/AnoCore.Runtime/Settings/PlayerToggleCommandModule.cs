@@ -203,14 +203,20 @@ public sealed class PlayerToggleCommandModule : IDisposable
         if (page > 1)
             options.Add(new MenuOption(
                 $"p{generation}", "Previous page",
-                async context => await OpenPageAsync(
-                    player, page - 1, context.CancellationToken).ConfigureAwait(false),
+                async context =>
+                {
+                    await OpenPageAsync(
+                        player, page - 1, context.CancellationToken).ConfigureAwait(false);
+                },
                 keepOpen: true));
         if (all.Count > start + PageSize && page < 1000)
             options.Add(new MenuOption(
                 $"n{generation}", "Next page",
-                async context => await OpenPageAsync(
-                    player, page + 1, context.CancellationToken).ConfigureAwait(false),
+                async context =>
+                {
+                    await OpenPageAsync(
+                        player, page + 1, context.CancellationToken).ConfigureAwait(false);
+                },
                 keepOpen: true));
         var definition = new MenuDefinition(
             new MenuId($"ano.settings.{player.Id.SteamId64}"),
