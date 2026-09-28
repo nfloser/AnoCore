@@ -445,9 +445,15 @@ public sealed class AnoCorePlugin : BasePlugin
                     events,
                     runtime.Moderation,
                     runtime.Moderation);
+                ChatSnapshotFormatter? snapshotFormatter = chatFormatSnapshots is null
+                    ? null
+                    : chatFormatSnapshots.TryFormat;
                 chatModeration = new CounterStrikeChatModerationAdapter(
                     this,
-                    communicationModeration.ChatGate);
+                    new NativeChatRouter(
+                        communicationModeration.ChatGate.Evaluate,
+                        runtime.Players,
+                        snapshotFormatter));
                 voiceModeration = new ModerationVoiceCoordinator(
                     runtime.Players,
                     communicationModeration.VoiceGate,

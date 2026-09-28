@@ -1,3 +1,9 @@
+## Native formatted chat routing checkpoint — 2026-09-28
+
+- Issue #116 / draft PR pending / branch `feature/116-native-chat-formatting` stacks on #115. A pure synchronous router applies command pass-through, moderation, current-session formatting and deterministic public/team recipient selection; the CounterStrikeSharp pre-listener suppresses the original line and prints the formatted result only to those recipients.
+- Missing/stale warmed format state fails closed, while a formatter that did not compose leaves allowed native chat unchanged. The hot path performs no placeholder or database work. Tests cover public/team routing, command preservation, moderation ordering, missing snapshots and disabled formatting.
+- The package remains native and must stay draft until the user verifies `say` argument parsing, listener ordering, team visibility, color rendering and unload/reload behavior on CS2/DatHost.
+
 ## Warmed chat format snapshot checkpoint — 2026-09-27
 
 - Issue #114 / draft PR #115 / branch `feature/114-chat-format-snapshots` stacks on #113. Prepared public/team formats resolve asynchronous placeholders once per current player session; synchronous `TryFormat` only validates SteamID/session and substitutes a bounded sanitized message.

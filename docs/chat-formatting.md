@@ -23,8 +23,10 @@ Plugin activation creates a `ChatFormatSnapshotLifecycle` and bootstraps already
 
 `TryFormat` validates both SteamID and session identity, then performs only bounded synchronous message substitution. Missing state fails closed and performs no placeholder or database work.
 
-## Native boundary
+## Native adapter
 
-These components do not intercept or rebroadcast CS2 chat. The existing native moderation listener is synchronous and must not perform a MariaDB lookup on the chat hot path. A future native formatting adapter must consume this session-safe warmed snapshot, apply the synchronous moderation decision first, preserve public/team routing and command behavior, then broadcast the already formatted message on the server thread.
+The CounterStrikeSharp `say` / `say_team` pre-listener now routes ordinary human-player messages through `NativeChatRouter`. Chat commands beginning with `!` or `/` pass through unchanged so CounterStrikeSharp can dispatch registered `css_` commands. For ordinary messages the router applies the synchronous moderation decision, validates the tracked sender session, formats from the warmed snapshot and returns an explicit recipient set. Public messages target all tracked connected humans; team messages target only tracked connected players whose current team matches the sender.
 
-Until that adapter is implemented and observed on CS2/DatHost, this package is only the tested common formatting policy. It does not establish native rank-tag display.
+The adapter suppresses the original chat command and prints the one formatted line to the selected valid native clients. A blocked sender or missing/stale warmed snapshot is suppressed without a database lookup or fallback leak. If chat formatting did not compose at startup, allowed native chat continues unchanged while moderation remains active.
+
+This is compile- and unit-tested routing behavior. Real `say` argument shape, listener ordering, public/team visibility, colors and rank-tag presentation still require the documented CS2/DatHost live acceptance before the draft stack can be merged.
