@@ -129,6 +129,26 @@ public sealed class ChatFormatSnapshotLifecycleTests
     }
 
     [TestMethod]
+    public async Task ExplicitRefresh_RebuildsCurrentSessionPlaceholders()
+    {
+        var events = new AnoEventBus();
+        var tag = "[OLD]";
+        var formatter = await ChatMessageFormatter.CreateAsync(
+            new JsonConfigStore(_root),
+            Tags((_, _) => ValueTask.FromResult<string?>(tag)));
+        using var snapshots = new ChatFormatSnapshotLifecycle(events, formatter);
+        var player = Snapshot(PlayerSessionId.New(), "Player");
+        await events.PublishAsync(new PlayerConnectedEvent(player));
+        tag = "[NEW]";
+
+        await snapshots.RefreshAsync(player);
+
+        Assert.IsTrue(snapshots.TryFormat(
+            Player, player.SessionId, "hello", false, out var message));
+        Assert.AreEqual("[NEW] Player: hello", message);
+    }
+
+    [TestMethod]
     public async Task DisconnectAndDispose_ClearSnapshotsAndUnsubscribe()
     {
         var events = new AnoEventBus();

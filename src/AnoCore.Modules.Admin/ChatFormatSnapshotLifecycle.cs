@@ -58,6 +58,14 @@ public sealed class ChatFormatSnapshotLifecycle : IDisposable
         return false;
     }
 
+    public ValueTask RefreshAsync(
+        PlayerSnapshot player,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(player);
+        return WarmAsync(player, false, cancellationToken);
+    }
+
     public async ValueTask WarmExistingAsync(
         IEnumerable<PlayerSnapshot> players,
         CancellationToken cancellationToken = default)

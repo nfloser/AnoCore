@@ -19,9 +19,9 @@ Player names are limited to 48 characters and messages to 256 characters. Contro
 
 ## Warmed session snapshots
 
-Plugin activation creates a `ChatFormatSnapshotLifecycle` and bootstraps already-connected players. Connect/reconnect warms prepared public and team formats, name updates refresh them, and disconnect removes only the matching `PlayerSessionId`. In-flight work from an old session cannot publish over a newer reconnect. Bootstrap failures are isolated per player. Unload cancels work, unsubscribes lifecycle handlers and clears all entries before rank placeholder registrations are removed.
+Plugin activation creates a `ChatFormatSnapshotLifecycle` and bootstraps already-connected players. Connect/reconnect warms prepared public and team formats, name updates and persisted rank-score changes refresh them, and disconnect removes only the matching `PlayerSessionId`. In-flight work from an old session cannot publish over a newer reconnect. Bootstrap failures are isolated per player. Unload cancels work, unsubscribes lifecycle handlers and clears all entries before rank placeholder registrations are removed.
 
-`TryFormat` validates both SteamID and session identity, then performs only bounded synchronous message substitution. Missing state fails closed and performs no placeholder or database work.
+`TryFormat` validates both SteamID and session identity, then performs only bounded synchronous message substitution. Missing state fails closed and performs no placeholder or database work. Combat events refresh every distinct affected player's current session even when rank-transition messages are disabled; committed administrative give/take/set/reset operations refresh the target even for changes within one rank. Refresh failures are presentation-only and cannot change the already persisted result.
 
 ## Native adapter
 

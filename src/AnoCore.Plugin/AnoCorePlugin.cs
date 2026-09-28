@@ -392,6 +392,9 @@ public sealed class AnoCorePlugin : BasePlugin
 
             try
             {
+                var rankScoreChanges = new ChatFormatRankScoreChangeSink(
+                    runtime.Players,
+                    () => chatFormatSnapshots);
                 var targetGateway = new ModerationTargetGateway(
                     runtime.Players,
                     runtime.TargetResolver,
@@ -408,7 +411,8 @@ public sealed class AnoCorePlugin : BasePlugin
                         runtime.Combat,
                         new CounterStrikeRankTransitionNotifier(runtime.Players),
                         exception => Logger.LogError(
-                            exception, "Rank adjustment notification failed."));
+                            exception, "Rank adjustment notification failed."),
+                        rankScoreChanges);
                 IRankAdjustmentAdministrationService rankAdministration =
                     (IRankAdjustmentAdministrationService?)rankAdminNotifications
                     ?? runtime.RankAdjustmentAdministration;
@@ -422,7 +426,8 @@ public sealed class AnoCorePlugin : BasePlugin
                     : new RankTransitionMonitor(
                         rank.Configuration,
                         runtime.Combat,
-                        new CounterStrikeRankTransitionNotifier(runtime.Players));
+                        new CounterStrikeRankTransitionNotifier(runtime.Players),
+                        rankScoreChanges);
                 combat = new CombatModule(
                     runtime.Commands, runtime.Players, runtime.Combat, transitionMonitor);
                 transitionMonitor = null;
