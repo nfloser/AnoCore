@@ -94,7 +94,7 @@ public sealed class SelectableChatTagModuleTests
 
         Assert.AreEqual("No chat tags available.",
             (await commands.ExecuteAsync("!anotags", Player)).Message);
-        Assert.AreEqual(CommandFailureReason.PermissionDenied,
+        Assert.AreEqual(CommandFailureReason.Forbidden,
             (await commands.ExecuteAsync("!anosettag staff", Player)).FailureReason);
 
         permissions.Allowed = true;

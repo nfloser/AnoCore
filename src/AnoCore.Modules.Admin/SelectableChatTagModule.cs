@@ -155,7 +155,7 @@ public sealed class SelectableChatTagModule : IDisposable
         if (!await _permissions.HasPermissionAsync(
             player!.Id, option.Permission, context.CancellationToken)
             .ConfigureAwait(false))
-            return CommandResult.Fail(CommandFailureReason.PermissionDenied,
+            return CommandResult.Fail(CommandFailureReason.Forbidden,
                 "Chat tag is unavailable.");
         if (!TryCurrentSession(player))
             return NoPlayer();

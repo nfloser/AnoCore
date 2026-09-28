@@ -269,7 +269,6 @@ public sealed class AnoCorePlugin : BasePlugin
             catch (Exception exception)
             {
                 createdChatFormatter = null;
-                createdChatTags = null;
                 Logger.LogError(exception,
                     "Chat formatting composition failed; AnoCore will continue without chat formatting.");
             }
@@ -342,6 +341,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 createdPlaytime = null;
                 createdRank = null;
                 createdChatFormatter = null;
+                createdChatTags = null;
                 Server.NextWorldUpdate(() => ActivateRuntime(cancellationToken));
             }
         }
