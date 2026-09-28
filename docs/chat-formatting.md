@@ -5,17 +5,22 @@ Plugin startup creates and validates the engine-independent formatter from `conf
 ```json
 {
   "PublicTemplate": "{rank.tag} {player.name}: {message}",
-  "TeamTemplate": "(TEAM) {rank.tag} {player.name}: {message}"
+  "TeamTemplate": "(TEAM) {rank.tag} {player.name}: {message}",
+  "RankColor": "None",
+  "NameColor": "None",
+  "MessageColor": "None"
 }
 ```
 
 Each template must contain `{player.name}` and `{message}` exactly once, contain only printable characters and be at most 256 characters. Other registered placeholders, including `{rank.tag}`, may be used. An empty configured rank tag intentionally produces no tag.
 
+`RankColor`, `NameColor` and `MessageColor` accept only `None`, `Team` or the documented native names: `Default`, `White`, `DarkRed`, `LightPurple`, `Green`, `Olive`, `Lime`, `Red`, `Grey`, `Yellow`, `Silver`, `LightBlue`, `DarkBlue`, `Purple`, `LightRed` and `Orange`. Existing installations remain uncolored by default. `Team` resolves to the sender's current team color. Every colored rank, name or message slot is followed by the native default reset so colors cannot bleed into later text.
+
 ## Safe evaluation order
 
 `ChatMessageFormatter` first resolves trusted shared placeholders with the sender's `PlayerId` in the `player` context. It substitutes the player name and message only afterwards. Braces in a player's name or message are therefore literal data and cannot invoke another placeholder.
 
-Player names are limited to 48 characters and messages to 256 characters. Control characters are replaced with spaces. A missing or blank display name falls back to SteamID64.
+Player names are limited to 48 characters and messages to 256 characters. Control characters are replaced with spaces, so names and messages cannot inject native color codes. A missing or blank display name falls back to SteamID64.
 
 ## Warmed session snapshots
 
@@ -29,4 +34,4 @@ The CounterStrikeSharp `say` / `say_team` pre-listener now routes ordinary human
 
 The adapter suppresses the original chat command and prints the one formatted line to the selected valid native clients. A blocked sender or missing/stale warmed snapshot is suppressed without a database lookup or fallback leak. If chat formatting did not compose at startup, allowed native chat continues unchanged while moderation remains active.
 
-This is compile- and unit-tested routing behavior. Real `say` argument shape, listener ordering, public/team visibility, colors and rank-tag presentation still require the documented CS2/DatHost live acceptance before the draft stack can be merged.
+This is compile- and unit-tested routing behavior. Real `say` argument shape, listener ordering, public/team visibility, named colors and rank-tag presentation still require the documented CS2/DatHost live acceptance before the draft stack can be merged.

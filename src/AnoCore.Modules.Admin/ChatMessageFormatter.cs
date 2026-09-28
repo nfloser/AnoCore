@@ -13,6 +13,12 @@ public sealed class ChatFormatConfiguration
     public string TeamTemplate { get; set; } =
         "(TEAM) {rank.tag} {player.name}: {message}";
 
+    public string RankColor { get; set; } = "None";
+
+    public string NameColor { get; set; } = "None";
+
+    public string MessageColor { get; set; } = "None";
+
     public static ChatFormatConfiguration Default => new();
 
     public static IReadOnlyCollection<string> Validate(
@@ -24,6 +30,9 @@ public sealed class ChatFormatConfiguration
         var errors = new List<string>();
         ValidateTemplate(configuration.PublicTemplate, "Public", errors);
         ValidateTemplate(configuration.TeamTemplate, "Team", errors);
+        ValidateColor(configuration.RankColor, "Rank", errors);
+        ValidateColor(configuration.NameColor, "Name", errors);
+        ValidateColor(configuration.MessageColor, "Message", errors);
         return errors;
     }
 
@@ -43,6 +52,15 @@ public sealed class ChatFormatConfiguration
         {
             errors.Add($"{name} chat template must contain player.name and message exactly once.");
         }
+    }
+
+    private static void ValidateColor(
+        string? color,
+        string name,
+        ICollection<string> errors)
+    {
+        if (!ChatColorPalette.IsSupported(color))
+            errors.Add($"{name} chat color is not supported.");
     }
 
     private static int Count(string value, string token)
@@ -163,14 +181,50 @@ public sealed class ChatMessageFormatter
         PlaceholderContext context,
         CancellationToken cancellationToken)
     {
+        var rankColor = ChatColorPalette.Resolve(
+            _configuration.RankColor, player.Team);
+        var decorated = Decorate(
+            template,
+            rankColor,
+            ChatColorPalette.Resolve(_configuration.NameColor, player.Team),
+            ChatColorPalette.Resolve(_configuration.MessageColor, player.Team));
         var resolved = await _placeholders.ResolveAsync(
-            template, context, cancellationToken).ConfigureAwait(false);
+            decorated, context, cancellationToken).ConfigureAwait(false);
+        if (rankColor is not null)
+        {
+            resolved = resolved.Replace(
+                $"{rankColor}{ChatColorPalette.Default}",
+                string.Empty,
+                StringComparison.Ordinal);
+        }
         var name = string.IsNullOrWhiteSpace(player.Name)
             ? player.Id.SteamId64.ToString(CultureInfo.InvariantCulture)
             : Sanitize(player.Name, MaximumNameLength);
         return resolved.Replace(
             "{player.name}", name, StringComparison.OrdinalIgnoreCase);
     }
+
+    private static string Decorate(
+        string template,
+        char? rankColor,
+        char? nameColor,
+        char? messageColor)
+        => DecorateToken(
+            DecorateToken(
+                DecorateToken(template, "{rank.tag}", rankColor),
+                "{player.name}", nameColor),
+            "{message}", messageColor);
+
+    private static string DecorateToken(
+        string template,
+        string token,
+        char? color)
+        => color is null
+            ? template
+            : template.Replace(
+                token,
+                $"{color}{token}{ChatColorPalette.Default}",
+                StringComparison.OrdinalIgnoreCase);
 
     internal static string Sanitize(string value, int maximumLength)
     {

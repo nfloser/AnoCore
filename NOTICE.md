@@ -13,3 +13,10 @@ Where AnoCore copies or adapts K4-Zenith source code, the original copyright and
 New AnoCore code is also distributed under GPL-3.0-only while it forms part of the GPL-covered combined work.
 
 Third-party dependencies retain their own licenses. Binary dependencies should not be committed when a reproducible package/source dependency is available.
+
+
+The named native chat-color table in `ChatColorPalette` mirrors constants from
+CounterStrikeSharp (`roflmuffin/CounterStrikeSharp`,
+`managed/CounterStrikeSharp.API/Modules/Utils/ChatColors.cs`). CounterStrikeSharp
+is licensed under GNU General Public License v3.0; its original copyright and
+license terms remain applicable to those adapted constants.

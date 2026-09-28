@@ -74,6 +74,98 @@ public sealed class ChatMessageFormatterTests
     }
 
     [TestMethod]
+    public async Task Format_AppliesValidatedSegmentColorsAndResets()
+    {
+        var store = new JsonConfigStore(_root);
+        await store.SaveAsync("chat-format", new ChatFormatConfiguration
+        {
+            RankColor = "Green",
+            NameColor = "Team",
+            MessageColor = "Yellow",
+        });
+        var placeholders = new PlaceholderRegistry();
+        using var rank = placeholders.Register(new ModuleId("test"), "rank.tag",
+            (_, _) => ValueTask.FromResult<string?>("[Elite]"));
+        var formatter = await ChatMessageFormatter.CreateAsync(store, placeholders);
+        var player = new PlayerSnapshot(
+            Player,
+            PlayerSessionId.New(),
+            "Nils",
+            isConnected: true,
+            isAlive: true,
+            PlayerTeam.CounterTerrorist,
+            DateTimeOffset.UnixEpoch,
+            DateTimeOffset.UnixEpoch);
+
+        var prepared = await formatter.PrepareAsync(player);
+        var formatted = prepared.Format("hello", false);
+
+        Assert.AreEqual(
+            "\x04[Elite]\x01 \x0BNils\x01: \x09hello\x01",
+            formatted);
+    }
+
+    [TestMethod]
+    public async Task Format_EmptyRankTagDoesNotEmitOrphanedColorCodes()
+    {
+        var store = new JsonConfigStore(_root);
+        await store.SaveAsync("chat-format", new ChatFormatConfiguration
+        {
+            RankColor = "Green",
+        });
+        var placeholders = new PlaceholderRegistry();
+        using var rank = placeholders.Register(
+            new ModuleId("test"),
+            "rank.tag",
+            (_, _) => ValueTask.FromResult<string?>(string.Empty));
+        var formatter = await ChatMessageFormatter.CreateAsync(
+            store, placeholders);
+
+        var formatted = await formatter.FormatAsync(
+            new ChatFormatRequest(Player, "Player", "hello", false));
+
+        Assert.IsFalse(formatted.Contains('\x04'));
+        Assert.IsFalse(formatted.Contains('\x01'));
+        Assert.AreEqual(" Player: hello", formatted);
+    }
+
+    [TestMethod]
+    public async Task Format_UserControlCharactersCannotInjectColors()
+    {
+        var store = new JsonConfigStore(_root);
+        await store.SaveAsync("chat-format", new ChatFormatConfiguration
+        {
+            MessageColor = "Green",
+        });
+        var formatter = await ChatMessageFormatter.CreateAsync(
+            store, new PlaceholderRegistry());
+
+        var formatted = await formatter.FormatAsync(
+            new ChatFormatRequest(Player, "Player\x07", "hello\x10red", false));
+
+        Assert.AreEqual(1, formatted.Count(character => character == '\x04'));
+        Assert.AreEqual(1, formatted.Count(character => character == '\x01'));
+        Assert.IsFalse(formatted.Contains('\x07'));
+        Assert.IsFalse(formatted.Contains('\x10'));
+        StringAssert.Contains(formatted, "Player ");
+        StringAssert.Contains(formatted, "hello red");
+    }
+
+    [TestMethod]
+    public async Task Create_RejectsUnknownColorNames()
+    {
+        var store = new JsonConfigStore(_root);
+        await store.SaveAsync("chat-format", new ChatFormatConfiguration
+        {
+            RankColor = "rainbow",
+        });
+
+        await Assert.ThrowsExactlyAsync<ConfigValidationException>(async () =>
+            await ChatMessageFormatter.CreateAsync(
+                store, new PlaceholderRegistry()));
+    }
+
+    [TestMethod]
     public async Task Format_HonorsCancellationDuringPlaceholderResolution()
     {
         var placeholders = new PlaceholderRegistry();
