@@ -100,6 +100,7 @@ public sealed class SelectableChatTagModuleTests
             (await commands.ExecuteAsync("!anosettag staff", Player)).FailureReason);
 
         permissions.Allowed = true;
+        var old = players.OnlinePlayers.Single();
         await players.DisconnectAsync(Player, old.SessionId, DateTimeOffset.UtcNow);
         permissions.RaiseReload();
         Assert.AreEqual(0, refreshes);
