@@ -1,5 +1,11 @@
 # AnoCore development handoff
 
+## Settings change event checkpoint — 2026-09-28
+
+- Issue #128 / branch `feature/128-player-setting-events` starts from main. Durable settings mutations publish value-free `PlayerSettingChangedEvent` after success; no-op reset and storage failures are silent.
+- Runtime composition wires the shared bus. Subscriber errors are isolated after commit. Tests cover persistence, event order, no-op/failed writes and observer failure. See `docs/sdk-settings-events.md`.
+- CI and PR review are pending at this documentation checkpoint. Settings catalog/UI and the rest of SDK #22 remain open.
+
 ## Warning persistence checkpoint — 2026-09-24
 
 - Issue #70 / PR #71 adds warning contracts, runtime service, MariaDB migration 004, repository and integration tests; branch `feature/70-persistent-warnings`.
