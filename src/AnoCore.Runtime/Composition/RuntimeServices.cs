@@ -52,6 +52,7 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
         Commands = new CommandRegistry(Authorization);
         Menus = new MenuService();
         Settings = new PlayerSettingsService(data, null, events);
+        ToggleCatalog = new PlayerToggleCatalog();
         WarningRepository = new MySqlWarningRepository(database);
         Warnings = new WarningService(WarningRepository);
         AdminAuditRepository = new MySqlAdminAuditRepository(database);
@@ -75,6 +76,7 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
         Add<IAnoCommandRegistry>(Commands);
         Add<IMenuService>(Menus);
         Add<IPlayerSettingsService>(Settings);
+        Add<IPlayerToggleCatalog>(ToggleCatalog);
         Add<IWarningRepository>(WarningRepository);
         Add<IWarningService>(Warnings);
         Add<IAdminAuditRepository>(AdminAuditRepository);
@@ -99,6 +101,8 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
     public MenuService Menus { get; }
 
     public PlayerSettingsService Settings { get; }
+
+    public PlayerToggleCatalog ToggleCatalog { get; }
 
     public MySqlWarningRepository WarningRepository { get; }
 
