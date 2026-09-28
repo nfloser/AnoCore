@@ -180,6 +180,13 @@ public sealed class PlayerSettingsServiceTests
         var service = new PlayerSettingsService(store, null, events, reported.Add);
         var key = new PlayerSettingKey<int>("ui.scale", 1);
         await service.SetAsync(Player, key, 2);
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        await Assert.ThrowsExactlyAsync<OperationCanceledException>(
+            async () => await service.ResetAllAsync(Player, cancellation.Token));
+        Assert.AreEqual(0, published);
+        Assert.AreEqual(2, await service.GetAsync(Player, key));
+
         store.FailPrefixDeletes = true;
         await Assert.ThrowsExactlyAsync<InvalidOperationException>(
             async () => await service.ResetAllAsync(Player));
