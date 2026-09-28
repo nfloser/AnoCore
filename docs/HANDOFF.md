@@ -1,3 +1,9 @@
+## Validated native chat colors checkpoint — 2026-09-28
+
+- Issue #120 / draft PR pending / branch `feature/120-chat-colors` stacks on #119. Chat configuration now supports allow-listed named colors or sender-team color independently for the rank tag, player name and message; existing defaults remain uncolored.
+- Codes are inserted only around trusted template slots and reset after each slot. Control characters in player names/messages are still replaced, so untrusted input cannot inject colors. Unknown names fail configuration validation.
+- The native code table attribution is recorded in NOTICE.md. Actual CS2 color rendering remains a DatHost acceptance gate.
+
 ## Rank chat snapshot refresh checkpoint — 2026-09-28
 
 - Issue #118 / draft PR pending / branch `feature/118-refresh-rank-chat-snapshots` stacks on #117. Every persisted combat event publishes best-effort refreshes for distinct affected players, and every committed rank give/take/set/reset refreshes the target even when notification options are disabled or the player stays within one rank.
