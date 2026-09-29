@@ -1,3 +1,9 @@
+# Durable player-profile events checkpoint — 2026-09-29
+
+- Issue #142 / branch `feature/142-player-profile-events` adds public session-scoped loaded/unloaded events after successful profile writes.
+- Runtime bootstrap and later connects use the same durable loaded path; reconnect replaces the old session explicitly, while delayed stale loads cannot publish.
+- Event observer failures are isolated after commit. This backend/SDK package does not claim native CS2 behavior.
+
 # Module-owned cleanup checkpoint — 2026-09-29
 
 - Issue #140 / branch `feature/140-module-owned-cleanup` adds `IAnoModuleContext.Own` and a fresh host-managed resource scope per load attempt.

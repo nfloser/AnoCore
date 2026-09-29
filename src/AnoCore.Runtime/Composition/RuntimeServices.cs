@@ -37,6 +37,7 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
     private static readonly ModuleId CoreModule = new("core");
     private readonly Dictionary<Type, object> _services = [];
     private readonly List<IDisposable> _registrations = [];
+    private readonly PlayerProfileLifecycle _profileLifecycle;
     private int _disposed;
 
     private RuntimeServices(
@@ -60,6 +61,7 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
         ModerationRepository = new MySqlModerationRepository(database);
         Moderation = new ModerationService(ModerationRepository);
         Players = players;
+        _profileLifecycle = new PlayerProfileLifecycle(Profiles, Players, events);
         TargetResolver = new PlayerTargetResolver(players);
         TargetAuthorization = new TargetAuthorizationService(players, Authorization);
         Modules = new ModuleHost(new ModuleContext(this));
@@ -146,10 +148,7 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
         {
             await runtime.Authorization.ReloadAsync(cancellationToken).ConfigureAwait(false);
             runtime.Subscribe(events);
-            foreach (var player in players.OnlinePlayers)
-            {
-                await runtime.SaveAsync(player, cancellationToken).ConfigureAwait(false);
-            }
+            await runtime._profileLifecycle.StartAsync(cancellationToken).ConfigureAwait(false);
 
             runtime.RegisterCommands();
             cancellationToken.ThrowIfCancellationRequested();
@@ -186,6 +185,8 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
             return;
         }
 
+        _profileLifecycle.Dispose();
+
         for (var index = _registrations.Count - 1; index >= 0; index--)
         {
             _registrations[index].Dispose();
@@ -200,26 +201,13 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
 
     private void Subscribe(AnoEventBus events)
     {
-        _registrations.Add(events.Subscribe<PlayerConnectedEvent>(
-            (value, token) => SaveAsync(value.Player, token)));
-        _registrations.Add(events.Subscribe<PlayerReconnectedEvent>(
-            (value, token) => SaveAsync(value.Current, token)));
         _registrations.Add(events.Subscribe<PlayerDisconnectedEvent>(
-            (value, token) =>
+            (value, _) =>
             {
                 Menus.Close(value.Player.Id);
-                return SaveAsync(value.Player, token);
+                return ValueTask.CompletedTask;
             }));
-        _registrations.Add(events.Subscribe<PlayerUpdatedEvent>(
-            (value, token) => value.Previous.Name != value.Current.Name
-                ? SaveAsync(value.Current, token)
-                : ValueTask.CompletedTask));
     }
-
-    private ValueTask SaveAsync(PlayerSnapshot player, CancellationToken cancellationToken)
-        => Profiles.UpsertAsync(
-            new PlayerProfile(player.Id, player.Name, player.ConnectedAtUtc, player.LastUpdatedAtUtc),
-            cancellationToken);
 
     private void RegisterCommands()
     {

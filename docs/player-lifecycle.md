@@ -38,7 +38,7 @@ The online registry only contains connected snapshots. A disconnected snapshot i
 
 ## Lifecycle events
 
-The registry publishes:
+The in-memory registry publishes:
 
 - `PlayerConnectedEvent` for a first active connection;
 - `PlayerReconnectedEvent` when the same SteamID replaces an active session;
@@ -46,6 +46,13 @@ The registry publishes:
 - `PlayerDisconnectedEvent` after the current session is removed.
 
 Stale updates/disconnects do not publish events.
+
+After runtime persistence is available, modules can also subscribe to:
+
+- `PlayerProfileLoadedEvent`, emitted only after the current session profile upsert commits;
+- `PlayerProfileUnloadedEvent`, emitted only after the leaving session profile upsert commits.
+
+Both events carry the immutable session snapshot and its durable profile. Runtime startup applies the same loaded path to humans who connected before database initialization. Reconnect emits an unload for the replaced session and a load for the new session. A delayed older load is discarded when its session is no longer current. Persistence failure or cancellation emits no durable lifecycle event; subscriber failures after a commit are isolated.
 
 ## CounterStrikeSharp boundary
 
@@ -55,4 +62,4 @@ This keeps `AnoCore.Abstractions` and `AnoCore.Runtime` independent of CounterSt
 
 ## Persistence
 
-This registry is intentionally in-memory. MySQL/MariaDB loading and saving will be implemented as a separate persistence subsystem so database failures cannot redefine basic connection/session semantics.
+This registry is intentionally in-memory. MySQL/MariaDB profile persistence is a separate runtime subsystem, so database failures do not redefine the registry's connection/session state. Durable profile lifecycle events deliberately report persistence readiness rather than raw engine connectivity.
