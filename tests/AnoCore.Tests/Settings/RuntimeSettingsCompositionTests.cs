@@ -1,3 +1,4 @@
+using AnoCore.Abstractions.Configuration;
 using AnoCore.Abstractions.Modules;
 using AnoCore.Abstractions.Players;
 using AnoCore.Abstractions.Settings;
@@ -30,6 +31,8 @@ public sealed class RuntimeSettingsCompositionTests
             events,
             players);
         Assert.AreSame(runtime.Settings, runtime.GetService(typeof(IPlayerSettingsService)));
+        Assert.IsInstanceOfType<IVersionedConfigStore>(
+            runtime.GetService(typeof(IVersionedConfigStore)));
         Assert.AreSame(runtime.ToggleCatalog,
             runtime.GetService(typeof(IPlayerToggleCatalog)));
         var toggle = new PlayerToggleSetting(

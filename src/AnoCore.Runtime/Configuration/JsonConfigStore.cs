@@ -87,7 +87,7 @@ public sealed class JsonConfigStore : IConfigStore, IVersionedConfigStore
             && root.TryGetProperty("$schemaVersion", out versionElement);
         var hasValue = root.ValueKind == JsonValueKind.Object
             && root.TryGetProperty("value", out valueElement);
-        if (hasVersion != hasValue)
+        if (hasVersion && !hasValue)
             throw new ConfigStoreException($"Configuration '{name}' contains an incomplete version envelope.");
 
         var sourceVersion = hasVersion ? ReadVersion(name, versionElement) : 0;
