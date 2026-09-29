@@ -244,12 +244,36 @@ public sealed class PlayerSettingsServiceTests
             [new(first, 2), new(duplicate, 3)]));
         Assert.AreEqual(1, await service.GetAsync(Player, first));
 
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        await Assert.ThrowsExactlyAsync<OperationCanceledException>(async () => await service.SetManyAsync<int>(
+            Player,
+            [new(first, 4)],
+            cancellation.Token));
+        Assert.AreEqual(0, published);
+
         store.FailBatchWrites = true;
         await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () => await service.SetManyAsync<int>(
             Player,
             [new(first, 4)]));
         Assert.AreEqual(1, await service.GetAsync(Player, first));
         Assert.AreEqual(0, published);
+    }
+
+    [TestMethod]
+    public async Task SetManyAsync_RejectsMoreThanSixtyFourUpdatesBeforeStorage()
+    {
+        var store = new MemoryStore();
+        var service = new PlayerSettingsService(store);
+        var updates = Enumerable.Range(0, 65)
+            .Select(index => new PlayerSettingUpdate<int>(
+                new PlayerSettingKey<int>($"batch.value_{index}", 0),
+                index))
+            .ToArray();
+
+        await Assert.ThrowsExactlyAsync<ArgumentOutOfRangeException>(
+            async () => await service.SetManyAsync(Player, updates));
+        Assert.AreEqual(0, store.BatchWriteCalls);
     }
 
     [TestMethod]
@@ -266,6 +290,7 @@ public sealed class PlayerSettingsServiceTests
         public bool FailDeletes { get; set; }
         public bool FailPrefixDeletes { get; set; }
         public bool FailBatchWrites { get; set; }
+        public int BatchWriteCalls { get; private set; }
 
         public ValueTask<string?> GetAsync(ModuleId module, string key, CancellationToken cancellationToken = default)
             => ValueTask.FromResult(_values.GetValueOrDefault($"{module.Value}:{key}"));
@@ -291,6 +316,7 @@ public sealed class PlayerSettingsServiceTests
             CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            BatchWriteCalls++;
             if (FailBatchWrites)
                 throw new InvalidOperationException("Storage unavailable.");
             foreach (var pair in values)
