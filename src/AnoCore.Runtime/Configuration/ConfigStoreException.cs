@@ -21,3 +21,24 @@ public sealed class ConfigValidationException : ConfigStoreException
 
     public IReadOnlyCollection<string> Errors { get; }
 }
+
+public sealed class ConfigMigrationException : ConfigStoreException
+{
+    public ConfigMigrationException(
+        string name, int fromVersion, int toVersion, string detail,
+        Exception? innerException = null)
+        : base(
+            $"Configuration '{name}' could not migrate from schema version {fromVersion} to {toVersion}: {detail}",
+            innerException)
+    {
+        Name = name;
+        FromVersion = fromVersion;
+        ToVersion = toVersion;
+    }
+
+    public string Name { get; }
+
+    public int FromVersion { get; }
+
+    public int ToVersion { get; }
+}

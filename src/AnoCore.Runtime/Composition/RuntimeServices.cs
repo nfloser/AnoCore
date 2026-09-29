@@ -68,6 +68,8 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
 
         Add<IDatabase>(database);
         Add<IConfigStore>(configuration);
+        if (configuration is IVersionedConfigStore versionedConfiguration)
+            Add<IVersionedConfigStore>(versionedConfiguration);
         Add<IAnoEventBus>(events);
         Add<IPlayerRegistry>(players);
         Add<IPlayerRepository>(Profiles);
