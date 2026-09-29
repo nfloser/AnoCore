@@ -239,13 +239,13 @@ public sealed class PlayerSettingsServiceTests
         var service = new PlayerSettingsService(store, null, events);
         var first = new PlayerSettingKey<int>("ui.scale", 1);
         var duplicate = new PlayerSettingKey<int>("ui.scale", 9);
-        await Assert.ThrowsExactlyAsync<ArgumentException>(async () => await service.SetManyAsync(
+        await Assert.ThrowsExactlyAsync<ArgumentException>(async () => await service.SetManyAsync<int>(
             Player,
             [new(first, 2), new(duplicate, 3)]));
         Assert.AreEqual(1, await service.GetAsync(Player, first));
 
         store.FailBatchWrites = true;
-        await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () => await service.SetManyAsync(
+        await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () => await service.SetManyAsync<int>(
             Player,
             [new(first, 4)]));
         Assert.AreEqual(1, await service.GetAsync(Player, first));
