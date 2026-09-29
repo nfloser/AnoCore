@@ -16,3 +16,10 @@ The event is available in the runtime service composition; existing settings cal
 Modules resolve `IPlayerToggleCatalog` from the runtime service provider and register a `PlayerToggleSetting` with their `ModuleId`. The descriptor contains a typed `PlayerSettingKey<bool>`, a short printable label and an optional description. Registration is limited to 64 settings; duplicate keys are rejected across all modules. `GetAll()` returns an immutable key-sorted snapshot. Dispose the registration handle on unload, or call `UnregisterAll(owner)` when unloading a module. A stale handle cannot remove a later registration for the same key.
 
 The catalog holds metadata only. A module reads or changes a particular player's value through `IPlayerSettingsService`, which emits the post-commit event described above. Registering an option does not set a player value. A native menu, command access, localization and settings discovery for existing modules remain separate work; the catalog by itself is not a player-facing UI.
+
+
+## Module-owned cleanup
+
+During `InitializeAsync`, a module can pass disposable registrations to `IAnoModuleContext.Own(resource)`. The runtime creates a fresh scope for every load attempt and disposes owned resources in reverse registration order after `ShutdownAsync`. Cleanup also runs when initialization or shutdown fails, and cleanup failures are retained in the module snapshot diagnostics. Typical owned resources are toggle-catalog handles, event subscriptions and command registrations.
+
+Modules should still make `ShutdownAsync` safe after partial initialization. The host invokes it before owned resources are released, allowing the module to stop work while its subscriptions are still valid. Custom contexts remain source-compatible through the default ownership implementation, but only the runtime host guarantees automatic cleanup.
