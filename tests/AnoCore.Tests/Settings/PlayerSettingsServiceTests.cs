@@ -201,18 +201,71 @@ public sealed class PlayerSettingsServiceTests
     }
 
     [TestMethod]
+    public async Task SetManyAsync_CommitsTypedValuesBeforePublishingInInputOrder()
+    {
+        var store = new MemoryStore();
+        var events = new AnoEventBus();
+        var observed = new List<string>();
+        var first = new PlayerSettingKey<bool>("chat.compact", false);
+        var second = new PlayerSettingKey<bool>("ui.enabled", false);
+        var service = new PlayerSettingsService(store, null, events);
+        using var subscription = events.Subscribe<PlayerSettingChangedEvent>(async (value, _) =>
+        {
+            observed.Add(value.SettingName);
+            Assert.IsTrue(await service.GetAsync(Player, first));
+            Assert.IsTrue(await service.GetAsync(Player, second));
+        });
+
+        await service.SetManyAsync(Player,
+        [
+            new PlayerSettingUpdate<bool>(first, true),
+            new PlayerSettingUpdate<bool>(second, true),
+        ]);
+
+        CollectionAssert.AreEqual(new[] { first.Name, second.Name }, observed);
+    }
+
+    [TestMethod]
+    public async Task SetManyAsync_RejectsDuplicateNamesAndNeverPublishesFailedBatch()
+    {
+        var store = new MemoryStore();
+        var events = new AnoEventBus();
+        var published = 0;
+        using var subscription = events.Subscribe<PlayerSettingChangedEvent>((_, _) =>
+        {
+            published++;
+            return ValueTask.CompletedTask;
+        });
+        var service = new PlayerSettingsService(store, null, events);
+        var first = new PlayerSettingKey<int>("ui.scale", 1);
+        var duplicate = new PlayerSettingKey<int>("ui.scale", 9);
+        await Assert.ThrowsExactlyAsync<ArgumentException>(async () => await service.SetManyAsync(
+            Player,
+            [new(first, 2), new(duplicate, 3)]));
+        Assert.AreEqual(1, await service.GetAsync(Player, first));
+
+        store.FailBatchWrites = true;
+        await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () => await service.SetManyAsync(
+            Player,
+            [new(first, 4)]));
+        Assert.AreEqual(1, await service.GetAsync(Player, first));
+        Assert.AreEqual(0, published);
+    }
+
+    [TestMethod]
     public void SettingKey_RejectsUnsafeNames()
     {
         Assert.ThrowsExactly<ArgumentException>(() => new PlayerSettingKey<string>("../secret", "x"));
         Assert.ThrowsExactly<ArgumentException>(() => new PlayerSettingKey<string>("Upper Case", "x"));
     }
 
-    private sealed class MemoryStore : IModuleDataStore, IModuleDataPrefixStore
+    private sealed class MemoryStore : IModuleDataStore, IModuleDataPrefixStore, IModuleDataBatchStore
     {
         private readonly Dictionary<string, string> _values = new(StringComparer.Ordinal);
         public bool FailWrites { get; set; }
         public bool FailDeletes { get; set; }
         public bool FailPrefixDeletes { get; set; }
+        public bool FailBatchWrites { get; set; }
 
         public ValueTask<string?> GetAsync(ModuleId module, string key, CancellationToken cancellationToken = default)
             => ValueTask.FromResult(_values.GetValueOrDefault($"{module.Value}:{key}"));
@@ -230,6 +283,19 @@ public sealed class PlayerSettingsServiceTests
             if (FailDeletes)
                 throw new InvalidOperationException("Storage unavailable.");
             return ValueTask.FromResult(_values.Remove($"{module.Value}:{key}"));
+        }
+
+        public ValueTask SetManyAsync(
+            ModuleId module,
+            IReadOnlyDictionary<string, string> values,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (FailBatchWrites)
+                throw new InvalidOperationException("Storage unavailable.");
+            foreach (var pair in values)
+                _values[$"{module.Value}:{pair.Key}"] = pair.Value;
+            return ValueTask.CompletedTask;
         }
 
         public ValueTask<int> DeleteByPrefixAsync(

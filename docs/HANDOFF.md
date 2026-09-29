@@ -1,3 +1,9 @@
+# Player settings batch checkpoint — 2026-09-29
+
+- Issue #138 / branch `feature/138-player-settings-batch` adds optional transactional module-data batches and homogeneous typed player-setting batches.
+- Batches are validated and bounded before storage, commit in one MariaDB transaction, then emit existing value-free change events in input order. Tests cover visibility after commit, duplicates, failure and database rollback.
+- This backend/SDK package does not claim native CS2 behavior. Complete module registration and draft settings UI PRs #133/#135 remain separate.
+
 # Player settings bulk-reset checkpoint — 2026-09-28
 
 - Issue #136 / branch `feature/136-player-settings-reset` adds an optional prefix-delete store contract and an SDK reset service/event.

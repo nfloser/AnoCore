@@ -165,6 +165,43 @@ public sealed class PersistenceIntegrationTests
     }
 
     [TestMethod]
+    public async Task ModuleDataStore_SetManyCommitsOrRollsBackWholeBatch()
+    {
+        await new MigrationRunner(_database, [new CoreSchemaMigration001()]).ApplyPendingAsync();
+        var store = new MySqlModuleDataStore(_database);
+        var module = new ModuleId("settings");
+        await store.SetAsync(module, "batch.first", "old");
+        await ExecuteAsync("""
+            CREATE TRIGGER ano_reject_batch_value
+            BEFORE INSERT ON ano_module_data
+            FOR EACH ROW
+            BEGIN
+                IF NEW.data_key = 'batch.reject' THEN
+                    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'reject test batch';
+                END IF;
+            END
+            """);
+        await Assert.ThrowsExceptionAsync<Exception>(async () => await store.SetManyAsync(
+            module,
+            new Dictionary<string, string>
+            {
+                ["batch.first"] = "new",
+                ["batch.reject"] = "blocked",
+            }));
+        Assert.AreEqual("old", await store.GetAsync(module, "batch.first"));
+        Assert.IsNull(await store.GetAsync(module, "batch.reject"));
+
+        await ExecuteAsync("DROP TRIGGER ano_reject_batch_value");
+        await store.SetManyAsync(module, new Dictionary<string, string>
+        {
+            ["batch.first"] = "new",
+            ["batch.second"] = "saved",
+        });
+        Assert.AreEqual("new", await store.GetAsync(module, "batch.first"));
+        Assert.AreEqual("saved", await store.GetAsync(module, "batch.second"));
+    }
+
+    [TestMethod]
     public void MigrationRunner_RejectsDuplicateVersions()
     {
         var migrations = new IDatabaseMigration[]

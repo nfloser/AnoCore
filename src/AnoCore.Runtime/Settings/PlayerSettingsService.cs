@@ -7,11 +7,12 @@ using AnoCore.Abstractions.Settings;
 
 namespace AnoCore.Runtime.Settings;
 
-public sealed class PlayerSettingsService : IPlayerSettingsService, IPlayerSettingsResetService
+public sealed class PlayerSettingsService : IPlayerSettingsService, IPlayerSettingsResetService, IPlayerSettingsBatchService
 {
     private static readonly ModuleId SettingsModule = new("settings");
     private readonly IModuleDataStore _store;
     private readonly IModuleDataPrefixStore? _prefixStore;
+    private readonly IModuleDataBatchStore? _batchStore;
     private readonly IAnoEventBus? _events;
     private readonly Action<Exception>? _onEventFailure;
     private readonly JsonSerializerOptions _serializerOptions;
@@ -21,6 +22,7 @@ public sealed class PlayerSettingsService : IPlayerSettingsService, IPlayerSetti
     {
         _store = store ?? throw new ArgumentNullException(nameof(store));
         _prefixStore = store as IModuleDataPrefixStore;
+        _batchStore = store as IModuleDataBatchStore;
         _serializerOptions = serializerOptions ?? new JsonSerializerOptions(JsonSerializerDefaults.Web);
     }
 
@@ -82,6 +84,37 @@ public sealed class PlayerSettingsService : IPlayerSettingsService, IPlayerSetti
             await PublishChangeAsync(playerId, key.Name, PlayerSettingChangeKind.Reset)
                 .ConfigureAwait(false);
         return removed;
+    }
+
+    public async ValueTask SetManyAsync<T>(
+        PlayerId playerId,
+        IReadOnlyCollection<PlayerSettingUpdate<T>> updates,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(playerId);
+        ArgumentNullException.ThrowIfNull(updates);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (updates.Count > 64)
+            throw new ArgumentOutOfRangeException(nameof(updates), "At most 64 settings may be written at once.");
+        if (updates.Count == 0)
+            return;
+        var batchStore = _batchStore ?? throw new NotSupportedException(
+            "The configured module data store does not support batch writes.");
+        var values = new Dictionary<string, string>(updates.Count, StringComparer.Ordinal);
+        var names = new List<string>(updates.Count);
+        foreach (var update in updates)
+        {
+            ArgumentNullException.ThrowIfNull(update);
+            ArgumentNullException.ThrowIfNull(update.Key);
+            var key = BuildKey(playerId, update.Key.Name);
+            if (!values.TryAdd(key, JsonSerializer.Serialize(update.Value, _serializerOptions)))
+                throw new ArgumentException("A settings batch cannot contain duplicate names.", nameof(updates));
+            names.Add(update.Key.Name);
+        }
+
+        await batchStore.SetManyAsync(SettingsModule, values, cancellationToken).ConfigureAwait(false);
+        foreach (var name in names)
+            await PublishChangeAsync(playerId, name, PlayerSettingChangeKind.Set).ConfigureAwait(false);
     }
 
     public async ValueTask<int> ResetAllAsync(
