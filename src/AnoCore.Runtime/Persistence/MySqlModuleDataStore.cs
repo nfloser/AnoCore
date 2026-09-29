@@ -5,7 +5,7 @@ using AnoCore.Runtime.Persistence.Migrations;
 
 namespace AnoCore.Runtime.Persistence;
 
-public sealed class MySqlModuleDataStore : IModuleDataStore, IModuleDataPrefixStore
+public sealed class MySqlModuleDataStore : IModuleDataStore, IModuleDataPrefixStore, IModuleDataBatchStore
 {
     private static readonly Regex ValidKey = new(
         "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$",
@@ -86,6 +86,50 @@ public sealed class MySqlModuleDataStore : IModuleDataStore, IModuleDataPrefixSt
             MigrationRunner.AddParameter(command, "@key", normalizedKey);
             return await command.ExecuteNonQueryAsync(token).ConfigureAwait(false) > 0;
         }, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async ValueTask SetManyAsync(
+        ModuleId module,
+        IReadOnlyDictionary<string, string> values,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(module);
+        ArgumentNullException.ThrowIfNull(values);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (values.Count > 64)
+            throw new ArgumentOutOfRangeException(nameof(values), "At most 64 values may be written at once.");
+        if (values.Count == 0)
+            return;
+        var normalized = new Dictionary<string, string>(values.Count, StringComparer.Ordinal);
+        foreach (var pair in values)
+        {
+            ArgumentNullException.ThrowIfNull(pair.Value);
+            if (!normalized.TryAdd(NormalizeKey(pair.Key), pair.Value))
+                throw new ArgumentException("A batch cannot contain duplicate normalized keys.", nameof(values));
+        }
+
+        var updatedAtUtc = DateTime.UtcNow;
+        await _database.InTransactionAsync(async (connection, transaction, token) =>
+        {
+            foreach (var pair in normalized)
+            {
+                await using var command = connection.CreateCommand();
+                command.Transaction = transaction;
+                command.CommandText = """
+                    INSERT INTO ano_module_data (module_id, data_key, data_json, updated_at_utc)
+                    VALUES (@moduleId, @key, @json, @updatedAtUtc)
+                    ON DUPLICATE KEY UPDATE
+                        data_json = VALUES(data_json),
+                        updated_at_utc = VALUES(updated_at_utc)
+                    """;
+                MigrationRunner.AddParameter(command, "@moduleId", module.Value);
+                MigrationRunner.AddParameter(command, "@key", pair.Key);
+                MigrationRunner.AddParameter(command, "@json", pair.Value);
+                MigrationRunner.AddParameter(command, "@updatedAtUtc", updatedAtUtc);
+                await command.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+            }
+            return true;
+        }, cancellationToken: cancellationToken).ConfigureAwait(false);
     }
 
     public async ValueTask<int> DeleteByPrefixAsync(

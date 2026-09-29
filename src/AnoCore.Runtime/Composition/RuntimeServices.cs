@@ -71,6 +71,7 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
         Add<IPlayerRepository>(Profiles);
         Add<IModuleDataStore>(data);
         Add<IModuleDataPrefixStore>(data);
+        Add<IModuleDataBatchStore>(data);
         Add<IAuthorizationStore>(authorizationStore);
         Add<IAuthorizationService>(Authorization);
         Add<IPermissionEvaluator>(Authorization);
@@ -78,6 +79,7 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
         Add<IMenuService>(Menus);
         Add<IPlayerSettingsService>(Settings);
         Add<IPlayerSettingsResetService>(Settings);
+        Add<IPlayerSettingsBatchService>(Settings);
         Add<IPlayerToggleCatalog>(ToggleCatalog);
         Add<IWarningRepository>(WarningRepository);
         Add<IWarningService>(Warnings);
