@@ -54,6 +54,7 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
         Menus = new MenuService();
         Settings = new PlayerSettingsService(data, null, events);
         ToggleCatalog = new PlayerToggleCatalog();
+        ConfigReloads = new ConfigReloadRegistry();
         WarningRepository = new MySqlWarningRepository(database);
         Warnings = new WarningService(WarningRepository);
         AdminAuditRepository = new MySqlAdminAuditRepository(database);
@@ -68,6 +69,7 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
 
         Add<IDatabase>(database);
         Add<IConfigStore>(configuration);
+        Add<IConfigReloadRegistry>(ConfigReloads);
         if (configuration is IVersionedConfigStore versionedConfiguration)
             Add<IVersionedConfigStore>(versionedConfiguration);
         Add<IAnoEventBus>(events);
@@ -111,6 +113,8 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
     public PlayerSettingsService Settings { get; }
 
     public PlayerToggleCatalog ToggleCatalog { get; }
+
+    public ConfigReloadRegistry ConfigReloads { get; }
 
     public MySqlWarningRepository WarningRepository { get; }
 

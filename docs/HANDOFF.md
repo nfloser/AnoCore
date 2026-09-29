@@ -1,3 +1,9 @@
+# Configuration reload registry checkpoint — 2026-09-29
+
+- Issue #146 / branch `feature/146-config-reload-registry` adds shared module-owned typed reload registrations.
+- Candidate values become visible only after successful load and validation; failures, cancellation and disposal retain the last accepted value.
+- Per-registration reloads serialize, descriptors are bounded/sorted and handles work with `context.Own(...)`. Concrete module adoption remains open.
+
 # Versioned configuration checkpoint — 2026-09-29
 
 - Issue #144 / branch `feature/144-versioned-config-migrations` adds an optional versioned configuration contract over the existing JSON store.
