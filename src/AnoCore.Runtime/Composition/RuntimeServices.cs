@@ -37,8 +37,8 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
     private static readonly ModuleId CoreModule = new("core");
     private readonly Dictionary<Type, object> _services = [];
     private readonly List<IDisposable> _registrations = [];
-    private int _disposed;
     private readonly PlayerProfileLifecycle _profileLifecycle;
+    private int _disposed;
 
     private RuntimeServices(
         IDatabase database,
@@ -207,10 +207,6 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
                 Menus.Close(value.Player.Id);
                 return ValueTask.CompletedTask;
             }));
-        _registrations.Add(events.Subscribe<PlayerUpdatedEvent>(
-            (value, token) => value.Previous.Name != value.Current.Name
-                ? SaveAsync(value.Current, token)
-                : ValueTask.CompletedTask));
     }
 
     private void RegisterCommands()
