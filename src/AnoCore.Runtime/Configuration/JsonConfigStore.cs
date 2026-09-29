@@ -81,10 +81,12 @@ public sealed class JsonConfigStore : IConfigStore, IVersionedConfigStore
 
         using var document = await ReadDocumentAsync(name, path, cancellationToken).ConfigureAwait(false);
         var root = document.RootElement;
+        var versionElement = default(JsonElement);
+        var valueElement = default(JsonElement);
         var hasVersion = root.ValueKind == JsonValueKind.Object
-            && root.TryGetProperty("$schemaVersion", out var versionElement);
+            && root.TryGetProperty("$schemaVersion", out versionElement);
         var hasValue = root.ValueKind == JsonValueKind.Object
-            && root.TryGetProperty("value", out var valueElement);
+            && root.TryGetProperty("value", out valueElement);
         if (hasVersion != hasValue)
             throw new ConfigStoreException($"Configuration '{name}' contains an incomplete version envelope.");
 
