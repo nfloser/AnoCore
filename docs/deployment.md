@@ -45,7 +45,7 @@ Example structure, with values supplied by the operator:
 
 Use a dedicated database; startup applies the existing AnoCore schema migrations. Startup has a 30-second cancellation deadline. Missing configuration or a database/authorization failure leaves only lifecycle tracking and status available; privileged services are not activated. Correct configuration and restart to retry.
 
-`css_anocommands` lists registered logical commands. `css_anoreloadauth` reloads persisted role assignments; the server console is allowed, players require `ano.core.reload`. No player receives this permission by default. See `docs/authorization.md` for the persisted authorization model.
+`css_anocommands` lists registered logical commands. `css_anoreloadauth` reloads persisted role assignments. `css_anoconfigs` lists module configurations that have adopted the reload registry, and `css_anoreloadconfig <name>` reloads one such configuration. The server console is allowed; players require `ano.core.reload` for every reload/configuration-inspection command. No player receives this permission by default. See `docs/authorization.md` for the persisted authorization model and `docs/configuration-reload.md` for reload guarantees.
 
 Connected/reconnected/disconnected profiles and name changes are stored through the real player repository; player settings use storage-safe keys and survive restart. Unit tests alone are supplemented by MariaDB composition tests. No legacy database is automatically imported.
 

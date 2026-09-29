@@ -232,5 +232,6 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
                 await Authorization.ReloadAsync(context.CancellationToken).ConfigureAwait(false);
                 return CommandResult.Ok("[ANO] Authorization reloaded.");
             }));
+        _registrations.Add(new ConfigReloadCommandController(Commands, ConfigReloads));
     }
 }
