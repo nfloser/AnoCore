@@ -1,3 +1,4 @@
+using System.Runtime.ExceptionServices;
 using AnoCore.Abstractions.Modules;
 
 namespace AnoCore.Runtime.Modules;
@@ -56,13 +57,16 @@ public sealed class ModuleHost
                 throw new InvalidOperationException($"Module '{id}' is already active.");
             }
 
-            registration = new Registration(module, ModuleState.Loading);
+            registration = new Registration(
+                module,
+                new ModuleLifetimeContext(_context.Services),
+                ModuleState.Loading);
             _registrations[id] = registration;
         }
 
         try
         {
-            await module.InitializeAsync(_context, cancellationToken).ConfigureAwait(false);
+            await module.InitializeAsync(registration.Context, cancellationToken).ConfigureAwait(false);
 
             lock (_sync)
             {
@@ -72,7 +76,7 @@ public sealed class ModuleHost
         }
         catch (Exception initializationException)
         {
-            Exception recordedFailure = initializationException;
+            var failures = new List<Exception> { initializationException };
 
             try
             {
@@ -80,11 +84,22 @@ public sealed class ModuleHost
             }
             catch (Exception rollbackException)
             {
-                recordedFailure = new AggregateException(
-                    "Module initialization failed and rollback also failed.",
-                    initializationException,
-                    rollbackException);
+                failures.Add(rollbackException);
             }
+
+            try
+            {
+                registration.Context.Dispose();
+            }
+            catch (Exception cleanupException)
+            {
+                failures.Add(cleanupException);
+            }
+
+            Exception recordedFailure = failures.Count == 1
+                ? initializationException
+                : new AggregateException(
+                    "Module initialization failed and rollback cleanup was incomplete.", failures);
 
             lock (_sync)
             {
@@ -117,33 +132,49 @@ public sealed class ModuleHost
             registration.State = ModuleState.Unloading;
         }
 
+        Exception? failure = null;
         try
         {
             await registration.Module.ShutdownAsync(cancellationToken).ConfigureAwait(false);
-
-            lock (_sync)
-            {
-                registration.State = ModuleState.Unloaded;
-                registration.Failure = null;
-            }
-
-            return true;
         }
         catch (Exception exception)
         {
-            lock (_sync)
-            {
-                registration.State = ModuleState.Faulted;
-                registration.Failure = exception;
-            }
-
-            throw;
+            failure = exception;
         }
+
+        try
+        {
+            registration.Context.Dispose();
+        }
+        catch (Exception cleanupException)
+        {
+            failure = failure is null
+                ? cleanupException
+                : new AggregateException(
+                    "Module shutdown and owned-resource cleanup both failed.",
+                    failure,
+                    cleanupException);
+        }
+
+        lock (_sync)
+        {
+            registration.State = failure is null ? ModuleState.Unloaded : ModuleState.Faulted;
+            registration.Failure = failure;
+        }
+
+        if (failure is not null)
+            ExceptionDispatchInfo.Capture(failure).Throw();
+        return true;
     }
 
-    private sealed class Registration(IAnoModule module, ModuleState state)
+    private sealed class Registration(
+        IAnoModule module,
+        ModuleLifetimeContext context,
+        ModuleState state)
     {
         public IAnoModule Module { get; } = module;
+
+        public ModuleLifetimeContext Context { get; } = context;
 
         public ModuleState State { get; set; } = state;
 

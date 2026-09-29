@@ -1,3 +1,9 @@
+# Module-owned cleanup checkpoint — 2026-09-29
+
+- Issue #140 / branch `feature/140-module-owned-cleanup` adds `IAnoModuleContext.Own` and a fresh host-managed resource scope per load attempt.
+- Owned registrations dispose LIFO after shutdown and on initialization/shutdown failure. Tests cover ordering, partial startup and combined diagnostics.
+- Modules must adopt `context.Own(...)` for their catalog/event/command handles. Native behavior is unaffected.
+
 # Player settings batch checkpoint — 2026-09-29
 
 - Issue #138 / branch `feature/138-player-settings-batch` adds optional transactional module-data batches and homogeneous typed player-setting batches.

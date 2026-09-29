@@ -78,6 +78,67 @@ public sealed class ModuleHostTests
     }
 
     [TestMethod]
+    public async Task UnloadAsync_DisposesOwnedResourcesInReverseOrderAfterShutdown()
+    {
+        var order = new List<string>();
+        var module = new FakeModule("ano.owned")
+        {
+            Lifecycle = order,
+            OwnedResourceNames = ["first", "second"],
+        };
+        var host = new ModuleHost(new TestModuleContext());
+        await host.LoadAsync(module);
+
+        await host.UnloadAsync(module.Descriptor.Id);
+
+        CollectionAssert.AreEqual(
+            new[] { "shutdown", "dispose:second", "dispose:first" },
+            order);
+    }
+
+    [TestMethod]
+    public async Task LoadAsync_FailureShutsDownThenDisposesPartiallyOwnedResources()
+    {
+        var order = new List<string>();
+        var module = new FakeModule("ano.owned-failure")
+        {
+            Lifecycle = order,
+            OwnedResourceNames = ["created"],
+            InitializeException = new InvalidOperationException("init"),
+        };
+        var host = new ModuleHost(new TestModuleContext());
+
+        await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => host.LoadAsync(module));
+
+        CollectionAssert.AreEqual(new[] { "shutdown", "dispose:created" }, order);
+        Assert.AreEqual(ModuleState.Faulted, host.GetState(module.Descriptor.Id));
+    }
+
+    [TestMethod]
+    public async Task UnloadAsync_ShutdownAndCleanupFailuresAreBothRecorded()
+    {
+        var order = new List<string>();
+        var module = new FakeModule("ano.cleanup-failure")
+        {
+            Lifecycle = order,
+            OwnedResourceNames = ["broken"],
+            ShutdownException = new InvalidOperationException("shutdown"),
+            CleanupException = new InvalidOperationException("cleanup"),
+        };
+        var host = new ModuleHost(new TestModuleContext());
+        await host.LoadAsync(module);
+
+        await Assert.ThrowsExactlyAsync<AggregateException>(
+            () => host.UnloadAsync(module.Descriptor.Id));
+
+        var snapshot = host.Modules.Single(item => item.Descriptor.Id == module.Descriptor.Id);
+        var aggregate = snapshot.Failure as AggregateException;
+        Assert.IsNotNull(aggregate);
+        Assert.HasCount(2, aggregate.InnerExceptions);
+        CollectionAssert.AreEqual(new[] { "shutdown", "dispose:broken" }, order);
+    }
+
+    [TestMethod]
     public async Task UnloadAsync_ReturnsFalseForUnknownModule()
     {
         var host = new ModuleHost(new TestModuleContext());
@@ -103,9 +164,17 @@ public sealed class ModuleHostTests
 
         public int ShutdownCalls { get; private set; }
 
+        public List<string>? Lifecycle { get; init; }
+
+        public string[] OwnedResourceNames { get; init; } = [];
+
+        public Exception? CleanupException { get; init; }
+
         public Task InitializeAsync(IAnoModuleContext context, CancellationToken cancellationToken = default)
         {
             InitializeCalls++;
+            foreach (var name in OwnedResourceNames)
+                context.Own(new CallbackDisposable(name, Lifecycle, CleanupException));
 
             if (InitializeException is not null)
             {
@@ -118,6 +187,7 @@ public sealed class ModuleHostTests
         public Task ShutdownAsync(CancellationToken cancellationToken = default)
         {
             ShutdownCalls++;
+            Lifecycle?.Add("shutdown");
 
             if (ShutdownException is not null)
             {
@@ -125,6 +195,17 @@ public sealed class ModuleHostTests
             }
 
             return Task.CompletedTask;
+        }
+    }
+
+    private sealed class CallbackDisposable(
+        string name, List<string>? lifecycle, Exception? exception) : IDisposable
+    {
+        public void Dispose()
+        {
+            lifecycle?.Add($"dispose:{name}");
+            if (exception is not null)
+                throw exception;
         }
     }
 
