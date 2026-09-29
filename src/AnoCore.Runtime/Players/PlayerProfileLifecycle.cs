@@ -74,6 +74,7 @@ public sealed class PlayerProfileLifecycle : IDisposable
         PlayerReconnectedEvent value,
         CancellationToken cancellationToken)
     {
+        await PersistAsync(value.Previous, cancellationToken).ConfigureAwait(false);
         await PublishCommittedAsync(
             new PlayerProfileUnloadedEvent(value.Previous, CreateProfile(value.Previous)))
             .ConfigureAwait(false);
