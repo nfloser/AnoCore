@@ -181,7 +181,7 @@ public sealed class PersistenceIntegrationTests
                 END IF;
             END
             """);
-        await Assert.ThrowsExceptionAsync<Exception>(async () => await store.SetManyAsync(
+        await Assert.ThrowsAsync<Exception>(async () => await store.SetManyAsync(
             module,
             new Dictionary<string, string>
             {
