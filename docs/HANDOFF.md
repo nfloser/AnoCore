@@ -1,3 +1,9 @@
+# Configuration reload command checkpoint — 2026-09-29
+
+- Issue #148 / branch `feature/148-config-reload-commands` exposes the registry through permissioned `anoconfigs` and `anoreloadconfig <name>` core commands.
+- Reload remains deliberately single-registration and atomic: unknown, invalid or failed loads produce a bounded command failure and preserve the last accepted value.
+- Unit coverage includes ordering, player/console authorization, failure preservation and command cleanup. Concrete module adoption remains open; this package makes no native CS2 behavior claim.
+
 # Configuration reload registry checkpoint — 2026-09-29
 
 - Issue #146 / branch `feature/146-config-reload-registry` adds shared module-owned typed reload registrations.
