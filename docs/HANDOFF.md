@@ -1,3 +1,9 @@
+# Versioned configuration checkpoint — 2026-09-29
+
+- Issue #144 / branch `feature/144-versioned-config-migrations` adds an optional versioned configuration contract over the existing JSON store.
+- Legacy flat JSON is version 0; exact ordered migrations validate before atomic rewrite. Future versions, gaps and failures preserve the source.
+- Runtime composition exposes the capability when supported. Module metadata and complete reload remain open.
+
 # Durable player-profile events checkpoint — 2026-09-29
 
 - Issue #142 / branch `feature/142-player-profile-events` adds public session-scoped loaded/unloaded events after successful profile writes.
