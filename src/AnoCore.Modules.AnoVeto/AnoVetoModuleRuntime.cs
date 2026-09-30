@@ -31,7 +31,7 @@ public sealed class AnoVetoModuleRuntime : IDisposable
 
     public AnoVetoCoordinator Coordinator { get; }
 
-    public static async ValueTask<AnoVetoModuleRuntime?> CreateAsync(
+    public static ValueTask<AnoVetoModuleRuntime?> CreateAsync(
         IConfigStore configuration,
         IAnoCommandRegistry commands,
         IMenuService menus,
@@ -40,8 +40,71 @@ public sealed class AnoVetoModuleRuntime : IDisposable
         IMapChanger mapChanger,
         TimeProvider? timeProvider = null,
         IAnoVetoRandomSource? random = null,
-        CancellationToken cancellationToken = default,
-        IConfigReloadRegistry? reloads = null)
+        CancellationToken cancellationToken = default)
+        => CreateCoreAsync(
+            configuration,
+            commands,
+            menus,
+            players,
+            votes,
+            mapChanger,
+            timeProvider,
+            random,
+            cancellationToken,
+            reloads: null);
+
+    public static ValueTask<AnoVetoModuleRuntime?> CreateAsync(
+        IConfigStore configuration,
+        IAnoCommandRegistry commands,
+        IMenuService menus,
+        IPlayerRegistry players,
+        IVoteService votes,
+        IMapChanger mapChanger,
+        IConfigReloadRegistry reloads,
+        TimeProvider? timeProvider = null,
+        IAnoVetoRandomSource? random = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(reloads);
+        return CreateCoreAsync(
+            configuration,
+            commands,
+            menus,
+            players,
+            votes,
+            mapChanger,
+            timeProvider,
+            random,
+            cancellationToken,
+            reloads);
+    }
+
+    public ValueTask<AnoVetoOperationResult?> ExpireAsync(CancellationToken cancellationToken = default)
+    {
+        var controller = Volatile.Read(ref _controller);
+        return controller is null
+            ? ValueTask.FromResult<AnoVetoOperationResult?>(null)
+            : controller.ExpireAsync(cancellationToken);
+    }
+
+    public void Dispose()
+    {
+        Interlocked.Exchange(ref _controller, null)?.Dispose();
+        Interlocked.Exchange(ref _mapReload, null)?.Dispose();
+        Interlocked.Exchange(ref _settingsReload, null)?.Dispose();
+    }
+
+    private static async ValueTask<AnoVetoModuleRuntime?> CreateCoreAsync(
+        IConfigStore configuration,
+        IAnoCommandRegistry commands,
+        IMenuService menus,
+        IPlayerRegistry players,
+        IVoteService votes,
+        IMapChanger mapChanger,
+        TimeProvider? timeProvider,
+        IAnoVetoRandomSource? random,
+        CancellationToken cancellationToken,
+        IConfigReloadRegistry? reloads)
     {
         ArgumentNullException.ThrowIfNull(configuration);
         ArgumentNullException.ThrowIfNull(commands);
@@ -124,21 +187,6 @@ public sealed class AnoVetoModuleRuntime : IDisposable
             settingsReload?.Dispose();
             throw;
         }
-    }
-
-    public ValueTask<AnoVetoOperationResult?> ExpireAsync(CancellationToken cancellationToken = default)
-    {
-        var controller = Volatile.Read(ref _controller);
-        return controller is null
-            ? ValueTask.FromResult<AnoVetoOperationResult?>(null)
-            : controller.ExpireAsync(cancellationToken);
-    }
-
-    public void Dispose()
-    {
-        Interlocked.Exchange(ref _controller, null)?.Dispose();
-        Interlocked.Exchange(ref _mapReload, null)?.Dispose();
-        Interlocked.Exchange(ref _settingsReload, null)?.Dispose();
     }
 
     private static ValueTask<AnoVetoConfiguration> LoadSettingsAsync(
