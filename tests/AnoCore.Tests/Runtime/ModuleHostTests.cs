@@ -21,6 +21,20 @@ public sealed class ModuleHostTests
     }
 
     [TestMethod]
+    public async Task LoadAsync_RejectsUnsupportedFutureApiBeforeInitialization()
+    {
+        var module = new FakeModule("ano.future", AnoCoreApi.CurrentLevel + 1);
+        var host = new ModuleHost(new TestModuleContext());
+
+        var exception = await Assert.ThrowsExactlyAsync<NotSupportedException>(
+            () => host.LoadAsync(module));
+
+        StringAssert.Contains(exception.Message, "API level");
+        Assert.AreEqual(0, module.InitializeCalls);
+        Assert.HasCount(0, host.Modules);
+    }
+
+    [TestMethod]
     public async Task LoadAsync_RejectsDuplicateActiveModuleId()
     {
         var host = new ModuleHost(new TestModuleContext());
@@ -148,13 +162,16 @@ public sealed class ModuleHostTests
         Assert.IsFalse(unloaded);
     }
 
-    private sealed class FakeModule(string id) : IAnoModule
+    private sealed class FakeModule(
+        string id,
+        int minimumApiLevel = AnoCoreApi.MinimumSupportedLevel) : IAnoModule
     {
         public ModuleDescriptor Descriptor { get; } = new(
             new ModuleId(id),
             "Test module",
             "1.0.0",
-            "Test-only module");
+            "Test-only module",
+            minimumApiLevel);
 
         public Exception? InitializeException { get; init; }
 
