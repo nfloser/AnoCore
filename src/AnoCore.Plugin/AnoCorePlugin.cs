@@ -171,7 +171,8 @@ public sealed class AnoCorePlugin : BasePlugin
                     created.Players,
                     votes,
                     new CounterStrikeMapChanger(),
-                    cancellationToken: timeout.Token).ConfigureAwait(false);
+                    cancellationToken: timeout.Token,
+                    reloads: created.ConfigReloads).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {

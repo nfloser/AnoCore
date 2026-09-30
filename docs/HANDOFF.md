@@ -1,3 +1,9 @@
+# AnoVeto live configuration checkpoint — 2026-09-30
+
+- Issue #151 / branch `feature/151-anoveto-live-config` makes the existing `anoveto` policy and `maps` catalog visible to the shared reload commands.
+- Successful reloads affect the next vote only. An active vote keeps the policy and selected maps it was created with; invalid candidates retain the previous accepted runtime values.
+- `Enabled` remains a restart-only switch, and registration rollback/disposal removes both reload handles. This package does not claim native CS2/DatHost behavior.
+
 # Configuration reload command checkpoint — 2026-09-29
 
 - Issue #148 / branch `feature/148-config-reload-commands` exposes the registry through permissioned `anoconfigs` and `anoreloadconfig <name>` core commands.

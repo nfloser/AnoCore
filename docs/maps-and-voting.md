@@ -8,6 +8,8 @@ Issue #19 provides the shared, CounterStrikeSharp-independent map and voting pri
 
 `MapCatalogLoader` reads the `maps` configuration through `IConfigStore`, so server operators can maintain map metadata without recompiling modules. Lookups by display name and engine map ID are case-insensitive; `All` is deterministically sorted by display name.
 
+When AnoVeto is active, `maps` is also registered with the shared configuration reload service. Reloading it changes the catalog used by the next vote; an already-open vote keeps its original eight-map snapshot.
+
 `CounterStrikeMapChanger` is the only CS2-specific map-loading component. Workshop maps use `host_workshop_map`; regular maps use `changelevel`. Core voting code never executes server commands directly.
 
 ## Generic voting
