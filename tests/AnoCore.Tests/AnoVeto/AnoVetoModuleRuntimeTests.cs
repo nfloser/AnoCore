@@ -58,11 +58,7 @@ public sealed class AnoVetoModuleRuntimeTests
                 "anoveto",
                 new AnoVetoConfiguration(),
                 AnoVetoConfiguration.Validate);
-            await config.SaveAsync(
-                "maps",
-                new MapCatalogConfiguration(Enumerable.Range(1, 8)
-                    .Select(index => new MapDefinition($"Map {index:00}", $"de_map{index:00}"))
-                    .ToArray()));
+            await config.SaveAsync("maps", CreateMaps("Map"));
             var permissions = new AllowManagerPermissions();
             var commands = new CommandRegistry(permissions);
             var players = new StubPlayerRegistry(
@@ -91,6 +87,169 @@ public sealed class AnoVetoModuleRuntimeTests
             Directory.Delete(path, recursive: true);
         }
     }
+
+    [TestMethod]
+    public async Task CreateAsync_ReloadedVotePolicyAppliesToNextVote()
+    {
+        var path = CreateTempDirectory();
+        try
+        {
+            var config = new JsonConfigStore(path);
+            await config.SaveAsync(
+                "anoveto",
+                new AnoVetoConfiguration { MinimumVotes = 1 },
+                AnoVetoConfiguration.Validate);
+            await config.SaveAsync("maps", CreateMaps("Map"));
+            var reloads = new ConfigReloadRegistry();
+            var permissions = new AllowManagerPermissions();
+            var commands = new CommandRegistry(permissions);
+
+            using var module = await AnoVetoModuleRuntime.CreateAsync(
+                config,
+                commands,
+                new MenuService(),
+                new StubPlayerRegistry([Snapshot(Manager, "Manager")]),
+                new VoteService(permissions),
+                new RecordingMapChanger(),
+                random: new StableRandomSource(),
+                reloads: reloads);
+
+            Assert.IsNotNull(module);
+            CollectionAssert.AreEqual(
+                new[] { "anoveto", "maps" },
+                reloads.Configurations.Select(value => value.Name).ToArray());
+
+            await config.SaveAsync(
+                "anoveto",
+                new AnoVetoConfiguration { MinimumVotes = 2 },
+                AnoVetoConfiguration.Validate);
+            await reloads.ReloadAsync("anoveto");
+
+            var rejected = await commands.ExecuteAsync("!anoveto create", Manager);
+            Assert.IsFalse(rejected.Success);
+            StringAssert.Contains(rejected.Message, "minimum vote count");
+
+            await config.SaveAsync(
+                "anoveto",
+                new AnoVetoConfiguration { MinimumVotes = 1 },
+                AnoVetoConfiguration.Validate);
+            await reloads.ReloadAsync("anoveto");
+
+            var accepted = await commands.ExecuteAsync("!anoveto create", Manager);
+            Assert.IsTrue(accepted.Success, accepted.Message);
+        }
+        finally
+        {
+            Directory.Delete(path, recursive: true);
+        }
+    }
+
+    [TestMethod]
+    public async Task CreateAsync_ReloadedMapCatalogAppliesToNextVote()
+    {
+        var path = CreateTempDirectory();
+        try
+        {
+            var config = new JsonConfigStore(path);
+            await config.SaveAsync(
+                "anoveto",
+                new AnoVetoConfiguration(),
+                AnoVetoConfiguration.Validate);
+            await config.SaveAsync("maps", CreateMaps("Initial"));
+            var reloads = new ConfigReloadRegistry();
+            var permissions = new AllowManagerPermissions();
+            var commands = new CommandRegistry(permissions);
+
+            using var module = await AnoVetoModuleRuntime.CreateAsync(
+                config,
+                commands,
+                new MenuService(),
+                new StubPlayerRegistry([Snapshot(Manager, "Manager")]),
+                new VoteService(permissions),
+                new RecordingMapChanger(),
+                random: new StableRandomSource(),
+                reloads: reloads);
+
+            Assert.IsNotNull(module);
+
+            await config.SaveAsync(
+                "maps",
+                new MapCatalogConfiguration(CreateMapDefinitions("Short", 7)));
+            await reloads.ReloadAsync("maps");
+
+            var rejected = await commands.ExecuteAsync("!anoveto create", Manager);
+            Assert.IsFalse(rejected.Success);
+            StringAssert.Contains(rejected.Message, "eight configured maps");
+
+            await config.SaveAsync("maps", CreateMaps("Reloaded"));
+            await reloads.ReloadAsync("maps");
+
+            var accepted = await commands.ExecuteAsync("!anoveto create", Manager);
+            Assert.IsTrue(accepted.Success, accepted.Message);
+            Assert.IsTrue(module.Coordinator.TryGetStatus(out var maps));
+            Assert.IsTrue(maps.All(map => map.DisplayName.StartsWith("Reloaded", StringComparison.Ordinal)));
+        }
+        finally
+        {
+            Directory.Delete(path, recursive: true);
+        }
+    }
+
+    [TestMethod]
+    public async Task CreateAsync_LiveDisableIsRejectedAndDisposeRemovesReloadRegistrations()
+    {
+        var path = CreateTempDirectory();
+        try
+        {
+            var config = new JsonConfigStore(path);
+            await config.SaveAsync(
+                "anoveto",
+                new AnoVetoConfiguration(),
+                AnoVetoConfiguration.Validate);
+            await config.SaveAsync("maps", CreateMaps("Map"));
+            var reloads = new ConfigReloadRegistry();
+            var permissions = new AllowManagerPermissions();
+            var commands = new CommandRegistry(permissions);
+            var module = await AnoVetoModuleRuntime.CreateAsync(
+                config,
+                commands,
+                new MenuService(),
+                new StubPlayerRegistry([Snapshot(Manager, "Manager")]),
+                new VoteService(permissions),
+                new RecordingMapChanger(),
+                random: new StableRandomSource(),
+                reloads: reloads);
+
+            Assert.IsNotNull(module);
+            Assert.HasCount(2, reloads.Configurations);
+
+            await config.SaveAsync(
+                "anoveto",
+                new AnoVetoConfiguration { Enabled = false },
+                AnoVetoConfiguration.Validate);
+
+            await Assert.ThrowsExactlyAsync<ConfigValidationException>(
+                async () => await reloads.ReloadAsync("anoveto"));
+
+            var stillActive = await commands.ExecuteAsync("!anoveto create", Manager);
+            Assert.IsTrue(stillActive.Success, stillActive.Message);
+
+            module.Dispose();
+            Assert.HasCount(0, reloads.Configurations);
+        }
+        finally
+        {
+            Directory.Delete(path, recursive: true);
+        }
+    }
+
+    private static MapCatalogConfiguration CreateMaps(string prefix)
+        => new(CreateMapDefinitions(prefix, 8));
+
+    private static MapDefinition[] CreateMapDefinitions(string prefix, int count)
+        => Enumerable.Range(1, count)
+            .Select(index => new MapDefinition($"{prefix} {index:00}", $"de_{prefix.ToLowerInvariant()}{index:00}"))
+            .ToArray();
 
     private static string CreateTempDirectory()
     {
