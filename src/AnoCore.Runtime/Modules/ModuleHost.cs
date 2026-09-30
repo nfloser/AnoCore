@@ -46,7 +46,16 @@ public sealed class ModuleHost
     {
         ArgumentNullException.ThrowIfNull(module);
 
-        var id = module.Descriptor.Id;
+        var descriptor = module.Descriptor;
+        if (descriptor.MinimumApiLevel < AnoCoreApi.MinimumSupportedLevel
+            || descriptor.MinimumApiLevel > AnoCoreApi.CurrentLevel)
+        {
+            throw new NotSupportedException(
+                $"Module '{descriptor.Id}' requires AnoCore API level {descriptor.MinimumApiLevel}; "
+                + $"this runtime supports levels {AnoCoreApi.MinimumSupportedLevel}-{AnoCoreApi.CurrentLevel}.");
+        }
+
+        var id = descriptor.Id;
         Registration registration;
 
         lock (_sync)
