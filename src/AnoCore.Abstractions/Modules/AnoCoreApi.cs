@@ -6,12 +6,17 @@ namespace AnoCore.Abstractions.Modules;
 public static class AnoCoreApi
 {
     /// <summary>
+    /// API level implied by the original module descriptor constructor. This value never changes.
+    /// </summary>
+    public const int BaselineLevel = 1;
+
+    /// <summary>
     /// Oldest module API level supported by this runtime generation.
     /// </summary>
-    public const int MinimumSupportedLevel = 1;
+    public const int MinimumSupportedLevel = BaselineLevel;
 
     /// <summary>
     /// Newest module API level exposed by this runtime generation.
     /// </summary>
-    public const int CurrentLevel = 1;
+    public const int CurrentLevel = BaselineLevel;
 }
