@@ -10,11 +10,11 @@ public sealed class AnoVetoCoordinator
     private const int MapCount = 8;
 
     private readonly object _gate = new();
-    private readonly IMapCatalog _catalog;
+    private readonly Func<IMapCatalog> _catalog;
     private readonly IVoteService _votes;
     private readonly IMapChanger _mapChanger;
     private readonly IAnoVetoRandomSource _random;
-    private readonly AnoVetoOptions _options;
+    private readonly Func<AnoVetoOptions> _options;
     private ActiveVote? _active;
 
     public AnoVetoCoordinator(
@@ -23,6 +23,23 @@ public sealed class AnoVetoCoordinator
         IMapChanger mapChanger,
         IAnoVetoRandomSource random,
         AnoVetoOptions options)
+        : this(
+            () => catalog,
+            votes,
+            mapChanger,
+            random,
+            () => options)
+    {
+        ArgumentNullException.ThrowIfNull(catalog);
+        ArgumentNullException.ThrowIfNull(options);
+    }
+
+    internal AnoVetoCoordinator(
+        Func<IMapCatalog> catalog,
+        IVoteService votes,
+        IMapChanger mapChanger,
+        IAnoVetoRandomSource random,
+        Func<AnoVetoOptions> options)
     {
         _catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
         _votes = votes ?? throw new ArgumentNullException(nameof(votes));
@@ -48,35 +65,40 @@ public sealed class AnoVetoCoordinator
             }
         }
 
-        if (_catalog.All.Count < MapCount)
+        var catalog = _catalog()
+            ?? throw new InvalidOperationException("AnoVeto map catalog provider returned no catalog.");
+        var options = _options()
+            ?? throw new InvalidOperationException("AnoVeto options provider returned no options.");
+
+        if (catalog.All.Count < MapCount)
         {
             return AnoVetoOperationResult.Reject(AnoVetoFailure.NotEnoughMaps);
         }
 
         var distinctEligiblePlayers = eligiblePlayers.Distinct().ToArray();
-        if (distinctEligiblePlayers.Length < _options.MinimumVotes)
+        if (distinctEligiblePlayers.Length < options.MinimumVotes)
         {
             return AnoVetoOperationResult.Reject(AnoVetoFailure.NotEnoughEligiblePlayers);
         }
 
-        var selected = _random.Select(_catalog.All, MapCount).ToArray();
+        var selected = _random.Select(catalog.All, MapCount).ToArray();
         if (selected.Length != MapCount || selected.Select(map => map.MapId).Distinct(StringComparer.OrdinalIgnoreCase).Count() != MapCount)
         {
             throw new InvalidOperationException("AnoVeto random selection must return exactly eight unique maps.");
         }
 
-        var options = selected
+        var voteOptions = selected
             .Select((map, index) => new VoteOption($"map{index + 1:00}", map.DisplayName))
             .ToArray();
-        var optionToMap = options
+        var optionToMap = voteOptions
             .Select((option, index) => new KeyValuePair<string, MapDefinition>(option.Id, selected[index]))
             .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
         var definition = new VoteDefinition(
             VoteId,
             "AnoVeto — choose the next map",
-            options,
+            voteOptions,
             distinctEligiblePlayers,
-            new VotePolicy(_options.Duration, _options.MinimumVotes, _options.TieBreakPolicy));
+            new VotePolicy(options.Duration, options.MinimumVotes, options.TieBreakPolicy));
 
         var created = await _votes.CreateAsync(manager, definition, now, cancellationToken).ConfigureAwait(false);
         if (!created.Accepted)
