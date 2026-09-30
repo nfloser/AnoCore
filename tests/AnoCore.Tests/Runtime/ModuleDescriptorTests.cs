@@ -6,7 +6,7 @@ namespace AnoCore.Tests.Runtime;
 public sealed class ModuleDescriptorTests
 {
     [TestMethod]
-    public void ExistingConstructor_DefaultsToOldestSupportedApiLevel()
+    public void ExistingConstructor_DefaultsToStableBaselineApiLevel()
     {
         var descriptor = new ModuleDescriptor(
             new ModuleId("ano.compat"),
@@ -14,7 +14,7 @@ public sealed class ModuleDescriptorTests
             "1.0.0",
             "Uses the legacy constructor.");
 
-        Assert.AreEqual(AnoCoreApi.MinimumSupportedLevel, descriptor.MinimumApiLevel);
+        Assert.AreEqual(AnoCoreApi.BaselineLevel, descriptor.MinimumApiLevel);
     }
 
     [TestMethod]
