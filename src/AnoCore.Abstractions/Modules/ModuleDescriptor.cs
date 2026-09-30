@@ -3,7 +3,7 @@ namespace AnoCore.Abstractions.Modules;
 public sealed record ModuleDescriptor
 {
     public ModuleDescriptor(ModuleId id, string name, string version, string description)
-        : this(id, name, version, description, AnoCoreApi.MinimumSupportedLevel)
+        : this(id, name, version, description, AnoCoreApi.BaselineLevel)
     {
     }
 
