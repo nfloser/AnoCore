@@ -72,3 +72,7 @@ A duplicate active module ID is rejected.
 ## Compatibility policy
 
 Until the first stable release, APIs may evolve between development versions. Once `1.0.0` is reached, breaking public API changes require a major semantic-version increment or an explicit deprecation/migration path.
+
+`AnoCoreApi` publishes the module-facing API-level range supported by the runtime. Existing four-argument `ModuleDescriptor` construction remains API-level 1 for compatibility; modules that depend on a newer contract declare their minimum level explicitly. `ModuleHost` checks that requirement before module initialization, so an unsupported module cannot register resources or execute startup code.
+
+API levels are for compatibility gates, not feature detection. A new level is needed only when a module-facing contract requires it; additive capabilities should still be discovered through the abstraction/service contract they belong to. External module discovery and packaging remain part of #22.

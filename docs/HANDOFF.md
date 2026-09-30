@@ -1,3 +1,9 @@
+# Module API compatibility checkpoint — 2026-09-30
+
+- Issue #153 / branch `feature/153-module-api-compat` adds an explicit AnoCore module API level to the public abstractions without changing the existing descriptor constructor.
+- `ModuleHost` rejects requirements outside the supported API-level range before initialization, so incompatible modules cannot create owned resources or run startup code.
+- Unit coverage protects the legacy default, explicit requirements, invalid levels and pre-initialization rejection. External module discovery, packaging/examples and the wider Web/API scope remain in #22.
+
 # AnoVeto live configuration checkpoint — 2026-09-30
 
 - Issue #151 / branch `feature/151-anoveto-live-config` makes the existing `anoveto` policy and `maps` catalog visible to the shared reload commands.
