@@ -1,3 +1,10 @@
+# Full-system disposable test checkpoint — 2026-10-02
+
+- Issue #157 / branch `integration/157-full-system-test` assembles the previously independent code-complete native stacks without promoting their unverified behavior to `main`.
+- The candidate currently combines playtime/combat/toplists/ranks, rank administration and notifications, formatted chat/colors/tags, settings commands/menu, connect-ban, kick, warnings, CustomHud AnoVeto with live config reload, and the packaged module SDK.
+- Merge conflicts were resolved by preserving newer core/config/settings contracts while adding the feature stacks; AnoVeto keeps both Panorama CustomHud presentation and the newer atomic `anoveto`/`maps` reload registrations.
+- Use `docs/full-system-test.md` and only the exact green CI artifact from the integration PR. Native CS2/DatHost observations remain release gates.
+
 # Module API compatibility checkpoint — 2026-09-30
 
 - Issue #153 / branch `feature/153-module-api-compat` adds an explicit AnoCore module API level to the public abstractions without changing the existing descriptor constructor.
