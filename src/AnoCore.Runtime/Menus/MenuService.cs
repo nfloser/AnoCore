@@ -73,10 +73,27 @@ public sealed class MenuService : IMenuService
         }
     }
 
-    public async ValueTask<MenuSelectionResult> SelectAsync(
+    public ValueTask<MenuSelectionResult> SelectAsync(
         PlayerId playerId,
         string optionId,
         CancellationToken cancellationToken = default)
+        => SelectCoreAsync(playerId, null, optionId, cancellationToken);
+
+    public ValueTask<MenuSelectionResult> SelectAsync(
+        PlayerId playerId,
+        MenuDefinition expectedMenu,
+        string optionId,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(expectedMenu);
+        return SelectCoreAsync(playerId, expectedMenu, optionId, cancellationToken);
+    }
+
+    private async ValueTask<MenuSelectionResult> SelectCoreAsync(
+        PlayerId playerId,
+        MenuDefinition? expectedMenu,
+        string optionId,
+        CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(optionId))
         {
@@ -94,6 +111,9 @@ public sealed class MenuService : IMenuService
             }
 
             menu = registration.Menu;
+            if (expectedMenu is not null && !ReferenceEquals(expectedMenu, menu))
+                return MenuSelectionResult.Rejected("This menu is no longer open.");
+
             option = menu.Options.FirstOrDefault(candidate =>
                 string.Equals(candidate.Id, optionId.Trim(), StringComparison.OrdinalIgnoreCase));
             if (option is null)

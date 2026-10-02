@@ -11,6 +11,7 @@ using AnoCore.Abstractions.Placeholders;
 using AnoCore.Abstractions.Players;
 using AnoCore.Abstractions.Players.Events;
 using AnoCore.Abstractions.Settings;
+using AnoCore.Abstractions.Stats;
 using AnoCore.Abstractions.Targeting;
 using AnoCore.Abstractions.Voting;
 using AnoCore.Abstractions.Warnings;
@@ -27,6 +28,7 @@ using AnoCore.Runtime.Persistence.Migrations;
 using AnoCore.Runtime.Placeholders;
 using AnoCore.Runtime.Players;
 using AnoCore.Runtime.Settings;
+using AnoCore.Runtime.Stats;
 using AnoCore.Runtime.Targeting;
 using AnoCore.Runtime.Voting;
 using AnoCore.Runtime.Warnings;
@@ -56,6 +58,10 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
         Settings = new PlayerSettingsService(data, null, events);
         ToggleCatalog = new PlayerToggleCatalog();
         ConfigReloads = new ConfigReloadRegistry();
+        Playtime = new MySqlPlaytimeRepository(database);
+        Combat = new MySqlCombatRepository(database);
+        RankAdjustments = new MySqlRankAdjustmentRepository(database);
+        RankAdjustmentAdministration = new MySqlRankAdjustmentAdministrationService(database);
         WarningRepository = new MySqlWarningRepository(database);
         Warnings = new WarningService(WarningRepository);
         AdminAuditRepository = new MySqlAdminAuditRepository(database);
@@ -88,6 +94,10 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
         Add<IPlayerSettingsResetService>(Settings);
         Add<IPlayerSettingsBatchService>(Settings);
         Add<IPlayerToggleCatalog>(ToggleCatalog);
+        Add<IPlaytimeRepository>(Playtime);
+        Add<ICombatRepository>(Combat);
+        Add<IRankAdjustmentRepository>(RankAdjustments);
+        Add<IRankAdjustmentAdministrationService>(RankAdjustmentAdministration);
         Add<IWarningRepository>(WarningRepository);
         Add<IWarningService>(Warnings);
         Add<IAdminAuditRepository>(AdminAuditRepository);
@@ -116,6 +126,14 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
     public PlayerToggleCatalog ToggleCatalog { get; }
 
     public ConfigReloadRegistry ConfigReloads { get; }
+
+    public MySqlPlaytimeRepository Playtime { get; }
+
+    public MySqlCombatRepository Combat { get; }
+
+    public MySqlRankAdjustmentRepository RankAdjustments { get; }
+
+    public MySqlRankAdjustmentAdministrationService RankAdjustmentAdministration { get; }
 
     public MySqlWarningRepository WarningRepository { get; }
 
@@ -148,7 +166,7 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
         ArgumentNullException.ThrowIfNull(players);
         await new DatabaseStartupProbe(
             database,
-            [new CoreSchemaMigration001(), new ModerationSchemaMigration002(), new AdminAuditSchemaMigration003(), new WarningSchemaMigration004()])
+            [new CoreSchemaMigration001(), new ModerationSchemaMigration002(), new AdminAuditSchemaMigration003(), new WarningSchemaMigration004(), new PlaytimeSchemaMigration005(), new CombatSchemaMigration006(), new RankAdjustmentSchemaMigration007()])
             .EnsureReadyAsync(cancellationToken).ConfigureAwait(false);
         var runtime = new RuntimeServices(database, configuration, events, players);
         try

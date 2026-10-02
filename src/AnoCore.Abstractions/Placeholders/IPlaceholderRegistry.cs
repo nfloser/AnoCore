@@ -10,6 +10,12 @@ public interface IPlaceholderRegistry
 {
     IDisposable Register(ModuleId owner, string name, PlaceholderResolver resolver);
 
+    IDisposable RegisterPrioritized(
+        ModuleId owner,
+        string name,
+        int priority,
+        PlaceholderResolver resolver);
+
     bool Contains(string name);
 
     int RemoveOwner(ModuleId owner);

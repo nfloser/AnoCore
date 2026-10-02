@@ -40,6 +40,43 @@ public sealed class MenuServiceTests
     }
 
     [TestMethod]
+    public async Task SelectAsync_RejectsStaleDefinitionWhenSameMenuIdIsReRegistered()
+    {
+        var service = new MenuService();
+        var firstSelections = 0;
+        var secondSelections = 0;
+        var first = new MenuDefinition(new MenuId("ano.test"), "First",
+            [new MenuOption("one", "One", _ =>
+            {
+                firstSelections++;
+                return ValueTask.CompletedTask;
+            })]);
+        using var registration = service.Register(Owner, first);
+        service.Open(Player, first.Id);
+        registration.Dispose();
+
+        var second = new MenuDefinition(first.Id, "Second",
+            [new MenuOption("one", "One", _ =>
+            {
+                secondSelections++;
+                return ValueTask.CompletedTask;
+            })]);
+        using var replacement = service.Register(Owner, second);
+        service.Open(Player, second.Id);
+
+        var stale = await service.SelectAsync(Player, first, "one");
+        Assert.IsFalse(stale.Accepted);
+        Assert.IsTrue(service.TryGetOpenMenu(Player, out var stillOpen));
+        Assert.AreSame(second, stillOpen);
+        Assert.AreEqual(0, firstSelections);
+        Assert.AreEqual(0, secondSelections);
+
+        var current = await service.SelectAsync(Player, second, "one");
+        Assert.IsTrue(current.Accepted);
+        Assert.AreEqual(1, secondSelections);
+    }
+
+    [TestMethod]
     public void Register_RejectsDuplicateMenuIds()
     {
         var service = new MenuService();

@@ -8,6 +8,7 @@
     <ProjectReference Include="..\..\src\AnoCore.Runtime\AnoCore.Runtime.csproj" />
     <ProjectReference Include="..\..\src\AnoCore.Modules.AnoVeto\AnoCore.Modules.AnoVeto.csproj" />
     <ProjectReference Include="..\..\src\AnoCore.Modules.Admin\AnoCore.Modules.Admin.csproj" />
+    <ProjectReference Include="..\..\src\AnoCore.Modules.Stats\AnoCore.Modules.Stats.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" />

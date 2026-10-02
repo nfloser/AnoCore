@@ -7,6 +7,7 @@
   <ItemGroup>
     <ProjectReference Include="..\AnoCore.Runtime\AnoCore.Runtime.csproj" />
     <ProjectReference Include="..\AnoCore.Modules.Admin\AnoCore.Modules.Admin.csproj" />
+    <ProjectReference Include="..\AnoCore.Modules.Stats\AnoCore.Modules.Stats.csproj" />
     <ProjectReference Include="..\AnoCore.Modules.AnoVeto\AnoCore.Modules.AnoVeto.csproj" />
   </ItemGroup>
   <ItemGroup>
