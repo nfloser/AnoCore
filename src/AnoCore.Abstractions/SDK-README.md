@@ -2,6 +2,24 @@
 
 `AnoCore.Abstractions` is the supported compile-time surface for external AnoCore modules. Module projects should reference this package rather than `AnoCore.Runtime`, `AnoCore.Plugin`, CounterStrikeSharp or persistence assemblies.
 
+## Consume the CI package
+
+The SDK is currently produced as a prerelease package inside the `AnoCore-development` GitHub Actions artifact. It is not published to a public NuGet feed yet.
+
+After extracting the artifact, point NuGet at the directory containing `AnoCore.Abstractions.0.1.0-alpha.1.nupkg`:
+
+```bash
+dotnet add package AnoCore.Abstractions --version 0.1.0-alpha.1 --source ./sdk
+```
+
+A module project should only need the SDK package:
+
+```xml
+<ItemGroup>
+  <PackageReference Include="AnoCore.Abstractions" Version="0.1.0-alpha.1" />
+</ItemGroup>
+```
+
 ## Minimal module
 
 ```csharp
@@ -12,13 +30,17 @@ public sealed class ExampleModule : IAnoModule
     public ModuleDescriptor Descriptor { get; } = new(
         new ModuleId("example"),
         "Example",
-        new Version(1, 0, 0));
+        "1.0.0",
+        "Minimal external module",
+        AnoCoreApi.CurrentLevel);
 
-    public ValueTask InitializeAsync(IAnoModuleContext context, CancellationToken cancellationToken)
-        => ValueTask.CompletedTask;
+    public Task InitializeAsync(
+        IAnoModuleContext context,
+        CancellationToken cancellationToken = default)
+        => Task.CompletedTask;
 
-    public ValueTask ShutdownAsync(CancellationToken cancellationToken)
-        => ValueTask.CompletedTask;
+    public Task ShutdownAsync(CancellationToken cancellationToken = default)
+        => Task.CompletedTask;
 }
 ```
 
@@ -26,6 +48,8 @@ Use `IAnoModuleContext.Own(...)` for disposable registrations created during ini
 
 ## Compatibility
 
-AnoCore checks a module's declared API-level requirement before initialization. Keep the requirement at the default when using only the baseline contracts; declare a newer API level only when the module actually needs contracts introduced at that level. A host that does not support the requested level rejects the module before its initialization code runs.
+`ModuleDescriptor.MinimumApiLevel` is checked before initialization. The four-argument descriptor constructor keeps the stable baseline API level for compatibility. Use the explicit API-level constructor only when the module requires contracts introduced at that level. A host that does not support the requested level rejects the module before its initialization code runs.
 
-This package is currently a prerelease CI artifact. It is not published to a public NuGet registry yet. The package contains the repository license and notice; preserve applicable attribution when redistributing derived work.
+API levels are a compatibility gate, not feature detection. Prefer resolving optional service contracts when a feature can be discovered dynamically.
+
+The package contains the generated XML documentation plus the repository license, notice and this README. Preserve applicable attribution when redistributing derived work.
