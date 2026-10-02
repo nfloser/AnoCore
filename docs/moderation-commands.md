@@ -23,6 +23,17 @@ A duration of `0` means permanent. Negative durations and timestamp-overflowing 
 
 If the optional reason is omitted, AnoCore stores `No reason provided.`.
 
+## Kick commands
+
+| Command | Permission | Behavior |
+| --- | --- | --- |
+| `!anokick <online-target> [reason]` | `ano.admin.kick` | Disconnect and publish a generic server-wide kick notice |
+| `!anosilentkick <online-target> [reason]` | `ano.admin.silentkick` | Disconnect without a public notice |
+
+Both commands require an explicit current online session. Player-issued actions use the shared permission, self-target and immunity rules; offline SteamIDs are rejected. Console actions retain the shared console authorization convention. A blank or omitted reason becomes `No reason provided.`, and reasons longer than 512 characters are rejected.
+
+The generic audit records `kick.requested` before invoking the native disconnect and `kick` after it completes. The silent variant uses `kick.silent.requested` and `kick.silent`. If the native action fails, the requested entry remains, but no completed entry or public announcement is written. If the completion audit fails after disconnect, the command reports the partial failure. An ordinary kick announces only after the completion audit; silent kick never announces. Native disconnect, cancellation and the chat notice run on the server thread and must be checked with two real CS2 clients.
+
 ## Target rules
 
 Destructive moderation commands intentionally accept one explicit target only.
@@ -70,8 +81,8 @@ The controller is retained for the active runtime lifetime and disposed on unloa
 
 ## Remaining native enforcement boundary
 
-The commands are live and persist moderation state. Connect-ban policy and its native disconnect adapter also exist, but their final plugin composition is a separate package.
+The commands are live and persist moderation state. Connect-ban enforcement is composed during plugin activation with the shared moderation service and event bus. Already connected players are checked on startup; subsequent connections and reconnections are checked by the subscribed policy. The native adapter rechecks the current session on the server thread, completes only after the disconnect call succeeds, reports a stale session/controller as a failure that can be retried, and cancels queued disconnects when the plugin unloads. Confirm actual disconnect behavior on a disposable CS2 server.
 
-Voice/chat enforcement and admin UI remain later #17 work.
+The existing voice/chat enforcement remains separate from generic admin action audit; admin UI remains later #17 work.
 
 Real server acceptance is required before the moderation feature is considered production-ready.

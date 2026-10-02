@@ -52,6 +52,8 @@ public sealed class AnoCorePlugin : BasePlugin
     private ModerationCommandController? _adminCommands;
     private RankAdjustmentCommandController? _rankAdminCommands;
     private RankAdjustmentNotificationService? _rankAdminNotifications;
+    private KickCommandController? _kickCommands;
+    private ConnectBanEnforcement? _connectBan;
     private ModerationCommunicationRuntime? _communicationModeration;
     private CounterStrikeChatModerationAdapter? _chatModeration;
     private ModerationVoiceCoordinator? _voiceModeration;
@@ -149,6 +151,10 @@ public sealed class AnoCorePlugin : BasePlugin
             _rankAdminNotifications = null;
             _adminCommands?.Dispose();
             _adminCommands = null;
+            _kickCommands?.Dispose();
+            _kickCommands = null;
+            _connectBan?.Dispose();
+            _connectBan = null;
             _runtime?.Dispose();
             _runtime = null;
             MenuPresenter = null;
@@ -414,6 +420,8 @@ public sealed class AnoCorePlugin : BasePlugin
             RankAdjustmentNotificationService? rankAdminNotifications = null;
             RankTransitionMonitor? transitionMonitor = null;
             CombatModule? combat = null;
+            KickCommandController? kickCommands = null;
+            ConnectBanEnforcement? connectBan = null;
             ModerationCommunicationRuntime? communicationModeration = null;
             CounterStrikeChatModerationAdapter? chatModeration = null;
             ChatFormatSnapshotLifecycle? chatFormatSnapshots = null;
@@ -472,6 +480,14 @@ public sealed class AnoCorePlugin : BasePlugin
                     runtime.Commands,
                     new RankAdjustmentCommandExecutor(
                         targetGateway, rankAdministration));
+                var disconnect = new CounterStrikePlayerDisconnectAction(runtime.Players, cancellationToken);
+                kickCommands = new KickCommandController(
+                    runtime.Commands,
+                    new KickCommandExecutor(
+                        targetGateway,
+                        runtime.AdminAudit,
+                        disconnect,
+                        new CounterStrikeKickAnnouncement(cancellationToken)));
 
                 transitionMonitor = rank is null
                     ? null
@@ -498,6 +514,10 @@ public sealed class AnoCorePlugin : BasePlugin
                         "chat_format_snapshot_bootstrap");
                 }
 
+                connectBan = new ConnectBanEnforcement(
+                    events,
+                    runtime.Moderation,
+                    disconnect);
                 communicationModeration = new ModerationCommunicationRuntime(
                     events,
                     runtime.Moderation,
@@ -550,6 +570,8 @@ public sealed class AnoCorePlugin : BasePlugin
                 _rankAdminCommands = rankAdminCommands;
                 _rankAdminNotifications = rankAdminNotifications;
                 rankAdminNotifications = null;
+                _kickCommands = kickCommands;
+                _connectBan = connectBan;
                 _communicationModeration = communicationModeration;
                 _chatModeration = chatModeration;
                 _chatFormatSnapshots = chatFormatSnapshots;
@@ -566,6 +588,11 @@ public sealed class AnoCorePlugin : BasePlugin
                 _voiceModerationTimer = voiceTimer;
                 _playtimeTimer = playtimeTimer;
                 _runtimeStatus = "ready";
+                foreach (var player in runtime.Players.OnlinePlayers.ToArray())
+                {
+                    Observe(connectBan.CheckAsync(player, cancellationToken).AsTask(), "connect_ban_bootstrap");
+                }
+
                 Logger.LogInformation(
                     "AnoCore shared services ready; database/authorization initialized; AnoVeto {AnoVetoState}.",
                     anoVeto is null ? "disabled" : "active");
@@ -589,6 +616,8 @@ public sealed class AnoCorePlugin : BasePlugin
                 rankAdminCommands?.Dispose();
                 rankAdminNotifications?.Dispose();
                 adminCommands?.Dispose();
+                kickCommands?.Dispose();
+                connectBan?.Dispose();
                 runtime.Dispose();
                 MenuPresenter = null;
                 _runtimeStatus = "activation failed";
