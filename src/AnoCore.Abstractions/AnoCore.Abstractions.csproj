@@ -9,6 +9,7 @@
     <PackageTags>anocore;cs2;modules;sdk</PackageTags>
     <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageProjectUrl>https://github.com/nfloser/AnoCore</PackageProjectUrl>
     <RepositoryUrl>https://github.com/nfloser/AnoCore</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
