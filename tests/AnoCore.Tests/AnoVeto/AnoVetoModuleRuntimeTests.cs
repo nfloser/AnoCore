@@ -6,7 +6,6 @@ using AnoCore.Modules.AnoVeto;
 using AnoCore.Runtime.Commands;
 using AnoCore.Runtime.Configuration;
 using AnoCore.Runtime.Maps;
-using AnoCore.Runtime.Menus;
 using AnoCore.Runtime.Voting;
 
 namespace AnoCore.Tests.AnoVeto;
@@ -33,7 +32,7 @@ public sealed class AnoVetoModuleRuntimeTests
             using var module = await AnoVetoModuleRuntime.CreateAsync(
                 config,
                 commands,
-                new MenuService(),
+                new TestCustomHudService(),
                 new StubPlayerRegistry(),
                 new VoteService(new AllowManagerPermissions()),
                 new RecordingMapChanger());
@@ -48,7 +47,7 @@ public sealed class AnoVetoModuleRuntimeTests
     }
 
     [TestMethod]
-    public async Task CreateAsync_LoadsConfiguredMapsAndRegistersWorkingCommand()
+    public async Task CreateAsync_LoadsConfiguredMapsAndRegistersWorkingCommandAndHud()
     {
         var path = CreateTempDirectory();
         try
@@ -61,6 +60,7 @@ public sealed class AnoVetoModuleRuntimeTests
             await config.SaveAsync("maps", CreateMaps("Map"));
             var permissions = new AllowManagerPermissions();
             var commands = new CommandRegistry(permissions);
+            var hud = new TestCustomHudService();
             var players = new StubPlayerRegistry(
             [
                 Snapshot(Manager, "Manager"),
@@ -70,7 +70,7 @@ public sealed class AnoVetoModuleRuntimeTests
             using var module = await AnoVetoModuleRuntime.CreateAsync(
                 config,
                 commands,
-                new MenuService(),
+                hud,
                 players,
                 new VoteService(permissions),
                 new RecordingMapChanger(),
@@ -81,6 +81,8 @@ public sealed class AnoVetoModuleRuntimeTests
             Assert.IsTrue(result.Success, result.Message);
             Assert.IsTrue(module.Coordinator.TryGetStatus(out var maps));
             Assert.HasCount(8, maps);
+            Assert.IsNotNull(hud.Definition(AnoVetoHudController.HudId));
+            Assert.HasCount(2, hud.VisiblePlayers(AnoVetoHudController.HudId));
         }
         finally
         {

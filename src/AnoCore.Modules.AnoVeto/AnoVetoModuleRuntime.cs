@@ -1,7 +1,7 @@
 using AnoCore.Abstractions.Commands;
 using AnoCore.Abstractions.Configuration;
+using AnoCore.Abstractions.Hud;
 using AnoCore.Abstractions.Maps;
-using AnoCore.Abstractions.Menus;
 using AnoCore.Abstractions.Modules;
 using AnoCore.Abstractions.Players;
 using AnoCore.Abstractions.Voting;
@@ -34,7 +34,7 @@ public sealed class AnoVetoModuleRuntime : IDisposable
     public static ValueTask<AnoVetoModuleRuntime?> CreateAsync(
         IConfigStore configuration,
         IAnoCommandRegistry commands,
-        IMenuService menus,
+        ICustomHudService hud,
         IPlayerRegistry players,
         IVoteService votes,
         IMapChanger mapChanger,
@@ -44,7 +44,7 @@ public sealed class AnoVetoModuleRuntime : IDisposable
         => CreateCoreAsync(
             configuration,
             commands,
-            menus,
+            hud,
             players,
             votes,
             mapChanger,
@@ -56,7 +56,7 @@ public sealed class AnoVetoModuleRuntime : IDisposable
     public static ValueTask<AnoVetoModuleRuntime?> CreateAsync(
         IConfigStore configuration,
         IAnoCommandRegistry commands,
-        IMenuService menus,
+        ICustomHudService hud,
         IPlayerRegistry players,
         IVoteService votes,
         IMapChanger mapChanger,
@@ -69,7 +69,7 @@ public sealed class AnoVetoModuleRuntime : IDisposable
         return CreateCoreAsync(
             configuration,
             commands,
-            menus,
+            hud,
             players,
             votes,
             mapChanger,
@@ -97,7 +97,7 @@ public sealed class AnoVetoModuleRuntime : IDisposable
     private static async ValueTask<AnoVetoModuleRuntime?> CreateCoreAsync(
         IConfigStore configuration,
         IAnoCommandRegistry commands,
-        IMenuService menus,
+        ICustomHudService hud,
         IPlayerRegistry players,
         IVoteService votes,
         IMapChanger mapChanger,
@@ -108,7 +108,7 @@ public sealed class AnoVetoModuleRuntime : IDisposable
     {
         ArgumentNullException.ThrowIfNull(configuration);
         ArgumentNullException.ThrowIfNull(commands);
-        ArgumentNullException.ThrowIfNull(menus);
+        ArgumentNullException.ThrowIfNull(hud);
         ArgumentNullException.ThrowIfNull(players);
         ArgumentNullException.ThrowIfNull(votes);
         ArgumentNullException.ThrowIfNull(mapChanger);
@@ -133,7 +133,7 @@ public sealed class AnoVetoModuleRuntime : IDisposable
                 settings.ToOptions());
             var fixedController = new AnoVetoCommandController(
                 commands,
-                menus,
+                hud,
                 players,
                 fixedCoordinator,
                 timeProvider);
@@ -169,7 +169,7 @@ public sealed class AnoVetoModuleRuntime : IDisposable
                 () => activeSettings.Current.ToOptions());
             controller = new AnoVetoCommandController(
                 commands,
-                menus,
+                hud,
                 players,
                 coordinator,
                 timeProvider);

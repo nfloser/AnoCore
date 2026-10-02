@@ -1,0 +1,166 @@
+.ano-overlay
+{
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    visibility: collapse;
+}
+
+.ano-overlay.shown
+{
+    opacity: 1;
+    visibility: visible;
+}
+
+.ano-dim
+{
+    width: 100%;
+    height: 100%;
+    background-color: #000000;
+    opacity: 0.38;
+}
+
+.ano-window
+{
+    width: 980px;
+    height: 610px;
+    horizontal-align: center;
+    vertical-align: center;
+    flow-children: down;
+    padding: 26px;
+    background-color: #0c1016f5;
+    border: 2px solid #f0f4ff2e;
+    border-radius: 10px;
+    box-shadow: #000000aa 0px 0px 28px 0px;
+}
+
+.ano-header
+{
+    width: 100%;
+    height: 112px;
+    flow-children: right;
+    border-bottom: 1px solid #ffffff1f;
+    margin-bottom: 20px;
+}
+
+.ano-header-copy
+{
+    width: fill-parent-flow(1.0);
+    height: 100%;
+    flow-children: down;
+}
+
+.ano-brand
+{
+    color: #80c7ffff;
+    font-size: 17px;
+    letter-spacing: 4px;
+}
+
+.ano-title
+{
+    color: #ffffffff;
+    font-size: 34px;
+    letter-spacing: 1px;
+    margin-top: 4px;
+}
+
+.ano-status
+{
+    color: #aab5c6ff;
+    font-size: 17px;
+    margin-top: 4px;
+}
+
+.ano-close
+{
+    width: 54px;
+    height: 54px;
+    background-color: #171d27ff;
+    border: 1px solid #ffffff24;
+    border-radius: 6px;
+}
+
+.ano-close:hover
+{
+    background-color: #2a3546ff;
+    border: 1px solid #80c7ffff;
+}
+
+.ano-close Label
+{
+    horizontal-align: center;
+    vertical-align: center;
+    color: #dce6f3ff;
+    font-size: 34px;
+}
+
+.ano-map-grid
+{
+    width: 100%;
+    height: 390px;
+    flow-children: right-wrap;
+}
+
+.ano-map
+{
+    width: 444px;
+    height: 82px;
+    margin-right: 18px;
+    margin-bottom: 15px;
+    padding: 0px 20px;
+    background-color: #171d27ff;
+    border: 1px solid #ffffff15;
+    border-radius: 6px;
+}
+
+.ano-map:hover
+{
+    background-color: #173452ff;
+    border: 2px solid #63b7ffff;
+    brightness: 1.15;
+}
+
+.ano-map:active
+{
+    background-color: #22547fff;
+    border: 2px solid #83f3a2ff;
+}
+
+.ano-map-text
+{
+    color: #dce6f3ff;
+    font-size: 21px;
+    vertical-align: center;
+    text-overflow: shrink;
+    width: 100%;
+}
+
+.ano-map:hover .ano-map-text
+{
+    color: #ffffffff;
+}
+
+.ano-footer
+{
+    width: 100%;
+    height: 50px;
+    margin-top: 8px;
+    padding-top: 12px;
+    border-top: 1px solid #ffffff1f;
+    flow-children: right;
+}
+
+.ano-help
+{
+    color: #83f3a2ff;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.ano-help-secondary
+{
+    horizontal-align: right;
+    color: #758298ff;
+    font-weight: normal;
+}
