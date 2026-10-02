@@ -109,7 +109,7 @@ public sealed class AnoVetoModuleRuntimeTests
             using var module = await AnoVetoModuleRuntime.CreateAsync(
                 config,
                 commands,
-                new MenuService(),
+                new TestCustomHudService(),
                 new StubPlayerRegistry([Snapshot(Manager, "Manager")]),
                 new VoteService(permissions),
                 new RecordingMapChanger(),
@@ -165,7 +165,7 @@ public sealed class AnoVetoModuleRuntimeTests
             using var module = await AnoVetoModuleRuntime.CreateAsync(
                 config,
                 commands,
-                new MenuService(),
+                new TestCustomHudService(),
                 new StubPlayerRegistry([Snapshot(Manager, "Manager")]),
                 new VoteService(permissions),
                 new RecordingMapChanger(),
@@ -215,7 +215,7 @@ public sealed class AnoVetoModuleRuntimeTests
             var module = await AnoVetoModuleRuntime.CreateAsync(
                 config,
                 commands,
-                new MenuService(),
+                new TestCustomHudService(),
                 new StubPlayerRegistry([Snapshot(Manager, "Manager")]),
                 new VoteService(permissions),
                 new RecordingMapChanger(),
@@ -264,7 +264,7 @@ public sealed class AnoVetoModuleRuntimeTests
             using var module = await AnoVetoModuleRuntime.CreateAsync(
                 config,
                 commands,
-                new MenuService(),
+                new TestCustomHudService(),
                 new StubPlayerRegistry([Snapshot(Manager, "Manager")]),
                 new VoteService(permissions),
                 new RecordingMapChanger(),
@@ -311,7 +311,7 @@ public sealed class AnoVetoModuleRuntimeTests
                 await AnoVetoModuleRuntime.CreateAsync(
                     config,
                     commands,
-                    new MenuService(),
+                    new TestCustomHudService(),
                     new StubPlayerRegistry(),
                     new VoteService(new AllowManagerPermissions()),
                     new RecordingMapChanger(),
