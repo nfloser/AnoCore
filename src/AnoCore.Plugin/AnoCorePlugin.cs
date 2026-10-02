@@ -54,6 +54,7 @@ public sealed class AnoCorePlugin : BasePlugin
     private RankAdjustmentNotificationService? _rankAdminNotifications;
     private KickCommandController? _kickCommands;
     private ConnectBanEnforcement? _connectBan;
+    private WarningCommandController? _warningCommands;
     private ModerationCommunicationRuntime? _communicationModeration;
     private CounterStrikeChatModerationAdapter? _chatModeration;
     private ModerationVoiceCoordinator? _voiceModeration;
@@ -149,6 +150,8 @@ public sealed class AnoCorePlugin : BasePlugin
             _rankAdminCommands = null;
             _rankAdminNotifications?.Dispose();
             _rankAdminNotifications = null;
+            _warningCommands?.Dispose();
+            _warningCommands = null;
             _adminCommands?.Dispose();
             _adminCommands = null;
             _kickCommands?.Dispose();
@@ -422,6 +425,7 @@ public sealed class AnoCorePlugin : BasePlugin
             CombatModule? combat = null;
             KickCommandController? kickCommands = null;
             ConnectBanEnforcement? connectBan = null;
+            WarningCommandController? warningCommands = null;
             ModerationCommunicationRuntime? communicationModeration = null;
             CounterStrikeChatModerationAdapter? chatModeration = null;
             ChatFormatSnapshotLifecycle? chatFormatSnapshots = null;
@@ -488,6 +492,10 @@ public sealed class AnoCorePlugin : BasePlugin
                         runtime.AdminAudit,
                         disconnect,
                         new CounterStrikeKickAnnouncement(cancellationToken)));
+                warningCommands = new WarningCommandController(runtime.Commands,
+                    new WarningCommandExecutor(targetGateway, runtime.Warnings, runtime.AdminAudit,
+                        new CounterStrikeWarningNotifier(runtime.Players, Logger,
+                            () => ReferenceEquals(_runtime, runtime))));
 
                 transitionMonitor = rank is null
                     ? null
@@ -572,6 +580,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 rankAdminNotifications = null;
                 _kickCommands = kickCommands;
                 _connectBan = connectBan;
+                _warningCommands = warningCommands;
                 _communicationModeration = communicationModeration;
                 _chatModeration = chatModeration;
                 _chatFormatSnapshots = chatFormatSnapshots;
@@ -615,6 +624,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 bridge.Dispose();
                 rankAdminCommands?.Dispose();
                 rankAdminNotifications?.Dispose();
+                warningCommands?.Dispose();
                 adminCommands?.Dispose();
                 kickCommands?.Dispose();
                 connectBan?.Dispose();
