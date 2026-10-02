@@ -1,4 +1,5 @@
 using AnoCore.Abstractions.Configuration;
+using AnoCore.Abstractions.Commands;
 using AnoCore.Abstractions.Modules;
 using AnoCore.Abstractions.Players;
 using AnoCore.Abstractions.Settings;
@@ -14,6 +15,50 @@ namespace AnoCore.Tests.Settings;
 [DoNotParallelize]
 public sealed class RuntimeSettingsCompositionTests
 {
+    [TestMethod]
+    public async Task RuntimeCommands_ChangeRegisteredToggleAndUnloadCleanly()
+    {
+        var connectionString = Environment.GetEnvironmentVariable("ANOCORE_TEST_MYSQL");
+        if (string.IsNullOrWhiteSpace(connectionString))
+            Assert.Inconclusive("ANOCORE_TEST_MYSQL is not configured for integration tests.");
+
+        var events = new AnoEventBus();
+        var players = new PlayerRegistry(events);
+        var configPath = Path.Combine(Path.GetTempPath(),
+            "ano-toggle-commands-" + Guid.NewGuid().ToString("N"));
+        using var runtime = await RuntimeServices.CreateAsync(
+            new MySqlDatabase(connectionString!),
+            new JsonConfigStore(configPath),
+            events, players);
+        var player = new PlayerId(76561198000013202);
+        await players.ConnectAsync(new PlayerConnection(
+            player, "Player", PlayerTeam.Terrorist, true, DateTimeOffset.UtcNow));
+        var key = new PlayerSettingKey<bool>(
+            "test.toggle." + Guid.NewGuid().ToString("N"), false);
+        using var registration = runtime.ToggleCatalog.Register(new ModuleId("tests"),
+            new PlayerToggleSetting(key, "Toggle", ""));
+        var changes = new List<PlayerSettingChangedEvent>();
+        using var subscription = events.Subscribe<PlayerSettingChangedEvent>(
+            (value, _) =>
+            {
+                changes.Add(value);
+                return ValueTask.CompletedTask;
+            });
+
+        Assert.IsTrue((await runtime.Commands.ExecuteAsync(
+            $"!anotoggle {key.Name} on", player)).Success);
+        Assert.IsTrue(await runtime.Settings.GetAsync(player, key));
+        Assert.AreEqual(PlayerSettingChangeKind.Set, changes.Single().Kind);
+        Assert.IsTrue((await runtime.Commands.ExecuteAsync(
+            $"!anotoggle {key.Name} default", player)).Success);
+        Assert.IsFalse(await runtime.Settings.GetAsync(player, key));
+        Assert.AreEqual(PlayerSettingChangeKind.Reset, changes.Last().Kind);
+        var commands = runtime.Commands;
+        runtime.Dispose();
+        Assert.AreEqual(CommandFailureReason.NotFound,
+            (await commands.ExecuteAsync("!anosettings", player)).FailureReason);
+    }
+
     [TestMethod]
     public async Task RuntimeSettings_PublishesCommittedChangesThroughSharedEventBus()
     {

@@ -23,3 +23,17 @@ The catalog holds metadata only. A module reads or changes a particular player's
 During `InitializeAsync`, a module can pass disposable registrations to `IAnoModuleContext.Own(resource)`. The runtime creates a fresh scope for every load attempt and disposes owned resources in reverse registration order after `ShutdownAsync`. Cleanup also runs when initialization or shutdown fails, and cleanup failures are retained in the module snapshot diagnostics. Typical owned resources are toggle-catalog handles, event subscriptions and command registrations.
 
 Modules should still make `ShutdownAsync` safe after partial initialization. The host invokes it before owned resources are released, allowing the module to stop work while its subscriptions are still valid. Custom contexts remain source-compatible through the default ownership implementation, but only the runtime host guarantees automatic cleanup.
+
+
+## Player commands
+
+A connected player uses `anosettings [page]` to see up to three registered keys with effective `on`/`off` values. `anotoggle <key> on|off|default` writes or resets only that player's setting. `default` removes the stored override and exposes the descriptor's configured default. Unknown keys and actions, out-of-range pages, server console and disconnected players are rejected. The command module is registered with runtime startup and disposed with it. Registered modules should only expose player-editable choices in this catalog; it does not provide an administrative override or permission-scoped setting discovery.
+
+The command handlers and MariaDB persistence are tested. Native CS2 command dispatch, chat output and reconnect timing still require live acceptance. No settings menu is provided yet; the module list remains empty until feature modules register their own options.
+
+
+## Player settings menu
+
+`anosettingsmenu [page]` opens the shared player menu with at most three registered options per page. Each option shows the effective value and offers a toggle and a separate reset to its configured default. Page navigation is bounded by the current catalog snapshot. A choice is checked against the current connected session and the same active descriptor before persistence. Menu generations have distinct option IDs, so a delayed callback from an older native view cannot select a replacement option with the same label.
+
+Matching disconnect/reconnect events remove the old session's menu registration; unload disposes menu and event registrations. The plugin presents the menu after command dispatch through the existing native presenter. Until modules register choices, the menu reports that no settings are available. CS2/DatHost menu rendering, click order, command dispatch and unload remain live acceptance gates. This menu currently uses the shared CenterHtml presenter; migrating it to the CustomHud renderer requires its separate live acceptance.

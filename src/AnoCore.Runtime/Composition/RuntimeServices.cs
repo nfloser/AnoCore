@@ -175,7 +175,7 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
             runtime.Subscribe(events);
             await runtime._profileLifecycle.StartAsync(cancellationToken).ConfigureAwait(false);
 
-            runtime.RegisterCommands();
+            runtime.RegisterCommands(events);
             cancellationToken.ThrowIfCancellationRequested();
             return runtime;
         }
@@ -234,8 +234,10 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
             }));
     }
 
-    private void RegisterCommands()
+    private void RegisterCommands(AnoEventBus events)
     {
+        _registrations.Add(new PlayerToggleCommandModule(
+            Commands, Players, ToggleCatalog, Settings, Menus, events));
         _registrations.Add(Commands.Register(
             CoreModule,
             new CommandDescriptor("anocommands", "List registered AnoCore commands"),
