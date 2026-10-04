@@ -159,7 +159,6 @@ public sealed class AnoCorePlugin : BasePlugin
             _pendingGameplayStats?.Dispose();
             _pendingGameplayStats = null;
             _pendingTournamentMatch = null;
-            _pendingTournamentMatch = null;
             _pendingChatFormatter = null;
             _pendingChatTags?.Dispose();
             _pendingChatTags = null;
@@ -474,6 +473,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 createdPlaytime = null;
                 createdRank = null;
                 createdGameplayStats = null;
+                createdTournamentMatch = null;
                 createdChatFormatter = null;
                 createdChatTags = null;
                 Server.NextWorldUpdate(() => ActivateRuntime(cancellationToken));
@@ -546,6 +546,7 @@ public sealed class AnoCorePlugin : BasePlugin
             _pendingPlaytime = null;
             _pendingRank = null;
             _pendingGameplayStats = null;
+            _pendingTournamentMatch = null;
             _pendingChatFormatter = null;
             _pendingChatTags = null;
             var protectedServerControlPolicy = _pendingProtectedServerControlPolicy
