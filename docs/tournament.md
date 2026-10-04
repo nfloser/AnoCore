@@ -36,3 +36,26 @@ This snapshot is a persistence contract, not yet a database implementation. Dura
 storage, native team enforcement, veto integration, knife execution, demo recording,
 round backups, coaching/spectator policy and real CS2 acceptance remain follow-up work
 under #21.
+
+
+## Durable recovery storage
+
+The tournament persistence package stores match configuration and roster membership
+separately from the validated recovery snapshot. One singleton runtime row points at
+the currently active match, so activating a different match never requires deleting
+historical match state.
+
+Every stored match carries a positive revision. Snapshot saves require the caller's
+expected revision and increment it transactionally; stale callbacks therefore fail
+with `TournamentConcurrencyException` instead of overwriting newer state.
+
+`TournamentRecoveryService` creates an active in-memory state machine from a durable
+configuration, restores the active state after process restart, saves checkpoints and
+deactivates completed or abandoned matches while preserving the final snapshot.
+Configuration/roster replacement, snapshot writes and active-pointer updates are
+transactional. The module-specific migration is applied through
+`TournamentPersistenceBootstrap`.
+
+This package still does not force CS teams or intercept join-team actions. Native team
+locking/reconnect enforcement, veto presentation, demo recording and round backups
+remain explicit follow-up work under #21.
