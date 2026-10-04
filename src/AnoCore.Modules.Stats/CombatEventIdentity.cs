@@ -13,7 +13,7 @@ public static class CombatEventIdentity
         ArgumentException.ThrowIfNullOrWhiteSpace(mapName);
         ArgumentNullException.ThrowIfNull(victimId);
         return Hash(FormattableString.Invariant(
-            $"{serverInstance}|{mapName}|{mapEpoch}|{tick}|death|{victimId.SteamId64}"));
+            $"{serverInstance}|{mapName}|{mapEpoch}|{tick}|{victimId.SteamId64}"));
     }
 
     public static Guid CreateDetail(string serverInstance, string mapName, long mapEpoch,
