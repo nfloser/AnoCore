@@ -29,6 +29,44 @@ public sealed class TournamentMatchDefinitionTests
     }
 
     [TestMethod]
+    public void SpectatorPolicy_ConvertsAndRejectsRoleOverlap()
+    {
+        var definition = ValidDefinition();
+        definition.AllowPublicSpectators = true;
+        definition.TeamACoaches = [76561198000197021];
+        definition.TeamBCoaches = [76561198000197022];
+        definition.SpectatorWhitelist = [76561198000197023];
+
+        var policy = definition.ToSpectatorPolicy();
+
+        Assert.IsTrue(policy.AllowPublicSpectators);
+        Assert.AreEqual(TournamentSpectatorAccessKind.TeamACoach,
+            policy.Decide(new AnoCore.Abstractions.Players.PlayerId(76561198000197021)).Kind);
+        Assert.AreEqual(TournamentSpectatorAccessKind.WhitelistedSpectator,
+            policy.Decide(new AnoCore.Abstractions.Players.PlayerId(76561198000197023)).Kind);
+
+        definition.TeamACoaches = [definition.TeamA.Members[0]];
+        var errors = TournamentMatchDefinition.Validate(definition);
+        Assert.IsTrue(errors.Any(error =>
+            error.Contains("Roster SteamIDs", StringComparison.Ordinal)));
+    }
+
+    [TestMethod]
+    public void SpectatorPolicy_NullListsAreValidationErrorsInsteadOfExceptions()
+    {
+        var definition = ValidDefinition();
+        definition.TeamACoaches = null!;
+        definition.TeamBCoaches = null!;
+        definition.SpectatorWhitelist = null!;
+
+        var errors = TournamentMatchDefinition.Validate(definition);
+
+        Assert.IsTrue(errors.Any(error => error.Contains("TeamACoaches", StringComparison.Ordinal)));
+        Assert.IsTrue(errors.Any(error => error.Contains("TeamBCoaches", StringComparison.Ordinal)));
+        Assert.IsTrue(errors.Any(error => error.Contains("SpectatorWhitelist", StringComparison.Ordinal)));
+    }
+
+    [TestMethod]
     public void EnabledDefinition_RejectsOverlapMissingCaptainAndInvalidBestOf()
     {
         var definition = ValidDefinition();
