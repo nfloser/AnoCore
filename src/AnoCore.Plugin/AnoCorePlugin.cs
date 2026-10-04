@@ -814,12 +814,12 @@ public sealed class AnoCorePlugin : BasePlugin
             var state = _extendedPlayerState;
             var positions = _extendedPositions;
             Observe(
-                ReleaseExtendedStateThenDisconnectAsync(
+                ExtendedAdministrationDisconnect.DisconnectAsync(
                     registry,
                     state,
                     positions,
                     current,
-                    DateTimeOffset.UtcNow),
+                    DateTimeOffset.UtcNow).AsTask(),
                 "player_disconnect");
         }
 
@@ -1048,29 +1048,6 @@ public sealed class AnoCorePlugin : BasePlugin
         {
             Observe(state.ReleaseSessionAsync(current).AsTask(), operation);
         }
-    }
-
-    private static async Task ReleaseExtendedStateThenDisconnectAsync(
-        PlayerRegistry registry,
-        ExtendedPlayerStateService? state,
-        ExtendedPositionService? positions,
-        PlayerSnapshot current,
-        DateTimeOffset disconnectedAtUtc)
-    {
-        if (state is not null)
-        {
-            await state.ForgetSessionAsync(current.SessionId).ConfigureAwait(false);
-        }
-
-        if (positions is not null)
-        {
-            await positions.ForgetSessionAsync(current.SessionId).ConfigureAwait(false);
-        }
-
-        await registry.DisconnectAsync(
-            current.Id,
-            current.SessionId,
-            disconnectedAtUtc).ConfigureAwait(false);
     }
 
     private static async Task ReleaseAndDisposeExtendedPlayerStateAsync(

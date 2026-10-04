@@ -33,3 +33,5 @@ Owned reversible state is restored on explicit reset and player death while the 
 ## Native acceptance
 
 On a disposable server, verify each command with an authorized admin, an unauthorized player and a target with equal/higher immunity. For reversible commands, record the original movement/speed/flash/damage state, apply the override, then test explicit reset and death restoration, disconnect/reconnect and map-change teardown, plus plugin-unload restoration. A stale reconnect or reused slot must never receive an earlier session's action or restoration.
+
+Disconnect invalidates the matching shared player session before awaiting an in-flight admin action. Session bookkeeping is then cleared even if a disconnect-event observer fails; a reconnect remains a separate session and queued native actions must fail their current-session check.
