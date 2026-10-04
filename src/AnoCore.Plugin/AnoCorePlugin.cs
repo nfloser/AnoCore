@@ -38,6 +38,8 @@ public sealed class AnoCorePlugin : BasePlugin
     private ModerationCommandController? _adminCommands;
     private ExtendedPlayerStateCommandController? _extendedAdminCommands;
     private ExtendedPlayerStateService? _extendedPlayerState;
+    private ExtendedPositionCommandController? _extendedPositionCommands;
+    private ExtendedPositionService? _extendedPositions;
     private ModerationCommunicationRuntime? _communicationModeration;
     private CounterStrikeChatModerationAdapter? _chatModeration;
     private ModerationVoiceCoordinator? _voiceModeration;
@@ -100,6 +102,15 @@ public sealed class AnoCorePlugin : BasePlugin
             _anoVeto = null;
             _commands?.Dispose();
             _commands = null;
+            _extendedPositionCommands?.Dispose();
+            _extendedPositionCommands = null;
+            var extendedPositions = _extendedPositions;
+            _extendedPositions = null;
+            if (extendedPositions is not null)
+            {
+                Observe(extendedPositions.ForgetAllAsync().AsTask(), "extended_position_unload");
+            }
+
             _extendedAdminCommands?.Dispose();
             _extendedAdminCommands = null;
             var extendedPlayerState = _extendedPlayerState;
@@ -253,6 +264,8 @@ public sealed class AnoCorePlugin : BasePlugin
             ModerationCommandController? adminCommands = null;
             ExtendedPlayerStateService? extendedPlayerState = null;
             ExtendedPlayerStateCommandController? extendedAdminCommands = null;
+            ExtendedPositionService? extendedPositions = null;
+            ExtendedPositionCommandController? extendedPositionCommands = null;
             ModerationCommunicationRuntime? communicationModeration = null;
             CounterStrikeChatModerationAdapter? chatModeration = null;
             ModerationVoiceCoordinator? voiceModeration = null;
@@ -289,6 +302,14 @@ public sealed class AnoCorePlugin : BasePlugin
                     new ExtendedPlayerStateCommandExecutor(
                         targetGateway,
                         extendedPlayerState));
+                extendedPositions = new ExtendedPositionService(
+                    new CounterStrikeExtendedPositionTransport(runtime.Players));
+                extendedPositionCommands = new ExtendedPositionCommandController(
+                    runtime.Commands,
+                    new ExtendedPositionCommandExecutor(
+                        targetGateway,
+                        runtime.TargetResolver,
+                        extendedPositions));
 
                 var events = _eventBus
                     ?? throw new InvalidOperationException("AnoCore event bus is unavailable during activation.");
@@ -332,6 +353,8 @@ public sealed class AnoCorePlugin : BasePlugin
                 _adminCommands = adminCommands;
                 _extendedPlayerState = extendedPlayerState;
                 _extendedAdminCommands = extendedAdminCommands;
+                _extendedPositions = extendedPositions;
+                _extendedPositionCommands = extendedPositionCommands;
                 _communicationModeration = communicationModeration;
                 _chatModeration = chatModeration;
                 _voiceModeration = voiceModeration;
@@ -354,6 +377,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 communicationModeration?.Dispose();
                 anoVeto?.Dispose();
                 bridge.Dispose();
+                extendedPositionCommands?.Dispose();
                 extendedAdminCommands?.Dispose();
                 extendedPlayerState?.Dispose();
                 adminCommands?.Dispose();
@@ -423,6 +447,7 @@ public sealed class AnoCorePlugin : BasePlugin
         RegisterEventHandler<EventPlayerDisconnect>(OnPlayerDisconnect);
         RegisterEventHandler<EventPlayerTeam>(OnPlayerTeam);
         RegisterEventHandler<EventPlayerSpawn>(OnPlayerSpawn);
+        RegisterEventHandler<EventPlayerDeath>(OnPlayerDeathPosition, HookMode.Pre);
         RegisterEventHandler<EventPlayerDeath>(OnPlayerDeath);
         RegisterListener<Listeners.OnMapEnd>(OnMapEnd);
         _lifecycleHooksRegistered = true;
@@ -439,6 +464,7 @@ public sealed class AnoCorePlugin : BasePlugin
         DeregisterEventHandler<EventPlayerDisconnect>(OnPlayerDisconnect);
         DeregisterEventHandler<EventPlayerTeam>(OnPlayerTeam);
         DeregisterEventHandler<EventPlayerSpawn>(OnPlayerSpawn);
+        DeregisterEventHandler<EventPlayerDeath>(OnPlayerDeathPosition, HookMode.Pre);
         DeregisterEventHandler<EventPlayerDeath>(OnPlayerDeath);
         RemoveListener<Listeners.OnMapEnd>(OnMapEnd);
         _lifecycleHooksRegistered = false;
@@ -471,10 +497,12 @@ public sealed class AnoCorePlugin : BasePlugin
         {
             var registry = _players;
             var state = _extendedPlayerState;
+            var positions = _extendedPositions;
             Observe(
                 ReleaseExtendedStateThenDisconnectAsync(
                     registry,
                     state,
+                    positions,
                     current,
                     DateTimeOffset.UtcNow),
                 "player_disconnect");
@@ -495,6 +523,53 @@ public sealed class AnoCorePlugin : BasePlugin
         return HookResult.Continue;
     }
 
+    private HookResult OnPlayerDeathPosition(EventPlayerDeath @event, GameEventInfo _)
+    {
+        var registry = _players;
+        var positions = _extendedPositions;
+        var controller = @event.Userid;
+        if (registry is null
+            || positions is null
+            || controller is null
+            || !controller.IsValid
+            || controller.SteamID == 0)
+        {
+            return HookResult.Continue;
+        }
+
+        PlayerId id;
+        try
+        {
+            id = new PlayerId(controller.SteamID);
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            return HookResult.Continue;
+        }
+
+        var origin = controller.PlayerPawn.Value?.AbsOrigin;
+        if (origin is not null
+            && registry.TryGet(id, out var current)
+            && current is not null
+            && current.IsConnected)
+        {
+            try
+            {
+                positions.RecordDeathPosition(
+                    current,
+                    new PlayerWorldPosition(origin.X, origin.Y, origin.Z));
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                Logger.LogWarning(
+                    "Skipped an out-of-range death position for player {PlayerId}.",
+                    id);
+            }
+        }
+
+        return HookResult.Continue;
+    }
+
     private HookResult OnPlayerDeath(EventPlayerDeath @event, GameEventInfo _)
     {
         ReleaseExtendedStateForController(@event.Userid, "extended_admin_player_death");
@@ -508,6 +583,12 @@ public sealed class AnoCorePlugin : BasePlugin
         if (state is not null)
         {
             Observe(state.ForgetAllAsync().AsTask(), "extended_admin_map_end");
+        }
+
+        var positions = _extendedPositions;
+        if (positions is not null)
+        {
+            Observe(positions.ForgetAllAsync().AsTask(), "extended_position_map_end");
         }
     }
 
@@ -620,12 +701,18 @@ public sealed class AnoCorePlugin : BasePlugin
     private static async Task ReleaseExtendedStateThenDisconnectAsync(
         PlayerRegistry registry,
         ExtendedPlayerStateService? state,
+        ExtendedPositionService? positions,
         PlayerSnapshot current,
         DateTimeOffset disconnectedAtUtc)
     {
         if (state is not null)
         {
             await state.ForgetSessionAsync(current.SessionId).ConfigureAwait(false);
+        }
+
+        if (positions is not null)
+        {
+            await positions.ForgetSessionAsync(current.SessionId).ConfigureAwait(false);
         }
 
         await registry.DisconnectAsync(
