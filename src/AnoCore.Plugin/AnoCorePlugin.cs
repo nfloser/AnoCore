@@ -977,8 +977,7 @@ public sealed class AnoCorePlugin : BasePlugin
             var weapon = CombatDetailKey(
                 @event.Weapon, attacker is null ? "world" : "unknown", 64);
             var signature = FormattableString.Invariant(
-                $"{weapon}|{@event.Hitgroup}|{@event.DmgHealth}|{@event.DmgArmor}|"
-                + $"{@event.Health}|{@event.Armor}");
+                $"{weapon}|{@event.Hitgroup}|{@event.DmgHealth}|{@event.DmgArmor}|{@event.Health}|{@event.Armor}");
             var eventId = CombatEventIdentity.CreateDetail(
                 _combatServerInstance, map, CombatMapEpoch(), Server.TickCount,
                 "player_hurt", victim.Id, attacker?.Id, signature);
