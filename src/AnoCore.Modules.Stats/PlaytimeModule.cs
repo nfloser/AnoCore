@@ -153,7 +153,6 @@ public sealed class PlaytimeModule : IDisposable
     private async ValueTask RecordAsync(PlayerSnapshot player, DateTimeOffset atUtc, bool close,
         CancellationToken cancellationToken)
     {
-        await OpenAsync(player, cancellationToken).ConfigureAwait(false);
         if (_stateRepository is not null)
         {
             await _stateRepository.AdvanceStateAsync(player.Id, player.SessionId, atUtc,
@@ -162,6 +161,7 @@ public sealed class PlaytimeModule : IDisposable
             return;
         }
 
+        await OpenAsync(player, cancellationToken).ConfigureAwait(false);
         await _repository.AdvanceAsync(player.Id, player.SessionId, atUtc, close, cancellationToken)
             .ConfigureAwait(false);
     }
