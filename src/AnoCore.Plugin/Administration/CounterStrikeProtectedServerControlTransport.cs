@@ -37,11 +37,12 @@ public sealed class CounterStrikeProtectedServerControlTransport
             },
             cancellationToken);
 
-    public ValueTask ExecuteServerCommandAsync(
+    public async ValueTask ExecuteServerCommandAsync(
         string command,
         string arguments,
         CancellationToken cancellationToken = default)
-        => RunOnServerThreadAsync(
+    {
+        _ = await RunOnServerThreadAsync(
             () =>
             {
                 Server.ExecuteCommand(
@@ -50,7 +51,8 @@ public sealed class CounterStrikeProtectedServerControlTransport
                         : $"{command} {arguments}");
                 return true;
             },
-            cancellationToken).AsVoid();
+            cancellationToken).ConfigureAwait(false);
+    }
 
     public ValueTask<IReadOnlyList<SameIpPlayerGroup>> GetSameIpGroupsAsync(
         CancellationToken cancellationToken = default)
@@ -177,10 +179,4 @@ public sealed class CounterStrikeProtectedServerControlTransport
 
         public List<SameIpPlayer> Players { get; } = [];
     }
-}
-
-internal static class ProtectedServerControlValueTaskExtensions
-{
-    public static async ValueTask AsVoid<T>(this ValueTask<T> task)
-        => _ = await task.ConfigureAwait(false);
 }
