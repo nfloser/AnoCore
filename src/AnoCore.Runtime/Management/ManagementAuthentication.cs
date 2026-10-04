@@ -33,6 +33,9 @@ public sealed record ManagementTokenCredential
     internal byte[] Salt { get; }
     internal byte[] Hash { get; }
 
+    public override string ToString()
+        => $"ManagementTokenCredential {{ TokenId = {TokenId}, Scopes = {Scopes}, Iterations = {Iterations} }}";
+
     private static byte[] Decode(
         string value,
         string parameterName,
