@@ -1,3 +1,10 @@
+# Rank notification preference checkpoint — 2026-10-04
+
+- Issue #170 / branch `feature/170-rank-notification-toggle` gives the #157 integration candidate its first real player-toggle option: `rank.notifications`, default enabled.
+- The persisted preference filters combat-driven and administrative promotion/demotion presentation only; durable score/admin writes, rank evaluation and warmed rank/chat refreshes continue unchanged. Server-level rank notification switches remain authoritative.
+- Rank composition owns the toggle registration and rolls it back on failure/unload. Preference reads are asynchronous outside the native chat hot path, and read failures are isolated from committed gameplay mutations.
+- PR #171 targets `integration/157-full-system-test`. Automated CI must pass on the exact head; actual settings UI and native notification delivery remain part of the disposable CS2/DatHost acceptance gate in #157.
+
 # Full-system disposable test checkpoint — 2026-10-02
 
 - Issue #157 / branch `integration/157-full-system-test` assembles the previously independent code-complete native stacks without promoting their unverified behavior to `main`.
