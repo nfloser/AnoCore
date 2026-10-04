@@ -41,6 +41,7 @@ public sealed class AnoCorePlugin : BasePlugin
     private AnoVetoModuleRuntime? _pendingAnoVeto;
     private PlaytimeModule? _pendingPlaytime;
     private RankModule? _pendingRank;
+    private GameplayStatsModule? _pendingGameplayStats;
     private ChatMessageFormatter? _pendingChatFormatter;
     private SelectableChatTagModule? _pendingChatTags;
     private ProtectedServerControlPolicy? _pendingProtectedServerControlPolicy;
@@ -48,6 +49,7 @@ public sealed class AnoCorePlugin : BasePlugin
     private AnoVetoModuleRuntime? _anoVeto;
     private PlaytimeModule? _playtime;
     private RankModule? _rank;
+    private GameplayStatsModule? _gameplayStats;
     private ChatMessageFormatter? _chatFormatter;
     private SelectableChatTagModule? _chatTags;
     private ChatFormatSnapshotLifecycle? _chatFormatSnapshots;
@@ -133,6 +135,8 @@ public sealed class AnoCorePlugin : BasePlugin
             _chatTags = null;
             _rank?.Dispose();
             _rank = null;
+            _gameplayStats?.Dispose();
+            _gameplayStats = null;
             _chatFormatter = null;
             _combat?.Dispose();
             _combat = null;
@@ -140,6 +144,9 @@ public sealed class AnoCorePlugin : BasePlugin
             _pendingPlaytime = null;
             _pendingRank?.Dispose();
             _pendingRank = null;
+            _pendingGameplayStats = null;
+            _pendingGameplayStats?.Dispose();
+            _pendingGameplayStats = null;
             _pendingChatFormatter = null;
             _pendingChatTags?.Dispose();
             _pendingChatTags = null;
@@ -228,6 +235,7 @@ public sealed class AnoCorePlugin : BasePlugin
         AnoVetoModuleRuntime? createdAnoVeto = null;
         PlaytimeModule? createdPlaytime = null;
         RankModule? createdRank = null;
+        GameplayStatsModule? createdGameplayStats = null;
         ChatMessageFormatter? createdChatFormatter = null;
         SelectableChatTagModule? createdChatTags = null;
         try
@@ -286,6 +294,24 @@ public sealed class AnoCorePlugin : BasePlugin
 
             try
             {
+                createdGameplayStats = await GameplayStatsModule.CreateAsync(
+                    configuration, created.Commands, players, created.GameplayStats, timeout.Token)
+                    .ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception exception)
+            {
+                createdGameplayStats?.Dispose();
+                createdGameplayStats = null;
+                Logger.LogError(exception,
+                    "Gameplay statistics composition failed; AnoCore will continue without extended gameplay stats.");
+            }
+
+            try
+            {
                 var placeholders = created.GetService(typeof(IPlaceholderRegistry))
                     as IPlaceholderRegistry
                     ?? throw new InvalidOperationException(
@@ -302,7 +328,9 @@ public sealed class AnoCorePlugin : BasePlugin
             catch (Exception exception)
             {
                 createdRank?.Dispose();
+            createdGameplayStats?.Dispose();
                 createdRank = null;
+                createdGameplayStats = null;
                 Logger.LogError(exception,
                     "Rank composition failed; AnoCore will continue without ranks.");
             }
@@ -391,6 +419,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 _pendingAnoVeto = createdAnoVeto;
                 _pendingPlaytime = createdPlaytime;
                 _pendingRank = createdRank;
+                _pendingGameplayStats = createdGameplayStats;
                 _pendingChatFormatter = createdChatFormatter;
                 _pendingChatTags = createdChatTags;
                 _pendingProtectedServerControlPolicy = protectedServerControlPolicy;
@@ -426,6 +455,8 @@ public sealed class AnoCorePlugin : BasePlugin
                     _pendingPlaytime = null;
                     _pendingRank?.Dispose();
                     _pendingRank = null;
+                    _pendingGameplayStats?.Dispose();
+                    _pendingGameplayStats = null;
                     _pendingChatFormatter = null;
                     _pendingChatTags?.Dispose();
                     _pendingChatTags = null;
@@ -456,6 +487,7 @@ public sealed class AnoCorePlugin : BasePlugin
             var anoVeto = _pendingAnoVeto;
             var playtime = _pendingPlaytime;
             var rank = _pendingRank;
+            var gameplayStats = _pendingGameplayStats;
             var chatFormatter = _pendingChatFormatter;
             var chatTags = _pendingChatTags;
             _pendingRuntime = null;
@@ -688,6 +720,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 _anoVeto = anoVeto;
                 _playtime = playtime;
                 _rank = rank;
+                _gameplayStats = gameplayStats;
                 _chatFormatter = chatFormatter;
                 _chatTags = chatTags;
                 _combat = combat;
