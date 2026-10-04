@@ -117,7 +117,6 @@ public sealed class MySqlCombatRepository : ICombatDetailRepository
             await using var reader = await verify.ExecuteReaderAsync(token).ConfigureAwait(false);
             if (!await reader.ReadAsync(token).ConfigureAwait(false)
                 || ReadPlayer(reader, 0) != weaponFire.PlayerId
-                || ReadUtc(reader, 1) != weaponFire.OccurredAtUtc
                 || !string.Equals(reader.GetString(2), weaponFire.MapName, StringComparison.Ordinal)
                 || !string.Equals(reader.GetString(3), weaponFire.Weapon, StringComparison.Ordinal))
             {
@@ -174,7 +173,6 @@ public sealed class MySqlCombatRepository : ICombatDetailRepository
             if (!await reader.ReadAsync(token).ConfigureAwait(false)
                 || ReadPlayer(reader, 0) != damage.VictimId
                 || ReadPlayer(reader, 1) != damage.AttackerId
-                || ReadUtc(reader, 2) != damage.OccurredAtUtc
                 || !string.Equals(reader.GetString(3), damage.MapName, StringComparison.Ordinal)
                 || !string.Equals(reader.GetString(4), damage.Weapon, StringComparison.Ordinal)
                 || reader.GetInt32(5) != damage.Hitgroup

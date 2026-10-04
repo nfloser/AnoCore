@@ -155,9 +155,13 @@ public sealed class MySqlCombatRepositoryTests
             Now.AddMilliseconds(5), "de_dust2", "ak47", 1, 42, 8);
 
         await repo.RecordWeaponFireAsync(fire);
-        await repo.RecordWeaponFireAsync(fire);
+        await repo.RecordWeaponFireAsync(new CombatWeaponFireEvent(
+            fire.EventId, Attacker, fire.OccurredAtUtc.AddMilliseconds(20),
+            "de_dust2", "ak47"));
         await repo.RecordDamageAsync(damage);
-        await repo.RecordDamageAsync(damage);
+        await repo.RecordDamageAsync(new CombatDamageEvent(
+            damage.EventId, Victim, Attacker, damage.OccurredAtUtc.AddMilliseconds(20),
+            "de_dust2", "ak47", 1, 42, 8));
 
         var restarted = new MySqlCombatRepository(_database);
         Assert.AreEqual(new CombatDetailTotals(1, 1, 42, 8, 1),
@@ -309,7 +313,7 @@ public sealed class MySqlCombatRepositoryTests
         await _database.WithConnectionAsync(async (connection, token) =>
         {
             foreach (var table in new[] {
-                "ano_combat_damage", "ano_combat_weapon_fire", "ano_rank_adjustments", "ano_playtime_segments", "ano_combat_deaths", "ano_playtime_sessions", "ano_admin_warnings",
+                "ano_gameplay_stats", "ano_combat_damage", "ano_combat_weapon_fire", "ano_rank_adjustments", "ano_playtime_segments", "ano_combat_deaths", "ano_playtime_sessions", "ano_admin_warnings",
                 "ano_admin_action_audit", "ano_moderation_audit", "ano_moderation_sanctions",
                 "ano_module_data", "ano_players", "ano_schema_migrations" })
             {

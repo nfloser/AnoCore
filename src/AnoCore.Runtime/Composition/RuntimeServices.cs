@@ -60,6 +60,7 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
         ConfigReloads = new ConfigReloadRegistry();
         Playtime = new MySqlPlaytimeRepository(database);
         Combat = new MySqlCombatRepository(database);
+        GameplayStats = new MySqlGameplayStatRepository(database);
         RankAdjustments = new MySqlRankAdjustmentRepository(database);
         RankAdjustmentAdministration = new MySqlRankAdjustmentAdministrationService(database);
         WarningRepository = new MySqlWarningRepository(database);
@@ -98,6 +99,7 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
         Add<IPlaytimeStateRepository>(Playtime);
         Add<ICombatRepository>(Combat);
         Add<ICombatDetailRepository>(Combat);
+        Add<IGameplayStatRepository>(GameplayStats);
         Add<IRankAdjustmentRepository>(RankAdjustments);
         Add<IRankAdjustmentAdministrationService>(RankAdjustmentAdministration);
         Add<IWarningRepository>(WarningRepository);
@@ -132,6 +134,8 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
     public MySqlPlaytimeRepository Playtime { get; }
 
     public MySqlCombatRepository Combat { get; }
+
+    public MySqlGameplayStatRepository GameplayStats { get; }
 
     public MySqlRankAdjustmentRepository RankAdjustments { get; }
 
@@ -168,7 +172,7 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
         ArgumentNullException.ThrowIfNull(players);
         await new DatabaseStartupProbe(
             database,
-            [new CoreSchemaMigration001(), new ModerationSchemaMigration002(), new AdminAuditSchemaMigration003(), new WarningSchemaMigration004(), new PlaytimeSchemaMigration005(), new CombatSchemaMigration006(), new RankAdjustmentSchemaMigration007(), new PlaytimeStateSchemaMigration008(), new CombatDetailSchemaMigration009()])
+            [new CoreSchemaMigration001(), new ModerationSchemaMigration002(), new AdminAuditSchemaMigration003(), new WarningSchemaMigration004(), new PlaytimeSchemaMigration005(), new CombatSchemaMigration006(), new RankAdjustmentSchemaMigration007(), new PlaytimeStateSchemaMigration008(), new CombatDetailSchemaMigration009(), new GameplayStatSchemaMigration010()])
             .EnsureReadyAsync(cancellationToken).ConfigureAwait(false);
         var runtime = new RuntimeServices(database, configuration, events, players);
         try

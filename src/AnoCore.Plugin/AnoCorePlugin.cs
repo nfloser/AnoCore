@@ -41,6 +41,7 @@ public sealed class AnoCorePlugin : BasePlugin
     private AnoVetoModuleRuntime? _pendingAnoVeto;
     private PlaytimeModule? _pendingPlaytime;
     private RankModule? _pendingRank;
+    private GameplayStatsModule? _pendingGameplayStats;
     private ChatMessageFormatter? _pendingChatFormatter;
     private SelectableChatTagModule? _pendingChatTags;
     private ProtectedServerControlPolicy? _pendingProtectedServerControlPolicy;
@@ -48,11 +49,13 @@ public sealed class AnoCorePlugin : BasePlugin
     private AnoVetoModuleRuntime? _anoVeto;
     private PlaytimeModule? _playtime;
     private RankModule? _rank;
+    private GameplayStatsModule? _gameplayStats;
     private ChatMessageFormatter? _chatFormatter;
     private SelectableChatTagModule? _chatTags;
     private ChatFormatSnapshotLifecycle? _chatFormatSnapshots;
     private CombatModule? _combat;
     private string _combatServerInstance = string.Empty;
+    private bool _roundFirstBloodRecorded;
     private ModerationCommandController? _adminCommands;
     private RankAdjustmentCommandController? _rankAdminCommands;
     private RankAdjustmentNotificationService? _rankAdminNotifications;
@@ -133,6 +136,8 @@ public sealed class AnoCorePlugin : BasePlugin
             _chatTags = null;
             _rank?.Dispose();
             _rank = null;
+            _gameplayStats?.Dispose();
+            _gameplayStats = null;
             _chatFormatter = null;
             _combat?.Dispose();
             _combat = null;
@@ -140,6 +145,8 @@ public sealed class AnoCorePlugin : BasePlugin
             _pendingPlaytime = null;
             _pendingRank?.Dispose();
             _pendingRank = null;
+            _pendingGameplayStats?.Dispose();
+            _pendingGameplayStats = null;
             _pendingChatFormatter = null;
             _pendingChatTags?.Dispose();
             _pendingChatTags = null;
@@ -228,6 +235,7 @@ public sealed class AnoCorePlugin : BasePlugin
         AnoVetoModuleRuntime? createdAnoVeto = null;
         PlaytimeModule? createdPlaytime = null;
         RankModule? createdRank = null;
+        GameplayStatsModule? createdGameplayStats = null;
         ChatMessageFormatter? createdChatFormatter = null;
         SelectableChatTagModule? createdChatTags = null;
         try
@@ -282,6 +290,24 @@ public sealed class AnoCorePlugin : BasePlugin
                 createdPlaytime = null;
                 Logger.LogError(exception,
                     "Stats composition failed; AnoCore will continue without playtime tracking.");
+            }
+
+            try
+            {
+                createdGameplayStats = await GameplayStatsModule.CreateAsync(
+                    configuration, created.Commands, players, created.GameplayStats, timeout.Token)
+                    .ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception exception)
+            {
+                createdGameplayStats?.Dispose();
+                createdGameplayStats = null;
+                Logger.LogError(exception,
+                    "Gameplay statistics composition failed; AnoCore will continue without extended gameplay stats.");
             }
 
             try
@@ -391,6 +417,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 _pendingAnoVeto = createdAnoVeto;
                 _pendingPlaytime = createdPlaytime;
                 _pendingRank = createdRank;
+                _pendingGameplayStats = createdGameplayStats;
                 _pendingChatFormatter = createdChatFormatter;
                 _pendingChatTags = createdChatTags;
                 _pendingProtectedServerControlPolicy = protectedServerControlPolicy;
@@ -398,6 +425,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 createdAnoVeto = null;
                 createdPlaytime = null;
                 createdRank = null;
+                createdGameplayStats = null;
                 createdChatFormatter = null;
                 createdChatTags = null;
                 Server.NextWorldUpdate(() => ActivateRuntime(cancellationToken));
@@ -408,6 +436,7 @@ public sealed class AnoCorePlugin : BasePlugin
             createdAnoVeto?.Dispose();
             createdPlaytime?.Dispose();
             createdRank?.Dispose();
+            createdGameplayStats?.Dispose();
             createdChatTags?.Dispose();
             created?.Dispose();
         }
@@ -416,6 +445,7 @@ public sealed class AnoCorePlugin : BasePlugin
             createdAnoVeto?.Dispose();
             createdPlaytime?.Dispose();
             createdRank?.Dispose();
+            createdGameplayStats?.Dispose();
             createdChatTags?.Dispose();
             created?.Dispose();
             lock (_startupGate)
@@ -426,6 +456,8 @@ public sealed class AnoCorePlugin : BasePlugin
                     _pendingPlaytime = null;
                     _pendingRank?.Dispose();
                     _pendingRank = null;
+                    _pendingGameplayStats?.Dispose();
+                    _pendingGameplayStats = null;
                     _pendingChatFormatter = null;
                     _pendingChatTags?.Dispose();
                     _pendingChatTags = null;
@@ -456,12 +488,14 @@ public sealed class AnoCorePlugin : BasePlugin
             var anoVeto = _pendingAnoVeto;
             var playtime = _pendingPlaytime;
             var rank = _pendingRank;
+            var gameplayStats = _pendingGameplayStats;
             var chatFormatter = _pendingChatFormatter;
             var chatTags = _pendingChatTags;
             _pendingRuntime = null;
             _pendingAnoVeto = null;
             _pendingPlaytime = null;
             _pendingRank = null;
+            _pendingGameplayStats = null;
             _pendingChatFormatter = null;
             _pendingChatTags = null;
             var protectedServerControlPolicy = _pendingProtectedServerControlPolicy
@@ -688,6 +722,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 _anoVeto = anoVeto;
                 _playtime = playtime;
                 _rank = rank;
+                _gameplayStats = gameplayStats;
                 _chatFormatter = chatFormatter;
                 _chatTags = chatTags;
                 _combat = combat;
@@ -711,6 +746,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 playtimeTimer?.Kill();
                 playtime?.Dispose();
                 rank?.Dispose();
+                gameplayStats?.Dispose();
                 chatTags?.Dispose();
                 combat?.Dispose();
                 transitionMonitor?.Dispose();
@@ -809,6 +845,15 @@ public sealed class AnoCorePlugin : BasePlugin
         RegisterEventHandler<EventPlayerHurt>(OnPlayerHurt);
         RegisterEventHandler<EventPlayerDeath>(OnPlayerDeathPosition, HookMode.Pre);
         RegisterEventHandler<EventPlayerDeath>(OnPlayerDeath);
+        RegisterEventHandler<EventRoundStart>(OnRoundStart);
+        RegisterEventHandler<EventGrenadeThrown>(OnGrenadeThrown);
+        RegisterEventHandler<EventBombPlanted>(OnBombPlanted);
+        RegisterEventHandler<EventBombDefused>(OnBombDefused);
+        RegisterEventHandler<EventHostageRescued>(OnHostageRescued);
+        RegisterEventHandler<EventHostageKilled>(OnHostageKilled);
+        RegisterEventHandler<EventRoundMvp>(OnRoundMvp);
+        RegisterEventHandler<EventRoundEnd>(OnRoundEnd);
+        RegisterEventHandler<EventCsWinPanelMatch>(OnMatchEnd);
         RegisterListener<Listeners.OnMapEnd>(OnMapEnd);
         _lifecycleHooksRegistered = true;
     }
@@ -828,6 +873,15 @@ public sealed class AnoCorePlugin : BasePlugin
         DeregisterEventHandler<EventPlayerHurt>(OnPlayerHurt);
         DeregisterEventHandler<EventPlayerDeath>(OnPlayerDeathPosition, HookMode.Pre);
         DeregisterEventHandler<EventPlayerDeath>(OnPlayerDeath);
+        DeregisterEventHandler<EventRoundStart>(OnRoundStart);
+        DeregisterEventHandler<EventGrenadeThrown>(OnGrenadeThrown);
+        DeregisterEventHandler<EventBombPlanted>(OnBombPlanted);
+        DeregisterEventHandler<EventBombDefused>(OnBombDefused);
+        DeregisterEventHandler<EventHostageRescued>(OnHostageRescued);
+        DeregisterEventHandler<EventHostageKilled>(OnHostageKilled);
+        DeregisterEventHandler<EventRoundMvp>(OnRoundMvp);
+        DeregisterEventHandler<EventRoundEnd>(OnRoundEnd);
+        DeregisterEventHandler<EventCsWinPanelMatch>(OnMatchEnd);
         RemoveListener<Listeners.OnMapEnd>(OnMapEnd);
         _lifecycleHooksRegistered = false;
     }
@@ -935,7 +989,7 @@ public sealed class AnoCorePlugin : BasePlugin
     private HookResult OnWeaponFire(EventWeaponFire @event, GameEventInfo _)
     {
         var combat = _combat;
-        if (combat is null) return HookResult.Continue;
+        if (combat is null || !GameplayStatsAllowed()) return HookResult.Continue;
 
         try
         {
@@ -962,7 +1016,7 @@ public sealed class AnoCorePlugin : BasePlugin
     private HookResult OnPlayerHurt(EventPlayerHurt @event, GameEventInfo _)
     {
         var combat = _combat;
-        if (combat is null) return HookResult.Continue;
+        if (combat is null || !GameplayStatsAllowed()) return HookResult.Continue;
 
         try
         {
@@ -970,7 +1024,8 @@ public sealed class AnoCorePlugin : BasePlugin
             if (victim is null) return HookResult.Continue;
 
             var attacker = CombatPlayer(@event.Attacker);
-            var teamDamage = attacker is not null && attacker.Id != victim.Id
+            var teamDamage = !(_gameplayStats?.Configuration.FreeForAll ?? false)
+                && attacker is not null && attacker.Id != victim.Id
                 && victim.Team is PlayerTeam.Terrorist or PlayerTeam.CounterTerrorist
                 && attacker.Team == victim.Team;
             var map = CombatDetailKey(Server.MapName, "unknown_map", 128);
@@ -1005,14 +1060,16 @@ public sealed class AnoCorePlugin : BasePlugin
     private void RecordCombatDeath(EventPlayerDeath @event)
     {
         var combat = _combat;
-        if (combat is null) return;
+        if (combat is null || !GameplayStatsAllowed()) return;
         try
         {
             var victim = CombatPlayer(@event.Userid);
             if (victim is null) return;
             var attacker = CombatPlayer(@event.Attacker);
             var assister = CombatPlayer(@event.Assister);
-            var teamKill = attacker is not null && attacker.Id != victim.Id
+            var freeForAll = _gameplayStats?.Configuration.FreeForAll ?? false;
+            var teamKill = !freeForAll
+                && attacker is not null && attacker.Id != victim.Id
                 && victim.Team is PlayerTeam.Terrorist or PlayerTeam.CounterTerrorist
                 && attacker.Team == victim.Team;
             var eventId = CombatEventIdentity.Create(_combatServerInstance, Server.MapName,
@@ -1020,11 +1077,226 @@ public sealed class AnoCorePlugin : BasePlugin
             var death = new AnoCore.Abstractions.Stats.CombatDeath(eventId, victim.Id,
                 attacker?.Id, assister?.Id, DateTimeOffset.UtcNow, teamKill);
             Observe(combat.RecordAsync(death).AsTask(), "combat_death");
+
+            var validKill = attacker is not null
+                && attacker.Id != victim.Id
+                && !teamKill;
+            if (validKill)
+            {
+                var victimSignature = victim.Id.SteamId64.ToString(
+                    System.Globalization.CultureInfo.InvariantCulture);
+                if (!_roundFirstBloodRecorded)
+                {
+                    _roundFirstBloodRecorded = true;
+                    RecordGameplayStat(
+                        @event.Attacker, GameplayStatKind.FirstBlood, victimSignature);
+                }
+
+                if (@event.Headshot)
+                    RecordGameplayStat(
+                        @event.Attacker, GameplayStatKind.HeadshotKill, victimSignature);
+                if (@event.Noscope)
+                    RecordGameplayStat(
+                        @event.Attacker, GameplayStatKind.NoScopeKill, victimSignature);
+                if (@event.Penetrated > 0)
+                    RecordGameplayStat(
+                        @event.Attacker, GameplayStatKind.PenetratedKill, victimSignature);
+                if (@event.Thrusmoke)
+                    RecordGameplayStat(
+                        @event.Attacker, GameplayStatKind.ThroughSmokeKill, victimSignature);
+                if (@event.Attackerblind)
+                    RecordGameplayStat(
+                        @event.Attacker, GameplayStatKind.FlashedKill, victimSignature);
+                if (@event.Dominated > 0)
+                    RecordGameplayStat(
+                        @event.Attacker, GameplayStatKind.DominatedKill, victimSignature);
+                if (@event.Revenge > 0)
+                    RecordGameplayStat(
+                        @event.Attacker, GameplayStatKind.RevengeKill, victimSignature);
+                if (@event.Assistedflash && assister is not null)
+                    RecordGameplayStat(
+                        @event.Assister, GameplayStatKind.FlashAssist, victimSignature);
+            }
         }
         catch (Exception exception)
         {
             Logger.LogError(exception, "Could not record combat death.");
         }
+    }
+
+
+    private HookResult OnRoundStart(EventRoundStart @event, GameEventInfo _)
+    {
+        _roundFirstBloodRecorded = false;
+        return HookResult.Continue;
+    }
+
+    private HookResult OnGrenadeThrown(EventGrenadeThrown @event, GameEventInfo _)
+    {
+        RecordGameplayStat(@event.Userid, GameplayStatKind.GrenadeThrown, "grenade");
+        return HookResult.Continue;
+    }
+
+    private HookResult OnBombPlanted(EventBombPlanted @event, GameEventInfo _)
+    {
+        RecordGameplayStat(@event.Userid, GameplayStatKind.BombPlanted, "bomb_planted");
+        return HookResult.Continue;
+    }
+
+    private HookResult OnBombDefused(EventBombDefused @event, GameEventInfo _)
+    {
+        RecordGameplayStat(@event.Userid, GameplayStatKind.BombDefused, "bomb_defused");
+        return HookResult.Continue;
+    }
+
+    private HookResult OnHostageRescued(EventHostageRescued @event, GameEventInfo _)
+    {
+        RecordGameplayStat(@event.Userid, GameplayStatKind.HostageRescued, "hostage_rescued");
+        return HookResult.Continue;
+    }
+
+    private HookResult OnHostageKilled(EventHostageKilled @event, GameEventInfo _)
+    {
+        RecordGameplayStat(@event.Userid, GameplayStatKind.HostageKilled, "hostage_killed");
+        return HookResult.Continue;
+    }
+
+    private HookResult OnRoundMvp(EventRoundMvp @event, GameEventInfo _)
+    {
+        RecordGameplayStat(@event.Userid, GameplayStatKind.Mvp, "round_mvp");
+        return HookResult.Continue;
+    }
+
+    private HookResult OnRoundEnd(EventRoundEnd @event, GameEventInfo _)
+    {
+        var gameplay = _gameplayStats;
+        var players = _players;
+        if (gameplay is null || players is null || !GameplayStatsAllowed())
+            return HookResult.Continue;
+
+        try
+        {
+            var winner = @event.Winner switch
+            {
+                2 => PlayerTeam.Terrorist,
+                3 => PlayerTeam.CounterTerrorist,
+                _ => PlayerTeam.Unknown,
+            };
+            var now = DateTimeOffset.UtcNow;
+            var map = CombatDetailKey(Server.MapName, "unknown_map", 128);
+            foreach (var statistic in GameplayStatEventFactory.Round(
+                         _combatServerInstance, map, CombatMapEpoch(), Server.TickCount,
+                         now, players.OnlinePlayers, winner))
+            {
+                Observe(gameplay.RecordAsync(statistic).AsTask(), "gameplay_round");
+            }
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Could not record gameplay round statistics.");
+        }
+
+        return HookResult.Continue;
+    }
+
+    private HookResult OnMatchEnd(EventCsWinPanelMatch @event, GameEventInfo _)
+    {
+        var gameplay = _gameplayStats;
+        if (gameplay is null || !GameplayStatsAllowed())
+            return HookResult.Continue;
+
+        try
+        {
+            var participants = Utilities.GetPlayers()
+                .Select(controller => (Controller: controller, Player: CombatPlayer(controller)))
+                .Where(value => value.Player is not null)
+                .Select(value => new GameplayMatchParticipant(
+                    value.Player!.Id, value.Player.Team, value.Controller.Score))
+                .ToArray();
+
+            var winningTeam = PlayerTeam.Unknown;
+            if (!gameplay.Configuration.FreeForAll)
+            {
+                var ctScore = 0;
+                var terroristScore = 0;
+                foreach (var team in Utilities.FindAllEntitiesByDesignerName<CCSTeam>("cs_team_manager"))
+                {
+                    if (string.Equals(team.Teamname, "CT", StringComparison.OrdinalIgnoreCase))
+                        ctScore = team.Score;
+                    else if (string.Equals(
+                                 team.Teamname, "TERRORIST", StringComparison.OrdinalIgnoreCase))
+                        terroristScore = team.Score;
+                }
+
+                winningTeam = ctScore > terroristScore
+                    ? PlayerTeam.CounterTerrorist
+                    : terroristScore > ctScore
+                        ? PlayerTeam.Terrorist
+                        : PlayerTeam.Unknown;
+            }
+
+            var now = DateTimeOffset.UtcNow;
+            var map = CombatDetailKey(Server.MapName, "unknown_map", 128);
+            foreach (var statistic in GameplayStatEventFactory.Match(
+                         _combatServerInstance, map, CombatMapEpoch(), Server.TickCount,
+                         now, participants, gameplay.Configuration.FreeForAll, winningTeam))
+            {
+                Observe(gameplay.RecordAsync(statistic).AsTask(), "gameplay_match");
+            }
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Could not record gameplay match statistics.");
+        }
+
+        return HookResult.Continue;
+    }
+
+    private void RecordGameplayStat(
+        CCSPlayerController? controller,
+        GameplayStatKind kind,
+        string signature)
+    {
+        var gameplay = _gameplayStats;
+        if (gameplay is null || !GameplayStatsAllowed()) return;
+
+        try
+        {
+            var player = CombatPlayer(controller);
+            if (player is null) return;
+            var map = CombatDetailKey(Server.MapName, "unknown_map", 128);
+            var statistic = GameplayStatEventFactory.Player(
+                _combatServerInstance, map, CombatMapEpoch(), Server.TickCount,
+                DateTimeOffset.UtcNow, player.Id, kind, signature);
+            Observe(gameplay.RecordAsync(statistic).AsTask(), $"gameplay_{kind}");
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Could not record gameplay statistic {Statistic}.", kind);
+        }
+    }
+
+    private bool GameplayStatsAllowed()
+    {
+        var gameplay = _gameplayStats;
+        if (gameplay is null) return true;
+
+        var warmup = false;
+        try
+        {
+            warmup = Utilities
+                .FindAllEntitiesByDesignerName<CCSGameRulesProxy>("cs_gamerules")
+                .FirstOrDefault()?.GameRules?.WarmupPeriod ?? false;
+        }
+        catch (Exception exception)
+        {
+            Logger.LogDebug(exception, "Could not inspect warmup state for gameplay statistics.");
+        }
+
+        return GameplayStatsEligibility.IsAllowed(
+            gameplay.Configuration,
+            warmup,
+            _players?.OnlinePlayers.Count ?? 0);
     }
 
     private static long CombatMapEpoch()
