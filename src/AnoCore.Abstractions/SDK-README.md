@@ -53,3 +53,36 @@ Use `IAnoModuleContext.Own(...)` for disposable registrations created during ini
 API levels are a compatibility gate, not feature detection. Prefer resolving optional service contracts when a feature can be discovered dynamically.
 
 The package contains the generated XML documentation plus the repository license, notice and this README. Preserve applicable attribution when redistributing derived work.
+
+
+## Management integration
+
+The SDK exposes the transport-neutral `AnoCore.Abstractions.Management` contracts.
+Modules can optionally resolve `IManagementCapabilityRegistry` from
+`IAnoModuleContext.Services` and register a bounded management capability that is
+owned by the module lifetime:
+
+```csharp
+using AnoCore.Abstractions.Management;
+using AnoCore.Abstractions.Modules;
+
+var registry = context.Services.GetService(typeof(IManagementCapabilityRegistry))
+    as IManagementCapabilityRegistry;
+
+if (registry is not null)
+{
+    context.Own(registry.Register(
+        Descriptor.Id,
+        new ManagementCapabilityDescriptor(
+            new ManagementCapabilityId("example.refresh"),
+            "Refresh example module state.",
+            ManagementScope.ManageModules,
+            ManagementOperationClass.Privileged),
+        (_, _, _) => ValueTask.FromResult(
+            ManagementOperationResult.Ok("Example state refreshed."))));
+}
+```
+
+Management contracts do not start a network listener and do not expose arbitrary
+server-command execution. Authentication, scopes, rate limiting and audit behavior
+remain host responsibilities implemented through the shared management core.

@@ -196,6 +196,28 @@ public sealed class ConnectBanEnforcementTests
         Assert.AreEqual(0, disconnect.Calls);
     }
 
+    [TestMethod]
+    public async Task DelayedNativeFailure_ReleasesSessionForNextConnectionCheck()
+    {
+        var events = new AnoEventBus();
+        var moderation = new StubModerationService(ModerationRestriction.Connect);
+        var disconnect = new DelayedDisconnectAction();
+        using var enforcement = new ConnectBanEnforcement(
+            events,
+            moderation,
+            disconnect,
+            new FixedTimeProvider(Now));
+
+        var player = Player(PlayerSessionId.New());
+        var first = events.PublishAsync(new PlayerConnectedEvent(player)).AsTask();
+        await disconnect.Invoked;
+        disconnect.Fail();
+
+        await Assert.ThrowsExactlyAsync<AggregateException>(async () => await first);
+        await events.PublishAsync(new PlayerConnectedEvent(player));
+        Assert.AreEqual(2, disconnect.Calls);
+    }
+
     private static PlayerSnapshot Player(PlayerSessionId sessionId)
         => new(
             PlayerId,
@@ -206,6 +228,33 @@ public sealed class ConnectBanEnforcementTests
             PlayerTeam.CounterTerrorist,
             Now,
             Now);
+
+    private sealed class DelayedDisconnectAction : IPlayerDisconnectAction
+    {
+        private readonly TaskCompletionSource _started =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource _completion =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public Task Invoked => _started.Task;
+
+        public int Calls { get; private set; }
+
+        public void Fail() => _completion.SetException(new InvalidOperationException("Native disconnect failed."));
+
+        public async ValueTask DisconnectAsync(
+            PlayerSnapshot player,
+            string reason,
+            CancellationToken cancellationToken = default)
+        {
+            Calls++;
+            _started.TrySetResult();
+            if (Calls == 1)
+            {
+                await _completion.Task.WaitAsync(cancellationToken);
+            }
+        }
+    }
 
     private sealed class StubDisconnectAction : IPlayerDisconnectAction
     {

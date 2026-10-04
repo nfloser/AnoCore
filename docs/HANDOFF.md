@@ -1,3 +1,25 @@
+# Extended administration integration checkpoint — 2026-10-04
+
+- The #157 candidate now combines the #165/#166/#167/#168 stack with the existing rank notification preference, stats/chat/settings/moderation and CustomHud stacks.
+- Review correction #176 invalidates disconnected registry sessions before waiting for admin cleanup; regression tests cover a blocked action with reconnect and failed event observers.
+- Composition conflicts preserve both command families, combat death recording plus state cleanup, pre-death position capture and map-end cleanup.
+- The individual admin PRs #172/#173/#174 remain native acceptance candidates. This integration does not close their live gates or promote the full system to main.
+- Use docs/full-system-test.md for the combined build; full statistics/playtime policies, tournament and platform scope remain outstanding.
+
+# Rank notification preference checkpoint — 2026-10-04
+
+- Issue #170 / branch `feature/170-rank-notification-toggle` gives the #157 integration candidate its first real player-toggle option: `rank.notifications`, default enabled.
+- The persisted preference filters combat-driven and administrative promotion/demotion presentation only; durable score/admin writes, rank evaluation and warmed rank/chat refreshes continue unchanged. Server-level rank notification switches remain authoritative.
+- Rank composition owns the toggle registration and rolls it back on failure/unload. Preference reads are asynchronous outside the native chat hot path, and read failures are isolated from committed gameplay mutations.
+- PR #171 targets `integration/157-full-system-test`. Automated CI must pass on the exact head; actual settings UI and native notification delivery remain part of the disposable CS2/DatHost acceptance gate in #157.
+
+# Full-system disposable test checkpoint — 2026-10-02
+
+- Issue #157 / branch `integration/157-full-system-test` assembles the previously independent code-complete native stacks without promoting their unverified behavior to `main`.
+- The candidate currently combines playtime/combat/toplists/ranks, rank administration and notifications, formatted chat/colors/tags, settings commands/menu, connect-ban, kick, warnings, CustomHud AnoVeto with live config reload, and the packaged module SDK.
+- Merge conflicts were resolved by preserving newer core/config/settings contracts while adding the feature stacks; AnoVeto keeps both Panorama CustomHud presentation and the newer atomic `anoveto`/`maps` reload registrations.
+- Use `docs/full-system-test.md` and only the exact green CI artifact from the integration PR. Native CS2/DatHost observations remain release gates.
+
 # Module SDK packaging checkpoint — 2026-10-02
 
 - Issue #155 / branch `feature/155-abstractions-sdk-package` packages `AnoCore.Abstractions` as the prerelease module SDK and keeps the module build surface isolated from Runtime, Plugin, CounterStrikeSharp and MySqlConnector.

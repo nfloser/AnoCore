@@ -3,8 +3,10 @@ using AnoCore.Abstractions.Players;
 
 namespace AnoCore.Runtime.Permissions;
 
-public sealed class AuthorizationService : IAuthorizationService
+public sealed class AuthorizationService : IAuthorizationService, IAuthorizationReloadEvents
 {
+    public event Action? Reloaded;
+
     private readonly IAuthorizationStore _store;
     private CompiledAuthorization _compiled;
 
@@ -125,6 +127,7 @@ public sealed class AuthorizationService : IAuthorizationService
             ?? AuthorizationState.Empty;
         var replacement = CompiledAuthorization.Create(state);
         Volatile.Write(ref _compiled, replacement);
+        Reloaded?.Invoke();
     }
 
     private static PermissionRule? SelectRule(

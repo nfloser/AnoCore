@@ -1,13 +1,10 @@
-using AnoCore.Abstractions.Commands;
 using AnoCore.Abstractions.Maps;
-using AnoCore.Abstractions.Menus;
 using AnoCore.Abstractions.Permissions;
 using AnoCore.Abstractions.Players;
 using AnoCore.Abstractions.Voting;
 using AnoCore.Modules.AnoVeto;
 using AnoCore.Runtime.Commands;
 using AnoCore.Runtime.Maps;
-using AnoCore.Runtime.Menus;
 using AnoCore.Runtime.Voting;
 
 namespace AnoCore.Tests.AnoVeto;
@@ -20,35 +17,30 @@ public sealed class AnoVetoCommandLifecycleTests
     private static readonly DateTimeOffset Now = new(2026, 9, 17, 13, 0, 0, TimeSpan.Zero);
 
     [TestMethod]
-    public async Task FinalEligibleMenuSelection_RemovesVoteMenuForEveryone()
+    public async Task FinalEligibleHudSelection_HidesVoteHudForEveryone()
     {
         var harness = CreateHarness(TimeSpan.FromMinutes(1));
         using var controller = harness.Controller;
         Assert.IsTrue((await harness.Commands.ExecuteAsync("!anoveto create", Manager)).Success);
-        Assert.IsTrue((await harness.Commands.ExecuteAsync("!anoveto", Manager)).Success);
-        Assert.IsTrue((await harness.Commands.ExecuteAsync("!anoveto", PlayerA)).Success);
-        Assert.IsTrue(harness.Menus.TryGetOpenMenu(PlayerA, out var playerMenu));
-        Assert.IsNotNull(playerMenu);
-        Assert.IsTrue(harness.Menus.TryGetOpenMenu(Manager, out var managerMenu));
-        Assert.IsNotNull(managerMenu);
+        Assert.HasCount(2, harness.Hud.VisiblePlayers(AnoVetoHudController.HudId));
 
-        Assert.IsTrue((await harness.Menus.SelectAsync(PlayerA, playerMenu.Options[0].Id)).Accepted);
-        Assert.IsTrue((await harness.Menus.SelectAsync(Manager, managerMenu.Options[0].Id)).Accepted);
+        await harness.Hud.ClickAsync(PlayerA, AnoVetoHudController.HudId, "ano_veto_map_0");
+        Assert.IsFalse(harness.Hud.VisiblePlayers(AnoVetoHudController.HudId).Contains(PlayerA));
+        Assert.IsTrue(harness.Hud.VisiblePlayers(AnoVetoHudController.HudId).Contains(Manager));
+        await harness.Hud.ClickAsync(Manager, AnoVetoHudController.HudId, "ano_veto_map_0");
 
         Assert.IsFalse(harness.Coordinator.TryGetStatus(out _));
-        Assert.IsFalse(harness.Menus.TryGetOpenMenu(PlayerA, out _));
-        Assert.IsFalse(harness.Menus.TryGetOpenMenu(Manager, out _));
+        Assert.IsEmpty(harness.Hud.VisiblePlayers(AnoVetoHudController.HudId));
         Assert.HasCount(1, harness.MapChanger.Changed);
     }
 
     [TestMethod]
-    public async Task ExpireAsync_RemovesOpenVoteMenus()
+    public async Task ExpireAsync_HidesOpenVoteHud()
     {
         var harness = CreateHarness(TimeSpan.FromSeconds(10));
         using var controller = harness.Controller;
         Assert.IsTrue((await harness.Commands.ExecuteAsync("!anoveto create", Manager)).Success);
-        Assert.IsTrue((await harness.Commands.ExecuteAsync("!anoveto", PlayerA)).Success);
-        Assert.IsTrue(harness.Menus.TryGetOpenMenu(PlayerA, out _));
+        Assert.HasCount(2, harness.Hud.VisiblePlayers(AnoVetoHudController.HudId));
 
         harness.Time.Advance(TimeSpan.FromSeconds(10));
         var expired = await controller.ExpireAsync();
@@ -56,7 +48,7 @@ public sealed class AnoVetoCommandLifecycleTests
         Assert.IsNotNull(expired);
         Assert.AreEqual(AnoVetoOutcome.QuorumNotMet, expired.Outcome);
         Assert.IsFalse(harness.Coordinator.TryGetStatus(out _));
-        Assert.IsFalse(harness.Menus.TryGetOpenMenu(PlayerA, out _));
+        Assert.IsEmpty(harness.Hud.VisiblePlayers(AnoVetoHudController.HudId));
         Assert.HasCount(0, harness.MapChanger.Changed);
     }
 
@@ -64,7 +56,7 @@ public sealed class AnoVetoCommandLifecycleTests
     {
         var permissions = new ManagerPermissionEvaluator();
         var commands = new CommandRegistry(permissions);
-        var menus = new MenuService();
+        var hud = new TestCustomHudService();
         var players = new StubPlayerRegistry([Snapshot(Manager, "Manager"), Snapshot(PlayerA, "Player A")]);
         var catalog = new MapCatalog(Enumerable.Range(1, 8)
             .Select(index => new MapDefinition($"Map {index:00}", $"de_map{index:00}")));
@@ -77,8 +69,8 @@ public sealed class AnoVetoCommandLifecycleTests
             new StableRandomSource(),
             new AnoVetoOptions(duration, 1, VoteTieBreakPolicy.OptionOrder));
         var time = new MutableTimeProvider(Now);
-        var controller = new AnoVetoCommandController(commands, menus, players, coordinator, time);
-        return new Harness(commands, menus, coordinator, changer, time, controller);
+        var controller = new AnoVetoCommandController(commands, hud, players, coordinator, time);
+        return new Harness(commands, hud, coordinator, changer, time, controller);
     }
 
     private static PlayerSnapshot Snapshot(PlayerId id, string name)
@@ -94,7 +86,7 @@ public sealed class AnoVetoCommandLifecycleTests
 
     private sealed record Harness(
         CommandRegistry Commands,
-        MenuService Menus,
+        TestCustomHudService Hud,
         AnoVetoCoordinator Coordinator,
         RecordingMapChanger MapChanger,
         MutableTimeProvider Time,

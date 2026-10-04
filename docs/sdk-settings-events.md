@@ -8,14 +8,14 @@ A module can resolve `IPlayerSettingsService`, `IPlayerSettingsResetService`, `I
 
 `IPlayerSettingsResetService.ResetAllAsync` deletes the complete `player.<SteamID>.setting.` namespace in one store operation and returns the exact removed-entry count. An effective reset publishes one value-free `PlayerSettingsResetEvent` containing only the player and count. A no-op, cancellation or failed delete emits nothing. The prefix capability is a separate `IModuleDataPrefixStore`, so existing third-party `IModuleDataStore` implementations remain source-compatible; they must add the optional capability before bulk reset is available.
 
-The event is available in the runtime service composition; existing settings callers can keep using the original constructor parameters. The package does not provide a settings catalog, automatic menu, offline event replay, public API endpoints or complete SDK compatibility; those remain part of the functional acceptance matrix.
+The event is available in the runtime service composition; existing settings callers can keep using the original constructor parameters. The runtime also provides the module-owned toggle catalog plus player commands/menu described below. Offline event replay, public API endpoints and complete SDK compatibility remain separate acceptance work.
 
 
 ## Module-owned toggle catalog
 
 Modules resolve `IPlayerToggleCatalog` from the runtime service provider and register a `PlayerToggleSetting` with their `ModuleId`. The descriptor contains a typed `PlayerSettingKey<bool>`, a short printable label and an optional description. Registration is limited to 64 settings; duplicate keys are rejected across all modules. `GetAll()` returns an immutable key-sorted snapshot. Dispose the registration handle on unload, or call `UnregisterAll(owner)` when unloading a module. A stale handle cannot remove a later registration for the same key.
 
-The catalog holds metadata only. A module reads or changes a particular player's value through `IPlayerSettingsService`, which emits the post-commit event described above. Registering an option does not set a player value. A native menu, command access, localization and settings discovery for existing modules remain separate work; the catalog by itself is not a player-facing UI.
+The catalog holds metadata only. A module reads or changes a particular player's value through `IPlayerSettingsService`, which emits the post-commit event described above. Registering an option does not set a player value. The shared command/menu layer consumes the catalog dynamically, so a module-owned registration becomes visible without creating another settings store.
 
 
 ## Module-owned cleanup
@@ -23,3 +23,17 @@ The catalog holds metadata only. A module reads or changes a particular player's
 During `InitializeAsync`, a module can pass disposable registrations to `IAnoModuleContext.Own(resource)`. The runtime creates a fresh scope for every load attempt and disposes owned resources in reverse registration order after `ShutdownAsync`. Cleanup also runs when initialization or shutdown fails, and cleanup failures are retained in the module snapshot diagnostics. Typical owned resources are toggle-catalog handles, event subscriptions and command registrations.
 
 Modules should still make `ShutdownAsync` safe after partial initialization. The host invokes it before owned resources are released, allowing the module to stop work while its subscriptions are still valid. Custom contexts remain source-compatible through the default ownership implementation, but only the runtime host guarantees automatic cleanup.
+
+
+## Player commands
+
+A connected player uses `anosettings [page]` to see up to three registered keys with effective `on`/`off` values. `anotoggle <key> on|off|default` writes or resets only that player's setting. `default` removes the stored override and exposes the descriptor's configured default. Unknown keys and actions, out-of-range pages, server console and disconnected players are rejected. The command module is registered with runtime startup and disposed with it. Registered modules should only expose player-editable choices in this catalog; it does not provide an administrative override or permission-scoped setting discovery.
+
+The command handlers and MariaDB persistence are tested. Native CS2 command dispatch, chat output and reconnect timing still require live acceptance. The integrated rank module registers `rank.notifications` with default `on`, giving the player-facing settings flow a real production option rather than a test-only descriptor.
+
+
+## Player settings menu
+
+`anosettingsmenu [page]` opens the shared player menu with at most three registered options per page. Each option shows the effective value and offers a toggle and a separate reset to its configured default. Page navigation is bounded by the current catalog snapshot. A choice is checked against the current connected session and the same active descriptor before persistence. Menu generations have distinct option IDs, so a delayed callback from an older native view cannot select a replacement option with the same label.
+
+Matching disconnect/reconnect events remove the old session's menu registration; unload disposes menu and event registrations. The plugin presents the menu after command dispatch through the existing native presenter. With ranks enabled, `rank.notifications` is available in this menu and is removed again when rank composition unloads. CS2/DatHost menu rendering, click order, command dispatch and unload remain live acceptance gates. This menu currently uses the shared CenterHtml presenter; migrating it to the CustomHud renderer requires its separate live acceptance.

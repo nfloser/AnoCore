@@ -90,6 +90,40 @@ jobs:
             exit 1
           fi
 
+      - name: Validate Panorama source assets
+        shell: bash
+        run: |
+          python - <<'PY'
+          import pathlib
+          import xml.etree.ElementTree as ET
+
+          layout = pathlib.Path("ui/AnoCore/layout/custom_game/anocore/ano_veto.xml")
+          style = pathlib.Path("ui/AnoCore/styles/custom_game/anocore/ano_veto.css")
+          build = pathlib.Path("ui/AnoCore/build.ps1")
+
+          for path in (layout, style, build):
+              if not path.is_file() or path.stat().st_size == 0:
+                  raise SystemExit(f"missing Panorama source asset: {path}")
+
+          root = ET.parse(layout).getroot()
+          ids = {element.attrib["id"] for element in root.iter() if "id" in element.attrib}
+          required = {"ano_veto_root", "ano_veto_close", "ano_veto_title", "ano_veto_status"}
+          required.update({f"ano_veto_map_{index}" for index in range(8)})
+          required.update({f"ano_veto_map_{index}_text" for index in range(8)})
+          missing = sorted(required - ids)
+          if missing:
+              raise SystemExit(f"AnoVeto Panorama layout missing ids: {missing}")
+
+          text = layout.read_text(encoding="utf-8")
+          if "ano_veto.vcss_c" not in text:
+              raise SystemExit("AnoVeto layout does not reference its compiled stylesheet")
+          if ".ano-overlay.shown" not in style.read_text(encoding="utf-8"):
+              raise SystemExit("AnoVeto stylesheet does not define visible HUD state")
+          build_text = build.read_text(encoding="utf-8")
+          if "InstallLocalClient" not in build_text:
+              raise SystemExit("AnoCore HUD build script must retain the local-client smoke-test installation option")
+          PY
+
       - name: Publish development plugin
         run: dotnet publish src/AnoCore.Plugin/AnoCore.Plugin.csproj --configuration Release --no-build --output artifacts/plugins/AnoCore
 
@@ -98,7 +132,11 @@ jobs:
           test -s artifacts/plugins/AnoCore/AnoCore.dll
           test -s artifacts/plugins/AnoCore/AnoCore.Runtime.dll
           test -s artifacts/plugins/AnoCore/AnoCore.Abstractions.dll
+          test -s artifacts/plugins/AnoCore/AnoCore.Modules.Admin.dll
+          test -s artifacts/plugins/AnoCore/AnoCore.Modules.Stats.dll
           test -s artifacts/plugins/AnoCore/AnoCore.Modules.AnoVeto.dll
+          test -s artifacts/plugins/AnoCore/AnoCore.Modules.Tournament.dll
+          test -s artifacts/plugins/AnoCore/AnoCore.Modules.Tournament.Persistence.dll
           test -s artifacts/plugins/AnoCore/MySqlConnector.dll
           test -s artifacts/plugins/AnoCore/AnoCore.deps.json
           if find artifacts/plugins/AnoCore -iname 'CounterStrikeSharp.API.dll' -print -quit | grep -q .; then
@@ -107,6 +145,8 @@ jobs:
           fi
           cp LICENSE.md NOTICE.md artifacts/
           cp docs/deployment.md artifacts/INSTALL.md
+          mkdir -p artifacts/ui
+          cp -R ui/AnoCore artifacts/ui/AnoCore
           git rev-parse HEAD > artifacts/BUILD-COMMIT.txt
           git archive --format=zip --output=artifacts/AnoCore-source.zip HEAD
 
