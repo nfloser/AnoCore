@@ -5,7 +5,7 @@
   <ItemGroup>
     <PackageVersion Include="CounterStrikeSharp.API" Version="1.0.376" />
     <PackageVersion Include="MySqlConnector" Version="2.6.2" />
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.10.0" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
     <PackageVersion Include="MSTest.TestAdapter" Version="4.4.0" />
     <PackageVersion Include="MSTest.TestFramework" Version="4.4.0" />
   </ItemGroup>
