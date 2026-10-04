@@ -31,8 +31,7 @@ public static class CombatEventIdentity
             throw new ArgumentException("Combat event signature is too long.", nameof(signature));
 
         return Hash(FormattableString.Invariant(
-            $"{serverInstance}|{mapName}|{mapEpoch}|{tick}|{eventType}|{primaryId.SteamId64}|"
-            + $"{secondaryId?.SteamId64 ?? 0UL}|{signature}"));
+            $"{serverInstance}|{mapName}|{mapEpoch}|{tick}|{eventType}|{primaryId.SteamId64}|{secondaryId?.SteamId64 ?? 0UL}|{signature}"));
     }
 
     private static Guid Hash(string input)
