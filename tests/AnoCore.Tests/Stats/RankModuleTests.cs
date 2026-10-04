@@ -2,6 +2,7 @@ using AnoCore.Abstractions.Commands;
 using AnoCore.Abstractions.Menus;
 using AnoCore.Abstractions.Modules;
 using AnoCore.Abstractions.Players;
+using AnoCore.Abstractions.Settings;
 using AnoCore.Abstractions.Stats;
 using AnoCore.Modules.Stats;
 using AnoCore.Runtime.Commands;
@@ -9,6 +10,7 @@ using AnoCore.Runtime.Configuration;
 using AnoCore.Runtime.Events;
 using AnoCore.Runtime.Menus;
 using AnoCore.Runtime.Players;
+using AnoCore.Runtime.Settings;
 
 namespace AnoCore.Tests.Stats;
 
@@ -238,6 +240,61 @@ public sealed class RankModuleTests
 
         Assert.AreEqual(CommandFailureReason.NotFound,
             (await commands.ExecuteAsync("!anorank", Player)).FailureReason);
+    }
+
+    [TestMethod]
+    public async Task RankModule_RegistersAndReleasesNotificationToggle()
+    {
+        var catalog = new PlayerToggleCatalog();
+        Assert.IsFalse(catalog.TryGet(
+            RankNotificationPreferenceSink.EnabledSetting.Name, out _));
+
+        using (var module = await RankModule.CreateAsync(
+            new JsonConfigStore(_root),
+            new CommandRegistry(new AllowAll()),
+            new PlayerRegistry(new AnoEventBus()),
+            new FakeRepository(new CombatTotals(0, 0, 0)),
+            catalog))
+        {
+            Assert.IsTrue(catalog.TryGet(
+                RankNotificationPreferenceSink.EnabledSetting.Name, out var setting));
+            Assert.IsNotNull(setting);
+            Assert.IsTrue(setting.Key.DefaultValue);
+            Assert.AreEqual("Rank notifications", setting.Label);
+        }
+
+        Assert.IsFalse(catalog.TryGet(
+            RankNotificationPreferenceSink.EnabledSetting.Name, out _));
+    }
+
+    [TestMethod]
+    public async Task RankToggleCollision_RollsBackRankCommands()
+    {
+        var catalog = new PlayerToggleCatalog();
+        using var collision = catalog.Register(
+            new ModuleId("test.collision"),
+            new PlayerToggleSetting(
+                RankNotificationPreferenceSink.EnabledSetting,
+                "Reserved setting",
+                "Collision test."));
+        var commands = new CommandRegistry(new AllowAll());
+
+        await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () =>
+            await RankModule.CreateAsync(
+                new JsonConfigStore(_root),
+                commands,
+                new PlayerRegistry(new AnoEventBus()),
+                new FakeRepository(new CombatTotals(0, 0, 0)),
+                catalog));
+
+        Assert.AreEqual(CommandFailureReason.NotFound,
+            (await commands.ExecuteAsync("!anorank", Player)).FailureReason);
+        Assert.AreEqual(CommandFailureReason.NotFound,
+            (await commands.ExecuteAsync("!anotopranks", Player)).FailureReason);
+        Assert.IsTrue(catalog.TryGet(
+            RankNotificationPreferenceSink.EnabledSetting.Name, out var remaining));
+        Assert.IsNotNull(remaining);
+        Assert.AreEqual("Reserved setting", remaining.Label);
     }
 
     [TestMethod]

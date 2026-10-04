@@ -5,6 +5,7 @@ using AnoCore.Abstractions.Menus;
 using AnoCore.Abstractions.Modules;
 using AnoCore.Abstractions.Placeholders;
 using AnoCore.Abstractions.Players;
+using AnoCore.Abstractions.Settings;
 using AnoCore.Abstractions.Stats;
 
 namespace AnoCore.Modules.Stats;
@@ -25,11 +26,12 @@ public sealed class RankModule : IDisposable
     private readonly IDisposable _topCommand;
     private readonly IDisposable? _menuCommand;
     private readonly IReadOnlyList<IDisposable> _placeholders;
+    private readonly IDisposable? _notificationSetting;
     private int _disposed;
 
     private RankModule(RankConfiguration configuration, IAnoCommandRegistry commands,
         IPlayerRegistry players, ICombatRepository combat, IMenuService? menus,
-        IPlaceholderRegistry? placeholders)
+        IPlaceholderRegistry? placeholders, IPlayerToggleCatalog? toggleCatalog)
     {
         _configuration = configuration;
         _players = players;
@@ -82,6 +84,25 @@ public sealed class RankModule : IDisposable
             _command.Dispose();
             throw;
         }
+
+        try
+        {
+            _notificationSetting = toggleCatalog?.Register(
+                Owner,
+                new PlayerToggleSetting(
+                    RankNotificationPreferenceSink.EnabledSetting,
+                    "Rank notifications",
+                    "Show promotion and demotion messages."));
+        }
+        catch
+        {
+            foreach (var placeholder in _placeholders)
+                placeholder.Dispose();
+            _menuCommand?.Dispose();
+            _topCommand.Dispose();
+            _command.Dispose();
+            throw;
+        }
     }
 
     public RankConfiguration Configuration => _configuration;
@@ -89,7 +110,7 @@ public sealed class RankModule : IDisposable
     public static Task<RankModule> CreateAsync(IConfigStore configuration,
         IAnoCommandRegistry commands, IPlayerRegistry players, ICombatRepository combat,
         CancellationToken cancellationToken = default)
-        => CreateCoreAsync(configuration, commands, players, combat, null, null,
+        => CreateCoreAsync(configuration, commands, players, combat, null, null, null,
             cancellationToken);
 
     public static Task<RankModule> CreateAsync(IConfigStore configuration,
@@ -98,7 +119,7 @@ public sealed class RankModule : IDisposable
     {
         ArgumentNullException.ThrowIfNull(placeholders);
         return CreateCoreAsync(configuration, commands, players, combat, null, placeholders,
-            cancellationToken);
+            null, cancellationToken);
     }
 
     public static Task<RankModule> CreateAsync(IConfigStore configuration,
@@ -107,7 +128,7 @@ public sealed class RankModule : IDisposable
     {
         ArgumentNullException.ThrowIfNull(menus);
         return CreateCoreAsync(
-            configuration, commands, players, combat, menus, null, cancellationToken);
+            configuration, commands, players, combat, menus, null, null, cancellationToken);
     }
 
     public static Task<RankModule> CreateAsync(IConfigStore configuration,
@@ -118,13 +139,34 @@ public sealed class RankModule : IDisposable
         ArgumentNullException.ThrowIfNull(menus);
         ArgumentNullException.ThrowIfNull(placeholders);
         return CreateCoreAsync(configuration, commands, players, combat, menus, placeholders,
-            cancellationToken);
+            null, cancellationToken);
+    }
+
+    public static Task<RankModule> CreateAsync(IConfigStore configuration,
+        IAnoCommandRegistry commands, IPlayerRegistry players, ICombatRepository combat,
+        IPlayerToggleCatalog toggleCatalog, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(toggleCatalog);
+        return CreateCoreAsync(configuration, commands, players, combat, null, null,
+            toggleCatalog, cancellationToken);
+    }
+
+    public static Task<RankModule> CreateAsync(IConfigStore configuration,
+        IAnoCommandRegistry commands, IPlayerRegistry players, ICombatRepository combat,
+        IMenuService menus, IPlaceholderRegistry placeholders,
+        IPlayerToggleCatalog toggleCatalog, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(menus);
+        ArgumentNullException.ThrowIfNull(placeholders);
+        ArgumentNullException.ThrowIfNull(toggleCatalog);
+        return CreateCoreAsync(configuration, commands, players, combat, menus, placeholders,
+            toggleCatalog, cancellationToken);
     }
 
     private static async Task<RankModule> CreateCoreAsync(IConfigStore configuration,
         IAnoCommandRegistry commands, IPlayerRegistry players, ICombatRepository combat,
         IMenuService? menus, IPlaceholderRegistry? placeholders,
-        CancellationToken cancellationToken)
+        IPlayerToggleCatalog? toggleCatalog, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(configuration);
         ArgumentNullException.ThrowIfNull(commands);
@@ -134,7 +176,8 @@ public sealed class RankModule : IDisposable
             () => RankConfiguration.Default, RankConfiguration.Validate, cancellationToken)
             .ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
-        return new RankModule(settings, commands, players, combat, menus, placeholders);
+        return new RankModule(
+            settings, commands, players, combat, menus, placeholders, toggleCatalog);
     }
 
     private IReadOnlyList<IDisposable> RegisterPlaceholders(
@@ -397,6 +440,7 @@ public sealed class RankModule : IDisposable
 
         foreach (var registration in registrations)
             registration.Dispose();
+        _notificationSetting?.Dispose();
         foreach (var placeholder in _placeholders)
             placeholder.Dispose();
         _menuCommand?.Dispose();

@@ -1,4 +1,5 @@
 using AnoCore.Abstractions.Players;
+using AnoCore.Abstractions.Settings;
 using AnoCore.Abstractions.Stats;
 using AnoCore.Modules.Stats;
 
@@ -119,6 +120,36 @@ public sealed class RankTransitionMonitorTests
     }
 
     [TestMethod]
+    public async Task PlayerNotificationOptOut_StillPublishesScoreChanges()
+    {
+        var repository = new FakeRepository
+        {
+            Points =
+            {
+                [Victim] = 10,
+                [Attacker] = 9,
+            },
+        };
+        var notifications = new RecordingSink(repository);
+        var changes = new RecordingScoreSink();
+        using var monitor = new RankTransitionMonitor(
+            Configuration(),
+            repository,
+            new RankNotificationPreferenceSink(
+                new DisabledSettings(), notifications),
+            changes);
+
+        await monitor.RecordAsync(new CombatDeath(
+            Guid.NewGuid(), Victim, Attacker, null, Now));
+
+        Assert.AreEqual(1, repository.Writes);
+        Assert.AreEqual(0, notifications.Notifications.Count);
+        CollectionAssert.AreEquivalent(
+            new[] { Victim, Attacker },
+            changes.Players.ToArray());
+    }
+
+    [TestMethod]
     public async Task ScoreChangeFailure_DoesNotFailPersistedCombatEvent()
     {
         var repository = new FakeRepository();
@@ -165,6 +196,31 @@ public sealed class RankTransitionMonitorTests
             async () => await monitor.RecordAsync(new CombatDeath(
                 Guid.NewGuid(), Victim, Attacker, null, Now)).AsTask());
         Assert.AreEqual(0, repository.Writes);
+    }
+
+    private sealed class DisabledSettings : IPlayerSettingsService
+    {
+        public ValueTask<T> GetAsync<T>(
+            PlayerId playerId,
+            PlayerSettingKey<T> key,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return ValueTask.FromResult((T)(object)false);
+        }
+
+        public ValueTask SetAsync<T>(
+            PlayerId playerId,
+            PlayerSettingKey<T> key,
+            T value,
+            CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public ValueTask<bool> ResetAsync<T>(
+            PlayerId playerId,
+            PlayerSettingKey<T> key,
+            CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
     }
 
     private sealed class RecordingSink(FakeRepository repository)
