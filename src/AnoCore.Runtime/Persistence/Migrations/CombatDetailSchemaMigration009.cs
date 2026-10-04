@@ -10,18 +10,24 @@ public sealed class CombatDetailSchemaMigration009 : IDatabaseMigration
 
     public async ValueTask ApplyAsync(DbConnection connection, CancellationToken cancellationToken)
     {
-        await using var command = connection.CreateCommand();
-        command.CommandText = """
-            CREATE TABLE IF NOT EXISTS ano_combat_weapon_fire (
-                event_id CHAR(36) NOT NULL PRIMARY KEY,
-                player_steam_id BIGINT UNSIGNED NOT NULL,
-                occurred_at_utc DATETIME(6) NOT NULL,
-                map_name VARCHAR(128) NOT NULL,
-                weapon VARCHAR(64) NOT NULL,
-                INDEX ix_ano_combat_fire_player (
-                    player_steam_id, map_name, weapon, occurred_at_utc)
-            ) ENGINE=InnoDB;
+        await using (var fire = connection.CreateCommand())
+        {
+            fire.CommandText = """
+                CREATE TABLE IF NOT EXISTS ano_combat_weapon_fire (
+                    event_id CHAR(36) NOT NULL PRIMARY KEY,
+                    player_steam_id BIGINT UNSIGNED NOT NULL,
+                    occurred_at_utc DATETIME(6) NOT NULL,
+                    map_name VARCHAR(128) NOT NULL,
+                    weapon VARCHAR(64) NOT NULL,
+                    INDEX ix_ano_combat_fire_player (
+                        player_steam_id, map_name, weapon, occurred_at_utc)
+                ) ENGINE=InnoDB
+                """;
+            await fire.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        }
 
+        await using var damage = connection.CreateCommand();
+        damage.CommandText = """
             CREATE TABLE IF NOT EXISTS ano_combat_damage (
                 event_id CHAR(36) NOT NULL PRIMARY KEY,
                 victim_steam_id BIGINT UNSIGNED NOT NULL,
@@ -39,6 +45,6 @@ public sealed class CombatDetailSchemaMigration009 : IDatabaseMigration
                     victim_steam_id, occurred_at_utc)
             ) ENGINE=InnoDB
             """;
-        await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        await damage.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
     }
 }
