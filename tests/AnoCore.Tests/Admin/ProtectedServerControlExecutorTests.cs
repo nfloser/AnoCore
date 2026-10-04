@@ -34,6 +34,21 @@ public sealed class ProtectedServerControlExecutorTests
     }
 
     [TestMethod]
+    public void PolicyTreatsExplicitNullAllowlistsAsEmpty()
+    {
+        var configuration = new ProtectedServerControlConfiguration
+        {
+            AllowedConVars = null,
+            AllowedServerCommands = null,
+        };
+
+        var policy = ProtectedServerControlPolicy.Create(configuration);
+
+        Assert.IsFalse(policy.AllowsConVar("mp_friendlyfire"));
+        Assert.IsFalse(policy.AllowsServerCommand("mp_restartgame"));
+    }
+
+    [TestMethod]
     public async Task SetCVarRejectsControlCharactersAndUnlistedNamesBeforeAudit()
     {
         var policy = Policy();
