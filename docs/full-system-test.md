@@ -42,12 +42,14 @@ Use at least one authorized admin, one lower-immunity player and one unauthorize
 
 ## Extended administration
 
-Use the same admin, lower-immunity target and unauthorized player as above. See [player state](extended-admin.md), [positions](extended-position-admin.md) and [inventory/teams](extended-inventory-team-admin.md) for exact arguments and permissions.
+Use the same admin, lower-immunity target and unauthorized player as above. See [player state](extended-admin.md), [positions](extended-position-admin.md), [inventory/teams](extended-inventory-team-admin.md) and [protected server controls](protected-server-controls.md) for exact arguments, permissions and allow-list configuration.
 
 - Exercise health/armor, freeze/unfreeze, noclip/walk, slay, speed/reset, blind/unblind and god/ungod.
 - Check explicit resets, death, disconnect/reconnect, map change and unload. Reversible effects must not reach a replacement session or reused slot.
 - Exercise respawn, revive-at-death-position, coordinate/player teleport, bury/unbury and slap. Reject non-finite/out-of-range coordinates; clear death positions on reconnect/map change.
 - Exercise rename, strip, give, team, swap and self-hide. Reject arbitrary entity names and control characters; honor grenade/healthshot limits and spectator swap rejection.
+- Configure one harmless allowed ConVar and server command; exercise `anocvar` / `anoserver`, then verify unlisted, built-in-denied and separator/control-character inputs fail before mutation and audit data never stores supplied values/arguments.
+- With two clients sharing one external address and a third on another network, exercise `anosameip`; only the matching pair should be grouped and no raw IP/port may appear in command output or audit data.
 - Repeat permission and immunity denial for each command family; verify no native mutation occurs.
 - Repeat representative commands after hot reload and ensure the existing rank, chat, settings and moderation commands still work.
 
