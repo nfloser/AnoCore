@@ -1,4 +1,5 @@
 using AnoCore.Abstractions.Hud;
+using AnoCore.Abstractions.Persistence;
 using AnoCore.Abstractions.Placeholders;
 using AnoCore.Abstractions.Players;
 using AnoCore.Abstractions.Stats;
@@ -6,6 +7,8 @@ using AnoCore.Abstractions.Voting;
 using AnoCore.Modules.Admin;
 using AnoCore.Modules.AnoVeto;
 using AnoCore.Modules.Stats;
+using AnoCore.Modules.Tournament;
+using AnoCore.Modules.Tournament.Persistence;
 using AnoCore.Plugin.Administration;
 using AnoCore.Plugin.Commands;
 using AnoCore.Plugin.Hud;
@@ -13,6 +16,7 @@ using AnoCore.Plugin.Maps;
 using AnoCore.Plugin.Menus;
 using AnoCore.Plugin.Moderation;
 using AnoCore.Plugin.Players;
+using AnoCore.Plugin.Tournament;
 using AnoCore.Runtime.Composition;
 using AnoCore.Runtime.Configuration;
 using AnoCore.Runtime.Events;
@@ -42,6 +46,7 @@ public sealed class AnoCorePlugin : BasePlugin
     private PlaytimeModule? _pendingPlaytime;
     private RankModule? _pendingRank;
     private GameplayStatsModule? _pendingGameplayStats;
+    private TournamentMatchRuntime? _pendingTournamentMatch;
     private ChatMessageFormatter? _pendingChatFormatter;
     private SelectableChatTagModule? _pendingChatTags;
     private ProtectedServerControlPolicy? _pendingProtectedServerControlPolicy;
@@ -50,6 +55,8 @@ public sealed class AnoCorePlugin : BasePlugin
     private PlaytimeModule? _playtime;
     private RankModule? _rank;
     private GameplayStatsModule? _gameplayStats;
+    private TournamentMatchRuntime? _tournamentMatch;
+    private TournamentTeamEnforcement? _tournamentTeamEnforcement;
     private ChatMessageFormatter? _chatFormatter;
     private SelectableChatTagModule? _chatTags;
     private ChatFormatSnapshotLifecycle? _chatFormatSnapshots;
@@ -139,6 +146,9 @@ public sealed class AnoCorePlugin : BasePlugin
             _rank = null;
             _gameplayStats?.Dispose();
             _gameplayStats = null;
+            _tournamentTeamEnforcement?.Dispose();
+            _tournamentTeamEnforcement = null;
+            _tournamentMatch = null;
             _chatFormatter = null;
             _combat?.Dispose();
             _combat = null;
@@ -148,6 +158,7 @@ public sealed class AnoCorePlugin : BasePlugin
             _pendingRank = null;
             _pendingGameplayStats?.Dispose();
             _pendingGameplayStats = null;
+            _pendingTournamentMatch = null;
             _pendingChatFormatter = null;
             _pendingChatTags?.Dispose();
             _pendingChatTags = null;
