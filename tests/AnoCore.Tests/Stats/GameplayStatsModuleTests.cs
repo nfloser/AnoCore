@@ -74,6 +74,30 @@ public sealed class GameplayStatsModuleTests
     }
 
     [TestMethod]
+    public async Task Command_DiscardsInFlightReplyAfterDispose()
+    {
+        var players = new PlayerRegistry(new AnoEventBus());
+        await players.ConnectAsync(new PlayerConnection(
+            Player, "Player", PlayerTeam.Terrorist, true, Now));
+        var commands = new CommandRegistry(new AllowAll());
+        var repository = new FakeRepository
+        {
+            ReadStarted = new(TaskCreationOptions.RunContinuationsAsynchronously),
+            ReleaseRead = new(TaskCreationOptions.RunContinuationsAsynchronously),
+        };
+        var module = new GameplayStatsModule(commands, players, repository);
+
+        var pending = commands.ExecuteAsync("!anogamestats", Player).AsTask();
+        await repository.ReadStarted.Task;
+        module.Dispose();
+        repository.ReleaseRead.TrySetResult(true);
+
+        var result = await pending;
+        Assert.IsFalse(result.Success);
+        Assert.AreEqual(CommandFailureReason.NotFound, result.FailureReason);
+    }
+
+    [TestMethod]
     public async Task Record_ForwardsTypedEvent()
     {
         var repository = new FakeRepository();
