@@ -37,6 +37,8 @@ public sealed class MySqlStatisticsResetAdministrationService
 
         return _database.InTransactionAsync(async (connection, transaction, token) =>
         {
+            await SeedCutoffAsync(connection, transaction, targetId, token)
+                .ConfigureAwait(false);
             var previous = await LockCurrentAsync(
                 connection, transaction, targetId, token).ConfigureAwait(false);
             if (previous is not null && cutoff <= previous.Value)
@@ -50,6 +52,24 @@ public sealed class MySqlStatisticsResetAdministrationService
                 auditReason, cutoff, token).ConfigureAwait(false);
             return new StatisticsResetResult(previous, cutoff, auditId);
         }, cancellationToken: cancellationToken);
+    }
+
+    private static async ValueTask SeedCutoffAsync(
+        DbConnection connection,
+        DbTransaction transaction,
+        PlayerId targetId,
+        CancellationToken cancellationToken)
+    {
+        await using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = """
+            INSERT INTO ano_statistics_resets (
+                player_steam_id, reset_at_utc, updated_by_steam_id)
+            VALUES (@target, '1970-01-01 00:00:00.000000', NULL)
+            ON DUPLICATE KEY UPDATE player_steam_id = player_steam_id
+            """;
+        Add(command, "@target", targetId.SteamId64);
+        await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
     }
 
     private static async ValueTask<DateTimeOffset?> LockCurrentAsync(
@@ -69,8 +89,9 @@ public sealed class MySqlStatisticsResetAdministrationService
         Add(command, "@target", targetId.SteamId64);
         var value = await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
         if (value is null || value is DBNull) return null;
-        return new DateTimeOffset(
+        var cutoff = new DateTimeOffset(
             DateTime.SpecifyKind(Convert.ToDateTime(value), DateTimeKind.Utc));
+        return cutoff == DateTimeOffset.UnixEpoch ? null : cutoff;
     }
 
     private static async ValueTask UpsertCutoffAsync(
