@@ -185,6 +185,12 @@ public sealed class GameplayStatsModule : IDisposable
         var sessionId = player.SessionId;
         var totals = await _repository.ReadAsync(
             player.Id, filter, context.CancellationToken).ConfigureAwait(false);
+        if (Volatile.Read(ref _disposed) != 0)
+        {
+            return CommandResult.Fail(CommandFailureReason.NotFound,
+                "Gameplay statistics are no longer available.");
+        }
+
         if (!IsCurrentSession(player.Id, sessionId))
             return SessionChanged();
 
