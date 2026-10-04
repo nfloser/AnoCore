@@ -268,6 +268,36 @@ public sealed class RankModuleTests
     }
 
     [TestMethod]
+    public async Task RankToggleCollision_RollsBackRankCommands()
+    {
+        var catalog = new PlayerToggleCatalog();
+        using var collision = catalog.Register(
+            new ModuleId("test.collision"),
+            new PlayerToggleSetting(
+                RankNotificationPreferenceSink.EnabledSetting,
+                "Reserved setting",
+                "Collision test."));
+        var commands = new CommandRegistry(new AllowAll());
+
+        await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () =>
+            await RankModule.CreateAsync(
+                new JsonConfigStore(_root),
+                commands,
+                new PlayerRegistry(new AnoEventBus()),
+                new FakeRepository(new CombatTotals(0, 0, 0)),
+                catalog));
+
+        Assert.AreEqual(CommandFailureReason.NotFound,
+            (await commands.ExecuteAsync("!anorank", Player)).FailureReason);
+        Assert.AreEqual(CommandFailureReason.NotFound,
+            (await commands.ExecuteAsync("!anotopranks", Player)).FailureReason);
+        Assert.IsTrue(catalog.TryGet(
+            RankNotificationPreferenceSink.EnabledSetting.Name, out var remaining));
+        Assert.IsNotNull(remaining);
+        Assert.AreEqual("Reserved setting", remaining.Label);
+    }
+
+    [TestMethod]
     public void Score_FloorsAtZeroAndRejectsOverflow()
     {
         var policy = RankConfiguration.Default;
