@@ -3,7 +3,7 @@ using AnoCore.Abstractions.Players;
 namespace AnoCore.Abstractions.Stats;
 
 public sealed record StatisticsResetResult(
-    DateTimeOffset PreviousCutoffUtc,
+    DateTimeOffset? PreviousCutoffUtc,
     DateTimeOffset CurrentCutoffUtc,
     Guid AuditId);
 
