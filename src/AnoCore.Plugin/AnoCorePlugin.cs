@@ -355,7 +355,6 @@ public sealed class AnoCorePlugin : BasePlugin
             {
                 createdGameplayStats?.Dispose();
                 createdGameplayStats = null;
-                createdTournamentMatch = null;
                 Logger.LogError(exception,
                     "Gameplay statistics composition failed; AnoCore will continue without extended gameplay stats.");
             }
