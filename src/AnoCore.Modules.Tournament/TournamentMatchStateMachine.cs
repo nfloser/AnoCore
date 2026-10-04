@@ -218,12 +218,27 @@ public sealed class TournamentMatchStateMachine
             throw new ArgumentException("A running snapshot requires selected maps.");
         if (_maps.Count > 0 && CurrentMapIndex >= _maps.Count)
             throw new ArgumentException("Snapshot current map index is outside the selected series.");
-        if (TeamAMaps >= Configuration.MapsToWin && TeamBMaps >= Configuration.MapsToWin)
+        var playedMaps = TeamAMaps + TeamBMaps;
+        if (playedMaps > (int)Configuration.BestOf)
+            throw new ArgumentException("Snapshot series score exceeds the configured best-of.");
+        var teamACompleted = TeamAMaps >= Configuration.MapsToWin;
+        var teamBCompleted = TeamBMaps >= Configuration.MapsToWin;
+        if (teamACompleted && teamBCompleted)
             throw new ArgumentException("Both teams cannot have a winning series score.");
-        if (State == TournamentMatchState.Completed
-            && TeamAMaps < Configuration.MapsToWin
-            && TeamBMaps < Configuration.MapsToWin)
-            throw new ArgumentException("Completed snapshot has no series winner.");
+        if (State == TournamentMatchState.Completed)
+        {
+            if (!teamACompleted && !teamBCompleted)
+                throw new ArgumentException("Completed snapshot has no series winner.");
+            if (playedMaps == 0 || CurrentMapIndex != playedMaps - 1)
+                throw new ArgumentException("Completed snapshot map index does not match its series score.");
+        }
+        else
+        {
+            if (teamACompleted || teamBCompleted)
+                throw new ArgumentException("A non-completed snapshot cannot already contain a series winner.");
+            if (CurrentMapIndex != playedMaps)
+                throw new ArgumentException("Snapshot map index does not match its series score.");
+        }
         if (State == TournamentMatchState.Paused
             && _resumeState is not (TournamentMatchState.Live or TournamentMatchState.Overtime))
             throw new ArgumentException("Paused snapshot must carry a live resume state.");
