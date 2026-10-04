@@ -9,9 +9,9 @@ namespace AnoCore.Modules.Admin;
 
 public sealed class ProtectedServerControlConfiguration
 {
-    public string[] AllowedConVars { get; init; } = [];
+    public string[]? AllowedConVars { get; init; } = [];
 
-    public string[] AllowedServerCommands { get; init; } = [];
+    public string[]? AllowedServerCommands { get; init; } = [];
 }
 
 public sealed class ProtectedServerControlPolicy
