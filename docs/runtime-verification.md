@@ -32,6 +32,10 @@ Use a disposable/non-production CS2 server with the pinned CounterStrikeSharp AP
 12. Cancel and timeout votes and confirm the HUD disappears and input capture is released for all affected clients. Hot-reload while a HUD is visible and verify the owned `custom_hud_layout` entity is cleaned/recreated without duplicate click callbacks.
 13. Complete a vote and verify exactly one real `changelevel` / `host_workshop_map` transition occurs.
 14. Repeat load → hot reload → unload twice and inspect logs for duplicate event handling, orphaned HUD entities, stuck cursors or unobserved task failures.
+15. With #165 installed, exercise `anohealth`, `anoarmor`, freeze/unfreeze, noclip/walk, slay, speed/reset, blind/unblind and god/ungod against an authorized target. Confirm permission denial and immunity before native mutation.
+16. For freeze/noclip, speed, blind and god mode, verify explicit reset plus death, disconnect/reconnect and map-change cleanup. A replacement `PlayerSessionId` or reused slot must not receive the previous session's mutation or restoration.
+17. Exercise `anorespawn`, `anorevive`, `anotppos`, `anotp`, `anobury`, `anounbury` and `anoslap`. Verify revive uses the pre-death location only for the current session, teleport rejects invalid coordinates, and reconnect/map change clears old death positions.
+18. Exercise `anorename`, `anostrip`, `anogive`, `anoteam`, `anoswap` and `anohide`. Verify the item catalog rejects arbitrary entity names, inventory limits are honored, spectator/team transitions behave correctly and a stale/reconnected session is never mutated.
 
 ## Release gate
 
