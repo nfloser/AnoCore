@@ -16,6 +16,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AnoCore.Modules.Stats", "sr
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AnoCore.Modules.Tournament", "src\AnoCore.Modules.Tournament\AnoCore.Modules.Tournament.csproj", "{6F7B734D-2A0D-4D7D-9C21-630FC0E973E8}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AnoCore.Modules.Tournament.Persistence", "src\AnoCore.Modules.Tournament.Persistence\AnoCore.Modules.Tournament.Persistence.csproj", "{B42F6F7D-1E7B-4D40-9D42-A2B0E4B4E8A1}"
+EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AnoCore.Tests", "tests\AnoCore.Tests\AnoCore.Tests.csproj", "{5ED6BC30-47FB-4EBD-A292-19147447F055}"
 EndProject
 Global
@@ -52,6 +54,10 @@ Global
     {6F7B734D-2A0D-4D7D-9C21-630FC0E973E8}.Debug|Any CPU.Build.0 = Debug|Any CPU
     {6F7B734D-2A0D-4D7D-9C21-630FC0E973E8}.Release|Any CPU.ActiveCfg = Release|Any CPU
     {6F7B734D-2A0D-4D7D-9C21-630FC0E973E8}.Release|Any CPU.Build.0 = Release|Any CPU
+    {B42F6F7D-1E7B-4D40-9D42-A2B0E4B4E8A1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+    {B42F6F7D-1E7B-4D40-9D42-A2B0E4B4E8A1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+    {B42F6F7D-1E7B-4D40-9D42-A2B0E4B4E8A1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+    {B42F6F7D-1E7B-4D40-9D42-A2B0E4B4E8A1}.Release|Any CPU.Build.0 = Release|Any CPU
     {5ED6BC30-47FB-4EBD-A292-19147447F055}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
     {5ED6BC30-47FB-4EBD-A292-19147447F055}.Debug|Any CPU.Build.0 = Debug|Any CPU
     {5ED6BC30-47FB-4EBD-A292-19147447F055}.Release|Any CPU.ActiveCfg = Release|Any CPU
