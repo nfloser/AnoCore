@@ -84,6 +84,42 @@ public sealed class MessageServiceTests
     }
 
     [TestMethod]
+    public async Task Dispose_CancelsInFlightDelivery()
+    {
+        var transport = new BlockingTransport();
+        var service = new MessageService();
+        using var registration = service.AttachTransport(transport);
+
+        var send = service.SendAsync(Chat("pending")).AsTask();
+        await transport.Started.Task;
+
+        service.Dispose();
+
+        await Assert.ThrowsAsync<OperationCanceledException>(async () => await send);
+    }
+
+    [TestMethod]
+    public async Task ExpiryClearFailure_IsolatedFromBackgroundTask()
+    {
+        var delays = new ManualDelay();
+        var failures = new List<Exception>();
+        using var service = new MessageService(delays.DelayAsync, failures.Add);
+        var transport = new RecordingTransport { ThrowOnClear = true };
+        using var registration = service.AttachTransport(transport);
+
+        await service.SendAsync(new MessageRequest(
+            MessageTarget.ForAll(),
+            MessageChannel.Center,
+            "temporary",
+            duration: TimeSpan.FromSeconds(1)));
+
+        delays.Complete(0);
+        await WaitUntilAsync(() => failures.Count == 1);
+
+        Assert.IsInstanceOfType<InvalidOperationException>(failures[0]);
+    }
+
+    [TestMethod]
     public void MessageRequest_RejectsInvalidChatDurationAndPriority()
     {
         var target = MessageTarget.ForAll();
@@ -119,6 +155,7 @@ public sealed class MessageServiceTests
         public List<MessageRequest> Sent { get; } = [];
         public List<(MessageTarget Target, MessageChannel Channel)> Cleared { get; } = [];
         public bool NextSendResult { get; set; } = true;
+        public bool ThrowOnClear { get; set; }
 
         public ValueTask<bool> TrySendAsync(
             MessageRequest request,
@@ -135,7 +172,39 @@ public sealed class MessageServiceTests
             CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            if (ThrowOnClear)
+            {
+                throw new InvalidOperationException("clear failed");
+            }
+
             Cleared.Add((target, channel));
+            return ValueTask.FromResult(true);
+        }
+    }
+
+    private sealed class BlockingTransport : IMessageTransport
+    {
+        public TaskCompletionSource Started { get; } = new(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public async ValueTask<bool> TrySendAsync(
+            MessageRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            _ = request;
+            Started.TrySetResult();
+            await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+            return true;
+        }
+
+        public ValueTask<bool> TryClearAsync(
+            MessageTarget target,
+            MessageChannel channel,
+            CancellationToken cancellationToken = default)
+        {
+            _ = target;
+            _ = channel;
+            cancellationToken.ThrowIfCancellationRequested();
             return ValueTask.FromResult(true);
         }
     }
