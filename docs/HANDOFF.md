@@ -18,6 +18,14 @@
 
 ---
 
+# Management HTTP adapter checkpoint — 2026-10-04
+
+- Issue #218 / branch `feature/218-management-http-adapter` adds the bounded HTTP v1 wire adapter over the existing management gateway without starting a listener or adding ASP.NET/Kestrel to the CS2 plugin.
+- Status and explicit capability routes share the existing credential verification, scopes, rate limits and audit behavior. The adapter adds bounded token/correlation/auth headers, pre-parse body/path/header limits, deterministic JSON and conservative HTTP status mapping.
+- Operation bodies accept only a flat bounded string dictionary. Credentials, exception text and unvalidated request data are not echoed.
+- Tests cover successful status/operation calls, wrong credentials, missing correlation, scope denial, malformed/oversized input, version/route handling and rate limiting.
+- A TLS/network host and deployment-specific secret provisioning remain separate #22 composition work; the transport contract itself no longer needs to be reinvented by each host.
+
 # Shared messaging checkpoint — 2026-10-04
 
 - Issue #216 / branch `feature/216-shared-messaging` adds the public `IMessageService` contract, player/team/all targets and chat/center/center-HTML channels.

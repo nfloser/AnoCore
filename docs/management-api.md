@@ -87,3 +87,51 @@ its current dependency footprint and does not acquire an ASP.NET/Kestrel depende
 A later transport package may expose HTTPS or another management protocol by adapting
 into these contracts. It must retain authentication, scope checks, rate limiting,
 validation and audit behavior rather than bypassing the management core.
+
+
+## HTTP wire adapter
+
+`ManagementHttpAdapter` defines the bounded HTTP-facing v1 contract without starting
+a listener or adding ASP.NET/Kestrel to the CounterStrikeSharp plugin.
+
+Supported routes are:
+
+- `GET /api/v1/status/health`
+- `GET /api/v1/status/server`
+- `GET /api/v1/status/players`
+- `GET /api/v1/status/modules`
+- `POST /api/v1/operations/{capability-id}`
+
+Every request must provide:
+
+- `X-AnoCore-Token`: the bounded public token id;
+- `X-Correlation-ID`: a caller-generated bounded correlation id;
+- `Authorization: Bearer <secret>`: the token secret.
+
+Operation request bodies are a single JSON object whose string properties become the
+bounded management argument dictionary. Nested objects, arrays and non-string values
+are rejected. Bodies are capped before JSON parsing, as are paths and headers.
+
+The adapter maps the management result to conservative HTTP status codes and always
+returns JSON with `Cache-Control: no-store` and
+`X-Content-Type-Options: nosniff`. Credentials are never copied into response
+payloads.
+
+### Hosting requirements
+
+A network host is intentionally separate from the CS2 plugin. A production host that
+wraps this adapter must:
+
+1. terminate TLS before accepting management credentials;
+2. expose only the documented routes and methods;
+3. preserve the adapter's body/header limits and cancellation;
+4. pass only a bounded, non-secret remote identity such as a trusted proxy identity;
+5. add network-layer connection/request limits in addition to AnoCore's per-token
+   management limiter;
+6. keep bearer secrets out of access logs, tracing and URLs;
+7. reject untrusted forwarded headers unless they come from an explicitly configured
+   reverse proxy.
+
+This boundary lets a Kestrel, reverse-proxy or other HTTPS host reuse the same
+authentication, authorization, audit and capability gateway instead of duplicating
+security policy.
