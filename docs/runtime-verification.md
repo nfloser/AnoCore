@@ -36,6 +36,8 @@ Use a disposable/non-production CS2 server with the pinned CounterStrikeSharp AP
 16. For freeze/noclip, speed, blind and god mode, verify explicit reset plus death, disconnect/reconnect and map-change cleanup. A replacement `PlayerSessionId` or reused slot must not receive the previous session's mutation or restoration.
 17. Exercise `anorespawn`, `anorevive`, `anotppos`, `anotp`, `anobury`, `anounbury` and `anoslap`. Verify revive uses the pre-death location only for the current session, teleport rejects invalid coordinates, and reconnect/map change clears old death positions.
 18. Exercise `anorename`, `anostrip`, `anogive`, `anoteam`, `anoswap` and `anohide`. Verify the item catalog rejects arbitrary entity names, inventory limits are honored, spectator/team transitions behave correctly and a stale/reconnected session is never mutated.
+19. Configure one harmless protected ConVar and server command, then exercise `anocvar` and `anoserver` as an authorized admin, an unauthorized player and the server console. Confirm unlisted/denied names and separator/control-character arguments are rejected, and confirm audit entries redact values/arguments.
+20. Connect two human clients from the same external address plus one from another address and exercise `anosameip`. Confirm only the matching clients are grouped, no raw IP/port is printed or audited and output remains bounded.
 
 ## Release gate
 
