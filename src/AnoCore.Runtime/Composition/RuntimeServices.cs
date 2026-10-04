@@ -51,7 +51,9 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
         IDatabase database,
         IConfigStore configuration,
         AnoEventBus events,
-        PlayerRegistry players)
+        PlayerRegistry players,
+        ManagementRateLimiter? managementRateLimiter,
+        Func<ManagementAuditEvent, CancellationToken, ValueTask>? managementAudit)
     {
         Profiles = new MySqlPlayerRepository(database);
         var data = new MySqlModuleDataStore(database);
@@ -80,7 +82,10 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
         TargetResolver = new PlayerTargetResolver(players);
         TargetAuthorization = new TargetAuthorizationService(players, Authorization);
         Modules = new ModuleHost(new ModuleContext(this));
-        ManagementCapabilities = new ManagementCapabilityRegistry();
+        ManagementRateLimiter = managementRateLimiter ?? new ManagementRateLimiter();
+        ManagementCapabilities = new ManagementCapabilityRegistry(
+            ManagementRateLimiter,
+            audit: managementAudit);
         ManagementStatus = new RuntimeManagementStatusProvider(database, players, Modules);
 
         Add<IDatabase>(database);
@@ -139,6 +144,8 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
 
     public MessageService Messages { get; }
 
+    public ManagementRateLimiter ManagementRateLimiter { get; }
+
     public ManagementCapabilityRegistry ManagementCapabilities { get; }
 
     public RuntimeManagementStatusProvider ManagementStatus { get; }
@@ -184,7 +191,9 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
         IConfigStore configuration,
         AnoEventBus events,
         PlayerRegistry players,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        ManagementRateLimiter? managementRateLimiter = null,
+        Func<ManagementAuditEvent, CancellationToken, ValueTask>? managementAudit = null)
     {
         ArgumentNullException.ThrowIfNull(database);
         ArgumentNullException.ThrowIfNull(configuration);
@@ -195,7 +204,13 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
             [new CoreSchemaMigration001(), new ModerationSchemaMigration002(), new AdminAuditSchemaMigration003(), new WarningSchemaMigration004(), new PlaytimeSchemaMigration005(), new CombatSchemaMigration006(), new RankAdjustmentSchemaMigration007(), new PlaytimeStateSchemaMigration008(), new CombatDetailSchemaMigration009(), new GameplayStatSchemaMigration010(),
              new StatisticsResetSchemaMigration011()])
             .EnsureReadyAsync(cancellationToken).ConfigureAwait(false);
-        var runtime = new RuntimeServices(database, configuration, events, players);
+        var runtime = new RuntimeServices(
+            database,
+            configuration,
+            events,
+            players,
+            managementRateLimiter,
+            managementAudit);
         try
         {
             await runtime.Authorization.ReloadAsync(cancellationToken).ConfigureAwait(false);
