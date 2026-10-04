@@ -15,6 +15,7 @@ using AnoCore.Plugin.Commands;
 using AnoCore.Plugin.Hud;
 using AnoCore.Plugin.Maps;
 using AnoCore.Plugin.Menus;
+using AnoCore.Plugin.Messaging;
 using AnoCore.Plugin.Moderation;
 using AnoCore.Plugin.Players;
 using AnoCore.Plugin.Tournament;
@@ -85,6 +86,7 @@ public sealed class AnoCorePlugin : BasePlugin
     private CounterStrikeChatModerationAdapter? _chatModeration;
     private ModerationVoiceCoordinator? _voiceModeration;
     private CounterStrikeCommandBridge? _commands;
+    private IDisposable? _messageTransportRegistration;
     private CounterStrikeCustomHudService? _customHud;
     private CounterStrikeSharp.API.Modules.Timers.Timer? _anoVetoExpiryTimer;
     private CounterStrikeSharp.API.Modules.Timers.Timer? _voiceModerationTimer;
@@ -230,6 +232,8 @@ public sealed class AnoCorePlugin : BasePlugin
             _kickCommands = null;
             _connectBan?.Dispose();
             _connectBan = null;
+            _messageTransportRegistration?.Dispose();
+            _messageTransportRegistration = null;
             _runtime?.Dispose();
             _runtime = null;
             MenuPresenter = null;
@@ -589,6 +593,7 @@ public sealed class AnoCorePlugin : BasePlugin
             TournamentSpectatorEnforcement? tournamentSpectatorEnforcement = null;
             TournamentCommandController? tournamentCommands = null;
             TournamentMapSelectionCommandController? tournamentMapSelectionCommands = null;
+            IDisposable? messageTransportRegistration = null;
             var presenter = new CounterStrikeMenuPresenter(this, runtime.Menus, Logger);
             var bridge = new CounterStrikeCommandBridge(
                 this,
@@ -616,6 +621,8 @@ public sealed class AnoCorePlugin : BasePlugin
 
             try
             {
+                messageTransportRegistration = runtime.Messages.AttachTransport(
+                    new CounterStrikeMessageTransport(runtime.Players));
                 var rankScoreChanges = new ChatFormatRankScoreChangeSink(
                     runtime.Players,
                     () => chatFormatSnapshots);
@@ -862,6 +869,8 @@ public sealed class AnoCorePlugin : BasePlugin
                 _chatFormatSnapshots = chatFormatSnapshots;
                 _voiceModeration = voiceModeration;
                 _commands = bridge;
+                _messageTransportRegistration = messageTransportRegistration;
+                messageTransportRegistration = null;
                 _runtime = runtime;
                 _anoVeto = anoVeto;
                 _playtime = playtime;
@@ -923,6 +932,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 adminCommands?.Dispose();
                 kickCommands?.Dispose();
                 connectBan?.Dispose();
+                messageTransportRegistration?.Dispose();
                 runtime.Dispose();
                 MenuPresenter = null;
                 _runtimeStatus = "activation failed";
