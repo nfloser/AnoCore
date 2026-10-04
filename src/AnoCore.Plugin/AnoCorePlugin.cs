@@ -6,6 +6,7 @@ using AnoCore.Abstractions.Voting;
 using AnoCore.Modules.Admin;
 using AnoCore.Modules.AnoVeto;
 using AnoCore.Modules.Stats;
+using AnoCore.Plugin.Administration;
 using AnoCore.Plugin.Commands;
 using AnoCore.Plugin.Hud;
 using AnoCore.Plugin.Maps;
@@ -42,6 +43,7 @@ public sealed class AnoCorePlugin : BasePlugin
     private RankModule? _pendingRank;
     private ChatMessageFormatter? _pendingChatFormatter;
     private SelectableChatTagModule? _pendingChatTags;
+    private ProtectedServerControlPolicy? _pendingProtectedServerControlPolicy;
     private RuntimeServices? _runtime;
     private AnoVetoModuleRuntime? _anoVeto;
     private PlaytimeModule? _playtime;
@@ -57,6 +59,12 @@ public sealed class AnoCorePlugin : BasePlugin
     private KickCommandController? _kickCommands;
     private ConnectBanEnforcement? _connectBan;
     private WarningCommandController? _warningCommands;
+    private ExtendedPlayerStateCommandController? _extendedAdminCommands;
+    private ExtendedPlayerStateService? _extendedPlayerState;
+    private ExtendedPositionCommandController? _extendedPositionCommands;
+    private ExtendedPositionService? _extendedPositions;
+    private ExtendedInventoryTeamCommandController? _extendedInventoryTeamCommands;
+    private ProtectedServerControlCommandController? _protectedServerControlCommands;
     private ModerationCommunicationRuntime? _communicationModeration;
     private CounterStrikeChatModerationAdapter? _chatModeration;
     private ModerationVoiceCoordinator? _voiceModeration;
@@ -138,6 +146,7 @@ public sealed class AnoCorePlugin : BasePlugin
 
             _pendingAnoVeto?.Dispose();
             _pendingAnoVeto = null;
+            _pendingProtectedServerControlPolicy = null;
             _pendingRuntime?.Dispose();
             _pendingRuntime = null;
 
@@ -157,6 +166,30 @@ public sealed class AnoCorePlugin : BasePlugin
             _rankAdminNotifications = null;
             _warningCommands?.Dispose();
             _warningCommands = null;
+            _protectedServerControlCommands?.Dispose();
+            _protectedServerControlCommands = null;
+            _extendedInventoryTeamCommands?.Dispose();
+            _extendedInventoryTeamCommands = null;
+            _extendedPositionCommands?.Dispose();
+            _extendedPositionCommands = null;
+            var extendedPositions = _extendedPositions;
+            _extendedPositions = null;
+            if (extendedPositions is not null)
+            {
+                Observe(extendedPositions.ForgetAllAsync().AsTask(), "extended_position_unload");
+            }
+
+            _extendedAdminCommands?.Dispose();
+            _extendedAdminCommands = null;
+            var extendedPlayerState = _extendedPlayerState;
+            _extendedPlayerState = null;
+            if (extendedPlayerState is not null)
+            {
+                Observe(
+                    ReleaseAndDisposeExtendedPlayerStateAsync(extendedPlayerState),
+                    "extended_admin_unload");
+            }
+
             _adminCommands?.Dispose();
             _adminCommands = null;
             _kickCommands?.Dispose();
@@ -204,6 +237,8 @@ public sealed class AnoCorePlugin : BasePlugin
                 "core",
                 () => new RuntimeConfiguration(),
                 cancellationToken: cancellationToken).ConfigureAwait(false);
+            var protectedServerControlPolicy = BuildProtectedServerControlPolicy(
+                settings.ProtectedServerControls);
             var connectionString = Environment.GetEnvironmentVariable("ANOCORE_MYSQL");
             if (string.IsNullOrWhiteSpace(connectionString))
             {
@@ -358,6 +393,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 _pendingRank = createdRank;
                 _pendingChatFormatter = createdChatFormatter;
                 _pendingChatTags = createdChatTags;
+                _pendingProtectedServerControlPolicy = protectedServerControlPolicy;
                 created = null;
                 createdAnoVeto = null;
                 createdPlaytime = null;
@@ -395,6 +431,7 @@ public sealed class AnoCorePlugin : BasePlugin
                     _pendingChatTags = null;
                     _pendingAnoVeto?.Dispose();
                     _pendingAnoVeto = null;
+                    _pendingProtectedServerControlPolicy = null;
                     _pendingRuntime?.Dispose();
                     _pendingRuntime = null;
                     _runtimeStatus = "startup failed";
@@ -427,6 +464,10 @@ public sealed class AnoCorePlugin : BasePlugin
             _pendingRank = null;
             _pendingChatFormatter = null;
             _pendingChatTags = null;
+            var protectedServerControlPolicy = _pendingProtectedServerControlPolicy
+                ?? ProtectedServerControlPolicy.Create(
+                    new ProtectedServerControlConfiguration());
+            _pendingProtectedServerControlPolicy = null;
             ModerationCommandController? adminCommands = null;
             RankAdjustmentCommandController? rankAdminCommands = null;
             RankAdjustmentNotificationService? rankAdminNotifications = null;
@@ -435,6 +476,12 @@ public sealed class AnoCorePlugin : BasePlugin
             KickCommandController? kickCommands = null;
             ConnectBanEnforcement? connectBan = null;
             WarningCommandController? warningCommands = null;
+            ExtendedPlayerStateService? extendedPlayerState = null;
+            ExtendedPlayerStateCommandController? extendedAdminCommands = null;
+            ExtendedPositionService? extendedPositions = null;
+            ExtendedPositionCommandController? extendedPositionCommands = null;
+            ExtendedInventoryTeamCommandController? extendedInventoryTeamCommands = null;
+            ProtectedServerControlCommandController? protectedServerControlCommands = null;
             ModerationCommunicationRuntime? communicationModeration = null;
             CounterStrikeChatModerationAdapter? chatModeration = null;
             ChatFormatSnapshotLifecycle? chatFormatSnapshots = null;
@@ -508,6 +555,35 @@ public sealed class AnoCorePlugin : BasePlugin
                     new WarningCommandExecutor(targetGateway, runtime.Warnings, runtime.AdminAudit,
                         new CounterStrikeWarningNotifier(runtime.Players, Logger,
                             () => ReferenceEquals(_runtime, runtime))));
+                extendedPlayerState = new ExtendedPlayerStateService(
+                    new CounterStrikeExtendedPlayerStateTransport(runtime.Players));
+                extendedAdminCommands = new ExtendedPlayerStateCommandController(
+                    runtime.Commands,
+                    new ExtendedPlayerStateCommandExecutor(
+                        targetGateway,
+                        extendedPlayerState));
+                extendedPositions = new ExtendedPositionService(
+                    new CounterStrikeExtendedPositionTransport(runtime.Players));
+                extendedPositionCommands = new ExtendedPositionCommandController(
+                    runtime.Commands,
+                    new ExtendedPositionCommandExecutor(
+                        targetGateway,
+                        runtime.TargetResolver,
+                        extendedPositions));
+                extendedInventoryTeamCommands = new ExtendedInventoryTeamCommandController(
+                    runtime.Commands,
+                    new ExtendedInventoryTeamCommandExecutor(
+                        targetGateway,
+                        runtime.Players,
+                        runtime.Authorization,
+                        new CounterStrikeExtendedInventoryTeamTransport(runtime.Players)));
+                protectedServerControlCommands = new ProtectedServerControlCommandController(
+                    runtime.Commands,
+                    new ProtectedServerControlExecutor(
+                        protectedServerControlPolicy,
+                        runtime.Authorization,
+                        runtime.AdminAudit,
+                        new CounterStrikeProtectedServerControlTransport(runtime.Players)));
 
                 transitionMonitor = rank is null
                     ? null
@@ -597,6 +673,12 @@ public sealed class AnoCorePlugin : BasePlugin
                 _kickCommands = kickCommands;
                 _connectBan = connectBan;
                 _warningCommands = warningCommands;
+                _extendedPlayerState = extendedPlayerState;
+                _extendedAdminCommands = extendedAdminCommands;
+                _extendedPositions = extendedPositions;
+                _extendedPositionCommands = extendedPositionCommands;
+                _extendedInventoryTeamCommands = extendedInventoryTeamCommands;
+                _protectedServerControlCommands = protectedServerControlCommands;
                 _communicationModeration = communicationModeration;
                 _chatModeration = chatModeration;
                 _chatFormatSnapshots = chatFormatSnapshots;
@@ -641,6 +723,11 @@ public sealed class AnoCorePlugin : BasePlugin
                 rankAdminCommands?.Dispose();
                 rankAdminNotifications?.Dispose();
                 warningCommands?.Dispose();
+                protectedServerControlCommands?.Dispose();
+                extendedInventoryTeamCommands?.Dispose();
+                extendedPositionCommands?.Dispose();
+                extendedAdminCommands?.Dispose();
+                extendedPlayerState?.Dispose();
                 adminCommands?.Dispose();
                 kickCommands?.Dispose();
                 connectBan?.Dispose();
@@ -682,9 +769,29 @@ public sealed class AnoCorePlugin : BasePlugin
         }
     }
 
+    private ProtectedServerControlPolicy BuildProtectedServerControlPolicy(
+        ProtectedServerControlConfiguration? configuration)
+    {
+        try
+        {
+            return ProtectedServerControlPolicy.Create(
+                configuration ?? new ProtectedServerControlConfiguration());
+        }
+        catch (ArgumentException exception)
+        {
+            Logger.LogError(
+                exception,
+                "Protected server-control configuration is invalid; ConVar and server-command allow-lists are disabled.");
+            return ProtectedServerControlPolicy.Create(
+                new ProtectedServerControlConfiguration());
+        }
+    }
+
     public sealed class RuntimeConfiguration
     {
         public string ConnectionString { get; set; } = string.Empty;
+
+        public ProtectedServerControlConfiguration ProtectedServerControls { get; set; } = new();
     }
 
     private void RegisterLifecycleHooks()
@@ -698,7 +805,9 @@ public sealed class AnoCorePlugin : BasePlugin
         RegisterEventHandler<EventPlayerDisconnect>(OnPlayerDisconnect);
         RegisterEventHandler<EventPlayerTeam>(OnPlayerTeam);
         RegisterEventHandler<EventPlayerSpawn>(OnPlayerSpawn);
+        RegisterEventHandler<EventPlayerDeath>(OnPlayerDeathPosition, HookMode.Pre);
         RegisterEventHandler<EventPlayerDeath>(OnPlayerDeath);
+        RegisterListener<Listeners.OnMapEnd>(OnMapEnd);
         _lifecycleHooksRegistered = true;
     }
 
@@ -713,7 +822,9 @@ public sealed class AnoCorePlugin : BasePlugin
         DeregisterEventHandler<EventPlayerDisconnect>(OnPlayerDisconnect);
         DeregisterEventHandler<EventPlayerTeam>(OnPlayerTeam);
         DeregisterEventHandler<EventPlayerSpawn>(OnPlayerSpawn);
+        DeregisterEventHandler<EventPlayerDeath>(OnPlayerDeathPosition, HookMode.Pre);
         DeregisterEventHandler<EventPlayerDeath>(OnPlayerDeath);
+        RemoveListener<Listeners.OnMapEnd>(OnMapEnd);
         _lifecycleHooksRegistered = false;
     }
 
@@ -742,8 +853,16 @@ public sealed class AnoCorePlugin : BasePlugin
 
         if (_players.TryGet(id, out var current) && current is not null)
         {
+            var registry = _players;
+            var state = _extendedPlayerState;
+            var positions = _extendedPositions;
             Observe(
-                _players.DisconnectAsync(id, current.SessionId, DateTimeOffset.UtcNow).AsTask(),
+                ExtendedAdministrationDisconnect.DisconnectAsync(
+                    registry,
+                    state,
+                    positions,
+                    current,
+                    DateTimeOffset.UtcNow).AsTask(),
                 "player_disconnect");
         }
 
@@ -762,9 +881,57 @@ public sealed class AnoCorePlugin : BasePlugin
         return HookResult.Continue;
     }
 
+    private HookResult OnPlayerDeathPosition(EventPlayerDeath @event, GameEventInfo _)
+    {
+        var registry = _players;
+        var positions = _extendedPositions;
+        var controller = @event.Userid;
+        if (registry is null
+            || positions is null
+            || controller is null
+            || !controller.IsValid
+            || controller.SteamID == 0)
+        {
+            return HookResult.Continue;
+        }
+
+        PlayerId id;
+        try
+        {
+            id = new PlayerId(controller.SteamID);
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            return HookResult.Continue;
+        }
+
+        var origin = controller.PlayerPawn.Value?.AbsOrigin;
+        if (origin is not null
+            && registry.TryGet(id, out var current)
+            && current is not null
+            && current.IsConnected)
+        {
+            try
+            {
+                positions.RecordDeathPosition(
+                    current,
+                    new PlayerWorldPosition(origin.X, origin.Y, origin.Z));
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                Logger.LogWarning(
+                    "Skipped an out-of-range death position for player {PlayerId}.",
+                    id);
+            }
+        }
+
+        return HookResult.Continue;
+    }
+
     private HookResult OnPlayerDeath(EventPlayerDeath @event, GameEventInfo _)
     {
         RecordCombatDeath(@event);
+        ReleaseExtendedStateForController(@event.Userid, "extended_admin_player_death");
         RefreshNextFrame(@event.Userid, "player_death");
         return HookResult.Continue;
     }
@@ -803,6 +970,21 @@ public sealed class AnoCorePlugin : BasePlugin
         var id = new PlayerId(controller.SteamID);
         return _players.TryGet(id, out var player) && player?.IsConnected == true
             ? player : null;
+    }
+
+    private void OnMapEnd()
+    {
+        var state = _extendedPlayerState;
+        if (state is not null)
+        {
+            Observe(state.ForgetAllAsync().AsTask(), "extended_admin_map_end");
+        }
+
+        var positions = _extendedPositions;
+        if (positions is not null)
+        {
+            Observe(positions.ForgetAllAsync().AsTask(), "extended_position_map_end");
+        }
     }
 
     private void BootstrapConnectedPlayers()
@@ -878,6 +1060,50 @@ public sealed class AnoCorePlugin : BasePlugin
         }
 
         Observe(_players.UpdateAsync(update).AsTask(), operation);
+    }
+
+    private void ReleaseExtendedStateForController(
+        CCSPlayerController? controller,
+        string operation)
+    {
+        var registry = _players;
+        var state = _extendedPlayerState;
+        if (registry is null
+            || state is null
+            || controller is null
+            || !controller.IsValid
+            || controller.SteamID == 0)
+        {
+            return;
+        }
+
+        PlayerId id;
+        try
+        {
+            id = new PlayerId(controller.SteamID);
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            return;
+        }
+
+        if (registry.TryGet(id, out var current) && current is not null)
+        {
+            Observe(state.ReleaseSessionAsync(current).AsTask(), operation);
+        }
+    }
+
+    private static async Task ReleaseAndDisposeExtendedPlayerStateAsync(
+        ExtendedPlayerStateService state)
+    {
+        try
+        {
+            await state.ReleaseAllAsync().ConfigureAwait(false);
+        }
+        finally
+        {
+            state.Dispose();
+        }
     }
 
     private void Observe(Task operation, string context)

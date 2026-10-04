@@ -1,3 +1,11 @@
+# Extended administration integration checkpoint — 2026-10-04
+
+- The #157 candidate now combines the #165/#166/#167/#168 stack with the existing rank notification preference, stats/chat/settings/moderation and CustomHud stacks.
+- Review correction #176 invalidates disconnected registry sessions before waiting for admin cleanup; regression tests cover a blocked action with reconnect and failed event observers.
+- Composition conflicts preserve both command families, combat death recording plus state cleanup, pre-death position capture and map-end cleanup.
+- The individual admin PRs #172/#173/#174 remain native acceptance candidates. This integration does not close their live gates or promote the full system to main.
+- Use docs/full-system-test.md for the combined build; full statistics/playtime policies, tournament and platform scope remain outstanding.
+
 # Rank notification preference checkpoint — 2026-10-04
 
 - Issue #170 / branch `feature/170-rank-notification-toggle` gives the #157 integration candidate its first real player-toggle option: `rank.notifications`, default enabled.
