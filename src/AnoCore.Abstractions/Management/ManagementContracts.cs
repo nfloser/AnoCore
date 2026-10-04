@@ -275,11 +275,6 @@ public interface IManagementCapabilityRegistry
         Func<ManagementRequestContext, ManagementOperationRequest,
             CancellationToken, ValueTask<ManagementOperationResult>> handler);
 
-    ValueTask<ManagementOperationResult> ExecuteAsync(
-        ManagementRequestContext context,
-        ManagementOperationRequest request,
-        CancellationToken cancellationToken = default);
-
     IReadOnlyList<ManagementCapabilityDescriptor> GetCapabilities();
 }
 
