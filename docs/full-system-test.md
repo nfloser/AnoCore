@@ -68,6 +68,8 @@ Use controlled kills/deaths/assists and at least one reconnect.
 - Playtime advances through checkpoints and survives reconnect/restart.
 - Duplicate/late session callbacks do not double-count.
 - Kills, deaths and assists persist and `anokda` reflects the expected totals.
+- Fire a controlled set of shots and body/head hits; `anodetailstats` reports persisted shots/hits/damage and `anohitgroups` reports the expected bounded hitgroup buckets.
+- Repeat detail queries with map and weapon filters. Team/self damage must not inflate the default offensive totals; world/unattributed damage must not be credited to a player attacker.
 - Kill/death/assist toplists use stable ordering for ties.
 - Rank score, placement and progress match the configured thresholds.
 - Administrative give/take/set/reset operations persist and are audited.
