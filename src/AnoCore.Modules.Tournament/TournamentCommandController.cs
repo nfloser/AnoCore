@@ -19,6 +19,7 @@ public sealed class TournamentCommandController : IDisposable
     private readonly TournamentRecoveryService _recovery;
     private readonly TournamentMatchRuntime _runtime;
     private readonly IAdminAuditService _audit;
+    private readonly TournamentSpectatorPolicySource? _spectatorPolicies;
     private readonly TimeProvider _time;
     private readonly SemaphoreSlim _mutation = new(1, 1);
     private readonly List<IDisposable> _registrations = [];
@@ -31,7 +32,8 @@ public sealed class TournamentCommandController : IDisposable
         TournamentRecoveryService recovery,
         TournamentMatchRuntime runtime,
         IAdminAuditService audit,
-        TimeProvider? time = null)
+        TimeProvider? time = null,
+        TournamentSpectatorPolicySource? spectatorPolicies = null)
     {
         _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
         ArgumentNullException.ThrowIfNull(commands);
@@ -40,6 +42,7 @@ public sealed class TournamentCommandController : IDisposable
         _runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
         _audit = audit ?? throw new ArgumentNullException(nameof(audit));
         _time = time ?? TimeProvider.System;
+        _spectatorPolicies = spectatorPolicies;
 
         try
         {
@@ -214,9 +217,11 @@ public sealed class TournamentCommandController : IDisposable
             }
 
             TournamentMatchConfiguration match;
+            TournamentSpectatorPolicy spectatorPolicy;
             try
             {
                 match = definition.ToConfiguration();
+                spectatorPolicy = definition.ToSpectatorPolicy();
             }
             catch (Exception exception) when (
                 exception is ArgumentException or InvalidOperationException)
@@ -250,6 +255,7 @@ public sealed class TournamentCommandController : IDisposable
             }
 
             _runtime.Replace(session);
+            _spectatorPolicies?.Replace(spectatorPolicy);
             if (!await AuditCompletedAsync(
                     "load", context.Caller, reason, context.CancellationToken)
                     .ConfigureAwait(false))
@@ -542,6 +548,8 @@ public sealed class TournamentCommandController : IDisposable
             }
 
             _runtime.Replace(result.Deactivate ? null : candidate);
+            if (result.Deactivate)
+                _spectatorPolicies?.Replace(null);
 
             if (!await AuditCompletedAsync(
                     action, context.Caller, auditReason, context.CancellationToken)
@@ -562,8 +570,36 @@ public sealed class TournamentCommandController : IDisposable
     {
         try
         {
-            _runtime.Replace(await _recovery.RestoreActiveAsync(cancellationToken)
-                .ConfigureAwait(false));
+            var restored = await _recovery.RestoreActiveAsync(cancellationToken)
+                .ConfigureAwait(false);
+            _runtime.Replace(restored);
+            if (_spectatorPolicies is null)
+                return;
+
+            if (restored is null)
+            {
+                _spectatorPolicies.Replace(null);
+                return;
+            }
+
+            try
+            {
+                var definition = await _configuration.LoadAsync(
+                    DefinitionConfigName,
+                    () => TournamentMatchDefinition.Default,
+                    TournamentMatchDefinition.Validate,
+                    cancellationToken).ConfigureAwait(false);
+                var policy = definition.Enabled
+                    && Guid.TryParse(definition.MatchId, out var configuredMatch)
+                    && configuredMatch == restored.Machine.Configuration.MatchId
+                    ? definition.ToSpectatorPolicy()
+                    : null;
+                _spectatorPolicies.Replace(policy);
+            }
+            catch (Exception exception) when (exception is not OperationCanceledException)
+            {
+                _spectatorPolicies.Replace(null);
+            }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -572,6 +608,7 @@ public sealed class TournamentCommandController : IDisposable
         catch
         {
             _runtime.Replace(null);
+            _spectatorPolicies?.Replace(null);
         }
     }
 
