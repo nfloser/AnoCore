@@ -151,16 +151,13 @@ public sealed class ExtendedPlayerStateService : IDisposable
         await _operations.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            if (!_owned.Remove(player.SessionId, out var session))
+            if (!_owned.TryGetValue(player.SessionId, out var session))
             {
                 return;
             }
 
-            foreach (var baseline in session.Baselines.Values.Reverse())
-            {
-                await _transport.RestoreAsync(
-                    session.Player, baseline, cancellationToken).ConfigureAwait(false);
-            }
+            await RestoreSessionUnsafeAsync(
+                session, cancellationToken).ConfigureAwait(false);
         }
         finally
         {
@@ -222,16 +219,30 @@ public sealed class ExtendedPlayerStateService : IDisposable
         await _operations.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            var sessions = _owned.Values.ToArray();
-            _owned.Clear();
-
-            foreach (var session in sessions)
+            List<Exception>? failures = null;
+            foreach (var session in _owned.Values.ToArray())
             {
-                foreach (var baseline in session.Baselines.Values.Reverse())
+                try
                 {
-                    await _transport.RestoreAsync(
-                        session.Player, baseline, cancellationToken).ConfigureAwait(false);
+                    await RestoreSessionUnsafeAsync(
+                        session, cancellationToken).ConfigureAwait(false);
                 }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    throw;
+                }
+                catch (Exception exception)
+                {
+                    failures ??= [];
+                    failures.Add(exception);
+                }
+            }
+
+            if (failures is not null)
+            {
+                throw new AggregateException(
+                    "One or more AnoCore-owned player states could not be restored.",
+                    failures);
             }
         }
         finally
@@ -249,6 +260,23 @@ public sealed class ExtendedPlayerStateService : IDisposable
 
         _owned.Clear();
         _operations.Dispose();
+    }
+
+    private async ValueTask RestoreSessionUnsafeAsync(
+        SessionOwnership session,
+        CancellationToken cancellationToken)
+    {
+        foreach (var baseline in session.Baselines.Values.Reverse().ToArray())
+        {
+            await _transport.RestoreAsync(
+                session.Player, baseline, cancellationToken).ConfigureAwait(false);
+            session.Baselines.Remove(baseline.Facet);
+        }
+
+        if (session.Baselines.Count == 0)
+        {
+            _owned.Remove(session.Player.SessionId);
+        }
     }
 
     private async ValueTask<bool> ReleaseFacetUnsafeAsync(
