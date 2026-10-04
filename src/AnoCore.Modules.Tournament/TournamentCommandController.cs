@@ -482,8 +482,7 @@ public sealed class TournamentCommandController : IDisposable
             }
             catch (Exception exception) when (
                 exception is ArgumentException
-                or InvalidOperationException
-                or ArgumentOutOfRangeException)
+                or InvalidOperationException)
             {
                 return CommandResult.Fail(CommandFailureReason.InvalidInput, exception.Message);
             }
