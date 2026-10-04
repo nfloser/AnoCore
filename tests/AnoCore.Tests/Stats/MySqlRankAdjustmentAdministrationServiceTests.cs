@@ -111,7 +111,7 @@ public sealed class MySqlRankAdjustmentAdministrationServiceTests
         await _database.WithConnectionAsync(async (connection, token) =>
         {
             foreach (var table in new[] {
-                "ano_combat_damage", "ano_combat_weapon_fire", "ano_rank_adjustments", "ano_playtime_segments",
+                "ano_gameplay_stats", "ano_combat_damage", "ano_combat_weapon_fire", "ano_rank_adjustments", "ano_playtime_segments",
                 "ano_combat_deaths", "ano_playtime_sessions", "ano_admin_warnings", "ano_admin_action_audit",
                 "ano_moderation_audit", "ano_moderation_sanctions", "ano_module_data", "ano_players",
                 "ano_schema_migrations"
