@@ -436,6 +436,7 @@ public sealed class AnoCorePlugin : BasePlugin
             createdAnoVeto?.Dispose();
             createdPlaytime?.Dispose();
             createdRank?.Dispose();
+            createdGameplayStats?.Dispose();
             createdChatTags?.Dispose();
             created?.Dispose();
         }
@@ -444,6 +445,7 @@ public sealed class AnoCorePlugin : BasePlugin
             createdAnoVeto?.Dispose();
             createdPlaytime?.Dispose();
             createdRank?.Dispose();
+            createdGameplayStats?.Dispose();
             createdChatTags?.Dispose();
             created?.Dispose();
             lock (_startupGate)
@@ -744,6 +746,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 playtimeTimer?.Kill();
                 playtime?.Dispose();
                 rank?.Dispose();
+                gameplayStats?.Dispose();
                 chatTags?.Dispose();
                 combat?.Dispose();
                 transitionMonitor?.Dispose();
