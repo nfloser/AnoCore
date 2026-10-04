@@ -132,6 +132,8 @@ jobs:
           test -s artifacts/plugins/AnoCore/AnoCore.dll
           test -s artifacts/plugins/AnoCore/AnoCore.Runtime.dll
           test -s artifacts/plugins/AnoCore/AnoCore.Abstractions.dll
+          test -s artifacts/plugins/AnoCore/AnoCore.Modules.Admin.dll
+          test -s artifacts/plugins/AnoCore/AnoCore.Modules.Stats.dll
           test -s artifacts/plugins/AnoCore/AnoCore.Modules.AnoVeto.dll
           test -s artifacts/plugins/AnoCore/MySqlConnector.dll
           test -s artifacts/plugins/AnoCore/AnoCore.deps.json
