@@ -115,6 +115,38 @@ public sealed class MySqlPlaytimeRepositoryTests
     }
 
     [TestMethod]
+    public async Task DelayedStateTransition_SplitsAlreadyAccountedOpenSegment()
+    {
+        await new MigrationRunner(_database, [
+            new CoreSchemaMigration001(), new ModerationSchemaMigration002(),
+            new AdminAuditSchemaMigration003(), new WarningSchemaMigration004(),
+            new PlaytimeSchemaMigration005(), new CombatSchemaMigration006(),
+            new RankAdjustmentSchemaMigration007(), new PlaytimeStateSchemaMigration008()])
+            .ApplyPendingAsync();
+
+        var session = PlayerSessionId.New();
+        var repository = new MySqlPlaytimeRepository(_database);
+        await repository.OpenStateAsync(Player, session, Start,
+            new PlaytimeState(PlayerTeam.Terrorist, true));
+        await repository.AdvanceStateAsync(Player, session, Start.AddSeconds(30),
+            new PlaytimeState(PlayerTeam.Terrorist, true));
+        await repository.AdvanceStateAsync(Player, session, Start.AddSeconds(20),
+            new PlaytimeState(PlayerTeam.CounterTerrorist, true));
+        await repository.AdvanceStateAsync(Player, session, Start.AddSeconds(40),
+            new PlaytimeState(PlayerTeam.CounterTerrorist, true), close: true);
+
+        var totals = await repository.ReadAsync(Player, new DateOnly(2026, 9, 26));
+        Assert.AreEqual(TimeSpan.FromSeconds(40), totals.Total);
+
+        var breakdown = await repository.ReadStateBreakdownAsync(
+            Player, new DateOnly(2026, 9, 26));
+        Assert.AreEqual(TimeSpan.FromSeconds(20), breakdown.Single(entry =>
+            entry.Team == PlayerTeam.Terrorist && entry.IsAlive).Total);
+        Assert.AreEqual(TimeSpan.FromSeconds(20), breakdown.Single(entry =>
+            entry.Team == PlayerTeam.CounterTerrorist && entry.IsAlive).Total);
+    }
+
+    [TestMethod]
     public async Task StaleDisconnect_ClosesAtCurrentCheckpointAndRejectsLaterAdvance()
     {
         await new MigrationRunner(_database, [
