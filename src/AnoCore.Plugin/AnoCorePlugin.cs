@@ -257,7 +257,8 @@ public sealed class AnoCorePlugin : BasePlugin
                         "AnoCore runtime did not provide the shared placeholder registry.");
                 createdRank = await RankModule.CreateAsync(
                     configuration, created.Commands, players, created.Combat,
-                    created.Menus, placeholders, timeout.Token).ConfigureAwait(false);
+                    created.Menus, placeholders, created.ToggleCatalog, timeout.Token)
+                    .ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
@@ -480,7 +481,11 @@ public sealed class AnoCorePlugin : BasePlugin
                         rank.Configuration,
                         runtime.RankAdjustmentAdministration,
                         runtime.Combat,
-                        new CounterStrikeRankTransitionNotifier(runtime.Players),
+                        new RankNotificationPreferenceSink(
+                            runtime.Settings,
+                            new CounterStrikeRankTransitionNotifier(runtime.Players),
+                            exception => Logger.LogError(
+                                exception, "Rank notification preference read failed.")),
                         exception => Logger.LogError(
                             exception, "Rank adjustment notification failed."),
                         rankScoreChanges);
@@ -509,7 +514,11 @@ public sealed class AnoCorePlugin : BasePlugin
                     : new RankTransitionMonitor(
                         rank.Configuration,
                         runtime.Combat,
-                        new CounterStrikeRankTransitionNotifier(runtime.Players),
+                        new RankNotificationPreferenceSink(
+                            runtime.Settings,
+                            new CounterStrikeRankTransitionNotifier(runtime.Players),
+                            exception => Logger.LogError(
+                                exception, "Rank notification preference read failed.")),
                         rankScoreChanges);
                 combat = new CombatModule(
                     runtime.Commands, runtime.Players, runtime.Combat, transitionMonitor);
