@@ -157,7 +157,7 @@ public sealed class MySqlTournamentMatchRepositoryTests
         var repository = new MySqlTournamentMatchRepository(_database);
         var configuration = Configuration(TournamentBestOf.One);
 
-        await Assert.ThrowsExceptionAsync<Exception>(async () =>
+        await Assert.ThrowsExactlyAsync<MySqlConnector.MySqlException>(async () =>
             await repository.StoreAsync(
                 configuration,
                 new TournamentMatchStateMachine(configuration).Snapshot(),
