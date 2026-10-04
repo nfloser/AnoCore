@@ -172,9 +172,13 @@ public sealed class ManagementHttpAdapter
             }
         }
 
-        normalized.TryGetValue(CorrelationHeader, out var correlation);
-        correlation = ValidCorrelation(correlation) ? correlation!.Trim() : "invalid";
+        if (!normalized.TryGetValue(CorrelationHeader, out var correlation)
+            || !ValidCorrelation(correlation))
+        {
+            return false;
+        }
 
+        correlation = correlation.Trim();
         if (!normalized.TryGetValue(TokenHeader, out var tokenId)
             || !ValidTokenId(tokenId)
             || !normalized.TryGetValue("Authorization", out var authorization)
