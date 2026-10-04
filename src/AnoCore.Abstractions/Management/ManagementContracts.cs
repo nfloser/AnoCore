@@ -115,21 +115,51 @@ public sealed record ManagementOperationRequest
     public IReadOnlyDictionary<string, string> Arguments { get; }
 }
 
-public sealed record ManagementOperationResult(
-    bool Success,
-    string Code,
-    string Message,
-    IReadOnlyDictionary<string, string>? Data = null)
+public sealed record ManagementOperationResult
 {
+    public ManagementOperationResult(
+        bool success,
+        string code,
+        string message,
+        IReadOnlyDictionary<string, string>? data = null)
+    {
+        Success = success;
+        Code = ManagementValidation.Identifier(code, nameof(code), 64, allowDot: true);
+        Message = ManagementValidation.Text(
+            message, nameof(message), 0, 512, allowEmpty: true);
+
+        var values = data ?? new Dictionary<string, string>();
+        if (values.Count > 32)
+            throw new ArgumentException(
+                "Management results support at most 32 data values.", nameof(data));
+
+        var normalized = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var pair in values)
+        {
+            var key = ManagementValidation.Identifier(
+                pair.Key, nameof(data), 64, allowDot: true);
+            var value = ManagementValidation.Text(
+                pair.Value, nameof(data), 0, 2048, allowEmpty: true);
+            if (!normalized.TryAdd(key, value))
+                throw new ArgumentException(
+                    "Management result keys must be unique.", nameof(data));
+        }
+
+        Data = normalized;
+    }
+
+    public bool Success { get; }
+    public string Code { get; }
+    public string Message { get; }
+    public IReadOnlyDictionary<string, string> Data { get; }
+
     public static ManagementOperationResult Ok(
         string message,
         IReadOnlyDictionary<string, string>? data = null)
         => new(true, "ok", message, data);
 
     public static ManagementOperationResult Fail(string code, string message)
-        => new(false,
-            ManagementValidation.Identifier(code, nameof(code), 64, allowDot: true),
-            ManagementValidation.Text(message, nameof(message), 0, 512, allowEmpty: true));
+        => new(false, code, message);
 }
 
 public sealed record ManagementHealthSnapshot(
