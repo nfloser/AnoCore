@@ -437,7 +437,7 @@ public sealed class TournamentCommandController : IDisposable
             "abandon",
             expectedSession: null,
             authorize: null,
-            machine => MutationResult.Deactivate("[ANO] Tournament deactivated.", reason))
+            machine => MutationResult.DeactivateMatch("[ANO] Tournament deactivated.", reason))
             .ConfigureAwait(false);
     }
 
