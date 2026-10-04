@@ -15,6 +15,7 @@ using AnoCore.Plugin.Commands;
 using AnoCore.Plugin.Hud;
 using AnoCore.Plugin.Maps;
 using AnoCore.Plugin.Menus;
+using AnoCore.Plugin.Messaging;
 using AnoCore.Plugin.Moderation;
 using AnoCore.Plugin.Players;
 using AnoCore.Plugin.Tournament;
@@ -300,7 +301,9 @@ public sealed class AnoCorePlugin : BasePlugin
                 configuration,
                 events,
                 players,
-                timeout.Token).ConfigureAwait(false);
+                timeout.Token,
+                messageTransport: new CounterStrikeMessageTransport(players))
+                .ConfigureAwait(false);
 
             try
             {
