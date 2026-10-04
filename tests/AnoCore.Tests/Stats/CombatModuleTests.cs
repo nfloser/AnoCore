@@ -98,6 +98,51 @@ public sealed class CombatModuleTests
     }
 
     [TestMethod]
+    public async Task DetailCommands_RequireConnectedPlayerApplyFiltersAndDispose()
+    {
+        var events = new AnoEventBus();
+        var players = new PlayerRegistry(events);
+        var registry = new CommandRegistry(new AllowAll());
+        var repository = new DetailRepository
+        {
+            DetailTotals = new CombatDetailTotals(10, 4, 120, 20, 2),
+            Hitgroups = [new CombatHitgroupTotals(1, 2, 80, 10)],
+        };
+        var module = new CombatModule(registry, players, repository);
+
+        Assert.AreEqual(CommandFailureReason.InvalidInput,
+            (await registry.ExecuteAsync("!anodetailstats", null)).FailureReason);
+        await players.ConnectAsync(new PlayerConnection(
+            Attacker, "Attacker", PlayerTeam.Terrorist, true, Now));
+
+        var detail = await registry.ExecuteAsync(
+            "!anodetailstats de_dust2 ak47", Attacker);
+        Assert.IsTrue(detail.Success);
+        StringAssert.Contains(detail.Message!, "10 shot");
+        Assert.AreEqual("de_dust2", repository.LastFilter?.MapName);
+        Assert.AreEqual("ak47", repository.LastFilter?.Weapon);
+
+        var hitgroups = await registry.ExecuteAsync(
+            "!anohitgroups de_dust2 ak47", Attacker);
+        Assert.IsTrue(hitgroups.Success);
+        StringAssert.Contains(hitgroups.Message!, "HG1");
+        Assert.AreEqual(1, repository.HitgroupReads);
+
+        module.Dispose();
+        Assert.AreEqual(CommandFailureReason.NotFound,
+            (await registry.ExecuteAsync("!anodetailstats", Attacker)).FailureReason);
+        Assert.AreEqual(CommandFailureReason.NotFound,
+            (await registry.ExecuteAsync("!anohitgroups", Attacker)).FailureReason);
+
+        using var legacy = new CombatModule(
+            new CommandRegistry(new AllowAll()), players, new FakeRepository());
+        var legacyRegistry = new CommandRegistry(new AllowAll());
+        using var legacyModule = new CombatModule(legacyRegistry, players, new FakeRepository());
+        Assert.AreEqual(CommandFailureReason.NotFound,
+            (await legacyRegistry.ExecuteAsync("!anodetailstats", Attacker)).FailureReason);
+    }
+
+    [TestMethod]
     public async Task TopKills_ValidatesPageAndDisplaysStablePositions()
     {
         var players = new PlayerRegistry(new AnoEventBus());
@@ -214,6 +259,10 @@ public sealed class CombatModuleTests
     {
         public CombatWeaponFireEvent? LastWeaponFire { get; private set; }
         public CombatDamageEvent? LastDamage { get; private set; }
+        public CombatDetailTotals DetailTotals { get; set; } = new(0, 0, 0, 0, 0);
+        public IReadOnlyList<CombatHitgroupTotals> Hitgroups { get; set; } = [];
+        public CombatDetailFilter? LastFilter { get; private set; }
+        public int HitgroupReads { get; private set; }
 
         public ValueTask RecordWeaponFireAsync(CombatWeaponFireEvent weaponFire,
             CancellationToken cancellationToken = default)
@@ -231,12 +280,19 @@ public sealed class CombatModuleTests
 
         public ValueTask<CombatDetailTotals> ReadDetailsAsync(PlayerId playerId,
             CombatDetailFilter? filter = null, CancellationToken cancellationToken = default)
-            => ValueTask.FromResult(new CombatDetailTotals(0, 0, 0, 0, 0));
+        {
+            LastFilter = filter;
+            return ValueTask.FromResult(DetailTotals);
+        }
 
         public ValueTask<IReadOnlyList<CombatHitgroupTotals>> ReadHitgroupsAsync(
             PlayerId playerId, CombatDetailFilter? filter = null,
             CancellationToken cancellationToken = default)
-            => ValueTask.FromResult<IReadOnlyList<CombatHitgroupTotals>>([]);
+        {
+            LastFilter = filter;
+            HitgroupReads++;
+            return ValueTask.FromResult(Hitgroups);
+        }
     }
     }
 }
