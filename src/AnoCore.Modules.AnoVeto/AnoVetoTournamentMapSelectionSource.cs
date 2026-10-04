@@ -64,7 +64,14 @@ public sealed class AnoVetoTournamentMapSelectionSource : ITournamentMapSelectio
             throw new InvalidOperationException(
                 $"AnoVeto could not complete tournament selection: {completed.Failure}.");
         if (completed.Outcome != AnoVetoOutcome.MapSelected || completed.Winner is null)
+        {
+            lock (_gate)
+            {
+                if (ReferenceEquals(_active, active))
+                    _active = null;
+            }
             return null;
+        }
 
         var wanted = (int)active.BestOf;
         var maps = new List<string>(wanted) { completed.Winner.MapId };
