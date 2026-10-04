@@ -7,7 +7,7 @@ using AnoCore.Runtime.Persistence.Migrations;
 
 namespace AnoCore.Runtime.Stats;
 
-public sealed class MySqlCombatRepository : ICombatRepository
+public sealed class MySqlCombatRepository : ICombatDetailRepository
 {
     private readonly IDatabase _database;
 
@@ -79,6 +79,208 @@ public sealed class MySqlCombatRepository : ICombatRepository
             if (!await reader.ReadAsync(token).ConfigureAwait(false))
                 throw new InvalidOperationException("Combat aggregate query returned no row.");
             return new CombatTotals(reader.GetInt64(0), reader.GetInt64(1), reader.GetInt64(2));
+        }, cancellationToken);
+    }
+
+    public async ValueTask RecordWeaponFireAsync(CombatWeaponFireEvent weaponFire,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(weaponFire);
+        await _database.InTransactionAsync(async (connection, transaction, token) =>
+        {
+            await using (var insert = connection.CreateCommand())
+            {
+                insert.Transaction = transaction;
+                insert.CommandText = """
+                    INSERT INTO ano_combat_weapon_fire (
+                        event_id, player_steam_id, occurred_at_utc, map_name, weapon)
+                    VALUES (@id, @player, @occurred, @map, @weapon)
+                    ON DUPLICATE KEY UPDATE event_id = event_id
+                    """;
+                Add(insert, "@id", weaponFire.EventId.ToString("D"));
+                Add(insert, "@player", weaponFire.PlayerId.SteamId64);
+                Add(insert, "@occurred", weaponFire.OccurredAtUtc.UtcDateTime);
+                Add(insert, "@map", weaponFire.MapName);
+                Add(insert, "@weapon", weaponFire.Weapon);
+                await insert.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+            }
+
+            await using var verify = connection.CreateCommand();
+            verify.Transaction = transaction;
+            verify.CommandText = """
+                SELECT player_steam_id, occurred_at_utc, map_name, weapon
+                FROM ano_combat_weapon_fire
+                WHERE event_id = @id
+                FOR UPDATE
+                """;
+            Add(verify, "@id", weaponFire.EventId.ToString("D"));
+            await using var reader = await verify.ExecuteReaderAsync(token).ConfigureAwait(false);
+            if (!await reader.ReadAsync(token).ConfigureAwait(false)
+                || ReadPlayer(reader, 0) != weaponFire.PlayerId
+                || ReadUtc(reader, 1) != weaponFire.OccurredAtUtc
+                || !string.Equals(reader.GetString(2), weaponFire.MapName, StringComparison.Ordinal)
+                || !string.Equals(reader.GetString(3), weaponFire.Weapon, StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    "Combat weapon-fire event id conflicts with a different event.");
+            }
+
+            return true;
+        }, cancellationToken: cancellationToken).ConfigureAwait(false);
+    }
+
+    public async ValueTask RecordDamageAsync(CombatDamageEvent damage,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(damage);
+        await _database.InTransactionAsync(async (connection, transaction, token) =>
+        {
+            await using (var insert = connection.CreateCommand())
+            {
+                insert.Transaction = transaction;
+                insert.CommandText = """
+                    INSERT INTO ano_combat_damage (
+                        event_id, victim_steam_id, attacker_steam_id, occurred_at_utc,
+                        map_name, weapon, hitgroup, damage_health, damage_armor, is_team_damage)
+                    VALUES (
+                        @id, @victim, @attacker, @occurred,
+                        @map, @weapon, @hitgroup, @health, @armor, @team)
+                    ON DUPLICATE KEY UPDATE event_id = event_id
+                    """;
+                Add(insert, "@id", damage.EventId.ToString("D"));
+                Add(insert, "@victim", damage.VictimId.SteamId64);
+                Add(insert, "@attacker", Steam(damage.AttackerId));
+                Add(insert, "@occurred", damage.OccurredAtUtc.UtcDateTime);
+                Add(insert, "@map", damage.MapName);
+                Add(insert, "@weapon", damage.Weapon);
+                Add(insert, "@hitgroup", damage.Hitgroup);
+                Add(insert, "@health", damage.DamageHealth);
+                Add(insert, "@armor", damage.DamageArmor);
+                Add(insert, "@team", damage.IsTeamDamage);
+                await insert.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+            }
+
+            await using var verify = connection.CreateCommand();
+            verify.Transaction = transaction;
+            verify.CommandText = """
+                SELECT victim_steam_id, attacker_steam_id, occurred_at_utc,
+                    map_name, weapon, hitgroup, damage_health, damage_armor, is_team_damage
+                FROM ano_combat_damage
+                WHERE event_id = @id
+                FOR UPDATE
+                """;
+            Add(verify, "@id", damage.EventId.ToString("D"));
+            await using var reader = await verify.ExecuteReaderAsync(token).ConfigureAwait(false);
+            if (!await reader.ReadAsync(token).ConfigureAwait(false)
+                || ReadPlayer(reader, 0) != damage.VictimId
+                || ReadPlayer(reader, 1) != damage.AttackerId
+                || ReadUtc(reader, 2) != damage.OccurredAtUtc
+                || !string.Equals(reader.GetString(3), damage.MapName, StringComparison.Ordinal)
+                || !string.Equals(reader.GetString(4), damage.Weapon, StringComparison.Ordinal)
+                || reader.GetInt32(5) != damage.Hitgroup
+                || reader.GetInt32(6) != damage.DamageHealth
+                || reader.GetInt32(7) != damage.DamageArmor
+                || reader.GetBoolean(8) != damage.IsTeamDamage)
+            {
+                throw new InvalidOperationException(
+                    "Combat damage event id conflicts with a different event.");
+            }
+
+            return true;
+        }, cancellationToken: cancellationToken).ConfigureAwait(false);
+    }
+
+    public ValueTask<CombatDetailTotals> ReadDetailsAsync(PlayerId playerId,
+        CombatDetailFilter? filter = null, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(playerId);
+        filter ??= new CombatDetailFilter();
+        return _database.WithConnectionAsync(async (connection, token) =>
+        {
+            await using var command = connection.CreateCommand();
+            command.CommandText = """
+                SELECT
+                    (SELECT COUNT(*)
+                     FROM ano_combat_weapon_fire
+                     WHERE player_steam_id = @player
+                       AND (@map IS NULL OR map_name = @map)
+                       AND (@weapon IS NULL OR weapon = @weapon)),
+                    (SELECT COUNT(*)
+                     FROM ano_combat_damage
+                     WHERE attacker_steam_id = @player
+                       AND (@map IS NULL OR map_name = @map)
+                       AND (@weapon IS NULL OR weapon = @weapon)
+                       AND (@include_team = 1 OR is_team_damage = 0)
+                       AND (@include_self = 1 OR victim_steam_id <> @player)),
+                    (SELECT COALESCE(SUM(damage_health), 0)
+                     FROM ano_combat_damage
+                     WHERE attacker_steam_id = @player
+                       AND (@map IS NULL OR map_name = @map)
+                       AND (@weapon IS NULL OR weapon = @weapon)
+                       AND (@include_team = 1 OR is_team_damage = 0)
+                       AND (@include_self = 1 OR victim_steam_id <> @player)),
+                    (SELECT COALESCE(SUM(damage_armor), 0)
+                     FROM ano_combat_damage
+                     WHERE attacker_steam_id = @player
+                       AND (@map IS NULL OR map_name = @map)
+                       AND (@weapon IS NULL OR weapon = @weapon)
+                       AND (@include_team = 1 OR is_team_damage = 0)
+                       AND (@include_self = 1 OR victim_steam_id <> @player)),
+                    (SELECT COUNT(*)
+                     FROM ano_combat_damage
+                     WHERE attacker_steam_id = @player
+                       AND hitgroup = 1
+                       AND (@map IS NULL OR map_name = @map)
+                       AND (@weapon IS NULL OR weapon = @weapon)
+                       AND (@include_team = 1 OR is_team_damage = 0)
+                       AND (@include_self = 1 OR victim_steam_id <> @player))
+                """;
+            AddDetailFilter(command, playerId, filter);
+            await using var reader = await command.ExecuteReaderAsync(token).ConfigureAwait(false);
+            if (!await reader.ReadAsync(token).ConfigureAwait(false))
+                throw new InvalidOperationException("Combat detail aggregate query returned no row.");
+            return new CombatDetailTotals(
+                Long(reader.GetValue(0)),
+                Long(reader.GetValue(1)),
+                Long(reader.GetValue(2)),
+                Long(reader.GetValue(3)),
+                Long(reader.GetValue(4)));
+        }, cancellationToken);
+    }
+
+    public ValueTask<IReadOnlyList<CombatHitgroupTotals>> ReadHitgroupsAsync(PlayerId playerId,
+        CombatDetailFilter? filter = null, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(playerId);
+        filter ??= new CombatDetailFilter();
+        return _database.WithConnectionAsync<IReadOnlyList<CombatHitgroupTotals>>(async (connection, token) =>
+        {
+            await using var command = connection.CreateCommand();
+            command.CommandText = """
+                SELECT hitgroup, COUNT(*),
+                    COALESCE(SUM(damage_health), 0),
+                    COALESCE(SUM(damage_armor), 0)
+                FROM ano_combat_damage
+                WHERE attacker_steam_id = @player
+                  AND (@map IS NULL OR map_name = @map)
+                  AND (@weapon IS NULL OR weapon = @weapon)
+                  AND (@include_team = 1 OR is_team_damage = 0)
+                  AND (@include_self = 1 OR victim_steam_id <> @player)
+                GROUP BY hitgroup
+                ORDER BY hitgroup ASC
+                """;
+            AddDetailFilter(command, playerId, filter);
+            var result = new List<CombatHitgroupTotals>();
+            await using var reader = await command.ExecuteReaderAsync(token).ConfigureAwait(false);
+            while (await reader.ReadAsync(token).ConfigureAwait(false))
+            {
+                result.Add(new CombatHitgroupTotals(
+                    reader.GetInt32(0),
+                    Long(reader.GetValue(1)),
+                    Long(reader.GetValue(2)),
+                    Long(reader.GetValue(3))));
+            }
+            return result;
         }, cancellationToken);
     }
 
@@ -277,6 +479,22 @@ public sealed class MySqlCombatRepository : ICombatRepository
                 reader.IsDBNull(3) ? null : reader.GetString(3));
         }, cancellationToken);
     }
+
+    private static void AddDetailFilter(
+        DbCommand command, PlayerId playerId, CombatDetailFilter filter)
+    {
+        Add(command, "@player", playerId.SteamId64);
+        Add(command, "@map", filter.MapName is null ? DBNull.Value : filter.MapName);
+        Add(command, "@weapon", filter.Weapon is null ? DBNull.Value : filter.Weapon);
+        Add(command, "@include_team", filter.IncludeTeamDamage ? 1 : 0);
+        Add(command, "@include_self", filter.IncludeSelfDamage ? 1 : 0);
+    }
+
+    private static DateTimeOffset ReadUtc(DbDataReader reader, int index)
+        => new(DateTime.SpecifyKind(reader.GetDateTime(index), DateTimeKind.Utc));
+
+    private static long Long(object value)
+        => Convert.ToInt64(value, CultureInfo.InvariantCulture);
 
     private static PlayerId? ReadPlayer(DbDataReader reader, int index)
         => reader.IsDBNull(index) ? null

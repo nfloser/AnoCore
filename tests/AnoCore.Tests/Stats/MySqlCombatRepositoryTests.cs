@@ -139,6 +139,95 @@ public sealed class MySqlCombatRepositoryTests
     }
 
     [TestMethod]
+    public async Task DetailEvents_ReplayIdempotentlyAndRejectConflictsAcrossRestart()
+    {
+        await new MigrationRunner(_database, [
+            new CoreSchemaMigration001(), new ModerationSchemaMigration002(),
+            new AdminAuditSchemaMigration003(), new WarningSchemaMigration004(),
+            new PlaytimeSchemaMigration005(), new CombatSchemaMigration006(),
+            new RankAdjustmentSchemaMigration007(), new PlaytimeStateSchemaMigration008(),
+            new CombatDetailSchemaMigration009()]).ApplyPendingAsync();
+
+        var repo = new MySqlCombatRepository(_database);
+        var fire = new CombatWeaponFireEvent(Guid.NewGuid(), Attacker, Now,
+            "de_dust2", "ak47");
+        var damage = new CombatDamageEvent(Guid.NewGuid(), Victim, Attacker,
+            Now.AddMilliseconds(5), "de_dust2", "ak47", 1, 42, 8);
+
+        await repo.RecordWeaponFireAsync(fire);
+        await repo.RecordWeaponFireAsync(fire);
+        await repo.RecordDamageAsync(damage);
+        await repo.RecordDamageAsync(damage);
+
+        var restarted = new MySqlCombatRepository(_database);
+        Assert.AreEqual(new CombatDetailTotals(1, 1, 42, 8, 1),
+            await restarted.ReadDetailsAsync(Attacker));
+
+        await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () =>
+            await restarted.RecordWeaponFireAsync(new CombatWeaponFireEvent(
+                fire.EventId, Attacker, fire.OccurredAtUtc, "de_dust2", "awp")));
+        await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () =>
+            await restarted.RecordDamageAsync(new CombatDamageEvent(
+                damage.EventId, Victim, Attacker, damage.OccurredAtUtc,
+                "de_dust2", "ak47", 2, 42, 8)));
+    }
+
+    [TestMethod]
+    public async Task DetailQueries_FilterMapWeaponHitgroupsAndPolicyFlags()
+    {
+        await new MigrationRunner(_database, [
+            new CoreSchemaMigration001(), new ModerationSchemaMigration002(),
+            new AdminAuditSchemaMigration003(), new WarningSchemaMigration004(),
+            new PlaytimeSchemaMigration005(), new CombatSchemaMigration006(),
+            new RankAdjustmentSchemaMigration007(), new PlaytimeStateSchemaMigration008(),
+            new CombatDetailSchemaMigration009()]).ApplyPendingAsync();
+
+        var repo = new MySqlCombatRepository(_database);
+        await repo.RecordWeaponFireAsync(new CombatWeaponFireEvent(
+            Guid.NewGuid(), Attacker, Now, "de_dust2", "ak47"));
+        await repo.RecordWeaponFireAsync(new CombatWeaponFireEvent(
+            Guid.NewGuid(), Attacker, Now.AddMilliseconds(1), "de_dust2", "ak47"));
+        await repo.RecordWeaponFireAsync(new CombatWeaponFireEvent(
+            Guid.NewGuid(), Attacker, Now.AddMilliseconds(2), "de_nuke", "awp"));
+
+        await repo.RecordDamageAsync(new CombatDamageEvent(
+            Guid.NewGuid(), Victim, Attacker, Now.AddMilliseconds(3),
+            "de_dust2", "ak47", 1, 40, 5));
+        await repo.RecordDamageAsync(new CombatDamageEvent(
+            Guid.NewGuid(), Victim, Attacker, Now.AddMilliseconds(4),
+            "de_dust2", "ak47", 2, 10, 0, isTeamDamage: true));
+        await repo.RecordDamageAsync(new CombatDamageEvent(
+            Guid.NewGuid(), Attacker, Attacker, Now.AddMilliseconds(5),
+            "de_dust2", "hegrenade", 0, 15, 0));
+        await repo.RecordDamageAsync(new CombatDamageEvent(
+            Guid.NewGuid(), Victim, Attacker, Now.AddMilliseconds(6),
+            "de_nuke", "awp", 2, 80, 20));
+        await repo.RecordDamageAsync(new CombatDamageEvent(
+            Guid.NewGuid(), Victim, null, Now.AddMilliseconds(7),
+            "de_nuke", "world", 0, 25, 0));
+
+        Assert.AreEqual(new CombatDetailTotals(3, 2, 120, 25, 1),
+            await repo.ReadDetailsAsync(Attacker));
+        Assert.AreEqual(new CombatDetailTotals(3, 3, 130, 25, 1),
+            await repo.ReadDetailsAsync(Attacker,
+                new CombatDetailFilter(includeTeamDamage: true)));
+        Assert.AreEqual(new CombatDetailTotals(2, 1, 40, 5, 1),
+            await repo.ReadDetailsAsync(Attacker,
+                new CombatDetailFilter("de_dust2", "ak47")));
+
+        var self = await repo.ReadDetailsAsync(Attacker,
+            new CombatDetailFilter(includeSelfDamage: true));
+        Assert.AreEqual(3L, self.Hits);
+        Assert.AreEqual(135L, self.DamageHealth);
+
+        var hitgroups = await repo.ReadHitgroupsAsync(Attacker);
+        CollectionAssert.AreEqual(new[] { 1, 2 },
+            hitgroups.Select(entry => entry.Hitgroup).ToArray());
+        Assert.AreEqual(40L, hitgroups.Single(entry => entry.Hitgroup == 1).DamageHealth);
+        Assert.AreEqual(80L, hitgroups.Single(entry => entry.Hitgroup == 2).DamageHealth);
+    }
+
+    [TestMethod]
     public async Task ScoreLeaderboard_AppliesWeightsFloorsAndStableTieOrder()
     {
         await new MigrationRunner(_database, [
@@ -220,7 +309,7 @@ public sealed class MySqlCombatRepositoryTests
         await _database.WithConnectionAsync(async (connection, token) =>
         {
             foreach (var table in new[] {
-                "ano_rank_adjustments", "ano_playtime_segments", "ano_combat_deaths", "ano_playtime_sessions", "ano_admin_warnings",
+                "ano_combat_damage", "ano_combat_weapon_fire", "ano_rank_adjustments", "ano_playtime_segments", "ano_combat_deaths", "ano_playtime_sessions", "ano_admin_warnings",
                 "ano_admin_action_audit", "ano_moderation_audit", "ano_moderation_sanctions",
                 "ano_module_data", "ano_players", "ano_schema_migrations" })
             {

@@ -97,6 +97,7 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
         Add<IPlaytimeRepository>(Playtime);
         Add<IPlaytimeStateRepository>(Playtime);
         Add<ICombatRepository>(Combat);
+        Add<ICombatDetailRepository>(Combat);
         Add<IRankAdjustmentRepository>(RankAdjustments);
         Add<IRankAdjustmentAdministrationService>(RankAdjustmentAdministration);
         Add<IWarningRepository>(WarningRepository);
@@ -167,7 +168,7 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
         ArgumentNullException.ThrowIfNull(players);
         await new DatabaseStartupProbe(
             database,
-            [new CoreSchemaMigration001(), new ModerationSchemaMigration002(), new AdminAuditSchemaMigration003(), new WarningSchemaMigration004(), new PlaytimeSchemaMigration005(), new CombatSchemaMigration006(), new RankAdjustmentSchemaMigration007(), new PlaytimeStateSchemaMigration008()])
+            [new CoreSchemaMigration001(), new ModerationSchemaMigration002(), new AdminAuditSchemaMigration003(), new WarningSchemaMigration004(), new PlaytimeSchemaMigration005(), new CombatSchemaMigration006(), new RankAdjustmentSchemaMigration007(), new PlaytimeStateSchemaMigration008(), new CombatDetailSchemaMigration009()])
             .EnsureReadyAsync(cancellationToken).ConfigureAwait(false);
         var runtime = new RuntimeServices(database, configuration, events, players);
         try
