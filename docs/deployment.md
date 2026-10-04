@@ -5,7 +5,7 @@ This package is for verifying the current AnoCore runtime on a test server. It i
 ## Requirements
 
 - CS2 with Metamod and CounterStrikeSharp installed.
-- CounterStrikeSharp API 374 or newer, with a .NET 10-compatible host.
+- CounterStrikeSharp API 374 or newer, with a .NET 10-compatible host. The current development artifact is built against API 1.0.376.
 - A successful AnoCore CI run for the exact commit being installed.
 
 An older server hosting other working plugins does not establish compatibility with this build. Inspect the installed CounterStrikeSharp version first.
@@ -15,21 +15,27 @@ An older server hosting other working plugins does not establish compatibility w
 1. Open the successful GitHub Actions CI run and download `AnoCore-development`.
 2. Extract it locally. Keep `BUILD-COMMIT.txt`, `LICENSE.md`, `NOTICE.md`, `INSTALL.md` and `AnoCore-source.zip` with the deployment record.
 3. Stop the test server and back up any existing `game/csgo/addons/counterstrikesharp/plugins/AnoCore` directory.
-4. Copy the complete `plugins/AnoCore` directory into `game/csgo/addons/counterstrikesharp/plugins/`. The result must include `AnoCore/AnoCore.dll`, `AnoCore.Runtime.dll`, `AnoCore.Abstractions.dll`, `AnoCore.deps.json` and the published dependency DLLs.
+4. Copy the complete `plugins/AnoCore` directory into `game/csgo/addons/counterstrikesharp/plugins/`. The result must include `AnoCore/AnoCore.dll`, `AnoCore.Runtime.dll`, `AnoCore.Abstractions.dll`, `AnoCore.Modules.Admin.dll`, `AnoCore.Modules.Stats.dll`, `AnoCore.Modules.AnoVeto.dll`, `AnoCore.deps.json` and the published dependency DLLs.
 5. Do not copy a private `CounterStrikeSharp.API.dll` into this directory.
 6. Configure the database as described below, then restart. Confirm the shared-services-ready message and no loader exceptions.
 7. Run `css_anostatus` in the server console, then connect a human player and run `!anostatus`.
 
 Copying only `AnoCore.dll` is insufficient. CI publishes the project dependency graph and checks the required files before uploading.
 
-## What works in this package
+## What is integrated in the full-system test package
 
-- Engine player lifecycle hooks and reconnect-aware registry.
-- Bootstrap of already-connected humans on manual load and hot reload.
-- Read-only status command reporting the tracked human count.
-- Old queued refresh callbacks are ignored after registry replacement.
+The integration candidate includes the shared runtime plus the currently code-complete native stacks in one artifact:
 
-The plugin initializes migrations, module data, player profiles, authorization, command/menu services, settings, placeholders and the vote service. Native core commands are bound only after successful database startup. Optional modules still require their individual integration and server acceptance.
+- reconnect-safe player lifecycle, profiles, permissions, commands, menus, settings and configuration reloads;
+- persistent moderation with connect-ban enforcement, mute/gag/silence handling, audited kick/silent-kick and warnings;
+- persistent playtime, kill/death/assist statistics, deterministic toplists and configurable ranks;
+- audited rank point administration, rank transition notifications and rank/menu views;
+- warmed native chat formatting, colors, rank/tag placeholders and permission-gated selectable tags;
+- self-service player toggle commands/menu;
+- AnoVeto using the Panorama CustomHud path plus live veto/map configuration reloads;
+- the prerelease `AnoCore.Abstractions` module SDK under `sdk/`.
+
+The plugin initializes migrations, module data, player profiles, authorization, command/menu services, settings, placeholders and voting only after successful database startup. These features are assembled for disposable-server verification; CI proves the automated gates, not native CS2/DatHost behavior. Use `full-system-test.md` for the exact real-server acceptance pass before treating the candidate as production-ready.
 
 ## Database configuration
 
