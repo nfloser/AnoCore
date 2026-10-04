@@ -159,6 +159,7 @@ public sealed class AnoCorePlugin : BasePlugin
             _pendingGameplayStats?.Dispose();
             _pendingGameplayStats = null;
             _pendingTournamentMatch = null;
+            _pendingTournamentMatch = null;
             _pendingChatFormatter = null;
             _pendingChatTags?.Dispose();
             _pendingChatTags = null;
@@ -537,6 +538,7 @@ public sealed class AnoCorePlugin : BasePlugin
             var playtime = _pendingPlaytime;
             var rank = _pendingRank;
             var gameplayStats = _pendingGameplayStats;
+            var tournamentMatch = _pendingTournamentMatch;
             var chatFormatter = _pendingChatFormatter;
             var chatTags = _pendingChatTags;
             _pendingRuntime = null;
@@ -569,6 +571,7 @@ public sealed class AnoCorePlugin : BasePlugin
             CounterStrikeChatModerationAdapter? chatModeration = null;
             ChatFormatSnapshotLifecycle? chatFormatSnapshots = null;
             ModerationVoiceCoordinator? voiceModeration = null;
+            TournamentTeamEnforcement? tournamentTeamEnforcement = null;
             var presenter = new CounterStrikeMenuPresenter(this, runtime.Menus, Logger);
             var bridge = new CounterStrikeCommandBridge(
                 this,
@@ -690,6 +693,23 @@ public sealed class AnoCorePlugin : BasePlugin
                 transitionMonitor = null;
                 var events = _eventBus
                     ?? throw new InvalidOperationException("AnoCore event bus is unavailable during activation.");
+                if (tournamentMatch is not null)
+                {
+                    tournamentTeamEnforcement = new TournamentTeamEnforcement(
+                        events,
+                        runtime.Players,
+                        tournamentMatch,
+                        new CounterStrikeTournamentTeamTransport(runtime.Players),
+                        (exception, player) => Logger.LogError(
+                            exception,
+                            "Tournament team enforcement failed for {PlayerId} session {SessionId}.",
+                            player.Id,
+                            player.SessionId));
+                    Observe(
+                        tournamentTeamEnforcement.ReconcileOnlineAsync(cancellationToken).AsTask(),
+                        "tournament_team_bootstrap");
+                }
+
                 if (chatFormatter is not null)
                 {
                     chatFormatSnapshots = new ChatFormatSnapshotLifecycle(
@@ -780,6 +800,8 @@ public sealed class AnoCorePlugin : BasePlugin
                 _playtime = playtime;
                 _rank = rank;
                 _gameplayStats = gameplayStats;
+                _tournamentMatch = tournamentMatch;
+                _tournamentTeamEnforcement = tournamentTeamEnforcement;
                 _chatFormatter = chatFormatter;
                 _chatTags = chatTags;
                 _combat = combat;
@@ -804,6 +826,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 playtime?.Dispose();
                 rank?.Dispose();
                 gameplayStats?.Dispose();
+                tournamentTeamEnforcement?.Dispose();
                 chatTags?.Dispose();
                 combat?.Dispose();
                 transitionMonitor?.Dispose();
