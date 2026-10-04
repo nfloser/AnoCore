@@ -295,8 +295,14 @@ public sealed class AnoCorePlugin : BasePlugin
             try
             {
                 createdGameplayStats = await GameplayStatsModule.CreateAsync(
-                    configuration, created.Commands, players, created.GameplayStats, timeout.Token)
-                    .ConfigureAwait(false);
+                    configuration,
+                    created.Commands,
+                    players,
+                    created.GameplayStats,
+                    created.Combat,
+                    created.Menus,
+                    events,
+                    timeout.Token).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
@@ -528,6 +534,8 @@ public sealed class AnoCorePlugin : BasePlugin
                 (commandName, player) =>
                 {
                     if (string.Equals(commandName, RankModule.MenuCommandName,
+                            StringComparison.Ordinal)
+                        || string.Equals(commandName, GameplayStatsModule.MenuCommandName,
                             StringComparison.Ordinal)
                         || string.Equals(commandName, SelectableChatTagModule.MenuCommandName,
                             StringComparison.Ordinal)
