@@ -138,7 +138,7 @@ public sealed class ManagementCapabilityRegistry : IManagementCapabilityRegistry
         }
     }
 
-    public async ValueTask<ManagementOperationResult> ExecuteAsync(
+    internal async ValueTask<ManagementOperationResult> ExecuteAsync(
         ManagementRequestContext context,
         ManagementOperationRequest request,
         CancellationToken cancellationToken = default)
