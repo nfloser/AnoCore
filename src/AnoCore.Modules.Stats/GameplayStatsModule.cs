@@ -232,7 +232,7 @@ public sealed class GameplayStatsModule : IDisposable
             return false;
 
         CombatDetailTotals? detail = null;
-        IReadOnlyList<CombatHitgroupTotal> hitgroups = [];
+        IReadOnlyList<CombatHitgroupTotals> hitgroups = [];
         if (_details is not null)
         {
             detail = await _details.ReadDetailsAsync(
@@ -314,7 +314,7 @@ public sealed class GameplayStatsModule : IDisposable
     private static IReadOnlyList<string> BuildMenuLines(
         CombatTotals combat,
         CombatDetailTotals? detail,
-        IReadOnlyList<CombatHitgroupTotal> hitgroups,
+        IReadOnlyList<CombatHitgroupTotals> hitgroups,
         IReadOnlyList<GameplayStatTotal> gameplay)
     {
         var lines = new List<string>
