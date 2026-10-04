@@ -11,6 +11,7 @@ public sealed class PlaytimeModule : IDisposable
 {
     private readonly IPlayerRegistry _players;
     private readonly IPlaytimeRepository _repository;
+    private readonly IPlaytimeStateRepository? _stateRepository;
     private readonly TimeProvider _clock;
     private readonly List<IDisposable> _subscriptions = [];
     private int _disposed;
@@ -19,6 +20,7 @@ public sealed class PlaytimeModule : IDisposable
     {
         _players = players;
         _repository = repository;
+        _stateRepository = repository as IPlaytimeStateRepository;
         _clock = clock;
     }
 
@@ -36,6 +38,11 @@ public sealed class PlaytimeModule : IDisposable
         {
             module._subscriptions.Add(events.Subscribe<PlayerConnectedEvent>(
                 (value, token) => module.OpenAsync(value.Player, token)));
+            if (module._stateRepository is not null)
+            {
+                module._subscriptions.Add(events.Subscribe<PlayerUpdatedEvent>(
+                    (value, token) => module.RecordAsync(value.Current, value.Current.LastUpdatedAtUtc, false, token)));
+            }
             module._subscriptions.Add(events.Subscribe<PlayerReconnectedEvent>(async (value, token) =>
             {
                 await module.RecordAsync(value.Previous, value.Current.ConnectedAtUtc, true, token)
@@ -79,11 +86,35 @@ public sealed class PlaytimeModule : IDisposable
         if (caller is null || !_players.TryGet(caller, out var player)
             || player is null || !player.IsConnected)
             return CommandResult.Fail(CommandFailureReason.InvalidInput, "A connected player is required.");
+        var sessionId = player.SessionId;
         var now = _clock.GetUtcNow();
         await RecordAsync(player, now, false, cancellationToken).ConfigureAwait(false);
-        var totals = await _repository.ReadAsync(caller,
-            DateOnly.FromDateTime(now.UtcDateTime), cancellationToken).ConfigureAwait(false);
-        return CommandResult.Ok($"[ANO] Playtime: {totals.Total:c}; today (UTC): {totals.Today:c}.");
+        if (!IsCurrentSession(caller, sessionId))
+            return SessionChanged();
+
+        var utcDay = DateOnly.FromDateTime(now.UtcDateTime);
+        var totals = await _repository.ReadAsync(caller, utcDay, cancellationToken).ConfigureAwait(false);
+        if (!IsCurrentSession(caller, sessionId))
+            return SessionChanged();
+
+        var message = $"[ANO] Playtime: {totals.Total:c}; today (UTC): {totals.Today:c}.";
+        if (_stateRepository is null) return CommandResult.Ok(message);
+
+        var breakdown = await _stateRepository.ReadStateBreakdownAsync(caller, utcDay, cancellationToken)
+            .ConfigureAwait(false);
+        if (!IsCurrentSession(caller, sessionId))
+            return SessionChanged();
+        var visible = breakdown
+            .Where(entry => entry.Total > TimeSpan.Zero)
+            .OrderBy(entry => entry.Team)
+            .ThenByDescending(entry => entry.IsAlive)
+            .Take(8)
+            .Select(entry => $"{Team(entry.Team)}/{(entry.IsAlive ? "alive" : "dead")} "
+                + $"{entry.Total:c} (today {entry.Today:c})")
+            .ToArray();
+        return visible.Length == 0
+            ? CommandResult.Ok(message)
+            : CommandResult.Ok($"{message} Breakdown: {string.Join(" | ", visible)}");
     }
 
     private async ValueTask<CommandResult> TopTimeAsync(CommandContext context)
@@ -101,18 +132,54 @@ public sealed class PlaytimeModule : IDisposable
             $"{entry.Position}. {Display(entry)}: {entry.Total:c}")));
     }
 
+    private bool IsCurrentSession(PlayerId playerId, PlayerSessionId sessionId)
+        => Volatile.Read(ref _disposed) == 0
+            && _players.TryGet(playerId, out var current)
+            && current is { IsConnected: true }
+            && current.SessionId == sessionId;
+
+    private static CommandResult SessionChanged()
+        => CommandResult.Fail(CommandFailureReason.InvalidInput,
+            "Player session changed before the playtime query completed.");
+
+    private static string Team(PlayerTeam team) => team switch
+    {
+        PlayerTeam.Terrorist => "T",
+        PlayerTeam.CounterTerrorist => "CT",
+        PlayerTeam.Spectator => "SPEC",
+        _ => "UNKNOWN",
+    };
+
     private static string Display(PlaytimeRankEntry entry)
         => string.IsNullOrWhiteSpace(entry.DisplayName)
             ? entry.PlayerId.SteamId64.ToString(System.Globalization.CultureInfo.InvariantCulture)
             : $"{entry.DisplayName.Replace('\r', ' ').Replace('\n', ' ').Replace('|', '/')} "
                 + $"({entry.PlayerId.SteamId64})";
 
-    private ValueTask OpenAsync(PlayerSnapshot player, CancellationToken cancellationToken)
-        => _repository.OpenAsync(player.Id, player.SessionId, player.ConnectedAtUtc, cancellationToken);
+    private async ValueTask OpenAsync(PlayerSnapshot player, CancellationToken cancellationToken)
+    {
+        if (_stateRepository is not null)
+        {
+            await _stateRepository.OpenStateAsync(player.Id, player.SessionId, player.ConnectedAtUtc,
+                new PlaytimeState(player.Team, player.IsAlive), cancellationToken).ConfigureAwait(false);
+            return;
+        }
+
+        await _repository.OpenAsync(player.Id, player.SessionId, player.ConnectedAtUtc, cancellationToken)
+            .ConfigureAwait(false);
+    }
 
     private async ValueTask RecordAsync(PlayerSnapshot player, DateTimeOffset atUtc, bool close,
         CancellationToken cancellationToken)
     {
+        if (_stateRepository is not null)
+        {
+            await _stateRepository.AdvanceStateAsync(player.Id, player.SessionId, atUtc,
+                new PlaytimeState(player.Team, player.IsAlive), close, cancellationToken)
+                .ConfigureAwait(false);
+            return;
+        }
+
         await OpenAsync(player, cancellationToken).ConfigureAwait(false);
         await _repository.AdvanceAsync(player.Id, player.SessionId, atUtc, close, cancellationToken)
             .ConfigureAwait(false);
