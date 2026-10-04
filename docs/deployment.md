@@ -15,7 +15,7 @@ An older server hosting other working plugins does not establish compatibility w
 1. Open the successful GitHub Actions CI run and download `AnoCore-development`.
 2. Extract it locally. Keep `BUILD-COMMIT.txt`, `LICENSE.md`, `NOTICE.md`, `INSTALL.md` and `AnoCore-source.zip` with the deployment record.
 3. Stop the test server and back up any existing `game/csgo/addons/counterstrikesharp/plugins/AnoCore` directory.
-4. Copy the complete `plugins/AnoCore` directory into `game/csgo/addons/counterstrikesharp/plugins/`. The result must include `AnoCore/AnoCore.dll`, `AnoCore.Runtime.dll`, `AnoCore.Abstractions.dll`, `AnoCore.Modules.Admin.dll`, `AnoCore.Modules.Stats.dll`, `AnoCore.Modules.AnoVeto.dll`, `AnoCore.deps.json` and the published dependency DLLs.
+4. Copy the complete `plugins/AnoCore` directory into `game/csgo/addons/counterstrikesharp/plugins/`. The result must include `AnoCore/AnoCore.dll`, `AnoCore.Runtime.dll`, `AnoCore.Abstractions.dll`, `AnoCore.Modules.Admin.dll`, `AnoCore.Modules.Stats.dll`, `AnoCore.Modules.AnoVeto.dll`, `AnoCore.Modules.Tournament.dll`, `AnoCore.Modules.Tournament.Persistence.dll`, `AnoCore.deps.json` and the published dependency DLLs.
 5. Do not copy a private `CounterStrikeSharp.API.dll` into this directory.
 6. Configure the database as described below, then restart. Confirm the shared-services-ready message and no loader exceptions.
 7. Run `css_anostatus` in the server console, then connect a human player and run `!anostatus`.
@@ -32,6 +32,7 @@ The integration candidate includes the shared runtime plus the currently code-co
 - audited rank point administration, rank transition notifications and rank/menu views;
 - warmed native chat formatting, colors, rank/tag placeholders and permission-gated selectable tags;
 - self-service player toggle commands/menu;
+- persisted tournament match recovery plus session-safe roster team assignment enforcement;
 - AnoVeto using the Panorama CustomHud path plus live veto/map configuration reloads;
 - the prerelease `AnoCore.Abstractions` module SDK under `sdk/`.
 

@@ -9,6 +9,8 @@
     <ProjectReference Include="..\AnoCore.Modules.Admin\AnoCore.Modules.Admin.csproj" />
     <ProjectReference Include="..\AnoCore.Modules.Stats\AnoCore.Modules.Stats.csproj" />
     <ProjectReference Include="..\AnoCore.Modules.AnoVeto\AnoCore.Modules.AnoVeto.csproj" />
+    <ProjectReference Include="..\AnoCore.Modules.Tournament\AnoCore.Modules.Tournament.csproj" />
+    <ProjectReference Include="..\AnoCore.Modules.Tournament.Persistence\AnoCore.Modules.Tournament.Persistence.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="CounterStrikeSharp.API" PrivateAssets="all" ExcludeAssets="runtime" />

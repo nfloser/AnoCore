@@ -59,3 +59,31 @@ transactional. The module-specific migration is applied through
 This package still does not force CS teams or intercept join-team actions. Native team
 locking/reconnect enforcement, veto presentation, demo recording and round backups
 remain explicit follow-up work under #21.
+
+
+## Team assignment enforcement
+
+When tournament persistence starts successfully, the plugin restores the single active
+match into `TournamentMatchRuntime`. Roster membership then becomes authoritative for
+T/CT assignment while that match is active.
+
+`TournamentTeamEnforcement` listens to connected, reconnected and player-state update
+events. A rostered player whose tracked team differs from the active match assignment
+is scheduled back to the assigned side. Matching players and non-rostered players are
+left untouched.
+
+Enforcement is bound to the current `PlayerSessionId`, deduplicates an in-flight
+correction per session and owns a lifetime cancellation token. The native transport
+rechecks the current registry session immediately before calling CounterStrikeSharp
+`SwitchTeam` on the server update thread. This prevents a delayed correction from
+moving a replacement session and prevents the correction's own team update from
+forming a feedback loop.
+
+Hot reload/startup reconciles already connected rostered players after the persisted
+active match is restored. Unload cancels scheduled corrections and removes event
+subscriptions.
+
+Real `jointeam` timing, reconnect timing and team-change event ordering remain a
+disposable-server acceptance gate. The current adapter corrects the resulting tracked
+team change; a stricter pre-command interception can be added later if live testing
+shows a visible bypass window.

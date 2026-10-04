@@ -105,6 +105,25 @@ The rank stack registers the real `rank.notifications` bool toggle with default 
 - Reconnect/restart preserves stored overrides and uses defaults after reset.
 - Old menu callbacks cannot mutate a replacement menu/session.
 
+## Tournament team enforcement
+
+Prepare one persisted active tournament match with two known human SteamIDs and a
+deterministic T/CT assignment before this pass. The current package restores that
+active state on plugin startup; match-creation commands are a later #21 package.
+
+- Start/reload the plugin with a rostered player already connected on the wrong side; the player is moved to the persisted assigned side.
+- Connect and reconnect each rostered player from the wrong side and verify the replacement session is corrected once.
+- Attempt a normal team switch/join-team change for a rostered player. The tracked team change must be corrected back to the tournament side without an event loop.
+- A player already on the assigned side must not be switched again.
+- A non-rostered player must not be moved by tournament enforcement.
+- Trigger reconnect while a correction is queued; no delayed action may affect the replacement `PlayerSessionId`.
+- Hot reload with the match active and verify the persisted assignment is restored and existing rostered players are reconciled.
+- Unload during/just before a correction and verify no later team mutation is executed.
+
+Record whether CS2 visibly exposes a short wrong-team window before the corrective
+`SwitchTeam`. If it does, add pre-command interception rather than treating the
+post-event correction as sufficient for release acceptance.
+
 ## AnoVeto and CustomHud
 
 This is the most client-sensitive part of the run.
