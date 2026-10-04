@@ -74,17 +74,18 @@ public sealed class MySqlTournamentMatchRepositoryTests
         var first = await service.BeginAsync(Configuration(TournamentBestOf.One));
         var staleStored = await repository.LoadActiveAsync();
         Assert.IsNotNull(staleStored);
-        var stale = new TournamentRecoverySession(
-            TournamentMatchStateMachine.Restore(
-                staleStored.Configuration, staleStored.Snapshot),
-            staleStored.Revision);
+        var staleMachine = TournamentMatchStateMachine.Restore(
+            staleStored.Configuration, staleStored.Snapshot);
 
         first.Machine.OpenReady();
         await service.SaveAsync(first);
-        stale.Machine.OpenReady();
+        staleMachine.OpenReady();
 
         var exception = await Assert.ThrowsExactlyAsync<TournamentConcurrencyException>(async () =>
-            await service.SaveAsync(stale));
+            await repository.SaveSnapshotAsync(
+                staleStored.Configuration.MatchId,
+                staleStored.Revision,
+                staleMachine.Snapshot()));
         Assert.AreEqual(1L, exception.ExpectedRevision);
         Assert.AreEqual(2L, exception.ActualRevision);
 
