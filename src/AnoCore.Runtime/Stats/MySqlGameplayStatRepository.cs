@@ -97,12 +97,6 @@ public sealed class MySqlGameplayStatRepository : IGameplayStatRepository
             }, cancellationToken);
     }
 
-    private static DateTimeOffset ReadUtc(DbDataReader reader, int ordinal)
-    {
-        var value = reader.GetDateTime(ordinal);
-        return new DateTimeOffset(DateTime.SpecifyKind(value, DateTimeKind.Utc));
-    }
-
     private static void Add(DbCommand command, string name, object? value)
     {
         var parameter = command.CreateParameter();
