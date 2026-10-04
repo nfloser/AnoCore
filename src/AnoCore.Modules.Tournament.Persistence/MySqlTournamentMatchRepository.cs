@@ -22,8 +22,9 @@ public sealed class MySqlTournamentMatchRepository : ITournamentMatchRepository
         Validate(configuration, snapshot);
         return _database.InTransactionAsync(async (connection, transaction, token) =>
         {
-            if (makeActive)
-                await LockRuntimeAsync(connection, transaction, token).ConfigureAwait(false);
+            // The singleton runtime row is also the store/replacement mutex. This keeps
+            // concurrent creates/replacements deterministic even before a match row exists.
+            await LockRuntimeAsync(connection, transaction, token).ConfigureAwait(false);
 
             var currentRevision = await ReadRevisionAsync(
                 connection, transaction, configuration.MatchId, token).ConfigureAwait(false);
