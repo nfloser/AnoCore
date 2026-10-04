@@ -42,6 +42,12 @@ public sealed class TournamentMatchRuntime : ITournamentTeamAssignmentSource
         ArgumentNullException.ThrowIfNull(playerId);
         lock (_gate)
         {
+            if (_active?.Machine.State == TournamentMatchState.Completed)
+            {
+                side = PlayerTeam.Unknown;
+                return false;
+            }
+
             var assigned = _active?.Machine.AssignedSide(playerId);
             if (assigned is PlayerTeam.Terrorist or PlayerTeam.CounterTerrorist)
             {
