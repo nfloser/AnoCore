@@ -135,6 +135,69 @@ public sealed class CombatModule : IDisposable
             : _detailRepository.RecordDamageAsync(damage, cancellationToken);
     }
 
+    private async ValueTask<CommandResult> OwnDetailStatsAsync(CommandContext context)
+    {
+        if (_detailRepository is null)
+            return CommandResult.Fail(CommandFailureReason.NotFound,
+                "Combat detail statistics are unavailable.");
+        if (context.Caller is null || !_players.TryGet(context.Caller, out var player)
+            || player is null || !player.IsConnected)
+            return CommandResult.Fail(CommandFailureReason.InvalidInput,
+                "A connected player is required.");
+
+        if (!TryDetailFilter(context, out var filter, out var failure))
+            return failure!;
+
+        var totals = await _detailRepository.ReadDetailsAsync(
+            context.Caller, filter, context.CancellationToken).ConfigureAwait(false);
+        return CommandResult.Ok(
+            $"[ANO] Detail stats: {totals.Shots} shot(s), {totals.Hits} hit(s), "
+            + $"{totals.DamageHealth} health damage, {totals.DamageArmor} armor damage, "
+            + $"{totals.HeadHits} head hit(s).");
+    }
+
+    private async ValueTask<CommandResult> OwnHitgroupsAsync(CommandContext context)
+    {
+        if (_detailRepository is null)
+            return CommandResult.Fail(CommandFailureReason.NotFound,
+                "Combat detail statistics are unavailable.");
+        if (context.Caller is null || !_players.TryGet(context.Caller, out var player)
+            || player is null || !player.IsConnected)
+            return CommandResult.Fail(CommandFailureReason.InvalidInput,
+                "A connected player is required.");
+
+        if (!TryDetailFilter(context, out var filter, out var failure))
+            return failure!;
+
+        var entries = await _detailRepository.ReadHitgroupsAsync(
+            context.Caller, filter, context.CancellationToken).ConfigureAwait(false);
+        if (entries.Count == 0)
+            return CommandResult.Ok("[ANO] No hitgroup statistics match this filter.");
+        return CommandResult.Ok("[ANO] " + string.Join(" | ", entries.Take(16).Select(entry =>
+            $"HG{entry.Hitgroup}: {entry.Hits} hit(s), {entry.DamageHealth} health damage")));
+    }
+
+    private static bool TryDetailFilter(CommandContext context,
+        out CombatDetailFilter filter, out CommandResult? failure)
+    {
+        var map = context.ParsedArguments.TryGetValue("map", out var mapValue)
+            ? (string?)mapValue : null;
+        var weapon = context.ParsedArguments.TryGetValue("weapon", out var weaponValue)
+            ? (string?)weaponValue : null;
+        try
+        {
+            filter = new CombatDetailFilter(map, weapon);
+            failure = null;
+            return true;
+        }
+        catch (ArgumentException exception)
+        {
+            filter = new CombatDetailFilter();
+            failure = CommandResult.Fail(CommandFailureReason.InvalidInput, exception.Message);
+            return false;
+        }
+    }
+
     private async ValueTask<CommandResult> OwnStatsAsync(PlayerId? caller,
         CancellationToken cancellationToken)
     {
