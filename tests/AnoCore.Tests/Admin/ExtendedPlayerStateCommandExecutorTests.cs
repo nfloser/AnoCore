@@ -154,6 +154,82 @@ public sealed class ExtendedPlayerStateCommandExecutorTests
     }
 
     [TestMethod]
+    public async Task SessionRestoreFailure_KeepsUnrestoredOwnershipForRetry()
+    {
+        var player = Player();
+        var transport = new RecordingTransport(
+            failFirstRestore: ExtendedPlayerStateFacet.Speed);
+        var service = new ExtendedPlayerStateService(transport);
+
+        await service.ApplyAsync(
+            player,
+            new ExtendedPlayerStateMutation(ExtendedPlayerStateOperation.Freeze));
+        await service.ApplyAsync(
+            player,
+            new ExtendedPlayerStateMutation(ExtendedPlayerStateOperation.SetSpeed, 150));
+
+        await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () =>
+            await service.ReleaseSessionAsync(player).AsTask());
+
+        await service.ReleaseSessionAsync(player);
+
+        CollectionAssert.AreEqual(
+            new[]
+            {
+                ExtendedPlayerStateFacet.Speed,
+                ExtendedPlayerStateFacet.Speed,
+                ExtendedPlayerStateFacet.Movement,
+            },
+            transport.RestoreAttempts.Select(x => x.Baseline.Facet).ToArray());
+        Assert.AreEqual(2, transport.Restored.Count);
+    }
+
+    [TestMethod]
+    public async Task ReleaseAll_AttemptsEveryOwnedSessionAndRetainsFailuresForRetry()
+    {
+        var first = Player();
+        var second = new PlayerSnapshot(
+            new PlayerId(76561198000016503),
+            PlayerSessionId.New(),
+            "Second",
+            true,
+            true,
+            PlayerTeam.Terrorist,
+            Now,
+            Now);
+        var transport = new RecordingTransport(
+            failFirstRestore: ExtendedPlayerStateFacet.Speed);
+        var service = new ExtendedPlayerStateService(transport);
+
+        await service.ApplyAsync(
+            first,
+            new ExtendedPlayerStateMutation(ExtendedPlayerStateOperation.SetSpeed, 150));
+        await service.ApplyAsync(
+            second,
+            new ExtendedPlayerStateMutation(ExtendedPlayerStateOperation.Blind, 200));
+
+        await Assert.ThrowsExactlyAsync<AggregateException>(async () =>
+            await service.ReleaseAllAsync().AsTask());
+
+        Assert.IsTrue(transport.Restored.Any(x =>
+            x.Player.SessionId == second.SessionId
+            && x.Baseline.Facet == ExtendedPlayerStateFacet.Blindness));
+
+        await service.ReleaseAllAsync();
+
+        Assert.AreEqual(
+            2,
+            transport.RestoreAttempts.Count(x =>
+                x.Player.SessionId == first.SessionId
+                && x.Baseline.Facet == ExtendedPlayerStateFacet.Speed));
+        Assert.AreEqual(
+            1,
+            transport.RestoreAttempts.Count(x =>
+                x.Player.SessionId == second.SessionId
+                && x.Baseline.Facet == ExtendedPlayerStateFacet.Blindness));
+    }
+
+    [TestMethod]
     public async Task ForgetSessionDropsOwnershipWithoutTouchingVanishingPawn()
     {
         var first = Player();
@@ -253,10 +329,14 @@ public sealed class ExtendedPlayerStateCommandExecutorTests
         }
     }
 
-    private sealed class RecordingTransport : IExtendedPlayerStateTransport
+    private sealed class RecordingTransport(
+        ExtendedPlayerStateFacet? failFirstRestore = null) : IExtendedPlayerStateTransport
     {
+        private bool _restoreFailureThrown;
+
         public List<(PlayerSnapshot Player, ExtendedPlayerStateFacet Facet)> Captured { get; } = [];
         public List<(PlayerSnapshot Player, ExtendedPlayerStateMutation Mutation)> Applied { get; } = [];
+        public List<(PlayerSnapshot Player, ExtendedPlayerStateBaseline Baseline)> RestoreAttempts { get; } = [];
         public List<(PlayerSnapshot Player, ExtendedPlayerStateBaseline Baseline)> Restored { get; } = [];
 
         public ValueTask<ExtendedPlayerStateBaseline> CaptureAsync(
@@ -282,6 +362,15 @@ public sealed class ExtendedPlayerStateCommandExecutorTests
             ExtendedPlayerStateBaseline baseline,
             CancellationToken cancellationToken = default)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+            RestoreAttempts.Add((player, baseline));
+            if (!_restoreFailureThrown && baseline.Facet == failFirstRestore)
+            {
+                _restoreFailureThrown = true;
+                return ValueTask.FromException(
+                    new InvalidOperationException("restore failed"));
+            }
+
             Restored.Add((player, baseline));
             return ValueTask.CompletedTask;
         }
