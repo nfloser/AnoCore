@@ -1,3 +1,4 @@
+using AnoCore.Abstractions.Configuration;
 using AnoCore.Abstractions.Hud;
 using AnoCore.Abstractions.Persistence;
 using AnoCore.Abstractions.Placeholders;
@@ -57,6 +58,7 @@ public sealed class AnoCorePlugin : BasePlugin
     private GameplayStatsModule? _gameplayStats;
     private TournamentMatchRuntime? _tournamentMatch;
     private TournamentTeamEnforcement? _tournamentTeamEnforcement;
+    private TournamentCommandController? _tournamentCommands;
     private ChatMessageFormatter? _chatFormatter;
     private SelectableChatTagModule? _chatTags;
     private ChatFormatSnapshotLifecycle? _chatFormatSnapshots;
@@ -146,6 +148,8 @@ public sealed class AnoCorePlugin : BasePlugin
             _rank = null;
             _gameplayStats?.Dispose();
             _gameplayStats = null;
+            _tournamentCommands?.Dispose();
+            _tournamentCommands = null;
             _tournamentTeamEnforcement?.Dispose();
             _tournamentTeamEnforcement = null;
             _tournamentMatch = null;
@@ -573,6 +577,7 @@ public sealed class AnoCorePlugin : BasePlugin
             ChatFormatSnapshotLifecycle? chatFormatSnapshots = null;
             ModerationVoiceCoordinator? voiceModeration = null;
             TournamentTeamEnforcement? tournamentTeamEnforcement = null;
+            TournamentCommandController? tournamentCommands = null;
             var presenter = new CounterStrikeMenuPresenter(this, runtime.Menus, Logger);
             var bridge = new CounterStrikeCommandBridge(
                 this,
@@ -696,6 +701,22 @@ public sealed class AnoCorePlugin : BasePlugin
                     ?? throw new InvalidOperationException("AnoCore event bus is unavailable during activation.");
                 if (tournamentMatch is not null)
                 {
+                    var database = runtime.GetService(typeof(IDatabase)) as IDatabase
+                        ?? throw new InvalidOperationException(
+                            "AnoCore runtime did not provide the shared database service.");
+                    var tournamentConfiguration = runtime.GetService(typeof(IConfigStore))
+                        as IConfigStore
+                        ?? throw new InvalidOperationException(
+                            "AnoCore runtime did not provide the shared configuration service.");
+                    var recovery = new TournamentRecoveryService(
+                        new MySqlTournamentMatchRepository(database));
+                    tournamentCommands = new TournamentCommandController(
+                        tournamentConfiguration,
+                        runtime.Commands,
+                        runtime.Players,
+                        recovery,
+                        tournamentMatch,
+                        runtime.AdminAudit);
                     tournamentTeamEnforcement = new TournamentTeamEnforcement(
                         events,
                         runtime.Players,
@@ -803,6 +824,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 _gameplayStats = gameplayStats;
                 _tournamentMatch = tournamentMatch;
                 _tournamentTeamEnforcement = tournamentTeamEnforcement;
+                _tournamentCommands = tournamentCommands;
                 _chatFormatter = chatFormatter;
                 _chatTags = chatTags;
                 _combat = combat;
@@ -827,6 +849,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 playtime?.Dispose();
                 rank?.Dispose();
                 gameplayStats?.Dispose();
+                tournamentCommands?.Dispose();
                 tournamentTeamEnforcement?.Dispose();
                 chatTags?.Dispose();
                 combat?.Dispose();
