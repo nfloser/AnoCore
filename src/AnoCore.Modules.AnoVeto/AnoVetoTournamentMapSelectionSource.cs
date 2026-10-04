@@ -29,6 +29,8 @@ public sealed class AnoVetoTournamentMapSelectionSource : ITournamentMapSelectio
                 throw new InvalidOperationException("A tournament AnoVeto selection is already active.");
         }
 
+        _coordinator.TryTakeFinalized(out _);
+
         var created = await _coordinator.CreateAsync(
             request.Manager,
             request.EligiblePlayers,
@@ -58,8 +60,17 @@ public sealed class AnoVetoTournamentMapSelectionSource : ITournamentMapSelectio
                 ?? throw new InvalidOperationException("No tournament AnoVeto selection is active.");
         }
 
-        var completed = await _coordinator.CompleteAsync(
-            manager, _time.GetUtcNow(), cancellationToken).ConfigureAwait(false);
+        AnoVetoOperationResult completed;
+        if (_coordinator.TryTakeFinalized(out var finalized) && finalized is not null)
+        {
+            completed = finalized;
+        }
+        else
+        {
+            completed = await _coordinator.CompleteAsync(
+                manager, _time.GetUtcNow(), cancellationToken).ConfigureAwait(false);
+        }
+
         if (!completed.Accepted)
             throw new InvalidOperationException(
                 $"AnoVeto could not complete tournament selection: {completed.Failure}.");
