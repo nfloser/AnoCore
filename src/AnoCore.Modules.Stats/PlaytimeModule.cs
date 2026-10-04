@@ -86,15 +86,24 @@ public sealed class PlaytimeModule : IDisposable
         if (caller is null || !_players.TryGet(caller, out var player)
             || player is null || !player.IsConnected)
             return CommandResult.Fail(CommandFailureReason.InvalidInput, "A connected player is required.");
+        var sessionId = player.SessionId;
         var now = _clock.GetUtcNow();
         await RecordAsync(player, now, false, cancellationToken).ConfigureAwait(false);
+        if (!IsCurrentSession(caller, sessionId))
+            return SessionChanged();
+
         var utcDay = DateOnly.FromDateTime(now.UtcDateTime);
         var totals = await _repository.ReadAsync(caller, utcDay, cancellationToken).ConfigureAwait(false);
+        if (!IsCurrentSession(caller, sessionId))
+            return SessionChanged();
+
         var message = $"[ANO] Playtime: {totals.Total:c}; today (UTC): {totals.Today:c}.";
         if (_stateRepository is null) return CommandResult.Ok(message);
 
         var breakdown = await _stateRepository.ReadStateBreakdownAsync(caller, utcDay, cancellationToken)
             .ConfigureAwait(false);
+        if (!IsCurrentSession(caller, sessionId))
+            return SessionChanged();
         var visible = breakdown
             .Where(entry => entry.Total > TimeSpan.Zero)
             .OrderBy(entry => entry.Team)
@@ -122,6 +131,16 @@ public sealed class PlaytimeModule : IDisposable
         return CommandResult.Ok(string.Join(" | ", entries.Select(entry =>
             $"{entry.Position}. {Display(entry)}: {entry.Total:c}")));
     }
+
+    private bool IsCurrentSession(PlayerId playerId, PlayerSessionId sessionId)
+        => Volatile.Read(ref _disposed) == 0
+            && _players.TryGet(playerId, out var current)
+            && current is { IsConnected: true }
+            && current.SessionId == sessionId;
+
+    private static CommandResult SessionChanged()
+        => CommandResult.Fail(CommandFailureReason.InvalidInput,
+            "Player session changed before the playtime query completed.");
 
     private static string Team(PlayerTeam team) => team switch
     {
