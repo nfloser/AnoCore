@@ -507,7 +507,7 @@ public sealed class AnoCorePlugin : BasePlugin
         var state = _extendedPlayerState;
         if (state is not null)
         {
-            Observe(state.ReleaseAllAsync().AsTask(), "extended_admin_map_end");
+            Observe(state.ForgetAllAsync().AsTask(), "extended_admin_map_end");
         }
     }
 
@@ -625,7 +625,7 @@ public sealed class AnoCorePlugin : BasePlugin
     {
         if (state is not null)
         {
-            await state.ReleaseSessionAsync(current).ConfigureAwait(false);
+            await state.ForgetSessionAsync(current.SessionId).ConfigureAwait(false);
         }
 
         await registry.DisconnectAsync(
