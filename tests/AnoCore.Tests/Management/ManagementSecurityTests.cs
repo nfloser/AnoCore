@@ -178,6 +178,35 @@ public sealed class ManagementSecurityTests
     }
 
     [TestMethod]
+    public void Contract_RejectsDefaultCapabilityInvalidScopesAndUnsafeResults()
+    {
+        Assert.ThrowsExactly<ArgumentException>(() =>
+            new ManagementOperationRequest(default));
+
+        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() =>
+            new ManagementCapabilityDescriptor(
+                Capability,
+                "invalid",
+                (ManagementScope)(1 << 20),
+                ManagementOperationClass.Privileged).Validate());
+
+        Assert.ThrowsExactly<ArgumentException>(() =>
+            new ManagementOperationResult(
+                true,
+                "ok",
+                "unsafe\nmessage"));
+        Assert.ThrowsExactly<ArgumentException>(() =>
+            new ManagementOperationResult(
+                true,
+                "ok",
+                "safe",
+                new Dictionary<string, string>
+                {
+                    ["unsafe\nkey"] = "value",
+                }));
+    }
+
+    [TestMethod]
     public void Registration_IsExclusiveAndDisposable()
     {
         var registry = new ManagementCapabilityRegistry();
