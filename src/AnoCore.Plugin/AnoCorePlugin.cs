@@ -853,7 +853,7 @@ public sealed class AnoCorePlugin : BasePlugin
         RegisterEventHandler<EventHostageKilled>(OnHostageKilled);
         RegisterEventHandler<EventRoundMvp>(OnRoundMvp);
         RegisterEventHandler<EventRoundEnd>(OnRoundEnd);
-        RegisterEventHandler<EventCsWinPanelMatch>(OnMatchEnd, HookMode.Pre);
+        RegisterEventHandler<EventCsWinPanelMatch>(OnMatchEnd);
         RegisterListener<Listeners.OnMapEnd>(OnMapEnd);
         _lifecycleHooksRegistered = true;
     }
@@ -881,7 +881,7 @@ public sealed class AnoCorePlugin : BasePlugin
         DeregisterEventHandler<EventHostageKilled>(OnHostageKilled);
         DeregisterEventHandler<EventRoundMvp>(OnRoundMvp);
         DeregisterEventHandler<EventRoundEnd>(OnRoundEnd);
-        DeregisterEventHandler<EventCsWinPanelMatch>(OnMatchEnd, HookMode.Pre);
+        DeregisterEventHandler<EventCsWinPanelMatch>(OnMatchEnd);
         RemoveListener<Listeners.OnMapEnd>(OnMapEnd);
         _lifecycleHooksRegistered = false;
     }
