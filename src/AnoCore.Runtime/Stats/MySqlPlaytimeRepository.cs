@@ -172,7 +172,7 @@ public sealed class MySqlPlaytimeRepository : IPlaytimeStateRepository
                 return true;
             }
 
-            await CloseSegmentAsync(connection, transaction, current.Value.Id, at, token)
+            await CloseSegmentAsync(connection, transaction, current.Value.Id, effectiveAt, token)
                 .ConfigureAwait(false);
             await InsertSegmentAsync(connection, transaction, playerId, sessionId,
                 effectiveAt, stateAtUtc, token).ConfigureAwait(false);
