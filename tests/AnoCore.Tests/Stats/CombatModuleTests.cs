@@ -52,6 +52,26 @@ public sealed class CombatModuleTests
     }
 
     [TestMethod]
+    public void StableDetailId_SeparatesTypeParticipantsAndPayload()
+    {
+        var first = CombatEventIdentity.CreateDetail(
+            "server-process", "de_dust2", 1234, 25, "player_hurt",
+            Victim, Attacker, "ak47|1|40|5");
+        Assert.AreEqual(first, CombatEventIdentity.CreateDetail(
+            "server-process", "de_dust2", 1234, 25, "player_hurt",
+            Victim, Attacker, "ak47|1|40|5"));
+        Assert.AreNotEqual(first, CombatEventIdentity.CreateDetail(
+            "server-process", "de_dust2", 1234, 25, "weapon_fire",
+            Victim, Attacker, "ak47|1|40|5"));
+        Assert.AreNotEqual(first, CombatEventIdentity.CreateDetail(
+            "server-process", "de_dust2", 1234, 25, "player_hurt",
+            Victim, null, "ak47|1|40|5"));
+        Assert.AreNotEqual(first, CombatEventIdentity.CreateDetail(
+            "server-process", "de_dust2", 1234, 25, "player_hurt",
+            Victim, Attacker, "ak47|2|40|5"));
+    }
+
+    [TestMethod]
     public async Task DetailEvents_UseOptionalRepositoryAndLegacyRepositoryNoops()
     {
         var registry = new CommandRegistry(new AllowAll());
