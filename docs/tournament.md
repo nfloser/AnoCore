@@ -202,3 +202,26 @@ The module does not expose arbitrary kick/ban or server-command execution. A nat
 adapter must keep spectator movement/rejection fixed and session-safe. Real spectator
 join timing, coach reconnects and client-visible rejection behavior remain part of the
 disposable CS2/DatHost acceptance pass.
+
+
+## AnoVeto series handoff
+
+When both rosters are ready, operators can start the tournament-specific AnoVeto flow with
+`anotournamentveto`. The adapter reuses the existing AnoVeto coordinator, map catalog, vote
+service and HUD path; Tournament does not own a second map catalog or vote counter.
+
+A terminal AnoVeto result is retained once by the coordinator so Tournament can also consume
+votes that auto-finalize on the last player ballot. The winning map becomes the first map in
+the series. BO3/BO5 are filled deterministically from the same unique AnoVeto candidate slate,
+preserving the selection already produced by AnoVeto without inventing a second vote engine.
+
+`anotournamentvetocomplete` accepts a result only when its match id and persisted revision
+still match the active tournament session. The resolved series is applied to a cloned state
+machine, persisted through `TournamentRecoveryService`, and only then published to the live
+runtime. Persistence failure or stale revisions leave the current runtime unchanged.
+
+`anotournamentvetocancel` cancels the active AnoVeto selection and leaves the tournament in
+Ready state. The existing `anotournamentmaps` command remains an explicit administrative
+fallback.
+
+Real HUD input and map-loading behavior remain part of disposable-server acceptance.
