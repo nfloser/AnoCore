@@ -168,6 +168,25 @@ public sealed class MySqlTournamentMatchRepositoryTests
     }
 
     [TestMethod]
+    public async Task ConcurrentReplacement_SerializesRevisionEvenWhenMatchIsInactive()
+    {
+        var repository = new MySqlTournamentMatchRepository(_database);
+        var configuration = Configuration(TournamentBestOf.One);
+        var snapshot = new TournamentMatchStateMachine(configuration).Snapshot();
+
+        var first = repository.StoreAsync(configuration, snapshot, makeActive: false).AsTask();
+        var second = repository.StoreAsync(configuration, snapshot, makeActive: false).AsTask();
+        var stored = await Task.WhenAll(first, second);
+
+        CollectionAssert.AreEqual(
+            new[] { 1L, 2L },
+            stored.Select(x => x.Revision).OrderBy(x => x).ToArray());
+        var current = await repository.LoadAsync(configuration.MatchId);
+        Assert.IsNotNull(current);
+        Assert.AreEqual(2L, current.Revision);
+    }
+
+    [TestMethod]
     public async Task Bootstrap_IsIdempotent()
     {
         await TournamentPersistenceBootstrap.EnsureReadyAsync(_database);
