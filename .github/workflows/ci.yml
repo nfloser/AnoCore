@@ -58,6 +58,38 @@ jobs:
       - name: Verify formatting
         run: dotnet format AnoCore.sln --verify-no-changes --no-restore
 
+      - name: Pack module SDK
+        run: dotnet pack src/AnoCore.Abstractions/AnoCore.Abstractions.csproj --configuration Release --no-build --output artifacts/sdk
+
+      - name: Inspect module SDK package
+        shell: bash
+        run: |
+          set -euo pipefail
+          package="$(find artifacts/sdk -maxdepth 1 -type f -name 'AnoCore.Abstractions.*.nupkg' -print -quit)"
+          test -n "$package"
+
+          unzip -Z1 "$package" > artifacts/sdk/package-contents.txt
+          for required in             'lib/net10.0/AnoCore.Abstractions.dll'             'lib/net10.0/AnoCore.Abstractions.xml'             'LICENSE.md'             'NOTICE.md'             'README.md'; do
+            grep -Fxq "$required" artifacts/sdk/package-contents.txt || {
+              echo "SDK package is missing $required" >&2
+              exit 1
+            }
+          done
+
+          nuspec="$(grep -E '\.nuspec$' artifacts/sdk/package-contents.txt | head -n 1)"
+          test -n "$nuspec"
+          unzip -p "$package" "$nuspec" > artifacts/sdk/AnoCore.Abstractions.nuspec
+
+          if grep -Eiq 'AnoCore\.Runtime|AnoCore\.Plugin|CounterStrikeSharp|MySqlConnector' artifacts/sdk/AnoCore.Abstractions.nuspec; then
+            echo 'SDK package leaked a runtime, engine or persistence dependency.' >&2
+            exit 1
+          fi
+
+          if grep -Eiq '<dependency[[:space:]]' artifacts/sdk/AnoCore.Abstractions.nuspec; then
+            echo 'AnoCore.Abstractions must remain dependency-free.' >&2
+            exit 1
+          fi
+
       - name: Publish development plugin
         run: dotnet publish src/AnoCore.Plugin/AnoCore.Plugin.csproj --configuration Release --no-build --output artifacts/plugins/AnoCore
 

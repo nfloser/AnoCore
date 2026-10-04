@@ -1,3 +1,10 @@
+# Module SDK packaging checkpoint — 2026-10-02
+
+- Issue #155 / branch `feature/155-abstractions-sdk-package` packages `AnoCore.Abstractions` as the prerelease module SDK and keeps the module build surface isolated from Runtime, Plugin, CounterStrikeSharp and MySqlConnector.
+- The package includes generated XML docs, license, notice and a compile-correct minimal module README. CI packs and inspects the nupkg before adding it to the existing `AnoCore-development` artifact.
+- Executable assembly-reference coverage plus nupkg metadata/content checks protect the dependency boundary. No native CS2/DatHost acceptance is required for this package.
+- Wider external module discovery, Web/API/server-management work and native feature acceptance remain under #22 / #11.
+
 # Module API compatibility checkpoint — 2026-09-30
 
 - Issue #153 / branch `feature/153-module-api-compat` adds an explicit AnoCore module API level to the public abstractions without changing the existing descriptor constructor.
