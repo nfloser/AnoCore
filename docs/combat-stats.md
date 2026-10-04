@@ -20,7 +20,7 @@ This still does not implement grenade-specific counters, objectives, MVPs, round
 
 ## Disposable-server acceptance
 
-1. Deploy the exact PR artifact and apply migration 006 on a disposable MariaDB/CS2 server. Confirm startup and `anokda` for a new human player.
+1. Deploy the exact PR artifact and let AnoCore apply the pending schema through migration 009 on a disposable MariaDB/CS2 server. Confirm startup and `anokda` for a new human player.
 2. With two humans, record one opposing kill, one suicide, one world death and one teamkill. Confirm death and kill totals and reconnect persistence.
 3. With three humans, verify a distinct opposing assister receives exactly one assist; bots and same-team participants receive no credit.
 4. Fire known AK-47/AWP shots and land controlled body/head hits. Verify `anodetailstats` and `anohitgroups`, then filter by map and weapon.
