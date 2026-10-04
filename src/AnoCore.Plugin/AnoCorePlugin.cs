@@ -61,6 +61,7 @@ public sealed class AnoCorePlugin : BasePlugin
     private TournamentSpectatorPolicySource? _tournamentSpectatorPolicies;
     private TournamentSpectatorEnforcement? _tournamentSpectatorEnforcement;
     private TournamentCommandController? _tournamentCommands;
+    private TournamentMapSelectionCommandController? _tournamentMapSelectionCommands;
     private ChatMessageFormatter? _chatFormatter;
     private SelectableChatTagModule? _chatTags;
     private ChatFormatSnapshotLifecycle? _chatFormatSnapshots;
@@ -150,6 +151,8 @@ public sealed class AnoCorePlugin : BasePlugin
             _rank = null;
             _gameplayStats?.Dispose();
             _gameplayStats = null;
+            _tournamentMapSelectionCommands?.Dispose();
+            _tournamentMapSelectionCommands = null;
             _tournamentCommands?.Dispose();
             _tournamentCommands = null;
             _tournamentSpectatorEnforcement?.Dispose();
@@ -585,6 +588,7 @@ public sealed class AnoCorePlugin : BasePlugin
             TournamentSpectatorPolicySource? tournamentSpectatorPolicies = null;
             TournamentSpectatorEnforcement? tournamentSpectatorEnforcement = null;
             TournamentCommandController? tournamentCommands = null;
+            TournamentMapSelectionCommandController? tournamentMapSelectionCommands = null;
             var presenter = new CounterStrikeMenuPresenter(this, runtime.Menus, Logger);
             var bridge = new CounterStrikeCommandBridge(
                 this,
@@ -726,6 +730,17 @@ public sealed class AnoCorePlugin : BasePlugin
                         tournamentMatch,
                         runtime.AdminAudit,
                         spectatorPolicies: tournamentSpectatorPolicies);
+                    if (anoVeto is not null)
+                    {
+                        tournamentMapSelectionCommands =
+                            new TournamentMapSelectionCommandController(
+                                runtime.Commands,
+                                new TournamentMapSelectionService(
+                                    recovery,
+                                    tournamentMatch,
+                                    new AnoVetoTournamentMapSelectionSource(
+                                        anoVeto.Coordinator)));
+                    }
                     tournamentTeamEnforcement = new TournamentTeamEnforcement(
                         events,
                         runtime.Players,
@@ -857,6 +872,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 _tournamentSpectatorPolicies = tournamentSpectatorPolicies;
                 _tournamentSpectatorEnforcement = tournamentSpectatorEnforcement;
                 _tournamentCommands = tournamentCommands;
+                _tournamentMapSelectionCommands = tournamentMapSelectionCommands;
                 _chatFormatter = chatFormatter;
                 _chatTags = chatTags;
                 _combat = combat;
@@ -881,6 +897,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 playtime?.Dispose();
                 rank?.Dispose();
                 gameplayStats?.Dispose();
+                tournamentMapSelectionCommands?.Dispose();
                 tournamentCommands?.Dispose();
                 tournamentSpectatorEnforcement?.Dispose();
                 tournamentSpectatorPolicies?.Dispose();
