@@ -2,7 +2,9 @@ using AnoCore.Abstractions.Auditing;
 using AnoCore.Abstractions.Commands;
 using AnoCore.Abstractions.Configuration;
 using AnoCore.Abstractions.Events;
+using AnoCore.Abstractions.Localization;
 using AnoCore.Abstractions.Management;
+using AnoCore.Abstractions.Messaging;
 using AnoCore.Abstractions.Menus;
 using AnoCore.Abstractions.Moderation;
 using AnoCore.Abstractions.Modules;
@@ -20,7 +22,9 @@ using AnoCore.Runtime.Auditing;
 using AnoCore.Runtime.Commands;
 using AnoCore.Runtime.Configuration;
 using AnoCore.Runtime.Events;
+using AnoCore.Runtime.Localization;
 using AnoCore.Runtime.Management;
+using AnoCore.Runtime.Messaging;
 using AnoCore.Runtime.Menus;
 using AnoCore.Runtime.Moderation;
 using AnoCore.Runtime.Modules;
@@ -43,13 +47,17 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
     private readonly Dictionary<Type, object> _services = [];
     private readonly List<IDisposable> _registrations = [];
     private readonly PlayerProfileLifecycle _profileLifecycle;
+    private readonly IDisposable? _messageTransportLifetime;
     private int _disposed;
 
     private RuntimeServices(
         IDatabase database,
         IConfigStore configuration,
         AnoEventBus events,
-        PlayerRegistry players)
+        PlayerRegistry players,
+        ILocalizationService localization,
+        IMessageLocaleResolver messageLocales,
+        IMessageTransport? messageTransport)
     {
         Profiles = new MySqlPlayerRepository(database);
         var data = new MySqlModuleDataStore(database);
@@ -57,6 +65,13 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
         Authorization = new AuthorizationService(authorizationStore);
         Commands = new CommandRegistry(Authorization);
         Menus = new MenuService();
+        Localization = localization ?? throw new ArgumentNullException(nameof(localization));
+        MessageComposer = new MessageComposer(Localization);
+        MessageLocales = messageLocales ?? throw new ArgumentNullException(nameof(messageLocales));
+        Messages = messageTransport is null
+            ? null
+            : new MessageService(players, MessageComposer, MessageLocales, messageTransport);
+        _messageTransportLifetime = messageTransport as IDisposable;
         Settings = new PlayerSettingsService(data, null, events);
         ToggleCatalog = new PlayerToggleCatalog();
         ConfigReloads = new ConfigReloadRegistry();
@@ -96,6 +111,11 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
         Add<IPermissionEvaluator>(Authorization);
         Add<IAnoCommandRegistry>(Commands);
         Add<IMenuService>(Menus);
+        Add<ILocalizationService>(Localization);
+        Add<IMessageComposer>(MessageComposer);
+        Add<IMessageLocaleResolver>(MessageLocales);
+        if (Messages is not null)
+            Add<IMessageService>(Messages);
         Add<IManagementCapabilityRegistry>(ManagementCapabilities);
         Add<IManagementStatusProvider>(ManagementStatus);
         Add<IPlayerSettingsService>(Settings);
@@ -132,6 +152,14 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
     public CommandRegistry Commands { get; }
 
     public MenuService Menus { get; }
+
+    public ILocalizationService Localization { get; }
+
+    public MessageComposer MessageComposer { get; }
+
+    public IMessageLocaleResolver MessageLocales { get; }
+
+    public MessageService? Messages { get; }
 
     public ManagementCapabilityRegistry ManagementCapabilities { get; }
 
@@ -178,20 +206,39 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
         IConfigStore configuration,
         AnoEventBus events,
         PlayerRegistry players,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        IMessageTransport? messageTransport = null)
     {
         ArgumentNullException.ThrowIfNull(database);
         ArgumentNullException.ThrowIfNull(configuration);
         ArgumentNullException.ThrowIfNull(events);
         ArgumentNullException.ThrowIfNull(players);
-        await new DatabaseStartupProbe(
-            database,
-            [new CoreSchemaMigration001(), new ModerationSchemaMigration002(), new AdminAuditSchemaMigration003(), new WarningSchemaMigration004(), new PlaytimeSchemaMigration005(), new CombatSchemaMigration006(), new RankAdjustmentSchemaMigration007(), new PlaytimeStateSchemaMigration008(), new CombatDetailSchemaMigration009(), new GameplayStatSchemaMigration010(),
-             new StatisticsResetSchemaMigration011()])
-            .EnsureReadyAsync(cancellationToken).ConfigureAwait(false);
-        var runtime = new RuntimeServices(database, configuration, events, players);
+
+        RuntimeServices? runtime = null;
         try
         {
+            var localizationConfiguration = await configuration.LoadAsync(
+                "localization",
+                () => LocalizationConfiguration.Default,
+                LocalizationConfiguration.Validate,
+                cancellationToken).ConfigureAwait(false);
+            var localization = localizationConfiguration.CreateService();
+            var messageLocales = new FixedMessageLocaleResolver(
+                localizationConfiguration.FallbackLocale);
+
+            await new DatabaseStartupProbe(
+                database,
+                [new CoreSchemaMigration001(), new ModerationSchemaMigration002(),
+                 new AdminAuditSchemaMigration003(), new WarningSchemaMigration004(),
+                 new PlaytimeSchemaMigration005(), new CombatSchemaMigration006(),
+                 new RankAdjustmentSchemaMigration007(), new PlaytimeStateSchemaMigration008(),
+                 new CombatDetailSchemaMigration009(), new GameplayStatSchemaMigration010(),
+                 new StatisticsResetSchemaMigration011()])
+                .EnsureReadyAsync(cancellationToken).ConfigureAwait(false);
+
+            runtime = new RuntimeServices(
+                database, configuration, events, players,
+                localization, messageLocales, messageTransport);
             await runtime.Authorization.ReloadAsync(cancellationToken).ConfigureAwait(false);
             runtime.Subscribe(events);
             await runtime._profileLifecycle.StartAsync(cancellationToken).ConfigureAwait(false);
@@ -202,7 +249,10 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
         }
         catch
         {
-            runtime.Dispose();
+            if (runtime is not null)
+                runtime.Dispose();
+            else if (messageTransport is IDisposable lifetime)
+                lifetime.Dispose();
             throw;
         }
     }
@@ -239,6 +289,7 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
         }
 
         _registrations.Clear();
+        _messageTransportLifetime?.Dispose();
     }
 
     private void Add<T>(T service)
