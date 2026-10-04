@@ -41,6 +41,7 @@ public sealed class PlaytimeStateModuleTests
             (Start.AddSeconds(40), new PlaytimeState(PlayerTeam.CounterTerrorist, false), true),
         }, repository.StateAdvances.ToArray());
         Assert.AreEqual(0, repository.LegacyAdvanceCalls);
+        Assert.AreEqual(1, repository.StateOpenCalls);
     }
 
     [TestMethod]
@@ -84,6 +85,7 @@ public sealed class PlaytimeStateModuleTests
     private sealed class StateRepository : IPlaytimeStateRepository
     {
         public int LegacyAdvanceCalls { get; private set; }
+        public int StateOpenCalls { get; private set; }
         public int BreakdownReads { get; private set; }
         public PlaytimeTotals Totals { get; set; } = new(TimeSpan.Zero, TimeSpan.Zero);
         public IReadOnlyList<PlaytimeStateBreakdown> Breakdown { get; set; } = [];
@@ -102,7 +104,11 @@ public sealed class PlaytimeStateModuleTests
 
         public ValueTask OpenStateAsync(PlayerId playerId, PlayerSessionId sessionId,
             DateTimeOffset startedAtUtc, PlaytimeState state,
-            CancellationToken cancellationToken = default) => ValueTask.CompletedTask;
+            CancellationToken cancellationToken = default)
+        {
+            StateOpenCalls++;
+            return ValueTask.CompletedTask;
+        }
 
         public ValueTask AdvanceStateAsync(PlayerId playerId, PlayerSessionId sessionId,
             DateTimeOffset atUtc, PlaytimeState stateAtUtc, bool close = false,
