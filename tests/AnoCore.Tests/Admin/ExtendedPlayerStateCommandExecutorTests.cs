@@ -178,7 +178,15 @@ public sealed class ExtendedPlayerStateCommandExecutorTests
     public async Task ForgetAllDropsMapOwnedStateWithoutNativeRestores()
     {
         var first = Player();
-        var second = first with { SessionId = PlayerSessionId.New() };
+        var second = new PlayerSnapshot(
+            first.Id,
+            PlayerSessionId.New(),
+            first.Name,
+            first.IsConnected,
+            first.IsAlive,
+            first.Team,
+            first.ConnectedAtUtc,
+            first.LastUpdatedAtUtc);
         var transport = new RecordingTransport();
         var service = new ExtendedPlayerStateService(transport);
 
