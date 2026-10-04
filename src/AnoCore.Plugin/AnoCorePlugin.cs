@@ -40,6 +40,7 @@ public sealed class AnoCorePlugin : BasePlugin
     private ExtendedPlayerStateService? _extendedPlayerState;
     private ExtendedPositionCommandController? _extendedPositionCommands;
     private ExtendedPositionService? _extendedPositions;
+    private ExtendedInventoryTeamCommandController? _extendedInventoryTeamCommands;
     private ModerationCommunicationRuntime? _communicationModeration;
     private CounterStrikeChatModerationAdapter? _chatModeration;
     private ModerationVoiceCoordinator? _voiceModeration;
@@ -102,6 +103,8 @@ public sealed class AnoCorePlugin : BasePlugin
             _anoVeto = null;
             _commands?.Dispose();
             _commands = null;
+            _extendedInventoryTeamCommands?.Dispose();
+            _extendedInventoryTeamCommands = null;
             _extendedPositionCommands?.Dispose();
             _extendedPositionCommands = null;
             var extendedPositions = _extendedPositions;
@@ -266,6 +269,7 @@ public sealed class AnoCorePlugin : BasePlugin
             ExtendedPlayerStateCommandController? extendedAdminCommands = null;
             ExtendedPositionService? extendedPositions = null;
             ExtendedPositionCommandController? extendedPositionCommands = null;
+            ExtendedInventoryTeamCommandController? extendedInventoryTeamCommands = null;
             ModerationCommunicationRuntime? communicationModeration = null;
             CounterStrikeChatModerationAdapter? chatModeration = null;
             ModerationVoiceCoordinator? voiceModeration = null;
@@ -310,6 +314,13 @@ public sealed class AnoCorePlugin : BasePlugin
                         targetGateway,
                         runtime.TargetResolver,
                         extendedPositions));
+                extendedInventoryTeamCommands = new ExtendedInventoryTeamCommandController(
+                    runtime.Commands,
+                    new ExtendedInventoryTeamCommandExecutor(
+                        targetGateway,
+                        runtime.Players,
+                        runtime.Authorization,
+                        new CounterStrikeExtendedInventoryTeamTransport(runtime.Players)));
 
                 var events = _eventBus
                     ?? throw new InvalidOperationException("AnoCore event bus is unavailable during activation.");
@@ -355,6 +366,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 _extendedAdminCommands = extendedAdminCommands;
                 _extendedPositions = extendedPositions;
                 _extendedPositionCommands = extendedPositionCommands;
+                _extendedInventoryTeamCommands = extendedInventoryTeamCommands;
                 _communicationModeration = communicationModeration;
                 _chatModeration = chatModeration;
                 _voiceModeration = voiceModeration;
@@ -377,6 +389,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 communicationModeration?.Dispose();
                 anoVeto?.Dispose();
                 bridge.Dispose();
+                extendedInventoryTeamCommands?.Dispose();
                 extendedPositionCommands?.Dispose();
                 extendedAdminCommands?.Dispose();
                 extendedPlayerState?.Dispose();
