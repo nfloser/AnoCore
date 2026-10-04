@@ -124,21 +124,37 @@ public sealed class MessageServiceTests
     {
         var target = MessageTarget.ForAll();
 
-        Assert.ThrowsException<ArgumentException>(() =>
+        AssertThrows<ArgumentException>(() =>
             new MessageRequest(target, MessageChannel.Chat, "chat", duration: TimeSpan.FromSeconds(1)));
-        Assert.ThrowsException<ArgumentOutOfRangeException>(() =>
+        AssertThrows<ArgumentOutOfRangeException>(() =>
             new MessageRequest(target, MessageChannel.Center, "center", priority: MessageRequest.MaxPriority + 1));
     }
 
     [TestMethod]
     public void MessageTarget_RejectsUnknownTeam()
     {
-        Assert.ThrowsException<ArgumentOutOfRangeException>(() =>
+        AssertThrows<ArgumentOutOfRangeException>(() =>
             MessageTarget.ForTeam(PlayerTeam.Unknown));
     }
 
     private static MessageRequest Chat(string text)
         => new(MessageTarget.ForPlayer(new PlayerId(76561198000000001)), MessageChannel.Chat, text);
+
+    private static TException AssertThrows<TException>(Action action)
+        where TException : Exception
+    {
+        try
+        {
+            action();
+        }
+        catch (TException exception)
+        {
+            return exception;
+        }
+
+        Assert.Fail($"Expected {typeof(TException).Name}.");
+        throw new InvalidOperationException("Unreachable after Assert.Fail.");
+    }
 
     private static async Task WaitUntilAsync(Func<bool> condition)
     {
