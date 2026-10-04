@@ -67,6 +67,52 @@ public sealed class MySqlPlaytimeRepositoryTests
     }
 
     [TestMethod]
+    public async Task StateSegments_TransitionAtomicallyAndClipAcrossUtcMidnight()
+    {
+        await new MigrationRunner(_database, [
+            new CoreSchemaMigration001(), new ModerationSchemaMigration002(),
+            new AdminAuditSchemaMigration003(), new WarningSchemaMigration004(),
+            new PlaytimeSchemaMigration005(), new CombatSchemaMigration006(),
+            new RankAdjustmentSchemaMigration007(), new PlaytimeStateSchemaMigration008()])
+            .ApplyPendingAsync();
+
+        var session = PlayerSessionId.New();
+        var repository = new MySqlPlaytimeRepository(_database);
+        await repository.OpenStateAsync(Player, session, Start,
+            new PlaytimeState(PlayerTeam.Terrorist, true));
+        await repository.AdvanceStateAsync(Player, session, Start.AddSeconds(45),
+            new PlaytimeState(PlayerTeam.CounterTerrorist, true));
+        await repository.AdvanceStateAsync(Player, session, Start.AddSeconds(75),
+            new PlaytimeState(PlayerTeam.CounterTerrorist, false));
+        await repository.AdvanceStateAsync(Player, session, Start.AddSeconds(60),
+            new PlaytimeState(PlayerTeam.Terrorist, false));
+        await repository.AdvanceStateAsync(Player, session, Start.AddSeconds(105),
+            new PlaytimeState(PlayerTeam.CounterTerrorist, false), close: true);
+        await repository.AdvanceStateAsync(Player, session, Start.AddHours(2),
+            new PlaytimeState(PlayerTeam.Terrorist, true));
+
+        var totals = await repository.ReadAsync(Player, new DateOnly(2026, 9, 26));
+        Assert.AreEqual(TimeSpan.FromSeconds(105), totals.Total);
+        Assert.AreEqual(TimeSpan.FromSeconds(75), totals.Today);
+
+        var breakdown = await repository.ReadStateBreakdownAsync(
+            Player, new DateOnly(2026, 9, 26));
+        var terroristAlive = breakdown.Single(entry =>
+            entry.Team == PlayerTeam.Terrorist && entry.IsAlive);
+        var ctAlive = breakdown.Single(entry =>
+            entry.Team == PlayerTeam.CounterTerrorist && entry.IsAlive);
+        var ctDead = breakdown.Single(entry =>
+            entry.Team == PlayerTeam.CounterTerrorist && !entry.IsAlive);
+
+        Assert.AreEqual(TimeSpan.FromSeconds(45), terroristAlive.Total);
+        Assert.AreEqual(TimeSpan.FromSeconds(15), terroristAlive.Today);
+        Assert.AreEqual(TimeSpan.FromSeconds(30), ctAlive.Total);
+        Assert.AreEqual(TimeSpan.FromSeconds(30), ctAlive.Today);
+        Assert.AreEqual(TimeSpan.FromSeconds(30), ctDead.Total);
+        Assert.AreEqual(TimeSpan.FromSeconds(30), ctDead.Today);
+    }
+
+    [TestMethod]
     public async Task Toplist_OrdersTiesBySteamIdAndPaginatesAfterRestart()
     {
         await new MigrationRunner(_database, [
@@ -107,7 +153,7 @@ public sealed class MySqlPlaytimeRepositoryTests
         await _database.WithConnectionAsync(async (connection, token) =>
         {
             foreach (var table in new[] {
-                "ano_combat_deaths", "ano_playtime_sessions", "ano_admin_warnings", "ano_admin_action_audit",
+                "ano_playtime_segments", "ano_combat_deaths", "ano_playtime_sessions", "ano_admin_warnings", "ano_admin_action_audit",
                 "ano_moderation_audit", "ano_moderation_sanctions", "ano_module_data",
                 "ano_players", "ano_schema_migrations" })
             {
