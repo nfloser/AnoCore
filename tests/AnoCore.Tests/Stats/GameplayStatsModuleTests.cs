@@ -5,6 +5,7 @@ using AnoCore.Abstractions.Players;
 using AnoCore.Abstractions.Stats;
 using AnoCore.Modules.Stats;
 using AnoCore.Runtime.Commands;
+using AnoCore.Runtime.Events;
 using AnoCore.Runtime.Players;
 
 namespace AnoCore.Tests.Stats;
