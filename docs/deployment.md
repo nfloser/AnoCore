@@ -5,7 +5,7 @@ This package is for verifying the current AnoCore runtime on a test server. It i
 ## Requirements
 
 - CS2 with Metamod and CounterStrikeSharp installed.
-- CounterStrikeSharp API 374 or newer, with a .NET 10-compatible host.
+- CounterStrikeSharp API 374 or newer, with a .NET 10-compatible host. The current development artifact is built against API 1.0.376.
 - A successful AnoCore CI run for the exact commit being installed.
 
 An older server hosting other working plugins does not establish compatibility with this build. Inspect the installed CounterStrikeSharp version first.
