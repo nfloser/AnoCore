@@ -16,6 +16,7 @@ public sealed class AnoVetoCoordinator
     private readonly IAnoVetoRandomSource _random;
     private readonly Func<AnoVetoOptions> _options;
     private ActiveVote? _active;
+    private AnoVetoOperationResult? _lastFinalized;
 
     public AnoVetoCoordinator(
         IMapCatalog catalog,
@@ -224,6 +225,16 @@ public sealed class AnoVetoCoordinator
         return AnoVetoOperationResult.Success(active.Maps, AnoVetoOutcome.Cancelled);
     }
 
+    public bool TryTakeFinalized(out AnoVetoOperationResult? result)
+    {
+        lock (_gate)
+        {
+            result = _lastFinalized;
+            _lastFinalized = null;
+            return result is not null;
+        }
+    }
+
     public bool TryGetStatus(out IReadOnlyList<MapDefinition> maps)
     {
         lock (_gate)
@@ -278,12 +289,14 @@ public sealed class AnoVetoCoordinator
 
         if (result.Outcome == VoteOutcome.QuorumNotMet)
         {
-            return AnoVetoOperationResult.Success(active.Maps, AnoVetoOutcome.QuorumNotMet);
+            return RememberFinalized(
+                AnoVetoOperationResult.Success(active.Maps, AnoVetoOutcome.QuorumNotMet));
         }
 
         if (result.Outcome == VoteOutcome.TieWithoutWinner || result.WinningOptionId is null)
         {
-            return AnoVetoOperationResult.Success(active.Maps, AnoVetoOutcome.TieWithoutWinner);
+            return RememberFinalized(
+                AnoVetoOperationResult.Success(active.Maps, AnoVetoOutcome.TieWithoutWinner));
         }
 
         if (!active.OptionToMap.TryGetValue(result.WinningOptionId, out var winner))
@@ -292,7 +305,17 @@ public sealed class AnoVetoCoordinator
         }
 
         await _mapChanger.ChangeMapAsync(winner, cancellationToken).ConfigureAwait(false);
-        return AnoVetoOperationResult.Success(active.Maps, AnoVetoOutcome.MapSelected, winner);
+        return RememberFinalized(
+            AnoVetoOperationResult.Success(active.Maps, AnoVetoOutcome.MapSelected, winner));
+    }
+
+    private AnoVetoOperationResult RememberFinalized(AnoVetoOperationResult result)
+    {
+        lock (_gate)
+        {
+            _lastFinalized = result;
+        }
+        return result;
     }
 
     private static AnoVetoFailure MapFailure(VoteOperationFailure failure)
