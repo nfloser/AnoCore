@@ -118,12 +118,13 @@ public sealed class StatisticsResetCommandControllerTests
                 ?? ModerationTargetResult.Success(
                     new PlayerSnapshot(
                         Target,
+                        new PlayerSessionId(Guid.NewGuid()),
                         "Target",
-                        PlayerTeam.Terrorist,
                         true,
+                        true,
+                        PlayerTeam.Terrorist,
                         Now,
-                        Now,
-                        new PlayerSessionId(Guid.NewGuid()))));
+                        Now)));
         }
     }
 
