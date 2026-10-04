@@ -46,7 +46,7 @@ public sealed record CombatWeaponFireEvent
             throw new ArgumentException("A combat event id is required.", nameof(eventId));
         EventId = eventId;
         PlayerId = playerId ?? throw new ArgumentNullException(nameof(playerId));
-        OccurredAtUtc = occurredAtUtc.ToUniversalTime();
+        OccurredAtUtc = CombatDetailContractValidation.NormalizeTimestamp(occurredAtUtc);
         MapName = CombatDetailContractValidation.NormalizeRequired(mapName, 128, nameof(mapName));
         Weapon = CombatDetailContractValidation.NormalizeRequired(weapon, 64, nameof(weapon));
     }
@@ -76,7 +76,7 @@ public sealed record CombatDamageEvent
         EventId = eventId;
         VictimId = victimId ?? throw new ArgumentNullException(nameof(victimId));
         AttackerId = attackerId;
-        OccurredAtUtc = occurredAtUtc.ToUniversalTime();
+        OccurredAtUtc = CombatDetailContractValidation.NormalizeTimestamp(occurredAtUtc);
         MapName = CombatDetailContractValidation.NormalizeRequired(mapName, 128, nameof(mapName));
         Weapon = CombatDetailContractValidation.NormalizeRequired(weapon, 64, nameof(weapon));
         Hitgroup = hitgroup;
@@ -145,6 +145,12 @@ public interface ICombatDetailRepository : ICombatRepository
 
 internal static class CombatDetailContractValidation
 {
+    public static DateTimeOffset NormalizeTimestamp(DateTimeOffset value)
+    {
+        var utc = value.ToUniversalTime();
+        return new DateTimeOffset(utc.Ticks - utc.Ticks % 10, TimeSpan.Zero);
+    }
+
     public static string NormalizeRequired(string? value, int maxLength, string paramName)
     {
         if (string.IsNullOrWhiteSpace(value))
