@@ -18,7 +18,7 @@ public sealed class MessageService : IMessageService, IDisposable
         Func<TimeSpan, CancellationToken, Task>? delay = null,
         Action<Exception>? onBackgroundError = null)
     {
-        _delay = delay ?? static (duration, token) => Task.Delay(duration, token);
+        _delay = delay ?? ((duration, token) => Task.Delay(duration, token));
         _onBackgroundError = onBackgroundError;
     }
 
