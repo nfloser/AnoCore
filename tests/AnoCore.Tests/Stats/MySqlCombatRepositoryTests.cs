@@ -312,8 +312,18 @@ public sealed class MySqlCombatRepositoryTests
     {
         await _database.WithConnectionAsync(async (connection, token) =>
         {
+            foreach (var view in new[] {
+                "ano_effective_gameplay_stats", "ano_effective_combat_damage",
+                "ano_effective_combat_weapon_fire", "ano_effective_combat_assists",
+                "ano_effective_combat_deaths", "ano_effective_combat_kills"
+            })
+            {
+                await using var dropView = connection.CreateCommand();
+                dropView.CommandText = $"DROP VIEW IF EXISTS {view}";
+                await dropView.ExecuteNonQueryAsync(token);
+            }
             foreach (var table in new[] {
-                "ano_gameplay_stats", "ano_combat_damage", "ano_combat_weapon_fire", "ano_rank_adjustments", "ano_playtime_segments", "ano_combat_deaths", "ano_playtime_sessions", "ano_admin_warnings",
+                "ano_statistics_resets", "ano_gameplay_stats", "ano_combat_damage", "ano_combat_weapon_fire", "ano_rank_adjustments", "ano_playtime_segments", "ano_combat_deaths", "ano_playtime_sessions", "ano_admin_warnings",
                 "ano_admin_action_audit", "ano_moderation_audit", "ano_moderation_sanctions",
                 "ano_module_data", "ano_players", "ano_schema_migrations" })
             {
