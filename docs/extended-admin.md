@@ -28,8 +28,8 @@ Reversible state is keyed by `PlayerSessionId`, not by slot or SteamID alone. Fr
 
 The CounterStrikeSharp transport queues engine access on the server update thread and rechecks the current registry session immediately before reading or changing the pawn. A reconnect between command handling and the scheduled engine operation therefore fails instead of mutating the replacement session.
 
-Owned reversible state is released on death, disconnect and map end, and the unload path attempts to restore all remaining owned state before disposing the service. Native unload timing and exact CS2 field behavior remain part of the real-server acceptance gate.
+Owned reversible state is restored on explicit reset and player death while the current pawn is still addressable. Disconnect and map end deliberately forget ownership without touching a vanishing pawn or obsolete map entity; the engine teardown becomes the boundary there. Plugin unload attempts to restore every remaining owned state before disposing the service. A failed restore keeps that facet owned for a later retry, and global cleanup continues with other sessions before reporting aggregated failures. Native unload timing and exact CS2 field behavior remain part of the real-server acceptance gate.
 
 ## Native acceptance
 
-On a disposable server, verify each command with an authorized admin, an unauthorized player and a target with equal/higher immunity. For reversible commands, record the original movement/speed/flash/damage state, apply the override, then test explicit reset, death, disconnect/reconnect, map change and plugin unload. A stale reconnect or reused slot must never receive an earlier session's action or restoration.
+On a disposable server, verify each command with an authorized admin, an unauthorized player and a target with equal/higher immunity. For reversible commands, record the original movement/speed/flash/damage state, apply the override, then test explicit reset and death restoration, disconnect/reconnect and map-change teardown, plus plugin-unload restoration. A stale reconnect or reused slot must never receive an earlier session's action or restoration.
