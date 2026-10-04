@@ -6,8 +6,8 @@
 - Management status reads now receive the same security treatment as privileged management capabilities: authenticated scope checks, bounded per-token rate limiting, metadata-only request/result audit and redacted provider failures.
 - `docs/functional-acceptance.md` is the current functional inventory. Historical open issues and old draft PRs are not reliable indicators that a feature is absent because many packages were first merged into the non-production integration branch and later consolidated into `main`.
 - Remaining work must be split into two categories:
-  1. actual missing code/packages (for example shared messaging/native output consolidation and any remaining external transport/integration surface); and
-  2. native-only acceptance gates in #23 / the disposable CS2/DatHost flow (CounterStrikeSharp event semantics, real menu/HUD interaction, map transitions, voice/chat behavior, tournament engine actions, deployment/upgrade).
+  1. actual missing code/packages (after #216, primarily any remaining external transport/integration surface and gaps found by acceptance); and
+  2. native-only acceptance gates in #23 / the disposable CS2/DatHost flow (CounterStrikeSharp event semantics, real menu/HUD/message interaction, map transitions, voice/chat behavior, tournament engine actions, deployment/upgrade).
 - Do not claim production readiness or cut a release solely from automated CI. Native acceptance still has to be recorded against the exact deployment artifact before #23 and #11 can close.
 
 ## Recent verification
@@ -17,6 +17,14 @@
 - The previous integration Tournament-AnoVeto PR #210 exact-head CI #589 was also green before its mainline follow-up.
 
 ---
+
+# Shared messaging checkpoint — 2026-10-04
+
+- Issue #216 / branch `feature/216-shared-messaging` adds the public `IMessageService` contract, player/team/all targets and chat/center/center-HTML channels.
+- The runtime owns timed center-message priority leases. Lower priority output is suppressed, replacement is versioned, and an older expiry cannot clear a newer message.
+- The CounterStrikeSharp adapter resolves recipients from the shared player registry on the server thread and supports session-pinned player targets so reconnects reject stale queued output.
+- Localization and placeholders remain pre-dispatch concerns; modules receive one engine-independent native output path without taking a CounterStrikeSharp dependency.
+- Automated tests cover validation, transport absence, suppression, replacement, expiry and failed-delivery slot release. Native rendering/duration/reload behavior remains #23 acceptance.
 
 # Extended administration integration checkpoint — 2026-10-04
 
