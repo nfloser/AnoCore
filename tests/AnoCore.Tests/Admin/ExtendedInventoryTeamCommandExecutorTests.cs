@@ -155,6 +155,7 @@ public sealed class ExtendedInventoryTeamCommandExecutorTests
         var executor = new ExtendedInventoryTeamCommandExecutor(
             new FakeTargets(ModerationTargetResult.Success(Player(true))),
             registry,
+            new AllowAllPermissions(),
             transport);
 
         var console = await executor.ExecuteHideAsync(null);
@@ -173,6 +174,7 @@ public sealed class ExtendedInventoryTeamCommandExecutorTests
         return new ExtendedInventoryTeamCommandExecutor(
             targets,
             new FakePlayerRegistry(),
+            new AllowAllPermissions(),
             transport);
     }
 
@@ -232,9 +234,7 @@ public sealed class ExtendedInventoryTeamCommandExecutorTests
     {
         public PlayerSnapshot? Player { get; set; }
 
-        public int Count => Player is null ? 0 : 1;
-
-        public IReadOnlyCollection<PlayerSnapshot> GetAll()
+        public IReadOnlyCollection<PlayerSnapshot> OnlinePlayers
             => Player is null ? [] : [Player];
 
         public bool TryGet(PlayerId id, out PlayerSnapshot? player)
@@ -242,6 +242,32 @@ public sealed class ExtendedInventoryTeamCommandExecutorTests
             player = Player is not null && Player.Id == id ? Player : null;
             return player is not null;
         }
+
+        public ValueTask<PlayerSnapshot> ConnectAsync(
+            PlayerConnection connection,
+            CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public ValueTask<PlayerSnapshot?> UpdateAsync(
+            PlayerStateUpdate update,
+            CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public ValueTask<PlayerSnapshot?> DisconnectAsync(
+            PlayerId id,
+            PlayerSessionId sessionId,
+            DateTimeOffset disconnectedAtUtc,
+            CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+    }
+
+    private sealed class AllowAllPermissions : IPermissionEvaluator
+    {
+        public ValueTask<bool> HasPermissionAsync(
+            PlayerId playerId,
+            PermissionId permission,
+            CancellationToken cancellationToken = default)
+            => ValueTask.FromResult(true);
     }
 
     private sealed class RecordingTransport : IExtendedInventoryTeamTransport
