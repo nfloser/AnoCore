@@ -210,6 +210,32 @@ public sealed record ManagementOperationResult
         => new(false, code, message);
 }
 
+public enum ManagementStatusResource
+{
+    Health = 1,
+    Server = 2,
+    Players = 3,
+    Modules = 4,
+}
+
+public sealed record ManagementStatusRequest
+{
+    public ManagementStatusRequest(ManagementStatusResource resource)
+    {
+        if (!Enum.IsDefined(resource))
+            throw new ArgumentOutOfRangeException(nameof(resource));
+        Resource = resource;
+    }
+
+    public ManagementStatusResource Resource { get; }
+}
+
+public sealed record ManagementStatusPayload(
+    ManagementHealthSnapshot? Health = null,
+    ManagementServerStatus? Server = null,
+    IReadOnlyList<ManagementPlayerStatus>? Players = null,
+    IReadOnlyList<ManagementModuleStatus>? Modules = null);
+
 public sealed record ManagementHealthSnapshot(
     bool Ready,
     string RuntimeStatus,
