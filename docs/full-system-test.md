@@ -70,6 +70,8 @@ Use controlled kills/deaths/assists and at least one reconnect.
 - Kills, deaths and assists persist and `anokda` reflects the expected totals.
 - Fire a controlled set of shots and body/head hits; `anodetailstats` reports persisted shots/hits/damage and `anohitgroups` reports the expected bounded hitgroup buckets.
 - Repeat detail queries with map and weapon filters. Team/self damage must not inflate the default offensive totals; world/unattributed damage must not be credited to a player attacker.
+- With default gameplay-stat policy, confirm warmup and fewer than four tracked humans do not advance combat/gameplay counters. Then reach the threshold and verify grenade, objective, MVP, round and match counters with `anogamestats`.
+- Switch the gameplay-stat config to FFA for a disposable-server pass: same-team combat must receive normal credit and the highest stable player score must receive the match win.
 - Kill/death/assist toplists use stable ordering for ties.
 - Rank score, placement and progress match the configured thresholds.
 - Administrative give/take/set/reset operations persist and are audited.
