@@ -135,6 +135,8 @@ jobs:
           test -s artifacts/plugins/AnoCore/AnoCore.Modules.Admin.dll
           test -s artifacts/plugins/AnoCore/AnoCore.Modules.Stats.dll
           test -s artifacts/plugins/AnoCore/AnoCore.Modules.AnoVeto.dll
+          test -s artifacts/plugins/AnoCore/AnoCore.Modules.Tournament.dll
+          test -s artifacts/plugins/AnoCore/AnoCore.Modules.Tournament.Persistence.dll
           test -s artifacts/plugins/AnoCore/MySqlConnector.dll
           test -s artifacts/plugins/AnoCore/AnoCore.deps.json
           if find artifacts/plugins/AnoCore -iname 'CounterStrikeSharp.API.dll' -print -quit | grep -q .; then
