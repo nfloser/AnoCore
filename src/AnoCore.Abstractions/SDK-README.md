@@ -86,3 +86,25 @@ if (registry is not null)
 Management contracts do not start a network listener and do not expose arbitrary
 server-command execution. Authentication, scopes, rate limiting and audit behavior
 remain host responsibilities implemented through the shared management core.
+
+
+## Shared messaging
+
+Modules can optionally resolve `IMessageService` and request chat, center or center-HTML output without referencing CounterStrikeSharp:
+
+```csharp
+using AnoCore.Abstractions.Messaging;
+
+var messages = context.Services.GetService(typeof(IMessageService)) as IMessageService;
+if (messages is not null)
+{
+    await messages.SendAsync(
+        new MessageRequest(
+            MessageTarget.ForPlayer(player.Id, player.SessionId),
+            MessageChannel.Chat,
+            "[ANO] Example module ready."),
+        cancellationToken);
+}
+```
+
+Timed center messages also accept a bounded priority and duration. The host suppresses lower-priority output while a higher-priority lease is active. Resolve localization and trusted placeholders before dispatching so the transport remains independent of catalogs and formatting providers.
