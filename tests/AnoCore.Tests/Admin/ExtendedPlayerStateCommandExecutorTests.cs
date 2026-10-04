@@ -146,6 +146,49 @@ public sealed class ExtendedPlayerStateCommandExecutorTests
     }
 
     [TestMethod]
+    public async Task ForgetSessionDropsOwnershipWithoutTouchingVanishingPawn()
+    {
+        var first = Player();
+        var transport = new RecordingTransport();
+        var service = new ExtendedPlayerStateService(transport);
+
+        await service.ApplyAsync(
+            first,
+            new ExtendedPlayerStateMutation(ExtendedPlayerStateOperation.Freeze));
+        await service.ApplyAsync(
+            first,
+            new ExtendedPlayerStateMutation(ExtendedPlayerStateOperation.God));
+
+        await service.ForgetSessionAsync(first.SessionId);
+        await service.ReleaseSessionAsync(first);
+
+        Assert.AreEqual(2, transport.Captured.Count);
+        Assert.AreEqual(0, transport.Restored.Count);
+    }
+
+    [TestMethod]
+    public async Task ForgetAllDropsMapOwnedStateWithoutNativeRestores()
+    {
+        var first = Player();
+        var second = first with { SessionId = PlayerSessionId.New() };
+        var transport = new RecordingTransport();
+        var service = new ExtendedPlayerStateService(transport);
+
+        await service.ApplyAsync(
+            first,
+            new ExtendedPlayerStateMutation(ExtendedPlayerStateOperation.SetSpeed, 150));
+        await service.ApplyAsync(
+            second,
+            new ExtendedPlayerStateMutation(ExtendedPlayerStateOperation.Blind, 200));
+
+        await service.ForgetAllAsync();
+        await service.ReleaseSessionAsync(first);
+        await service.ReleaseSessionAsync(second);
+
+        Assert.AreEqual(0, transport.Restored.Count);
+    }
+
+    [TestMethod]
     public async Task OneShotActionsDoNotCaptureReversibleBaseline()
     {
         var player = Player();
