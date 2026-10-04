@@ -15,6 +15,8 @@ public sealed class CombatModule : IDisposable
     private readonly IDisposable _topCommand;
     private readonly IDisposable _deathCommand;
     private readonly IDisposable _assistCommand;
+    private readonly IDisposable? _detailCommand;
+    private readonly IDisposable? _hitgroupCommand;
     private int _disposed;
 
     public CombatModule(IAnoCommandRegistry commands, IPlayerRegistry players,
@@ -63,6 +65,45 @@ public sealed class CombatModule : IDisposable
         {
             _command.Dispose();
             throw;
+        }
+
+        if (_detailRepository is not null)
+        {
+            try
+            {
+                _detailCommand = commands.Register(new ModuleId("ano.stats"),
+                    new CommandDescriptor("anodetailstats",
+                        "Show your shot, hit and damage statistics.", arguments:
+                        [
+                            new("map", CommandArgumentKind.String, "Optional map name.", required: false),
+                            new("weapon", CommandArgumentKind.String, "Optional weapon name.", required: false),
+                        ]),
+                    OwnDetailStatsAsync);
+                try
+                {
+                    _hitgroupCommand = commands.Register(new ModuleId("ano.stats"),
+                        new CommandDescriptor("anohitgroups",
+                            "Show your hitgroup damage breakdown.", arguments:
+                            [
+                                new("map", CommandArgumentKind.String, "Optional map name.", required: false),
+                                new("weapon", CommandArgumentKind.String, "Optional weapon name.", required: false),
+                            ]),
+                        OwnHitgroupsAsync);
+                }
+                catch
+                {
+                    _detailCommand.Dispose();
+                    throw;
+                }
+            }
+            catch
+            {
+                _assistCommand.Dispose();
+                _deathCommand.Dispose();
+                _topCommand.Dispose();
+                _command.Dispose();
+                throw;
+            }
         }
     }
 
@@ -152,6 +193,8 @@ public sealed class CombatModule : IDisposable
     {
         if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
         _transitionMonitor?.Dispose();
+        _hitgroupCommand?.Dispose();
+        _detailCommand?.Dispose();
         _assistCommand.Dispose();
         _deathCommand.Dispose();
         _topCommand.Dispose();
