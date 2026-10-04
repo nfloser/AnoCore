@@ -237,6 +237,75 @@ public sealed class ManagementSecurityTests
     }
 
     [TestMethod]
+    public async Task StatusGateway_IsRateLimitedAuditedAndRedactsProviderFailure()
+    {
+        var audits = new List<ManagementAuditEvent>();
+        var limiter = new ManagementRateLimiter(
+            new ManagementRateLimitOptions(
+                ReadRequestsPerMinute: 1,
+                PrivilegedRequestsPerMinute: 10,
+                MaximumTrackedKeys: 32));
+        var gateway = new ManagementApiGateway(
+            new ManagementTokenAuthenticator(
+                [Credential("token", ManagementScope.ReadStatus)]),
+            new ManagementCapabilityRegistry(),
+            new ThrowingStatusProvider(),
+            limiter,
+            new FixedTime(Now),
+            (entry, _) =>
+            {
+                audits.Add(entry);
+                return ValueTask.CompletedTask;
+            });
+        var request = new ManagementRequestEnvelope<ManagementStatusRequest>(
+            ManagementApiVersion.Current,
+            "token",
+            "corr-status",
+            new ManagementStatusRequest(ManagementStatusResource.Health));
+
+        var failed = await gateway.GetStatusAsync(request, Secret);
+        var limited = await gateway.GetStatusAsync(request, Secret);
+
+        Assert.IsFalse(failed.Success);
+        Assert.AreEqual("handler_failed", failed.Code);
+        CollectionAssert.AreEqual(
+            new[] { "requested", "failed" },
+            audits.Select(value => value.Phase).ToArray());
+        Assert.AreEqual("status.health", audits[0].Capability.Value);
+        Assert.AreEqual("handler_failed", audits[1].ResultCode);
+        Assert.IsFalse(limited.Success);
+        Assert.AreEqual("rate_limited", limited.Code);
+    }
+
+    [TestMethod]
+    public async Task StatusGateway_RequestedAuditFailurePreventsProviderRead()
+    {
+        var provider = new CountingStatusProvider();
+        var gateway = new ManagementApiGateway(
+            new ManagementTokenAuthenticator(
+                [Credential("token", ManagementScope.ReadStatus)]),
+            new ManagementCapabilityRegistry(),
+            provider,
+            new ManagementRateLimiter(
+                new ManagementRateLimitOptions(10, 10, 32)),
+            new FixedTime(Now),
+            (entry, _) => entry.Phase == "requested"
+                ? ValueTask.FromException(new InvalidOperationException("audit down"))
+                : ValueTask.CompletedTask);
+        var request = new ManagementRequestEnvelope<ManagementStatusRequest>(
+            ManagementApiVersion.Current,
+            "token",
+            "corr-status",
+            new ManagementStatusRequest(ManagementStatusResource.Health));
+
+        var response = await gateway.GetStatusAsync(request, Secret);
+
+        Assert.IsFalse(response.Success);
+        Assert.AreEqual("audit_failed", response.Code);
+        Assert.AreEqual(0, provider.HealthCalls);
+    }
+
+    [TestMethod]
     public void Contract_RejectsDefaultCapabilityInvalidScopesAndUnsafeResults()
     {
         Assert.ThrowsExactly<ArgumentException>(() =>
@@ -344,6 +413,50 @@ public sealed class ManagementSecurityTests
     private sealed class FixedTime(DateTimeOffset now) : TimeProvider
     {
         public override DateTimeOffset GetUtcNow() => now;
+    }
+
+    private sealed class ThrowingStatusProvider : IManagementStatusProvider
+    {
+        public ValueTask<ManagementHealthSnapshot> GetHealthAsync(
+            CancellationToken cancellationToken = default)
+            => ValueTask.FromException<ManagementHealthSnapshot>(
+                new InvalidOperationException("database-password=secret"));
+
+        public ValueTask<ManagementServerStatus> GetServerAsync(
+            CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public ValueTask<IReadOnlyList<ManagementPlayerStatus>> GetPlayersAsync(
+            CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public ValueTask<IReadOnlyList<ManagementModuleStatus>> GetModulesAsync(
+            CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+    }
+
+    private sealed class CountingStatusProvider : IManagementStatusProvider
+    {
+        public int HealthCalls { get; private set; }
+
+        public ValueTask<ManagementHealthSnapshot> GetHealthAsync(
+            CancellationToken cancellationToken = default)
+        {
+            HealthCalls++;
+            return ValueTask.FromResult(new ManagementHealthSnapshot(true, "ready", Now));
+        }
+
+        public ValueTask<ManagementServerStatus> GetServerAsync(
+            CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public ValueTask<IReadOnlyList<ManagementPlayerStatus>> GetPlayersAsync(
+            CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public ValueTask<IReadOnlyList<ManagementModuleStatus>> GetModulesAsync(
+            CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
     }
 
     private sealed class EmptyStatusProvider : IManagementStatusProvider
