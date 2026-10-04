@@ -47,7 +47,9 @@ public sealed class MySqlGameplayStatRepositoryTests
             "de_dust2", GameplayStatKind.BombPlanted);
 
         await repository.RecordAsync(stat);
-        await repository.RecordAsync(stat);
+        await repository.RecordAsync(new GameplayStatEvent(
+            stat.EventId, Player, Now.AddMilliseconds(20),
+            "de_dust2", GameplayStatKind.BombPlanted));
 
         var restarted = new MySqlGameplayStatRepository(_database);
         var totals = await restarted.ReadAsync(Player);
