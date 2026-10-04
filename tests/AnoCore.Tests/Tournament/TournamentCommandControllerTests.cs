@@ -140,7 +140,8 @@ public sealed class TournamentCommandControllerTests
         Assert.IsTrue(second.Result.Success);
         Assert.AreEqual(1, fixture.Repository.MaxConcurrentSave);
         var ready = fixture.Runtime.CurrentSession!.Machine.Snapshot().ReadyPlayers;
-        CollectionAssert.IsSubsetOf(new[] { A1, A2 }, ready.ToArray());
+        Assert.IsTrue(ready.Contains(A1));
+        Assert.IsTrue(ready.Contains(A2));
     }
 
     [TestMethod]
@@ -166,8 +167,9 @@ public sealed class TournamentCommandControllerTests
         Assert.IsNull(fixture.Runtime.CurrentSession);
         Assert.IsNull(await fixture.Repository.LoadActiveAsync());
         var stored = await fixture.Repository.LoadAsync(Guid.Parse(definition.MatchId));
-        Assert.AreEqual(TournamentMatchState.Completed, stored?.Snapshot.State);
-        Assert.AreEqual(1, stored?.Snapshot.TeamAMaps);
+        Assert.IsNotNull(stored);
+        Assert.AreEqual(TournamentMatchState.Completed, stored.Snapshot.State);
+        Assert.AreEqual(1, stored.Snapshot.TeamAMaps);
     }
 
     [TestMethod]
