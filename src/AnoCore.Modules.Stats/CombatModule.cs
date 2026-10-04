@@ -9,6 +9,7 @@ public sealed class CombatModule : IDisposable
 {
     private readonly IPlayerRegistry _players;
     private readonly ICombatRepository _repository;
+    private readonly ICombatDetailRepository? _detailRepository;
     private readonly RankTransitionMonitor? _transitionMonitor;
     private readonly IDisposable _command;
     private readonly IDisposable _topCommand;
@@ -22,6 +23,7 @@ public sealed class CombatModule : IDisposable
         ArgumentNullException.ThrowIfNull(commands);
         _players = players ?? throw new ArgumentNullException(nameof(players));
         _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+        _detailRepository = repository as ICombatDetailRepository;
         _transitionMonitor = transitionMonitor;
         _command = commands.Register(new ModuleId("ano.stats"),
             new CommandDescriptor("anokda", "Show your kill, death and assist totals."),
@@ -70,6 +72,26 @@ public sealed class CombatModule : IDisposable
         return _transitionMonitor is null
             ? _repository.RecordAsync(death, cancellationToken)
             : _transitionMonitor.RecordAsync(death, cancellationToken);
+    }
+
+    public ValueTask RecordWeaponFireAsync(CombatWeaponFireEvent weaponFire,
+        CancellationToken cancellationToken = default)
+    {
+        ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, this);
+        ArgumentNullException.ThrowIfNull(weaponFire);
+        return _detailRepository is null
+            ? ValueTask.CompletedTask
+            : _detailRepository.RecordWeaponFireAsync(weaponFire, cancellationToken);
+    }
+
+    public ValueTask RecordDamageAsync(CombatDamageEvent damage,
+        CancellationToken cancellationToken = default)
+    {
+        ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, this);
+        ArgumentNullException.ThrowIfNull(damage);
+        return _detailRepository is null
+            ? ValueTask.CompletedTask
+            : _detailRepository.RecordDamageAsync(damage, cancellationToken);
     }
 
     private async ValueTask<CommandResult> OwnStatsAsync(PlayerId? caller,
