@@ -1,5 +1,6 @@
 using AnoCore.Abstractions.Management;
 using AnoCore.Abstractions.Modules;
+using AnoCore.Abstractions.Players;
 using AnoCore.Runtime.Management;
 
 namespace AnoCore.Tests.Management;
@@ -7,11 +8,41 @@ namespace AnoCore.Tests.Management;
 [TestClass]
 public sealed class ManagementSecurityTests
 {
+    private const string Secret = "management-test-secret-that-is-long-enough";
     private static readonly ManagementCapabilityId Capability =
         new("server.restart-safe");
     private static readonly ModuleId Owner = new("test.management");
     private static readonly DateTimeOffset Now =
         new(2026, 10, 4, 20, 0, 0, TimeSpan.Zero);
+
+    [TestMethod]
+    public async Task Gateway_RejectsWrongVersionAndCredentialsBeforeHandler()
+    {
+        var calls = 0;
+        var registry = new ManagementCapabilityRegistry();
+        using var registration = registry.Register(
+            Owner,
+            Descriptor(ManagementScope.ManageServer, ManagementOperationClass.Privileged),
+            (_, _, _) =>
+            {
+                calls++;
+                return ValueTask.FromResult(ManagementOperationResult.Ok("done"));
+            });
+        var gateway = Gateway(registry, ManagementScope.ManageServer);
+
+        var wrongVersion = await gateway.ExecuteAsync(
+            Envelope("v2"),
+            Secret);
+        var wrongSecret = await gateway.ExecuteAsync(
+            Envelope(),
+            "different-management-secret-that-is-long-enough");
+
+        Assert.IsFalse(wrongVersion.Success);
+        Assert.AreEqual("unsupported_version", wrongVersion.Code);
+        Assert.IsFalse(wrongSecret.Success);
+        Assert.AreEqual("unauthorized", wrongSecret.Code);
+        Assert.AreEqual(0, calls);
+    }
 
     [TestMethod]
     public async Task ScopeDenial_HappensBeforeHandlerAndAudit()
@@ -27,13 +58,12 @@ public sealed class ManagementSecurityTests
                 calls++;
                 return ValueTask.FromResult(ManagementOperationResult.Ok("done"));
             });
+        var gateway = Gateway(registry, ManagementScope.ReadStatus);
 
-        var result = await registry.ExecuteAsync(
-            Context(ManagementScope.ReadStatus),
-            new ManagementOperationRequest(Capability));
+        var response = await gateway.ExecuteAsync(Envelope(), Secret);
 
-        Assert.IsFalse(result.Success);
-        Assert.AreEqual("forbidden", result.Code);
+        Assert.IsFalse(response.Success);
+        Assert.AreEqual("forbidden", response.Code);
         Assert.AreEqual(0, calls);
         Assert.AreEqual(0, audits.Count);
     }
@@ -56,13 +86,12 @@ public sealed class ManagementSecurityTests
                 calls++;
                 return ValueTask.FromResult(ManagementOperationResult.Ok("done"));
             });
+        var gateway = Gateway(registry, ManagementScope.ManageServer);
 
-        var result = await registry.ExecuteAsync(
-            Context(ManagementScope.ManageServer),
-            new ManagementOperationRequest(Capability));
+        var response = await gateway.ExecuteAsync(Envelope(), Secret);
 
-        Assert.IsFalse(result.Success);
-        Assert.AreEqual("audit_failed", result.Code);
+        Assert.IsFalse(response.Success);
+        Assert.AreEqual("audit_failed", response.Code);
         Assert.AreEqual(0, calls);
     }
 
@@ -84,14 +113,14 @@ public sealed class ManagementSecurityTests
                 calls++;
                 return ValueTask.FromResult(ManagementOperationResult.Ok("executed"));
             });
+        var gateway = Gateway(registry, ManagementScope.ManageServer);
 
-        var result = await registry.ExecuteAsync(
-            Context(ManagementScope.ManageServer),
-            new ManagementOperationRequest(Capability));
+        var response = await gateway.ExecuteAsync(Envelope(), Secret);
+        var result = response.Payload!;
 
-        Assert.IsFalse(result.Success);
-        Assert.AreEqual("audit_failed_after_execution", result.Code);
-        Assert.AreEqual("true", result.Data!["operation_success"]);
+        Assert.IsFalse(response.Success);
+        Assert.AreEqual("audit_failed_after_execution", response.Code);
+        Assert.AreEqual("true", result.Data["operation_success"]);
         Assert.AreEqual("ok", result.Data["operation_code"]);
         Assert.AreEqual(1, calls);
     }
@@ -110,17 +139,16 @@ public sealed class ManagementSecurityTests
                 Assert.AreEqual("sensitive-value", request.Arguments["reason"]);
                 return ValueTask.FromResult(ManagementOperationResult.Ok("done"));
             });
+        var gateway = Gateway(registry, ManagementScope.ManagePlayers);
 
-        var result = await registry.ExecuteAsync(
-            Context(ManagementScope.ManagePlayers),
-            new ManagementOperationRequest(
-                Capability,
-                new Dictionary<string, string>
-                {
-                    ["reason"] = "sensitive-value",
-                }));
+        var response = await gateway.ExecuteAsync(
+            Envelope(arguments: new Dictionary<string, string>
+            {
+                ["reason"] = "sensitive-value",
+            }),
+            Secret);
 
-        Assert.IsTrue(result.Success);
+        Assert.IsTrue(response.Success);
         CollectionAssert.AreEqual(
             new[] { "requested", "completed" },
             audits.Select(value => value.Phase).ToArray());
@@ -129,7 +157,7 @@ public sealed class ManagementSecurityTests
     }
 
     [TestMethod]
-    public async Task RateLimiter_IsSeparatedByOperationClassAndToken()
+    public async Task RateLimiter_IsSeparatedByToken()
     {
         var limiter = new ManagementRateLimiter(
             new ManagementRateLimitOptions(
@@ -142,15 +170,16 @@ public sealed class ManagementSecurityTests
             Descriptor(ManagementScope.ReadStatus, ManagementOperationClass.Read),
             (_, _, _) => ValueTask.FromResult(ManagementOperationResult.Ok("read")));
 
-        var first = await registry.ExecuteAsync(
-            Context(ManagementScope.ReadStatus, "one"),
-            new ManagementOperationRequest(Capability));
-        var second = await registry.ExecuteAsync(
-            Context(ManagementScope.ReadStatus, "one"),
-            new ManagementOperationRequest(Capability));
-        var otherToken = await registry.ExecuteAsync(
-            Context(ManagementScope.ReadStatus, "two"),
-            new ManagementOperationRequest(Capability));
+        var firstCredential = Credential("one", ManagementScope.ReadStatus);
+        var secondCredential = Credential("two", ManagementScope.ReadStatus);
+        var gateway = new ManagementApiGateway(
+            new ManagementTokenAuthenticator([firstCredential, secondCredential]),
+            registry,
+            new EmptyStatusProvider());
+
+        var first = await gateway.ExecuteAsync(Envelope(tokenId: "one"), Secret);
+        var second = await gateway.ExecuteAsync(Envelope(tokenId: "one"), Secret);
+        var otherToken = await gateway.ExecuteAsync(Envelope(tokenId: "two"), Secret);
 
         Assert.IsTrue(first.Success);
         Assert.AreEqual("rate_limited", second.Code);
@@ -166,15 +195,45 @@ public sealed class ManagementSecurityTests
             Owner,
             Descriptor(ManagementScope.ManageServer, ManagementOperationClass.Privileged),
             (_, _, _) => throw new InvalidOperationException("database-password=secret"));
+        var gateway = Gateway(registry, ManagementScope.ManageServer);
 
-        var result = await registry.ExecuteAsync(
-            Context(ManagementScope.ManageServer),
-            new ManagementOperationRequest(Capability));
+        var response = await gateway.ExecuteAsync(Envelope(), Secret);
+        var result = response.Payload!;
 
-        Assert.IsFalse(result.Success);
-        Assert.AreEqual("handler_failed", result.Code);
+        Assert.IsFalse(response.Success);
+        Assert.AreEqual("handler_failed", response.Code);
         Assert.IsFalse(result.Message.Contains("secret", StringComparison.OrdinalIgnoreCase));
         Assert.AreEqual("failed", audits.Last().Phase);
+    }
+
+    [TestMethod]
+    public async Task StatusGateway_RequiresAuthenticationAndReadScope()
+    {
+        var registry = new ManagementCapabilityRegistry();
+        var status = new EmptyStatusProvider();
+        var noReadGateway = new ManagementApiGateway(
+            new ManagementTokenAuthenticator(
+                [Credential("token", ManagementScope.ManageServer)]),
+            registry,
+            status);
+        var readGateway = new ManagementApiGateway(
+            new ManagementTokenAuthenticator(
+                [Credential("token", ManagementScope.ReadStatus)]),
+            registry,
+            status);
+        var request = new ManagementRequestEnvelope<ManagementStatusRequest>(
+            ManagementApiVersion.Current,
+            "token",
+            "corr-1",
+            new ManagementStatusRequest(ManagementStatusResource.Health));
+
+        var forbidden = await noReadGateway.GetStatusAsync(request, Secret);
+        var allowed = await readGateway.GetStatusAsync(request, Secret);
+
+        Assert.IsFalse(forbidden.Success);
+        Assert.AreEqual("forbidden", forbidden.Code);
+        Assert.IsTrue(allowed.Success);
+        Assert.IsNotNull(allowed.Payload?.Health);
     }
 
     [TestMethod]
@@ -253,21 +312,57 @@ public sealed class ManagementSecurityTests
                 return ValueTask.CompletedTask;
             });
 
+    private static ManagementApiGateway Gateway(
+        ManagementCapabilityRegistry registry,
+        ManagementScope scope)
+        => new(
+            new ManagementTokenAuthenticator([Credential("token", scope)]),
+            registry,
+            new EmptyStatusProvider());
+
+    private static ManagementTokenCredential Credential(
+        string tokenId,
+        ManagementScope scope)
+        => ManagementTokenHasher.Create(
+            tokenId, Secret, scope, iterations: 100_000);
+
+    private static ManagementRequestEnvelope<ManagementOperationRequest> Envelope(
+        string version = ManagementApiVersion.Current,
+        string tokenId = "token",
+        IReadOnlyDictionary<string, string>? arguments = null)
+        => new(
+            version,
+            tokenId,
+            "corr-1",
+            new ManagementOperationRequest(Capability, arguments));
+
     private static ManagementCapabilityDescriptor Descriptor(
         ManagementScope scope,
         ManagementOperationClass operationClass)
         => new(Capability, "Safe test capability.", scope, operationClass);
 
-    private static ManagementRequestContext Context(
-        ManagementScope scope,
-        string token = "token")
-        => new(
-            new ManagementPrincipal(token, scope),
-            "corr-1",
-            "test-remote");
-
     private sealed class FixedTime(DateTimeOffset now) : TimeProvider
     {
         public override DateTimeOffset GetUtcNow() => now;
+    }
+
+    private sealed class EmptyStatusProvider : IManagementStatusProvider
+    {
+        public ValueTask<ManagementHealthSnapshot> GetHealthAsync(
+            CancellationToken cancellationToken = default)
+            => ValueTask.FromResult(new ManagementHealthSnapshot(true, "ready", Now));
+
+        public ValueTask<ManagementServerStatus> GetServerAsync(
+            CancellationToken cancellationToken = default)
+            => ValueTask.FromResult(new ManagementServerStatus(
+                ManagementApiVersion.Current, 1, 0, Now));
+
+        public ValueTask<IReadOnlyList<ManagementPlayerStatus>> GetPlayersAsync(
+            CancellationToken cancellationToken = default)
+            => ValueTask.FromResult<IReadOnlyList<ManagementPlayerStatus>>([]);
+
+        public ValueTask<IReadOnlyList<ManagementModuleStatus>> GetModulesAsync(
+            CancellationToken cancellationToken = default)
+            => ValueTask.FromResult<IReadOnlyList<ManagementModuleStatus>>([]);
     }
 }
