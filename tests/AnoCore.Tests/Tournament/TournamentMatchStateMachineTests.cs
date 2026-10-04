@@ -122,6 +122,28 @@ public sealed class TournamentMatchStateMachineTests
     }
 
     [TestMethod]
+    public void Restore_RejectsImpossibleSeriesWinnerOutsideCompletedState()
+    {
+        var machine = NewMachine(TournamentBestOf.Three);
+        var snapshot = new TournamentRecoverySnapshot(
+            machine.Configuration.MatchId,
+            TournamentMatchState.Live,
+            ["de_dust2", "de_nuke", "de_inferno"],
+            CurrentMapIndex: 2,
+            TeamAMaps: 2,
+            TeamBMaps: 0,
+            ReadyPlayers: [],
+            KnifeWinner: null,
+            SideChooser: null,
+            TeamASide: PlayerTeam.Terrorist,
+            TeamBSide: PlayerTeam.CounterTerrorist,
+            ResumeState: null);
+
+        Assert.ThrowsExactly<ArgumentException>(() =>
+            TournamentMatchStateMachine.Restore(machine.Configuration, snapshot));
+    }
+
+    [TestMethod]
     public void NonRosteredPlayers_CannotReadyAndHaveNoForcedSide()
     {
         var outsider = new PlayerId(76561198000186999);
