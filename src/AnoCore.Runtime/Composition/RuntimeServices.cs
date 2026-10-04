@@ -3,6 +3,7 @@ using AnoCore.Abstractions.Commands;
 using AnoCore.Abstractions.Configuration;
 using AnoCore.Abstractions.Events;
 using AnoCore.Abstractions.Management;
+using AnoCore.Abstractions.Messaging;
 using AnoCore.Abstractions.Menus;
 using AnoCore.Abstractions.Moderation;
 using AnoCore.Abstractions.Modules;
@@ -21,6 +22,7 @@ using AnoCore.Runtime.Commands;
 using AnoCore.Runtime.Configuration;
 using AnoCore.Runtime.Events;
 using AnoCore.Runtime.Management;
+using AnoCore.Runtime.Messaging;
 using AnoCore.Runtime.Menus;
 using AnoCore.Runtime.Moderation;
 using AnoCore.Runtime.Modules;
@@ -57,6 +59,7 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
         Authorization = new AuthorizationService(authorizationStore);
         Commands = new CommandRegistry(Authorization);
         Menus = new MenuService();
+        Messages = new MessageService();
         Settings = new PlayerSettingsService(data, null, events);
         ToggleCatalog = new PlayerToggleCatalog();
         ConfigReloads = new ConfigReloadRegistry();
@@ -96,6 +99,7 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
         Add<IPermissionEvaluator>(Authorization);
         Add<IAnoCommandRegistry>(Commands);
         Add<IMenuService>(Menus);
+        Add<IMessageService>(Messages);
         Add<IManagementCapabilityRegistry>(ManagementCapabilities);
         Add<IManagementStatusProvider>(ManagementStatus);
         Add<IPlayerSettingsService>(Settings);
@@ -132,6 +136,8 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
     public CommandRegistry Commands { get; }
 
     public MenuService Menus { get; }
+
+    public MessageService Messages { get; }
 
     public ManagementCapabilityRegistry ManagementCapabilities { get; }
 
@@ -239,6 +245,7 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
         }
 
         _registrations.Clear();
+        Messages.Dispose();
     }
 
     private void Add<T>(T service)
