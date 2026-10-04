@@ -67,10 +67,12 @@ Use controlled kills/deaths/assists and at least one reconnect.
 
 ## Player settings
 
-Register at least one real bool toggle from a testable module.
+The rank stack registers the real `rank.notifications` bool toggle with default `on`; no test-only registration is required.
 
-- `anosettings` shows registered toggles and effective values.
-- `anotoggle <key> on|off|default` persists and resets correctly.
+- `anosettings` shows `rank.notifications=on` for a player without an override.
+- Cross a rank threshold and confirm the promotion/demotion message is delivered while the option is on.
+- `anotoggle rank.notifications off` persists and suppresses the next real combat/admin rank-transition message without suppressing the underlying score/rank change.
+- `anotoggle rank.notifications default` removes the override and restores the enabled default.
 - `anosettingsmenu` renders bounded navigation and can toggle/reset an option.
 - Console, disconnected/stale sessions and unknown keys cannot mutate another player's state.
 - Reconnect/restart preserves stored overrides and uses defaults after reset.
