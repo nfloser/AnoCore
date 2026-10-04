@@ -77,6 +77,19 @@ public sealed class CombatContractTests
     }
 
     [TestMethod]
+    public void DetailEvents_NormalizeTimestampToMariaDbMicroseconds()
+    {
+        var precise = Now.AddTicks(17);
+        var fire = new CombatWeaponFireEvent(
+            Guid.NewGuid(), Attacker, precise, "de_dust2", "ak47");
+        var damage = new CombatDamageEvent(
+            Guid.NewGuid(), Victim, Attacker, precise, "de_dust2", "ak47", 1, 1, 0);
+
+        Assert.AreEqual(Now.AddTicks(10), fire.OccurredAtUtc);
+        Assert.AreEqual(fire.OccurredAtUtc, damage.OccurredAtUtc);
+    }
+
+    [TestMethod]
     public void DetailFilter_NormalizesOptionalKeys()
     {
         var filter = new CombatDetailFilter(" de_nuke ", " awp ",
