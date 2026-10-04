@@ -17,8 +17,10 @@ team/alive-state segments alongside the existing total-session ledger.
 
 Player updates checkpoint the previously active segment at the update timestamp and
 then open the new state. Heartbeats advance the current segment, reconnect/disconnect
-close the old session, and out-of-order or already-closed session writes are ignored.
-The session checkpoint and segment mutation share one database transaction so a
+close the old session. Stale duration-only writes and writes against closed sessions
+are ignored; if a state transition arrives behind a newer heartbeat checkpoint, the
+open segment is split at the transition timestamp without changing the already-accounted
+total. The session checkpoint and segment mutation share one database transaction so a
 partial state transition cannot leave total and breakdown playtime disagreeing.
 
 `!anoplaytime` keeps the existing total/today output and, when the repository exposes

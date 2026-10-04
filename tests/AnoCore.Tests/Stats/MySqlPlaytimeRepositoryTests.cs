@@ -93,11 +93,12 @@ public sealed class MySqlPlaytimeRepositoryTests
         await repository.AdvanceStateAsync(Player, session, Start.AddHours(2),
             new PlaytimeState(PlayerTeam.Terrorist, true));
 
-        var totals = await repository.ReadAsync(Player, new DateOnly(2026, 9, 26));
+        var restarted = new MySqlPlaytimeRepository(_database);
+        var totals = await restarted.ReadAsync(Player, new DateOnly(2026, 9, 26));
         Assert.AreEqual(TimeSpan.FromSeconds(105), totals.Total);
         Assert.AreEqual(TimeSpan.FromSeconds(75), totals.Today);
 
-        var breakdown = await repository.ReadStateBreakdownAsync(
+        var breakdown = await restarted.ReadStateBreakdownAsync(
             Player, new DateOnly(2026, 9, 26));
         var terroristAlive = breakdown.Single(entry =>
             entry.Team == PlayerTeam.Terrorist && entry.IsAlive);
