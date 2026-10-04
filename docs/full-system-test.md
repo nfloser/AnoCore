@@ -51,6 +51,16 @@ Use the same admin, lower-immunity target and unauthorized player as above. See 
 - Repeat permission and immunity denial for each command family; verify no native mutation occurs.
 - Repeat representative commands after hot reload and ensure the existing rank, chat, settings and moderation commands still work.
 
+## Protected server controls and same-network inspection
+
+See [protected server controls](protected-server-controls.md) for allow-list configuration. CVar/server mutations are disabled by default.
+
+- Allow-list one harmless ConVar and server command; check admin and server-console execution plus unauthorized-player denial.
+- Reject unlisted names, built-in denied names and separator/control-character arguments before engine side effects.
+- Verify audit rows contain the control name and redact supplied values/arguments.
+- With two human clients sharing an external address and one on a different address, verify `anosameip` groups only the matching clients, with bounded output and no raw IP/port.
+- Repeat after plugin reload and ensure no command registration is duplicated.
+
 ## Statistics, playtime and ranks
 
 Use controlled kills/deaths/assists and at least one reconnect.
