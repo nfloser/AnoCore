@@ -48,7 +48,6 @@ public sealed class MySqlGameplayStatRepository : IGameplayStatRepository
             await using var reader = await verify.ExecuteReaderAsync(token).ConfigureAwait(false);
             if (!await reader.ReadAsync(token).ConfigureAwait(false)
                 || Convert.ToUInt64(reader.GetValue(0)) != statistic.PlayerId.SteamId64
-                || ReadUtc(reader, 1) != statistic.OccurredAtUtc
                 || !string.Equals(reader.GetString(2), statistic.MapName, StringComparison.Ordinal)
                 || Convert.ToByte(reader.GetValue(3)) != (byte)statistic.Kind
                 || Convert.ToInt32(reader.GetValue(4)) != statistic.Amount)
