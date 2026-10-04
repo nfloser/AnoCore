@@ -1,3 +1,4 @@
+using System.Data.Common;
 using AnoCore.Abstractions.Persistence;
 using AnoCore.Abstractions.Players;
 using AnoCore.Abstractions.Stats;
@@ -111,6 +112,144 @@ public sealed class MySqlPlaytimeRepositoryTests
         Assert.AreEqual(TimeSpan.FromSeconds(30), ctAlive.Today);
         Assert.AreEqual(TimeSpan.FromSeconds(30), ctDead.Total);
         Assert.AreEqual(TimeSpan.FromSeconds(30), ctDead.Today);
+    }
+
+    [TestMethod]
+    public async Task StaleDisconnect_ClosesAtCurrentCheckpointAndRejectsLaterAdvance()
+    {
+        await new MigrationRunner(_database, [
+            new CoreSchemaMigration001(), new ModerationSchemaMigration002(),
+            new AdminAuditSchemaMigration003(), new WarningSchemaMigration004(),
+            new PlaytimeSchemaMigration005(), new CombatSchemaMigration006(),
+            new RankAdjustmentSchemaMigration007(), new PlaytimeStateSchemaMigration008()])
+            .ApplyPendingAsync();
+
+        var session = PlayerSessionId.New();
+        var repository = new MySqlPlaytimeRepository(_database);
+        await repository.OpenStateAsync(Player, session, Start,
+            new PlaytimeState(PlayerTeam.Terrorist, true));
+        await repository.AdvanceStateAsync(Player, session, Start.AddSeconds(60),
+            new PlaytimeState(PlayerTeam.Terrorist, true));
+        await repository.AdvanceStateAsync(Player, session, Start.AddSeconds(30),
+            new PlaytimeState(PlayerTeam.Terrorist, false), close: true);
+        await repository.AdvanceStateAsync(Player, session, Start.AddSeconds(120),
+            new PlaytimeState(PlayerTeam.CounterTerrorist, true));
+
+        var totals = await repository.ReadAsync(Player, new DateOnly(2026, 9, 26));
+        Assert.AreEqual(TimeSpan.FromSeconds(60), totals.Total);
+        var breakdown = await repository.ReadStateBreakdownAsync(
+            Player, new DateOnly(2026, 9, 26));
+        Assert.AreEqual(TimeSpan.FromSeconds(60), breakdown.Single().Total);
+        Assert.AreEqual(PlayerTeam.Terrorist, breakdown.Single().Team);
+        Assert.IsTrue(breakdown.Single().IsAlive);
+    }
+
+    [TestMethod]
+    public async Task StateSegments_PreserveLegacyTotalsAndSessionOwnership()
+    {
+        await new MigrationRunner(_database, [
+            new CoreSchemaMigration001(), new ModerationSchemaMigration002(),
+            new AdminAuditSchemaMigration003(), new WarningSchemaMigration004(),
+            new PlaytimeSchemaMigration005(), new CombatSchemaMigration006(),
+            new RankAdjustmentSchemaMigration007(), new PlaytimeStateSchemaMigration008()])
+            .ApplyPendingAsync();
+
+        var repository = new MySqlPlaytimeRepository(_database);
+        var legacy = PlayerSessionId.New();
+        await repository.OpenAsync(Player, legacy, Start);
+        await repository.AdvanceAsync(Player, legacy, Start.AddSeconds(30), close: true);
+
+        var stateSession = PlayerSessionId.New();
+        await repository.OpenStateAsync(Player, stateSession, Start.AddMinutes(1),
+            new PlaytimeState(PlayerTeam.CounterTerrorist, true));
+        await repository.AdvanceStateAsync(Other, stateSession, Start.AddMinutes(3),
+            new PlaytimeState(PlayerTeam.Terrorist, false), close: true);
+        await repository.AdvanceStateAsync(Player, stateSession, Start.AddMinutes(2),
+            new PlaytimeState(PlayerTeam.CounterTerrorist, true), close: true);
+
+        var totals = await repository.ReadAsync(Player, new DateOnly(2026, 9, 26));
+        Assert.AreEqual(TimeSpan.FromSeconds(90), totals.Total);
+        var breakdown = await repository.ReadStateBreakdownAsync(
+            Player, new DateOnly(2026, 9, 26));
+        Assert.AreEqual(1, breakdown.Count);
+        Assert.AreEqual(TimeSpan.FromMinutes(1), breakdown.Single().Total);
+        Assert.AreEqual(PlayerTeam.CounterTerrorist, breakdown.Single().Team);
+    }
+
+    [TestMethod]
+    public async Task ConcurrentStateCheckpoints_KeepMonotonicMaximum()
+    {
+        await new MigrationRunner(_database, [
+            new CoreSchemaMigration001(), new ModerationSchemaMigration002(),
+            new AdminAuditSchemaMigration003(), new WarningSchemaMigration004(),
+            new PlaytimeSchemaMigration005(), new CombatSchemaMigration006(),
+            new RankAdjustmentSchemaMigration007(), new PlaytimeStateSchemaMigration008()])
+            .ApplyPendingAsync();
+
+        var session = PlayerSessionId.New();
+        var repository = new MySqlPlaytimeRepository(_database);
+        await repository.OpenStateAsync(Player, session, Start,
+            new PlaytimeState(PlayerTeam.Terrorist, true));
+
+        var checkpoints = Enumerable.Range(1, 20)
+            .Select(index => repository.AdvanceStateAsync(
+                Player, session, Start.AddSeconds(index * 5),
+                new PlaytimeState(PlayerTeam.Terrorist, true)).AsTask())
+            .ToArray();
+        await Task.WhenAll(checkpoints);
+
+        var totals = await repository.ReadAsync(Player, new DateOnly(2026, 9, 26));
+        Assert.AreEqual(TimeSpan.FromSeconds(100), totals.Total);
+        var breakdown = await repository.ReadStateBreakdownAsync(
+            Player, new DateOnly(2026, 9, 26));
+        Assert.AreEqual(TimeSpan.FromSeconds(100), breakdown.Single().Total);
+    }
+
+    [TestMethod]
+    public async Task FailedStateTransition_RollsBackSessionAndSegmentTogether()
+    {
+        await new MigrationRunner(_database, [
+            new CoreSchemaMigration001(), new ModerationSchemaMigration002(),
+            new AdminAuditSchemaMigration003(), new WarningSchemaMigration004(),
+            new PlaytimeSchemaMigration005(), new CombatSchemaMigration006(),
+            new RankAdjustmentSchemaMigration007(), new PlaytimeStateSchemaMigration008()])
+            .ApplyPendingAsync();
+
+        await _database.WithConnectionAsync(async (connection, token) =>
+        {
+            await using var command = connection.CreateCommand();
+            command.CommandText =
+                "ALTER TABLE ano_playtime_segments ADD CONSTRAINT chk_test_team CHECK (team <= 3)";
+            await command.ExecuteNonQueryAsync(token);
+            return true;
+        });
+
+        var session = PlayerSessionId.New();
+        var repository = new MySqlPlaytimeRepository(_database);
+        await repository.OpenStateAsync(Player, session, Start,
+            new PlaytimeState(PlayerTeam.Terrorist, true));
+        await repository.AdvanceStateAsync(Player, session, Start.AddSeconds(10),
+            new PlaytimeState(PlayerTeam.Terrorist, true));
+
+        DbException? failure = null;
+        try
+        {
+            await repository.AdvanceStateAsync(Player, session, Start.AddSeconds(20),
+                new PlaytimeState((PlayerTeam)99, false));
+        }
+        catch (DbException exception)
+        {
+            failure = exception;
+        }
+
+        Assert.IsNotNull(failure);
+        var totals = await repository.ReadAsync(Player, new DateOnly(2026, 9, 26));
+        Assert.AreEqual(TimeSpan.FromSeconds(10), totals.Total);
+        var breakdown = await repository.ReadStateBreakdownAsync(
+            Player, new DateOnly(2026, 9, 26));
+        Assert.AreEqual(1, breakdown.Count);
+        Assert.AreEqual(TimeSpan.FromSeconds(10), breakdown.Single().Total);
+        Assert.AreEqual(PlayerTeam.Terrorist, breakdown.Single().Team);
     }
 
     [TestMethod]
