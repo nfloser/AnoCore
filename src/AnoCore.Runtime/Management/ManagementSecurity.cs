@@ -173,15 +173,28 @@ public sealed class ManagementCapabilityRegistry : IManagementCapabilityRegistry
 
         if (_audit is not null)
         {
-            await _audit(
-                new ManagementAuditEvent(
-                    "requested",
-                    context.Principal.TokenId,
-                    registration.Descriptor.Id,
-                    context.CorrelationId,
-                    null,
-                    now),
-                cancellationToken).ConfigureAwait(false);
+            try
+            {
+                await _audit(
+                    new ManagementAuditEvent(
+                        "requested",
+                        context.Principal.TokenId,
+                        registration.Descriptor.Id,
+                        context.CorrelationId,
+                        null,
+                        now),
+                    cancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch
+            {
+                return ManagementOperationResult.Fail(
+                    "audit_failed",
+                    "Management request audit failed before execution.");
+            }
         }
 
         ManagementOperationResult result;
@@ -204,15 +217,34 @@ public sealed class ManagementCapabilityRegistry : IManagementCapabilityRegistry
 
         if (_audit is not null)
         {
-            await _audit(
-                new ManagementAuditEvent(
-                    result.Success ? "completed" : "failed",
-                    context.Principal.TokenId,
-                    registration.Descriptor.Id,
-                    context.CorrelationId,
-                    result.Code,
-                    _time.GetUtcNow()),
-                cancellationToken).ConfigureAwait(false);
+            try
+            {
+                await _audit(
+                    new ManagementAuditEvent(
+                        result.Success ? "completed" : "failed",
+                        context.Principal.TokenId,
+                        registration.Descriptor.Id,
+                        context.CorrelationId,
+                        result.Code,
+                        _time.GetUtcNow()),
+                    cancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch
+            {
+                return new ManagementOperationResult(
+                    false,
+                    "audit_failed_after_execution",
+                    "Management operation executed, but completion audit failed.",
+                    new Dictionary<string, string>(StringComparer.Ordinal)
+                    {
+                        ["operation_code"] = result.Code,
+                        ["operation_success"] = result.Success ? "true" : "false",
+                    });
+            }
         }
 
         return result;
