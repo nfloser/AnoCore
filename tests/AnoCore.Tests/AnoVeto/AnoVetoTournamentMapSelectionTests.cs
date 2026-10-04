@@ -23,12 +23,10 @@ public sealed class AnoVetoTournamentMapSelectionTests
         var votes = new VoteService(new AllowAll());
         var coordinator = new AnoVetoCoordinator(
             catalog, votes, new RecordingMapChanger(), new StableRandom(),
-            new AnoVetoOptions
-            {
-                MinimumVotes = 1,
-                DurationSeconds = 60,
-                TieBreakPolicy = VoteTieBreakPolicy.FirstOption,
-            });
+            new AnoVetoOptions(
+                TimeSpan.FromSeconds(60),
+                minimumVotes: 1,
+                VoteTieBreakPolicy.OptionOrder));
         var source = new AnoVetoTournamentMapSelectionSource(
             coordinator, new FixedTime(new DateTimeOffset(2026, 10, 4, 19, 0, 0, TimeSpan.Zero)));
         var request = new TournamentMapSelectionRequest(
