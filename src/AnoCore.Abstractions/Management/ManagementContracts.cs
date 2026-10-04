@@ -87,6 +87,9 @@ public sealed record ManagementOperationRequest
         ManagementCapabilityId capability,
         IReadOnlyDictionary<string, string>? arguments = null)
     {
+        if (string.IsNullOrWhiteSpace(capability.Value))
+            throw new ArgumentException(
+                "A management capability id is required.", nameof(capability));
         Capability = capability;
         var values = arguments ?? new Dictionary<string, string>();
         if (values.Count > 32)
@@ -175,8 +178,11 @@ public sealed record ManagementCapabilityDescriptor(
     {
         _ = ManagementValidation.Text(
             Description, nameof(Description), 1, 256);
-        if (RequiredScope == ManagementScope.None)
+        if (RequiredScope == ManagementScope.None
+            || (RequiredScope & ~ManagementPrincipal.AllScopes) != 0)
+        {
             throw new ArgumentOutOfRangeException(nameof(RequiredScope));
+        }
         if (!Enum.IsDefined(OperationClass))
             throw new ArgumentOutOfRangeException(nameof(OperationClass));
         return this;
