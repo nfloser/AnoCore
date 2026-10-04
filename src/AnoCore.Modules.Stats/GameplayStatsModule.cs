@@ -1,3 +1,4 @@
+using AnoCore.Abstractions.Configuration;
 using AnoCore.Abstractions.Commands;
 using AnoCore.Abstractions.Modules;
 using AnoCore.Abstractions.Players;
@@ -9,15 +10,20 @@ public sealed class GameplayStatsModule : IDisposable
 {
     private readonly IPlayerRegistry _players;
     private readonly IGameplayStatRepository _repository;
+    private readonly GameplayStatsConfiguration _configuration;
     private readonly IDisposable _command;
     private int _disposed;
 
     public GameplayStatsModule(IAnoCommandRegistry commands, IPlayerRegistry players,
-        IGameplayStatRepository repository)
+        IGameplayStatRepository repository, GameplayStatsConfiguration? configuration = null)
     {
         ArgumentNullException.ThrowIfNull(commands);
         _players = players ?? throw new ArgumentNullException(nameof(players));
         _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+        _configuration = configuration ?? GameplayStatsConfiguration.Default;
+        var configurationErrors = GameplayStatsConfiguration.Validate(_configuration);
+        if (configurationErrors.Count != 0)
+            throw new ArgumentException(string.Join(" ", configurationErrors), nameof(configuration));
         _command = commands.Register(
             new ModuleId("ano.stats"),
             new CommandDescriptor(
@@ -26,6 +32,25 @@ public sealed class GameplayStatsModule : IDisposable
                 arguments:
                 [new("map", CommandArgumentKind.String, "Optional map name.", required: false)]),
             OwnStatsAsync);
+    }
+
+    public GameplayStatsConfiguration Configuration => _configuration;
+
+    public static async Task<GameplayStatsModule> CreateAsync(
+        IConfigStore configuration,
+        IAnoCommandRegistry commands,
+        IPlayerRegistry players,
+        IGameplayStatRepository repository,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(configuration);
+        var settings = await configuration.LoadAsync(
+            "gameplay-stats",
+            () => GameplayStatsConfiguration.Default,
+            GameplayStatsConfiguration.Validate,
+            cancellationToken).ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
+        return new GameplayStatsModule(commands, players, repository, settings);
     }
 
     public ValueTask RecordAsync(GameplayStatEvent statistic,
