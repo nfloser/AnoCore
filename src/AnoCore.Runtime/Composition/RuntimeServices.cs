@@ -3,6 +3,7 @@ using AnoCore.Abstractions.Commands;
 using AnoCore.Abstractions.Configuration;
 using AnoCore.Abstractions.Events;
 using AnoCore.Abstractions.Menus;
+using AnoCore.Abstractions.Management;
 using AnoCore.Abstractions.Moderation;
 using AnoCore.Abstractions.Modules;
 using AnoCore.Abstractions.Permissions;
@@ -20,6 +21,7 @@ using AnoCore.Runtime.Commands;
 using AnoCore.Runtime.Configuration;
 using AnoCore.Runtime.Events;
 using AnoCore.Runtime.Menus;
+using AnoCore.Runtime.Management;
 using AnoCore.Runtime.Moderation;
 using AnoCore.Runtime.Modules;
 using AnoCore.Runtime.Permissions;
@@ -75,6 +77,8 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
         TargetResolver = new PlayerTargetResolver(players);
         TargetAuthorization = new TargetAuthorizationService(players, Authorization);
         Modules = new ModuleHost(new ModuleContext(this));
+        ManagementCapabilities = new ManagementCapabilityRegistry();
+        ManagementStatus = new RuntimeManagementStatusProvider(database, players, Modules);
 
         Add<IDatabase>(database);
         Add<IConfigStore>(configuration);
@@ -92,6 +96,8 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
         Add<IPermissionEvaluator>(Authorization);
         Add<IAnoCommandRegistry>(Commands);
         Add<IMenuService>(Menus);
+        Add<IManagementCapabilityRegistry>(ManagementCapabilities);
+        Add<IManagementStatusProvider>(ManagementStatus);
         Add<IPlayerSettingsService>(Settings);
         Add<IPlayerSettingsResetService>(Settings);
         Add<IPlayerSettingsBatchService>(Settings);
@@ -126,6 +132,10 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
     public CommandRegistry Commands { get; }
 
     public MenuService Menus { get; }
+
+    public ManagementCapabilityRegistry ManagementCapabilities { get; }
+
+    public RuntimeManagementStatusProvider ManagementStatus { get; }
 
     public PlayerSettingsService Settings { get; }
 
