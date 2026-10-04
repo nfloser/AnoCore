@@ -1074,6 +1074,46 @@ public sealed class AnoCorePlugin : BasePlugin
             var death = new AnoCore.Abstractions.Stats.CombatDeath(eventId, victim.Id,
                 attacker?.Id, assister?.Id, DateTimeOffset.UtcNow, teamKill);
             Observe(combat.RecordAsync(death).AsTask(), "combat_death");
+
+            var validKill = attacker is not null
+                && attacker.Id != victim.Id
+                && !teamKill;
+            if (validKill)
+            {
+                var victimSignature = victim.Id.SteamId64.ToString(
+                    System.Globalization.CultureInfo.InvariantCulture);
+                if (!_roundFirstBloodRecorded)
+                {
+                    _roundFirstBloodRecorded = true;
+                    RecordGameplayStat(
+                        @event.Attacker, GameplayStatKind.FirstBlood, victimSignature);
+                }
+
+                if (@event.Headshot)
+                    RecordGameplayStat(
+                        @event.Attacker, GameplayStatKind.HeadshotKill, victimSignature);
+                if (@event.Noscope)
+                    RecordGameplayStat(
+                        @event.Attacker, GameplayStatKind.NoScopeKill, victimSignature);
+                if (@event.Penetrated > 0)
+                    RecordGameplayStat(
+                        @event.Attacker, GameplayStatKind.PenetratedKill, victimSignature);
+                if (@event.Thrusmoke)
+                    RecordGameplayStat(
+                        @event.Attacker, GameplayStatKind.ThroughSmokeKill, victimSignature);
+                if (@event.Attackerblind)
+                    RecordGameplayStat(
+                        @event.Attacker, GameplayStatKind.FlashedKill, victimSignature);
+                if (@event.Dominated > 0)
+                    RecordGameplayStat(
+                        @event.Attacker, GameplayStatKind.DominatedKill, victimSignature);
+                if (@event.Revenge > 0)
+                    RecordGameplayStat(
+                        @event.Attacker, GameplayStatKind.RevengeKill, victimSignature);
+                if (@event.Assistedflash && assister is not null)
+                    RecordGameplayStat(
+                        @event.Assister, GameplayStatKind.FlashAssist, victimSignature);
+            }
         }
         catch (Exception exception)
         {
