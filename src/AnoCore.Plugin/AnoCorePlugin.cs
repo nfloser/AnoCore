@@ -805,6 +805,8 @@ public sealed class AnoCorePlugin : BasePlugin
         RegisterEventHandler<EventPlayerDisconnect>(OnPlayerDisconnect);
         RegisterEventHandler<EventPlayerTeam>(OnPlayerTeam);
         RegisterEventHandler<EventPlayerSpawn>(OnPlayerSpawn);
+        RegisterEventHandler<EventWeaponFire>(OnWeaponFire);
+        RegisterEventHandler<EventPlayerHurt>(OnPlayerHurt);
         RegisterEventHandler<EventPlayerDeath>(OnPlayerDeathPosition, HookMode.Pre);
         RegisterEventHandler<EventPlayerDeath>(OnPlayerDeath);
         RegisterListener<Listeners.OnMapEnd>(OnMapEnd);
@@ -822,6 +824,8 @@ public sealed class AnoCorePlugin : BasePlugin
         DeregisterEventHandler<EventPlayerDisconnect>(OnPlayerDisconnect);
         DeregisterEventHandler<EventPlayerTeam>(OnPlayerTeam);
         DeregisterEventHandler<EventPlayerSpawn>(OnPlayerSpawn);
+        DeregisterEventHandler<EventWeaponFire>(OnWeaponFire);
+        DeregisterEventHandler<EventPlayerHurt>(OnPlayerHurt);
         DeregisterEventHandler<EventPlayerDeath>(OnPlayerDeathPosition, HookMode.Pre);
         DeregisterEventHandler<EventPlayerDeath>(OnPlayerDeath);
         RemoveListener<Listeners.OnMapEnd>(OnMapEnd);
@@ -928,6 +932,69 @@ public sealed class AnoCorePlugin : BasePlugin
         return HookResult.Continue;
     }
 
+    private HookResult OnWeaponFire(EventWeaponFire @event, GameEventInfo _)
+    {
+        var combat = _combat;
+        if (combat is null) return HookResult.Continue;
+
+        try
+        {
+            var player = CombatPlayer(@event.Userid);
+            if (player is null) return HookResult.Continue;
+
+            var map = CombatDetailKey(Server.MapName, "unknown_map");
+            var weapon = CombatDetailKey(@event.Weapon, "unknown");
+            var eventId = CombatEventIdentity.CreateDetail(
+                _combatServerInstance, map, CombatMapEpoch(), Server.TickCount,
+                "weapon_fire", player.Id, null, weapon);
+            var weaponFire = new CombatWeaponFireEvent(
+                eventId, player.Id, DateTimeOffset.UtcNow, map, weapon);
+            Observe(combat.RecordWeaponFireAsync(weaponFire).AsTask(), "combat_weapon_fire");
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Could not record combat weapon fire.");
+        }
+
+        return HookResult.Continue;
+    }
+
+    private HookResult OnPlayerHurt(EventPlayerHurt @event, GameEventInfo _)
+    {
+        var combat = _combat;
+        if (combat is null) return HookResult.Continue;
+
+        try
+        {
+            var victim = CombatPlayer(@event.Userid);
+            if (victim is null) return HookResult.Continue;
+
+            var attacker = CombatPlayer(@event.Attacker);
+            var teamDamage = attacker is not null && attacker.Id != victim.Id
+                && victim.Team is PlayerTeam.Terrorist or PlayerTeam.CounterTerrorist
+                && attacker.Team == victim.Team;
+            var map = CombatDetailKey(Server.MapName, "unknown_map");
+            var weapon = CombatDetailKey(
+                @event.Weapon, attacker is null ? "world" : "unknown");
+            var signature = FormattableString.Invariant(
+                $"{weapon}|{@event.Hitgroup}|{@event.DmgHealth}|{@event.DmgArmor}|"
+                + $"{@event.Health}|{@event.Armor}");
+            var eventId = CombatEventIdentity.CreateDetail(
+                _combatServerInstance, map, CombatMapEpoch(), Server.TickCount,
+                "player_hurt", victim.Id, attacker?.Id, signature);
+            var damage = new CombatDamageEvent(
+                eventId, victim.Id, attacker?.Id, DateTimeOffset.UtcNow,
+                map, weapon, @event.Hitgroup, @event.DmgHealth, @event.DmgArmor, teamDamage);
+            Observe(combat.RecordDamageAsync(damage).AsTask(), "combat_player_hurt");
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Could not record combat player damage.");
+        }
+
+        return HookResult.Continue;
+    }
+
     private HookResult OnPlayerDeath(EventPlayerDeath @event, GameEventInfo _)
     {
         RecordCombatDeath(@event);
@@ -949,9 +1016,8 @@ public sealed class AnoCorePlugin : BasePlugin
             var teamKill = attacker is not null && attacker.Id != victim.Id
                 && victim.Team is PlayerTeam.Terrorist or PlayerTeam.CounterTerrorist
                 && attacker.Team == victim.Team;
-            var mapEpoch = checked((long)Math.Round(Server.EngineTime - Server.CurrentTime));
             var eventId = CombatEventIdentity.Create(_combatServerInstance, Server.MapName,
-                mapEpoch, Server.TickCount, victim.Id);
+                CombatMapEpoch(), Server.TickCount, victim.Id);
             var death = new AnoCore.Abstractions.Stats.CombatDeath(eventId, victim.Id,
                 attacker?.Id, assister?.Id, DateTimeOffset.UtcNow, teamKill);
             Observe(combat.RecordAsync(death).AsTask(), "combat_death");
@@ -960,6 +1026,18 @@ public sealed class AnoCorePlugin : BasePlugin
         {
             Logger.LogError(exception, "Could not record combat death.");
         }
+    }
+
+    private static long CombatMapEpoch()
+        => checked((long)Math.Round(Server.EngineTime - Server.CurrentTime));
+
+    private static string CombatDetailKey(string? value, string fallback)
+    {
+        var normalized = string.IsNullOrWhiteSpace(value) ? fallback : value.Trim();
+        return new string(normalized
+            .Where(character => !char.IsControl(character))
+            .Take(128)
+            .ToArray());
     }
 
     private PlayerSnapshot? CombatPlayer(CCSPlayerController? controller)
