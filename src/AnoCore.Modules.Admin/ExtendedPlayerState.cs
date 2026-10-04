@@ -168,6 +168,48 @@ public sealed class ExtendedPlayerStateService : IDisposable
         }
     }
 
+    public async ValueTask ForgetSessionAsync(
+        PlayerSessionId sessionId,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(sessionId);
+        if (Volatile.Read(ref _disposed) != 0)
+        {
+            return;
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+        await _operations.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            _owned.Remove(sessionId);
+        }
+        finally
+        {
+            _operations.Release();
+        }
+    }
+
+    public async ValueTask ForgetAllAsync(
+        CancellationToken cancellationToken = default)
+    {
+        if (Volatile.Read(ref _disposed) != 0)
+        {
+            return;
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+        await _operations.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            _owned.Clear();
+        }
+        finally
+        {
+            _operations.Release();
+        }
+    }
+
     public async ValueTask ReleaseAllAsync(
         CancellationToken cancellationToken = default)
     {
