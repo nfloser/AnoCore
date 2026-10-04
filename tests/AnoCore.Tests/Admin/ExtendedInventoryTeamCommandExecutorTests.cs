@@ -104,7 +104,7 @@ public sealed class ExtendedInventoryTeamCommandExecutorTests
     [TestMethod]
     public async Task TeamAndSwapUseValidatedTeamSemantics()
     {
-        var target = Player(true) withTeam(PlayerTeam.Terrorist);
+        var target = Player(true).WithTeam(PlayerTeam.Terrorist);
         var targets = new FakeTargets(ModerationTargetResult.Success(target));
         var executor = CreateExecutor(targets, out var transport);
 
@@ -129,7 +129,7 @@ public sealed class ExtendedInventoryTeamCommandExecutorTests
     [TestMethod]
     public async Task SwapRejectsSpectator()
     {
-        var spectator = Player(true) withTeam(PlayerTeam.Spectator);
+        var spectator = Player(true).WithTeam(PlayerTeam.Spectator);
         var executor = CreateExecutor(
             new FakeTargets(ModerationTargetResult.Success(spectator)),
             out var transport);
@@ -149,7 +149,7 @@ public sealed class ExtendedInventoryTeamCommandExecutorTests
     public async Task HideRequiresAConnectedPlayerCaller()
     {
         var registry = new FakePlayerRegistry();
-        var actor = Player(true) withId(ActorId);
+        var actor = Player(true).WithId(ActorId);
         registry.Player = actor;
         var transport = new RecordingTransport();
         var executor = new ExtendedInventoryTeamCommandExecutor(
@@ -186,7 +186,7 @@ public sealed class ExtendedInventoryTeamCommandExecutorTests
         Now,
         Now);
 
-    private static PlayerSnapshot withTeam(
+    private static PlayerSnapshot WithTeam(
         this PlayerSnapshot player,
         PlayerTeam team)
         => new(
@@ -199,7 +199,7 @@ public sealed class ExtendedInventoryTeamCommandExecutorTests
             player.ConnectedAtUtc,
             player.LastUpdatedAtUtc);
 
-    private static PlayerSnapshot withId(
+    private static PlayerSnapshot WithId(
         this PlayerSnapshot player,
         PlayerId id)
         => new(
