@@ -1,5 +1,5 @@
-using AnoCore.Abstractions.Configuration;
 using AnoCore.Abstractions.Commands;
+using AnoCore.Abstractions.Configuration;
 using AnoCore.Abstractions.Modules;
 using AnoCore.Abstractions.Players;
 using AnoCore.Abstractions.Settings;
