@@ -2,6 +2,7 @@ using AnoCore.Abstractions.Commands;
 using AnoCore.Abstractions.Menus;
 using AnoCore.Abstractions.Modules;
 using AnoCore.Abstractions.Players;
+using AnoCore.Abstractions.Settings;
 using AnoCore.Abstractions.Stats;
 using AnoCore.Modules.Stats;
 using AnoCore.Runtime.Commands;
@@ -9,6 +10,7 @@ using AnoCore.Runtime.Configuration;
 using AnoCore.Runtime.Events;
 using AnoCore.Runtime.Menus;
 using AnoCore.Runtime.Players;
+using AnoCore.Runtime.Settings;
 
 namespace AnoCore.Tests.Stats;
 
@@ -238,6 +240,31 @@ public sealed class RankModuleTests
 
         Assert.AreEqual(CommandFailureReason.NotFound,
             (await commands.ExecuteAsync("!anorank", Player)).FailureReason);
+    }
+
+    [TestMethod]
+    public async Task RankModule_RegistersAndReleasesNotificationToggle()
+    {
+        var catalog = new PlayerToggleCatalog();
+        Assert.IsFalse(catalog.TryGet(
+            RankNotificationPreferenceSink.EnabledSetting.Name, out _));
+
+        using (var module = await RankModule.CreateAsync(
+            new JsonConfigStore(_root),
+            new CommandRegistry(new AllowAll()),
+            new PlayerRegistry(new AnoEventBus()),
+            new FakeRepository(new CombatTotals(0, 0, 0)),
+            catalog))
+        {
+            Assert.IsTrue(catalog.TryGet(
+                RankNotificationPreferenceSink.EnabledSetting.Name, out var setting));
+            Assert.IsNotNull(setting);
+            Assert.IsTrue(setting.Key.DefaultValue);
+            Assert.AreEqual("Rank notifications", setting.Label);
+        }
+
+        Assert.IsFalse(catalog.TryGet(
+            RankNotificationPreferenceSink.EnabledSetting.Name, out _));
     }
 
     [TestMethod]
