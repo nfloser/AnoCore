@@ -409,7 +409,7 @@ public sealed class TournamentCommandController : IDisposable
             {
                 var completed = machine.CompleteMap(team);
                 return completed
-                    ? MutationResult.Deactivate(
+                    ? MutationResult.DeactivateMatch(
                         $"[ANO] Tournament completed: {machine.TeamAMaps}-{machine.TeamBMaps}.")
                     : MutationResult.Save(
                         $"[ANO] Map recorded: {machine.TeamAMaps}-{machine.TeamBMaps}.");
@@ -692,7 +692,6 @@ public sealed class TournamentCommandController : IDisposable
         for (var index = _registrations.Count - 1; index >= 0; index--)
             _registrations[index].Dispose();
         _registrations.Clear();
-        _mutation.Dispose();
     }
 
     private sealed record MutationResult(
@@ -703,7 +702,7 @@ public sealed class TournamentCommandController : IDisposable
         public static MutationResult Save(string message, string? auditReason = null)
             => new(message, Deactivate: false, auditReason);
 
-        public static MutationResult Deactivate(string message, string? auditReason = null)
+        public static MutationResult DeactivateMatch(string message, string? auditReason = null)
             => new(message, Deactivate: true, auditReason);
     }
 }
