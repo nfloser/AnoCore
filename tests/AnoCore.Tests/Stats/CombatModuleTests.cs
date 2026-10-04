@@ -141,6 +141,32 @@ public sealed class CombatModuleTests
     }
 
     [TestMethod]
+    public async Task DetailCommand_DiscardsResultAfterReconnect()
+    {
+        var events = new AnoEventBus();
+        var players = new PlayerRegistry(events);
+        var registry = new CommandRegistry(new AllowAll());
+        var repository = new DetailRepository
+        {
+            DetailReadStarted = new(TaskCreationOptions.RunContinuationsAsynchronously),
+            ReleaseDetailRead = new(TaskCreationOptions.RunContinuationsAsynchronously),
+        };
+        using var module = new CombatModule(registry, players, repository);
+        await players.ConnectAsync(new PlayerConnection(
+            Attacker, "Attacker", PlayerTeam.Terrorist, true, Now));
+
+        var pending = registry.ExecuteAsync("!anodetailstats", Attacker).AsTask();
+        await repository.DetailReadStarted.Task;
+        await players.ConnectAsync(new PlayerConnection(
+            Attacker, "Replacement", PlayerTeam.CounterTerrorist, true, Now.AddSeconds(1)));
+        repository.ReleaseDetailRead.TrySetResult(true);
+
+        var result = await pending;
+        Assert.IsFalse(result.Success);
+        Assert.AreEqual(CommandFailureReason.InvalidInput, result.FailureReason);
+    }
+
+    [TestMethod]
     public async Task TopKills_ValidatesPageAndDisplaysStablePositions()
     {
         var players = new PlayerRegistry(new AnoEventBus());
@@ -263,6 +289,8 @@ public sealed class CombatModuleTests
         public IReadOnlyList<CombatHitgroupTotals> Hitgroups { get; set; } = [];
         public CombatDetailFilter? LastFilter { get; private set; }
         public int HitgroupReads { get; private set; }
+        public TaskCompletionSource<bool>? DetailReadStarted { get; set; }
+        public TaskCompletionSource<bool>? ReleaseDetailRead { get; set; }
 
         public ValueTask RecordWeaponFireAsync(CombatWeaponFireEvent weaponFire,
             CancellationToken cancellationToken = default)
@@ -278,11 +306,14 @@ public sealed class CombatModuleTests
             return ValueTask.CompletedTask;
         }
 
-        public ValueTask<CombatDetailTotals> ReadDetailsAsync(PlayerId playerId,
+        public async ValueTask<CombatDetailTotals> ReadDetailsAsync(PlayerId playerId,
             CombatDetailFilter? filter = null, CancellationToken cancellationToken = default)
         {
             LastFilter = filter;
-            return ValueTask.FromResult(DetailTotals);
+            DetailReadStarted?.TrySetResult(true);
+            if (ReleaseDetailRead is not null)
+                await ReleaseDetailRead.Task.WaitAsync(cancellationToken);
+            return DetailTotals;
         }
 
         public ValueTask<IReadOnlyList<CombatHitgroupTotals>> ReadHitgroupsAsync(
