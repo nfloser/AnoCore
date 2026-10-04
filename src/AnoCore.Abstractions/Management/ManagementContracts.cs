@@ -134,6 +134,12 @@ public sealed record ManagementHealthSnapshot(
     string RuntimeStatus,
     DateTimeOffset ObservedAtUtc);
 
+public sealed record ManagementServerStatus(
+    string ApiVersion,
+    int ModuleApiLevel,
+    int ConnectedPlayers,
+    DateTimeOffset ObservedAtUtc);
+
 public sealed record ManagementPlayerStatus(
     PlayerId PlayerId,
     string DisplayName,
@@ -147,6 +153,9 @@ public sealed record ManagementModuleStatus(
 public interface IManagementStatusProvider
 {
     ValueTask<ManagementHealthSnapshot> GetHealthAsync(
+        CancellationToken cancellationToken = default);
+
+    ValueTask<ManagementServerStatus> GetServerAsync(
         CancellationToken cancellationToken = default);
 
     ValueTask<IReadOnlyList<ManagementPlayerStatus>> GetPlayersAsync(
