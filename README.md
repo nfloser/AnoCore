@@ -21,7 +21,7 @@ Use `!anostatus` in chat or `css_anostatus` in the server console to confirm tha
 
 ## Build
 
-Requires .NET 10 SDK and a server with CounterStrikeSharp API 374 or newer and a compatible .NET 10 host. The API package is pinned to `CounterStrikeSharp.API` 1.0.374.
+Requires .NET 10 SDK and a server with CounterStrikeSharp API 374 or newer and a compatible .NET 10 host. The API package is pinned to `CounterStrikeSharp.API` 1.0.376.
 
 ```bash
 dotnet restore AnoCore.sln
