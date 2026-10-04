@@ -22,6 +22,7 @@ public sealed class TournamentTeamEnforcement : IDisposable
     private readonly List<IDisposable> _subscriptions = [];
     private readonly HashSet<PlayerSessionId> _inFlight = [];
     private readonly CancellationTokenSource _lifetime = new();
+    private readonly CancellationToken _lifetimeToken;
     private int _disposed;
 
     public TournamentTeamEnforcement(
@@ -36,6 +37,7 @@ public sealed class TournamentTeamEnforcement : IDisposable
         _assignments = assignments ?? throw new ArgumentNullException(nameof(assignments));
         _transport = transport ?? throw new ArgumentNullException(nameof(transport));
         _onError = onError;
+        _lifetimeToken = _lifetime.Token;
 
         try
         {
@@ -77,7 +79,7 @@ public sealed class TournamentTeamEnforcement : IDisposable
         }
         catch (OperationCanceledException) when (
             cancellationToken.IsCancellationRequested
-            || _lifetime.IsCancellationRequested)
+            || _lifetimeToken.IsCancellationRequested)
         {
         }
         catch (Exception exception)
@@ -110,7 +112,7 @@ public sealed class TournamentTeamEnforcement : IDisposable
         try
         {
             using var linked = CancellationTokenSource.CreateLinkedTokenSource(
-                cancellationToken, _lifetime.Token);
+                cancellationToken, _lifetimeToken);
             linked.Token.ThrowIfCancellationRequested();
 
             if (!IsCurrent(player))
