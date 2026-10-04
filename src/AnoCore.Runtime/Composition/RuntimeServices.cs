@@ -95,6 +95,7 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
         Add<IPlayerSettingsBatchService>(Settings);
         Add<IPlayerToggleCatalog>(ToggleCatalog);
         Add<IPlaytimeRepository>(Playtime);
+        Add<IPlaytimeStateRepository>(Playtime);
         Add<ICombatRepository>(Combat);
         Add<IRankAdjustmentRepository>(RankAdjustments);
         Add<IRankAdjustmentAdministrationService>(RankAdjustmentAdministration);
