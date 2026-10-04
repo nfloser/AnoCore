@@ -1,4 +1,5 @@
 using AnoCore.Abstractions.Players;
+using AnoCore.Abstractions.Settings;
 using AnoCore.Abstractions.Stats;
 using AnoCore.Modules.Stats;
 
@@ -128,6 +129,28 @@ public sealed class RankAdjustmentNotificationServiceTests
     }
 
     [TestMethod]
+    public async Task PlayerNotificationOptOut_StillReturnsMutationAndScoreChange()
+    {
+        var expected = new RankAdjustmentAdminResult(1, 2, Guid.NewGuid());
+        var notifications = new RecordingSink();
+        var changes = new RecordingScoreSink();
+        using var service = new RankAdjustmentNotificationService(
+            Configuration(),
+            new StubAdministration(expected),
+            new StubCombat(new CombatTotals(4, 0, 0)),
+            new RankNotificationPreferenceSink(
+                new DisabledSettings(), notifications),
+            scoreChanges: changes);
+
+        var actual = await service.ApplyAsync(RankAdjustmentAdminOperation.Give,
+            Target, 1, Actor, "reward", Now);
+
+        Assert.AreSame(expected, actual);
+        Assert.AreEqual(0, notifications.Notifications.Count);
+        CollectionAssert.AreEqual(new[] { Target }, changes.Players.ToArray());
+    }
+
+    [TestMethod]
     public async Task ScoreRefreshFailure_DoesNotFailCommittedMutation()
     {
         var expected = new RankAdjustmentAdminResult(3, 4, Guid.NewGuid());
@@ -244,6 +267,31 @@ public sealed class RankAdjustmentNotificationServiceTests
         public ValueTask<IReadOnlyList<CombatCountRankEntry>> GetTopAssistsAsync(
             int limit, int offset, CancellationToken cancellationToken = default)
             => ValueTask.FromResult<IReadOnlyList<CombatCountRankEntry>>([]);
+    }
+
+    private sealed class DisabledSettings : IPlayerSettingsService
+    {
+        public ValueTask<T> GetAsync<T>(
+            PlayerId playerId,
+            PlayerSettingKey<T> key,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return ValueTask.FromResult((T)(object)false);
+        }
+
+        public ValueTask SetAsync<T>(
+            PlayerId playerId,
+            PlayerSettingKey<T> key,
+            T value,
+            CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public ValueTask<bool> ResetAsync<T>(
+            PlayerId playerId,
+            PlayerSettingKey<T> key,
+            CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
     }
 
     private sealed class RecordingSink : IRankTransitionNotificationSink, IDisposable
