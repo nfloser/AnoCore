@@ -33,6 +33,7 @@ public sealed class AnoCorePlugin : BasePlugin
     private CancellationTokenSource? _startup;
     private RuntimeServices? _pendingRuntime;
     private AnoVetoModuleRuntime? _pendingAnoVeto;
+    private ProtectedServerControlPolicy? _pendingProtectedServerControlPolicy;
     private RuntimeServices? _runtime;
     private AnoVetoModuleRuntime? _anoVeto;
     private ModerationCommandController? _adminCommands;
@@ -41,6 +42,7 @@ public sealed class AnoCorePlugin : BasePlugin
     private ExtendedPositionCommandController? _extendedPositionCommands;
     private ExtendedPositionService? _extendedPositions;
     private ExtendedInventoryTeamCommandController? _extendedInventoryTeamCommands;
+    private ProtectedServerControlCommandController? _protectedServerControlCommands;
     private ModerationCommunicationRuntime? _communicationModeration;
     private CounterStrikeChatModerationAdapter? _chatModeration;
     private ModerationVoiceCoordinator? _voiceModeration;
@@ -90,6 +92,7 @@ public sealed class AnoCorePlugin : BasePlugin
 
             _pendingAnoVeto?.Dispose();
             _pendingAnoVeto = null;
+            _pendingProtectedServerControlPolicy = null;
             _pendingRuntime?.Dispose();
             _pendingRuntime = null;
 
@@ -103,6 +106,8 @@ public sealed class AnoCorePlugin : BasePlugin
             _anoVeto = null;
             _commands?.Dispose();
             _commands = null;
+            _protectedServerControlCommands?.Dispose();
+            _protectedServerControlCommands = null;
             _extendedInventoryTeamCommands?.Dispose();
             _extendedInventoryTeamCommands = null;
             _extendedPositionCommands?.Dispose();
@@ -161,6 +166,8 @@ public sealed class AnoCorePlugin : BasePlugin
                 "core",
                 () => new RuntimeConfiguration(),
                 cancellationToken: cancellationToken).ConfigureAwait(false);
+            var protectedServerControlPolicy = BuildProtectedServerControlPolicy(
+                settings.ProtectedServerControls);
             var connectionString = Environment.GetEnvironmentVariable("ANOCORE_MYSQL");
             if (string.IsNullOrWhiteSpace(connectionString))
             {
@@ -220,6 +227,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 cancellationToken.ThrowIfCancellationRequested();
                 _pendingRuntime = created;
                 _pendingAnoVeto = createdAnoVeto;
+                _pendingProtectedServerControlPolicy = protectedServerControlPolicy;
                 created = null;
                 createdAnoVeto = null;
                 Server.NextWorldUpdate(() => ActivateRuntime(cancellationToken));
@@ -240,6 +248,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 {
                     _pendingAnoVeto?.Dispose();
                     _pendingAnoVeto = null;
+                    _pendingProtectedServerControlPolicy = null;
                     _pendingRuntime?.Dispose();
                     _pendingRuntime = null;
                     _runtimeStatus = "startup failed";
@@ -262,14 +271,19 @@ public sealed class AnoCorePlugin : BasePlugin
 
             var runtime = _pendingRuntime;
             var anoVeto = _pendingAnoVeto;
+            var protectedServerControlPolicy = _pendingProtectedServerControlPolicy
+                ?? ProtectedServerControlPolicy.Create(
+                    new ProtectedServerControlConfiguration());
             _pendingRuntime = null;
             _pendingAnoVeto = null;
+            _pendingProtectedServerControlPolicy = null;
             ModerationCommandController? adminCommands = null;
             ExtendedPlayerStateService? extendedPlayerState = null;
             ExtendedPlayerStateCommandController? extendedAdminCommands = null;
             ExtendedPositionService? extendedPositions = null;
             ExtendedPositionCommandController? extendedPositionCommands = null;
             ExtendedInventoryTeamCommandController? extendedInventoryTeamCommands = null;
+            ProtectedServerControlCommandController? protectedServerControlCommands = null;
             ModerationCommunicationRuntime? communicationModeration = null;
             CounterStrikeChatModerationAdapter? chatModeration = null;
             ModerationVoiceCoordinator? voiceModeration = null;
@@ -321,6 +335,13 @@ public sealed class AnoCorePlugin : BasePlugin
                         runtime.Players,
                         runtime.Authorization,
                         new CounterStrikeExtendedInventoryTeamTransport(runtime.Players)));
+                protectedServerControlCommands = new ProtectedServerControlCommandController(
+                    runtime.Commands,
+                    new ProtectedServerControlExecutor(
+                        protectedServerControlPolicy,
+                        runtime.Authorization,
+                        runtime.AdminAudit,
+                        new CounterStrikeProtectedServerControlTransport(runtime.Players)));
 
                 var events = _eventBus
                     ?? throw new InvalidOperationException("AnoCore event bus is unavailable during activation.");
@@ -367,6 +388,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 _extendedPositions = extendedPositions;
                 _extendedPositionCommands = extendedPositionCommands;
                 _extendedInventoryTeamCommands = extendedInventoryTeamCommands;
+                _protectedServerControlCommands = protectedServerControlCommands;
                 _communicationModeration = communicationModeration;
                 _chatModeration = chatModeration;
                 _voiceModeration = voiceModeration;
@@ -389,6 +411,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 communicationModeration?.Dispose();
                 anoVeto?.Dispose();
                 bridge.Dispose();
+                protectedServerControlCommands?.Dispose();
                 extendedInventoryTeamCommands?.Dispose();
                 extendedPositionCommands?.Dispose();
                 extendedAdminCommands?.Dispose();
@@ -444,9 +467,29 @@ public sealed class AnoCorePlugin : BasePlugin
         }
     }
 
+    private ProtectedServerControlPolicy BuildProtectedServerControlPolicy(
+        ProtectedServerControlConfiguration? configuration)
+    {
+        try
+        {
+            return ProtectedServerControlPolicy.Create(
+                configuration ?? new ProtectedServerControlConfiguration());
+        }
+        catch (ArgumentException exception)
+        {
+            Logger.LogError(
+                exception,
+                "Protected server-control configuration is invalid; ConVar and server-command allow-lists are disabled.");
+            return ProtectedServerControlPolicy.Create(
+                new ProtectedServerControlConfiguration());
+        }
+    }
+
     public sealed class RuntimeConfiguration
     {
         public string ConnectionString { get; set; } = string.Empty;
+
+        public ProtectedServerControlConfiguration ProtectedServerControls { get; set; } = new();
     }
 
     private void RegisterLifecycleHooks()
