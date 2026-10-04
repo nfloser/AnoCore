@@ -1,3 +1,9 @@
+# Full-system protected-control checkpoint — 2026-10-04
+
+- Issue #168 / PR #177 is code-complete and passed exact-head CI #493; protected ConVar/server operations are explicit allow-list only, values/arguments are audit-redacted, and same-network inspection exposes only bounded per-process fingerprints.
+- Branch `integration/157-protected-controls` / PR #178 layers that feature onto the #175 full-system candidate, including the #176 disconnect invalidation fix already present in its base.
+- The combined candidate still requires exact-head CI and the documented disposable CS2/DatHost run before any production merge; native ConVar dispatch, command execution, address grouping and the other native stacks are not claimed by automated tests.
+
 # Extended administration integration checkpoint — 2026-10-04
 
 - The #157 candidate now combines the #165/#166/#167 stack with the existing rank notification preference, stats/chat/settings/moderation and CustomHud stacks.
