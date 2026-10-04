@@ -27,6 +27,33 @@ public sealed class TournamentMatchRuntimeTests
     }
 
     [TestMethod]
+    public async Task CompletedActiveSnapshot_DoesNotEnforceRosterSides()
+    {
+        var configuration = new TournamentMatchConfiguration(
+            Guid.NewGuid(),
+            TournamentBestOf.One,
+            new TournamentTeam("Alpha", "A", A1, [A1]),
+            new TournamentTeam("Beta", "B", B1, [B1]),
+            knifeRound: false);
+        var machine = new TournamentMatchStateMachine(configuration);
+        machine.OpenReady();
+        machine.Ready(A1);
+        machine.Ready(B1);
+        machine.BeginVeto();
+        machine.CompleteVeto(["de_dust2"]);
+        machine.CompleteMap(TournamentTeamSlot.TeamA);
+
+        var runtime = await TournamentMatchRuntime.CreateAsync(
+            new TournamentRecoveryService(
+                new FakeRepository(
+                    new TournamentStoredMatch(configuration, machine.Snapshot(), 3))));
+
+        Assert.AreEqual(TournamentMatchState.Completed, runtime.CurrentSession?.Machine.State);
+        Assert.IsFalse(runtime.TryGetAssignedSide(A1, out var side));
+        Assert.AreEqual(PlayerTeam.Unknown, side);
+    }
+
+    [TestMethod]
     public async Task CreateAsync_WithNoActiveMatch_IsEmpty()
     {
         var runtime = await TournamentMatchRuntime.CreateAsync(
