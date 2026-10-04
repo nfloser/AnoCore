@@ -8,6 +8,54 @@ public static class ManagementApiVersion
     public const string Current = "v1";
 }
 
+public sealed record ManagementRequestEnvelope<TPayload>
+{
+    public ManagementRequestEnvelope(
+        string version,
+        string tokenId,
+        string correlationId,
+        TPayload payload)
+    {
+        Version = ManagementValidation.Identifier(
+            version, nameof(version), 16);
+        TokenId = ManagementValidation.Identifier(
+            tokenId, nameof(tokenId), 64);
+        CorrelationId = ManagementValidation.Text(
+            correlationId, nameof(correlationId), 1, 64);
+        Payload = payload ?? throw new ArgumentNullException(nameof(payload));
+    }
+
+    public string Version { get; }
+    public string TokenId { get; }
+    public string CorrelationId { get; }
+    public TPayload Payload { get; }
+    public bool IsCurrentVersion =>
+        string.Equals(Version, ManagementApiVersion.Current, StringComparison.Ordinal);
+}
+
+public sealed record ManagementResponseEnvelope<TPayload>
+{
+    public ManagementResponseEnvelope(
+        string correlationId,
+        bool success,
+        string code,
+        TPayload? payload = default)
+    {
+        CorrelationId = ManagementValidation.Text(
+            correlationId, nameof(correlationId), 1, 64);
+        Success = success;
+        Code = ManagementValidation.Identifier(
+            code, nameof(code), 64, allowDot: true);
+        Payload = payload;
+    }
+
+    public string Version => ManagementApiVersion.Current;
+    public string CorrelationId { get; }
+    public bool Success { get; }
+    public string Code { get; }
+    public TPayload? Payload { get; }
+}
+
 [Flags]
 public enum ManagementScope
 {
