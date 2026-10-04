@@ -147,3 +147,29 @@ request audit fails, persistence is not attempted. If the durable state succeeds
 the completion audit fails, the runtime still adopts the persisted state and the
 command reports the audit failure explicitly instead of leaving memory behind the
 database.
+
+## Demo and round-backup lifecycle
+
+`TournamentMatchCaptureService` owns the match-scoped demo/backup boundary without
+exposing arbitrary server commands to modules. Native integrations implement
+`ITournamentMatchCaptureTransport` with four typed operations: start/stop the current
+demo and capture/restore a known round backup.
+
+Demo ids and backup names are generated from the validated match id, map index, round
+and recovery revision. Callers cannot inject paths or raw command fragments.
+
+All operations are serialized. A command must present the current recovery revision;
+stale callbacks fail with `TournamentConcurrencyException` before transport work.
+Round capture/restore is restricted to live, paused or overtime states. Restores are
+limited to backups from the same match and current map, while a bounded in-memory
+catalog keeps deterministic newest-first metadata.
+
+Starting twice for the same map is idempotent. Starting the next map stops the
+previous owned demo before a new one is started. Async unload waits for an in-flight
+start/capture operation and then stops any owned demo best-effort. Transport cleanup
+failure is observable through the supplied error callback but does not pretend to
+roll back durable tournament state.
+
+The CounterStrikeSharp adapter still needs disposable-server validation for the fixed
+demo/round-backup commands and actual generated backup filename semantics. No generic
+server-command execution is part of this module contract.
