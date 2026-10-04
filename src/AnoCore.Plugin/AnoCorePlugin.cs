@@ -250,6 +250,7 @@ public sealed class AnoCorePlugin : BasePlugin
         PlaytimeModule? createdPlaytime = null;
         RankModule? createdRank = null;
         GameplayStatsModule? createdGameplayStats = null;
+        TournamentMatchRuntime? createdTournamentMatch = null;
         ChatMessageFormatter? createdChatFormatter = null;
         SelectableChatTagModule? createdChatTags = null;
         try
@@ -290,6 +291,30 @@ public sealed class AnoCorePlugin : BasePlugin
 
             try
             {
+                var database = created.GetService(typeof(IDatabase)) as IDatabase
+                    ?? throw new InvalidOperationException(
+                        "AnoCore runtime did not provide the shared database service.");
+                await TournamentPersistenceBootstrap.EnsureReadyAsync(database, timeout.Token)
+                    .ConfigureAwait(false);
+                createdTournamentMatch = await TournamentMatchRuntime.CreateAsync(
+                    new TournamentRecoveryService(
+                        new MySqlTournamentMatchRepository(database)),
+                    timeout.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception exception)
+            {
+                createdTournamentMatch = null;
+                Logger.LogError(
+                    exception,
+                    "Tournament recovery failed; AnoCore will continue without tournament team enforcement.");
+            }
+
+            try
+            {
                 createdPlaytime = await PlaytimeModule.CreateAsync(
                     events, players, created.Playtime, created.Commands,
                     cancellationToken: timeout.Token).ConfigureAwait(false);
@@ -326,6 +351,7 @@ public sealed class AnoCorePlugin : BasePlugin
             {
                 createdGameplayStats?.Dispose();
                 createdGameplayStats = null;
+                createdTournamentMatch = null;
                 Logger.LogError(exception,
                     "Gameplay statistics composition failed; AnoCore will continue without extended gameplay stats.");
             }
@@ -438,6 +464,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 _pendingPlaytime = createdPlaytime;
                 _pendingRank = createdRank;
                 _pendingGameplayStats = createdGameplayStats;
+                _pendingTournamentMatch = createdTournamentMatch;
                 _pendingChatFormatter = createdChatFormatter;
                 _pendingChatTags = createdChatTags;
                 _pendingProtectedServerControlPolicy = protectedServerControlPolicy;
@@ -478,6 +505,7 @@ public sealed class AnoCorePlugin : BasePlugin
                     _pendingRank = null;
                     _pendingGameplayStats?.Dispose();
                     _pendingGameplayStats = null;
+                    _pendingTournamentMatch = null;
                     _pendingChatFormatter = null;
                     _pendingChatTags?.Dispose();
                     _pendingChatTags = null;
