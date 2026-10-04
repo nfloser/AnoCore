@@ -1,3 +1,4 @@
+using System.Data;
 using System.Data.Common;
 using System.Text.Json;
 using AnoCore.Abstractions.Persistence;
@@ -52,6 +53,7 @@ public sealed class MySqlTournamentMatchRepository : ITournamentMatchRepository
         return _database.InTransactionAsync(
             (connection, transaction, token) =>
                 ReadStoredAsync(connection, transaction, matchId, forUpdate: false, token),
+            isolationLevel: IsolationLevel.RepeatableRead,
             cancellationToken: cancellationToken);
     }
 
@@ -66,7 +68,9 @@ public sealed class MySqlTournamentMatchRepository : ITournamentMatchRepository
                 : await ReadStoredAsync(
                     connection, transaction, active.Value, forUpdate: false, token)
                     .ConfigureAwait(false);
-        }, cancellationToken: cancellationToken);
+        },
+        isolationLevel: IsolationLevel.RepeatableRead,
+        cancellationToken: cancellationToken);
 
     public ValueTask<TournamentStoredMatch> SaveSnapshotAsync(
         Guid matchId,
