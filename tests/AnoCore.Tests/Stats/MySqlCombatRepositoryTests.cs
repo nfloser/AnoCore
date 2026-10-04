@@ -155,9 +155,13 @@ public sealed class MySqlCombatRepositoryTests
             Now.AddMilliseconds(5), "de_dust2", "ak47", 1, 42, 8);
 
         await repo.RecordWeaponFireAsync(fire);
-        await repo.RecordWeaponFireAsync(fire);
+        await repo.RecordWeaponFireAsync(new CombatWeaponFireEvent(
+            fire.EventId, Attacker, fire.OccurredAtUtc.AddMilliseconds(20),
+            "de_dust2", "ak47"));
         await repo.RecordDamageAsync(damage);
-        await repo.RecordDamageAsync(damage);
+        await repo.RecordDamageAsync(new CombatDamageEvent(
+            damage.EventId, Victim, Attacker, damage.OccurredAtUtc.AddMilliseconds(20),
+            "de_dust2", "ak47", 1, 42, 8));
 
         var restarted = new MySqlCombatRepository(_database);
         Assert.AreEqual(new CombatDetailTotals(1, 1, 42, 8, 1),
