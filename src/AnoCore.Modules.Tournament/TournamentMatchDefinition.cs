@@ -11,6 +11,10 @@ public sealed class TournamentMatchDefinition
     public bool OvertimeEnabled { get; set; } = true;
     public TournamentTeamDefinition TeamA { get; set; } = new();
     public TournamentTeamDefinition TeamB { get; set; } = new();
+    public bool AllowPublicSpectators { get; set; }
+    public List<ulong> TeamACoaches { get; set; } = [];
+    public List<ulong> TeamBCoaches { get; set; } = [];
+    public List<ulong> SpectatorWhitelist { get; set; } = [];
 
     public static TournamentMatchDefinition Default => new();
 
@@ -27,16 +31,38 @@ public sealed class TournamentMatchDefinition
 
         ValidateTeam(definition.TeamA, "TeamA", errors);
         ValidateTeam(definition.TeamB, "TeamB", errors);
+        ValidateSpectatorIds(definition.TeamACoaches, "TeamACoaches", 4, errors);
+        ValidateSpectatorIds(definition.TeamBCoaches, "TeamBCoaches", 4, errors);
+        ValidateSpectatorIds(definition.SpectatorWhitelist, "SpectatorWhitelist", 64, errors);
 
         if (definition.TeamA?.Members is not null
             && definition.TeamB?.Members is not null)
         {
+            var roster = definition.TeamA.Members
+                .Concat(definition.TeamB.Members)
+                .Where(value => value != 0)
+                .ToHashSet();
             var overlap = definition.TeamA.Members
                 .Where(value => value != 0)
                 .Intersect(definition.TeamB.Members)
                 .FirstOrDefault();
             if (overlap != 0)
                 errors.Add("A SteamID cannot belong to both tournament teams.");
+
+            if ((definition.TeamACoaches ?? []).Any(roster.Contains)
+                || (definition.TeamBCoaches ?? []).Any(roster.Contains)
+                || (definition.SpectatorWhitelist ?? []).Any(roster.Contains))
+            {
+                errors.Add("Roster SteamIDs cannot also be coaches or spectators.");
+            }
+        }
+
+        if ((definition.TeamACoaches ?? []).Intersect(definition.TeamBCoaches ?? []).Any())
+            errors.Add("A SteamID cannot coach both tournament teams.");
+        if ((definition.SpectatorWhitelist ?? []).Intersect(
+                (definition.TeamACoaches ?? []).Concat(definition.TeamBCoaches ?? [])).Any())
+        {
+            errors.Add("Coach SteamIDs cannot also be in SpectatorWhitelist.");
         }
 
         return errors;
@@ -65,6 +91,17 @@ public sealed class TournamentMatchDefinition
             ToTeam(TeamB),
             KnifeRound,
             OvertimeEnabled);
+    }
+
+    public TournamentSpectatorPolicy ToSpectatorPolicy()
+    {
+        var configuration = ToConfiguration();
+        return new TournamentSpectatorPolicy(
+            configuration,
+            AllowPublicSpectators,
+            (TeamACoaches ?? []).Select(value => new PlayerId(value)),
+            (TeamBCoaches ?? []).Select(value => new PlayerId(value)),
+            (SpectatorWhitelist ?? []).Select(value => new PlayerId(value)));
     }
 
     private static TournamentTeam ToTeam(TournamentTeamDefinition value)
@@ -103,6 +140,26 @@ public sealed class TournamentMatchDefinition
             errors.Add($"{label}.Members must be unique.");
         if (!team.Members.Contains(team.CaptainSteamId))
             errors.Add($"{label}.CaptainSteamId must be included in Members.");
+    }
+
+    private static void ValidateSpectatorIds(
+        IReadOnlyCollection<ulong>? values,
+        string label,
+        int maximum,
+        ICollection<string> errors)
+    {
+        if (values is null)
+        {
+            errors.Add($"{label} is required.");
+            return;
+        }
+
+        if (values.Count > maximum)
+            errors.Add($"{label} can contain at most {maximum} SteamID64 values.");
+        if (values.Any(value => value == 0))
+            errors.Add($"{label} cannot contain SteamID64 0.");
+        if (values.Distinct().Count() != values.Count)
+            errors.Add($"{label} must contain unique SteamID64 values.");
     }
 
     private static bool Printable(string? value, int minimum, int maximum)

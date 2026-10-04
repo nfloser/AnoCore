@@ -34,6 +34,9 @@ public sealed class TournamentCommandControllerTests
         StringAssert.Contains(status.Message!, "Setup");
         Assert.IsNotNull(fixture.Runtime.CurrentSession);
         Assert.IsNotNull(await fixture.Repository.LoadActiveAsync());
+        Assert.AreEqual(
+            Guid.Parse(TournamentMatchDefinitionTests.ValidDefinition().MatchId),
+            fixture.Policies.Read().Policy?.MatchId);
         CollectionAssert.AreEqual(
             new[] { "tournament.load.requested", "tournament.load" },
             fixture.Audit.Actions.ToArray());
@@ -166,6 +169,7 @@ public sealed class TournamentCommandControllerTests
         Assert.IsTrue(result.Success);
         Assert.IsNull(fixture.Runtime.CurrentSession);
         Assert.IsNull(await fixture.Repository.LoadActiveAsync());
+        Assert.IsNull(fixture.Policies.Read().Policy);
         var stored = await fixture.Repository.LoadAsync(Guid.Parse(definition.MatchId));
         Assert.IsNotNull(stored);
         Assert.AreEqual(TournamentMatchState.Completed, stored.Snapshot.State);
@@ -191,6 +195,7 @@ public sealed class TournamentCommandControllerTests
             MemoryRepository repository,
             TournamentMatchRuntime runtime,
             RecordingAudit audit,
+            TournamentSpectatorPolicySource policies,
             TournamentCommandController controller)
         {
             Players = players;
@@ -198,6 +203,7 @@ public sealed class TournamentCommandControllerTests
             Repository = repository;
             Runtime = runtime;
             Audit = audit;
+            Policies = policies;
             Controller = controller;
         }
 
@@ -206,6 +212,7 @@ public sealed class TournamentCommandControllerTests
         public MemoryRepository Repository { get; }
         public TournamentMatchRuntime Runtime { get; }
         public RecordingAudit Audit { get; }
+        public TournamentSpectatorPolicySource Policies { get; }
         public TournamentCommandController Controller { get; }
 
         public static async Task<Fixture> CreateAsync(
@@ -219,6 +226,7 @@ public sealed class TournamentCommandControllerTests
             var recovery = new TournamentRecoveryService(repository);
             var runtime = await TournamentMatchRuntime.CreateAsync(recovery);
             var audit = new RecordingAudit();
+            var policies = new TournamentSpectatorPolicySource();
             var controller = new TournamentCommandController(
                 new FixedConfig(definition ?? TournamentMatchDefinitionTests.ValidDefinition()),
                 commands,
@@ -226,8 +234,10 @@ public sealed class TournamentCommandControllerTests
                 recovery,
                 runtime,
                 audit,
-                new FixedTime(Now));
-            return new Fixture(players, commands, repository, runtime, audit, controller);
+                time: new FixedTime(Now),
+                spectatorPolicies: policies);
+            return new Fixture(
+                players, commands, repository, runtime, audit, policies, controller);
         }
 
         public async Task ConnectRosterAsync()

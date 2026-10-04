@@ -173,3 +173,32 @@ roll back durable tournament state.
 The CounterStrikeSharp adapter still needs disposable-server validation for the fixed
 demo/round-backup commands and actual generated backup filename semantics. No generic
 server-command execution is part of this module contract.
+
+## Coaching and spectator policy
+
+`TournamentSpectatorPolicy` separates roster authority from spectator access. Roster
+players always win policy resolution and remain owned by the normal tournament
+team-enforcement path; this policy never assigns them a fixed T/CT side.
+
+Each match may configure up to four coaches per team, an explicit spectator whitelist
+and optional public spectator access. Coach/whitelist identities must be disjoint from
+both playing rosters and from each other. Decisions are deterministic:
+roster player, Team A coach, Team B coach, whitelisted spectator, public spectator or
+denied outsider.
+
+`TournamentSpectatorPolicySource` publishes one match-bound policy generation.
+Replacing it cancels the previous generation token, so already queued native work
+cannot finish under stale policy. Rejection deduplication is also scoped to the policy
+generation rather than only to `PlayerSessionId`.
+
+`TournamentSpectatorEnforcement` listens to connect, reconnect and player-update
+events, rechecks the active match, policy generation and current session before
+transport work, and deduplicates in-flight actions per session. Allowed coaches and
+spectators are moved to Spectator only when necessary. A denied outsider is handed to
+the fixed `ITournamentSpectatorTransport.RejectUnauthorizedAsync` adapter at most once
+per policy generation/session.
+
+The module does not expose arbitrary kick/ban or server-command execution. A native
+adapter must keep spectator movement/rejection fixed and session-safe. Real spectator
+join timing, coach reconnects and client-visible rejection behavior remain part of the
+disposable CS2/DatHost acceptance pass.

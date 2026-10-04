@@ -58,6 +58,8 @@ public sealed class AnoCorePlugin : BasePlugin
     private GameplayStatsModule? _gameplayStats;
     private TournamentMatchRuntime? _tournamentMatch;
     private TournamentTeamEnforcement? _tournamentTeamEnforcement;
+    private TournamentSpectatorPolicySource? _tournamentSpectatorPolicies;
+    private TournamentSpectatorEnforcement? _tournamentSpectatorEnforcement;
     private TournamentCommandController? _tournamentCommands;
     private ChatMessageFormatter? _chatFormatter;
     private SelectableChatTagModule? _chatTags;
@@ -150,6 +152,10 @@ public sealed class AnoCorePlugin : BasePlugin
             _gameplayStats = null;
             _tournamentCommands?.Dispose();
             _tournamentCommands = null;
+            _tournamentSpectatorEnforcement?.Dispose();
+            _tournamentSpectatorEnforcement = null;
+            _tournamentSpectatorPolicies?.Dispose();
+            _tournamentSpectatorPolicies = null;
             _tournamentTeamEnforcement?.Dispose();
             _tournamentTeamEnforcement = null;
             _tournamentMatch = null;
@@ -576,6 +582,8 @@ public sealed class AnoCorePlugin : BasePlugin
             ChatFormatSnapshotLifecycle? chatFormatSnapshots = null;
             ModerationVoiceCoordinator? voiceModeration = null;
             TournamentTeamEnforcement? tournamentTeamEnforcement = null;
+            TournamentSpectatorPolicySource? tournamentSpectatorPolicies = null;
+            TournamentSpectatorEnforcement? tournamentSpectatorEnforcement = null;
             TournamentCommandController? tournamentCommands = null;
             var presenter = new CounterStrikeMenuPresenter(this, runtime.Menus, Logger);
             var bridge = new CounterStrikeCommandBridge(
@@ -709,13 +717,15 @@ public sealed class AnoCorePlugin : BasePlugin
                             "AnoCore runtime did not provide the shared configuration service.");
                     var recovery = new TournamentRecoveryService(
                         new MySqlTournamentMatchRepository(database));
+                    tournamentSpectatorPolicies = new TournamentSpectatorPolicySource();
                     tournamentCommands = new TournamentCommandController(
                         tournamentConfiguration,
                         runtime.Commands,
                         runtime.Players,
                         recovery,
                         tournamentMatch,
-                        runtime.AdminAudit);
+                        runtime.AdminAudit,
+                        spectatorPolicies: tournamentSpectatorPolicies);
                     tournamentTeamEnforcement = new TournamentTeamEnforcement(
                         events,
                         runtime.Players,
@@ -726,9 +736,30 @@ public sealed class AnoCorePlugin : BasePlugin
                             "Tournament team enforcement failed for {PlayerId} session {SessionId}.",
                             player.Id,
                             player.SessionId));
+                    tournamentSpectatorEnforcement = new TournamentSpectatorEnforcement(
+                        events,
+                        runtime.Players,
+                        tournamentMatch,
+                        tournamentSpectatorPolicies,
+                        new CounterStrikeTournamentSpectatorTransport(
+                            runtime.Players,
+                            disconnect),
+                        (exception, player) => Logger.LogError(
+                            exception,
+                            "Tournament spectator enforcement failed for {PlayerId} session {SessionId}.",
+                            player.Id,
+                            player.SessionId));
                     Observe(
                         tournamentTeamEnforcement.ReconcileOnlineAsync(cancellationToken).AsTask(),
                         "tournament_team_bootstrap");
+                    Observe(
+                        InitializeTournamentSpectatorPolicyAsync(
+                            tournamentConfiguration,
+                            tournamentMatch,
+                            tournamentSpectatorPolicies,
+                            tournamentSpectatorEnforcement,
+                            cancellationToken),
+                        "tournament_spectator_bootstrap");
                 }
 
                 if (chatFormatter is not null)
@@ -823,6 +854,8 @@ public sealed class AnoCorePlugin : BasePlugin
                 _gameplayStats = gameplayStats;
                 _tournamentMatch = tournamentMatch;
                 _tournamentTeamEnforcement = tournamentTeamEnforcement;
+                _tournamentSpectatorPolicies = tournamentSpectatorPolicies;
+                _tournamentSpectatorEnforcement = tournamentSpectatorEnforcement;
                 _tournamentCommands = tournamentCommands;
                 _chatFormatter = chatFormatter;
                 _chatTags = chatTags;
@@ -849,6 +882,8 @@ public sealed class AnoCorePlugin : BasePlugin
                 rank?.Dispose();
                 gameplayStats?.Dispose();
                 tournamentCommands?.Dispose();
+                tournamentSpectatorEnforcement?.Dispose();
+                tournamentSpectatorPolicies?.Dispose();
                 tournamentTeamEnforcement?.Dispose();
                 chatTags?.Dispose();
                 combat?.Dispose();
@@ -877,6 +912,47 @@ public sealed class AnoCorePlugin : BasePlugin
                 Logger.LogError(exception, "AnoCore command/menu/module activation failed.");
             }
         }
+    }
+
+    private async Task InitializeTournamentSpectatorPolicyAsync(
+        IConfigStore configuration,
+        TournamentMatchRuntime runtime,
+        TournamentSpectatorPolicySource policies,
+        TournamentSpectatorEnforcement enforcement,
+        CancellationToken cancellationToken)
+    {
+        TournamentSpectatorPolicy? policy = null;
+        try
+        {
+            var active = runtime.CurrentSession;
+            if (active is not null)
+            {
+                var definition = await configuration.LoadAsync(
+                    TournamentCommandController.DefinitionConfigName,
+                    () => TournamentMatchDefinition.Default,
+                    TournamentMatchDefinition.Validate,
+                    cancellationToken).ConfigureAwait(false);
+                if (definition.Enabled
+                    && Guid.TryParse(definition.MatchId, out var configuredMatch)
+                    && configuredMatch == active.Machine.Configuration.MatchId)
+                {
+                    policy = definition.ToSpectatorPolicy();
+                }
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(
+                exception,
+                "Tournament spectator policy could not be restored; spectator enforcement stays disabled.");
+        }
+
+        policies.Replace(policy);
+        await enforcement.ReconcileOnlineAsync(cancellationToken).ConfigureAwait(false);
     }
 
     private void ReconcileVoiceModeration(ModerationVoiceCoordinator voiceModeration)
