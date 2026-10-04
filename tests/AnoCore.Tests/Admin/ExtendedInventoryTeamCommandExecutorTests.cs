@@ -295,13 +295,13 @@ public sealed class ExtendedInventoryTeamCommandExecutorTests
             return ValueTask.CompletedTask;
         }
 
-        public ValueTask GiveAsync(
+        public ValueTask<bool> GiveAsync(
             PlayerSnapshot player,
             AdminItemDefinition item,
             CancellationToken cancellationToken = default)
         {
             Given.Add((player, item));
-            return ValueTask.CompletedTask;
+            return ValueTask.FromResult(true);
         }
 
         public ValueTask SetTeamAsync(
