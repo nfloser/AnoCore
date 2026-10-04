@@ -1,3 +1,23 @@
+# Current authoritative checkpoint — 2026-10-04
+
+- `main` has been consolidated through #209 and then hardened with #211 (management status rate-limit/audit/exception guards) and #212 (Tournament-AnoVeto coordination).
+- The current code-complete stack includes persistent player/settings/moderation/statistics/ranks/playtime, combined statistics and settings/rank/tag menus, audited statistics reset, extended administration, CustomHud/AnoVeto, tournament state/persistence/reconnect enforcement/control/demo-backup/spectator policy/map selection, the packaged module SDK and the authenticated transport-neutral management API core.
+- Tournament map selection now reuses the existing AnoVeto map catalog and vote service. Auto-finalized vote results are consumable, stale match/revision results are rejected, and the resolved series is persisted before it is published to the live tournament runtime. Manual `anotournamentmaps` remains the fallback.
+- Management status reads now receive the same security treatment as privileged management capabilities: authenticated scope checks, bounded per-token rate limiting, metadata-only request/result audit and redacted provider failures.
+- `docs/functional-acceptance.md` is the current functional inventory. Historical open issues and old draft PRs are not reliable indicators that a feature is absent because many packages were first merged into the non-production integration branch and later consolidated into `main`.
+- Remaining work must be split into two categories:
+  1. actual missing code/packages (for example shared messaging/native output consolidation and any remaining external transport/integration surface); and
+  2. native-only acceptance gates in #23 / the disposable CS2/DatHost flow (CounterStrikeSharp event semantics, real menu/HUD interaction, map transitions, voice/chat behavior, tournament engine actions, deployment/upgrade).
+- Do not claim production readiness or cut a release solely from automated CI. Native acceptance still has to be recorded against the exact deployment artifact before #23 and #11 can close.
+
+## Recent verification
+
+- PR #211 exact-head CI #592: build, full tests including MariaDB, formatting, SDK pack inspection, Panorama validation, plugin publish/package and artifact upload all passed before merge to `main`.
+- PR #212 exact-head CI #593 passed the same full workflow against the security-corrected `main` before merge.
+- The previous integration Tournament-AnoVeto PR #210 exact-head CI #589 was also green before its mainline follow-up.
+
+---
+
 # Extended administration integration checkpoint — 2026-10-04
 
 - The #157 candidate now combines the #165/#166/#167/#168 stack with the existing rank notification preference, stats/chat/settings/moderation and CustomHud stacks.
