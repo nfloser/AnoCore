@@ -125,14 +125,25 @@ public sealed class MySqlPlaytimeRepository : IPlaytimeStateRepository
                 connection, transaction, playerId, sessionId, token).ConfigureAwait(false);
             if (checkpoint is null || checkpoint.Value.ClosedAtUtc is not null)
                 return true;
-            if (at < checkpoint.Value.AccountedUntilUtc && !close)
-                return true;
-            var effectiveAt = at < checkpoint.Value.AccountedUntilUtc
-                ? checkpoint.Value.AccountedUntilUtc
-                : at;
 
             var current = await ReadOpenSegmentAsync(
                 connection, transaction, playerId, sessionId, token).ConfigureAwait(false);
+            if (at < checkpoint.Value.AccountedUntilUtc && !close)
+            {
+                if (current is null
+                    || current.Value.State == stateAtUtc
+                    || at < current.Value.StartedAtUtc)
+                    return true;
+
+                await SplitOpenSegmentAsync(connection, transaction, playerId, sessionId,
+                    current.Value.Id, at, checkpoint.Value.AccountedUntilUtc, stateAtUtc, token)
+                    .ConfigureAwait(false);
+                return true;
+            }
+
+            var effectiveAt = at < checkpoint.Value.AccountedUntilUtc
+                ? checkpoint.Value.AccountedUntilUtc
+                : at;
 
             await using (var session = connection.CreateCommand())
             {
@@ -313,14 +324,15 @@ public sealed class MySqlPlaytimeRepository : IPlaytimeStateRepository
         return (accounted, closed);
     }
 
-    private static async ValueTask<(long Id, PlaytimeState State)?> ReadOpenSegmentAsync(
+    private static async ValueTask<(long Id, PlaytimeState State, DateTimeOffset StartedAtUtc,
+        DateTimeOffset AccountedUntilUtc)?> ReadOpenSegmentAsync(
         DbConnection connection, DbTransaction transaction, PlayerId playerId,
         PlayerSessionId sessionId, CancellationToken token)
     {
         await using var command = connection.CreateCommand();
         command.Transaction = transaction;
         command.CommandText = """
-            SELECT segment_id, team, is_alive
+            SELECT segment_id, team, is_alive, started_at_utc, accounted_until_utc
             FROM ano_playtime_segments
             WHERE session_id = @session AND steam_id = @player AND closed_at_utc IS NULL
             ORDER BY segment_id DESC
@@ -333,7 +345,44 @@ public sealed class MySqlPlaytimeRepository : IPlaytimeStateRepository
         if (!await reader.ReadAsync(token).ConfigureAwait(false)) return null;
         return (
             reader.GetInt64(0),
-            new PlaytimeState((PlayerTeam)reader.GetInt32(1), reader.GetBoolean(2)));
+            new PlaytimeState((PlayerTeam)reader.GetInt32(1), reader.GetBoolean(2)),
+            new DateTimeOffset(DateTime.SpecifyKind(reader.GetDateTime(3), DateTimeKind.Utc)),
+            new DateTimeOffset(DateTime.SpecifyKind(reader.GetDateTime(4), DateTimeKind.Utc)));
+    }
+
+    private static async ValueTask SplitOpenSegmentAsync(DbConnection connection,
+        DbTransaction transaction, PlayerId playerId, PlayerSessionId sessionId,
+        long segmentId, DateTimeOffset transitionAtUtc, DateTimeOffset accountedUntilUtc,
+        PlaytimeState state, CancellationToken token)
+    {
+        await using (var close = connection.CreateCommand())
+        {
+            close.Transaction = transaction;
+            close.CommandText = """
+                UPDATE ano_playtime_segments
+                SET accounted_until_utc = @transition,
+                    closed_at_utc = @transition
+                WHERE segment_id = @id AND closed_at_utc IS NULL
+                """;
+            Add(close, "@id", segmentId);
+            Add(close, "@transition", transitionAtUtc.UtcDateTime);
+            await close.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+        }
+
+        await using var insert = connection.CreateCommand();
+        insert.Transaction = transaction;
+        insert.CommandText = """
+            INSERT INTO ano_playtime_segments (
+                session_id, steam_id, team, is_alive, started_at_utc, accounted_until_utc)
+            VALUES (@session, @player, @team, @alive, @started, @accounted)
+            """;
+        Add(insert, "@session", sessionId.ToString());
+        Add(insert, "@player", playerId.SteamId64);
+        Add(insert, "@team", (int)state.Team);
+        Add(insert, "@alive", state.IsAlive ? 1 : 0);
+        Add(insert, "@started", transitionAtUtc.UtcDateTime);
+        Add(insert, "@accounted", accountedUntilUtc.UtcDateTime);
+        await insert.ExecuteNonQueryAsync(token).ConfigureAwait(false);
     }
 
     private static async ValueTask InsertSegmentAsync(DbConnection connection,
