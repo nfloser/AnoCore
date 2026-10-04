@@ -59,6 +59,22 @@ public sealed class RankNotificationPreferenceSinkTests
     }
 
     [TestMethod]
+    public async Task NotifyAsync_PreferenceReadFailure_IsolatedAndReported()
+    {
+        var failure = new InvalidOperationException("settings unavailable");
+        var settings = new ThrowingSettings(failure);
+        var inner = new RecordingSink();
+        Exception? reported = null;
+        using var sink = new RankNotificationPreferenceSink(
+            settings, inner, exception => reported = exception);
+
+        await sink.NotifyAsync(Player, Transition);
+
+        Assert.AreEqual(0, inner.Notifications.Count);
+        Assert.AreSame(failure, reported);
+    }
+
+    [TestMethod]
     public void Dispose_DisposesOwnedNotificationSink()
     {
         var inner = new RecordingSink();
@@ -82,6 +98,24 @@ public sealed class RankNotificationPreferenceSinkTests
             Assert.AreEqual(Player, playerId);
             Assert.AreEqual(typeof(bool), typeof(T));
             return ValueTask.FromResult((T)(object)enabled);
+        }
+
+        public ValueTask SetAsync<T>(PlayerId playerId, PlayerSettingKey<T> key, T value,
+            CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public ValueTask<bool> ResetAsync<T>(PlayerId playerId, PlayerSettingKey<T> key,
+            CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+    }
+
+    private sealed class ThrowingSettings(Exception failure) : IPlayerSettingsService
+    {
+        public ValueTask<T> GetAsync<T>(PlayerId playerId, PlayerSettingKey<T> key,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return ValueTask.FromException<T>(failure);
         }
 
         public ValueTask SetAsync<T>(PlayerId playerId, PlayerSettingKey<T> key, T value,
