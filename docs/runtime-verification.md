@@ -27,6 +27,8 @@ Use a disposable/non-production CS2 server with the pinned CounterStrikeSharp AP
 7. With a player connected, hot-reload AnoCore. Confirm the connected human is bootstrapped once into the fresh registry and no duplicate game-event handlers fire.
 8. Manually load AnoCore with already-connected humans and verify `css_anostatus` includes them. Unload AnoCore. Confirm `css_anostatus` is removed and game-event hooks are deregistered and no AnoCore callbacks execute afterward.
 9. Repeat load → hot reload → unload twice and inspect logs for duplicate event handling or unobserved task failures.
+10. With #165 installed, exercise `anohealth`, `anoarmor`, freeze/unfreeze, noclip/walk, slay, speed/reset, blind/unblind and god/ungod against an authorized target. Confirm permission denial and immunity before native mutation.
+11. For freeze/noclip, speed, blind and god mode, verify explicit reset plus death, disconnect/reconnect and map-change cleanup. A replacement `PlayerSessionId` or reused slot must not receive the previous session's mutation or restoration.
 
 ## Release gate
 
