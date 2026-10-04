@@ -92,7 +92,7 @@ public sealed class CombatModule : IDisposable
                 }
                 catch
                 {
-                    _detailCommand.Dispose();
+                    _detailCommand?.Dispose();
                     throw;
                 }
             }
@@ -148,8 +148,11 @@ public sealed class CombatModule : IDisposable
         if (!TryDetailFilter(context, out var filter, out var failure))
             return failure!;
 
+        var sessionId = player.SessionId;
         var totals = await _detailRepository.ReadDetailsAsync(
             context.Caller, filter, context.CancellationToken).ConfigureAwait(false);
+        if (!IsCurrentSession(context.Caller, sessionId))
+            return SessionChanged();
         return CommandResult.Ok(
             $"[ANO] Detail stats: {totals.Shots} shot(s), {totals.Hits} hit(s), "
             + $"{totals.DamageHealth} health damage, {totals.DamageArmor} armor damage, "
@@ -169,13 +172,26 @@ public sealed class CombatModule : IDisposable
         if (!TryDetailFilter(context, out var filter, out var failure))
             return failure!;
 
+        var sessionId = player.SessionId;
         var entries = await _detailRepository.ReadHitgroupsAsync(
             context.Caller, filter, context.CancellationToken).ConfigureAwait(false);
+        if (!IsCurrentSession(context.Caller, sessionId))
+            return SessionChanged();
         if (entries.Count == 0)
             return CommandResult.Ok("[ANO] No hitgroup statistics match this filter.");
         return CommandResult.Ok("[ANO] " + string.Join(" | ", entries.Take(16).Select(entry =>
             $"HG{entry.Hitgroup}: {entry.Hits} hit(s), {entry.DamageHealth} health damage")));
     }
+
+    private bool IsCurrentSession(PlayerId playerId, PlayerSessionId sessionId)
+        => Volatile.Read(ref _disposed) == 0
+            && _players.TryGet(playerId, out var current)
+            && current is { IsConnected: true }
+            && current.SessionId == sessionId;
+
+    private static CommandResult SessionChanged()
+        => CommandResult.Fail(CommandFailureReason.InvalidInput,
+            "Player session changed before the combat detail query completed.");
 
     private static bool TryDetailFilter(CommandContext context,
         out CombatDetailFilter filter, out CommandResult? failure)
