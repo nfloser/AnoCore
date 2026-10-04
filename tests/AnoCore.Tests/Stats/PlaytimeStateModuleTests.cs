@@ -71,6 +71,61 @@ public sealed class PlaytimeStateModuleTests
         Assert.AreEqual(1, repository.BreakdownReads);
     }
 
+    [TestMethod]
+    public async Task OwnPlaytime_DiscardsTotalsAfterReconnect()
+    {
+        var events = new AnoEventBus();
+        var players = new PlayerRegistry(events);
+        var repository = new StateRepository
+        {
+            TotalsReadStarted = new(TaskCreationOptions.RunContinuationsAsynchronously),
+            ReleaseTotalsRead = new(TaskCreationOptions.RunContinuationsAsynchronously),
+        };
+        var commands = new CommandRegistry(new AllowAll());
+        using var module = await PlaytimeModule.CreateAsync(events, players, repository, commands,
+            new FixedTime(Start.AddMinutes(1)));
+        await players.ConnectAsync(new PlayerConnection(
+            Player, "A", PlayerTeam.Terrorist, true, Start));
+
+        var pending = commands.ExecuteAsync("!anoplaytime", Player).AsTask();
+        await repository.TotalsReadStarted.Task;
+        await players.ConnectAsync(new PlayerConnection(
+            Player, "B", PlayerTeam.CounterTerrorist, true, Start.AddMinutes(2)));
+        repository.ReleaseTotalsRead.TrySetResult(true);
+
+        var result = await pending;
+        Assert.IsFalse(result.Success);
+        Assert.AreEqual(CommandFailureReason.InvalidInput, result.FailureReason);
+        Assert.AreEqual(0, repository.BreakdownReads);
+    }
+
+    [TestMethod]
+    public async Task OwnPlaytime_DiscardsTotalsAfterModuleUnload()
+    {
+        var events = new AnoEventBus();
+        var players = new PlayerRegistry(events);
+        var repository = new StateRepository
+        {
+            TotalsReadStarted = new(TaskCreationOptions.RunContinuationsAsynchronously),
+            ReleaseTotalsRead = new(TaskCreationOptions.RunContinuationsAsynchronously),
+        };
+        var commands = new CommandRegistry(new AllowAll());
+        var module = await PlaytimeModule.CreateAsync(events, players, repository, commands,
+            new FixedTime(Start.AddMinutes(1)));
+        await players.ConnectAsync(new PlayerConnection(
+            Player, "A", PlayerTeam.Terrorist, true, Start));
+
+        var pending = commands.ExecuteAsync("!anoplaytime", Player).AsTask();
+        await repository.TotalsReadStarted.Task;
+        module.Dispose();
+        repository.ReleaseTotalsRead.TrySetResult(true);
+
+        var result = await pending;
+        Assert.IsFalse(result.Success);
+        Assert.AreEqual(CommandFailureReason.InvalidInput, result.FailureReason);
+        Assert.AreEqual(0, repository.BreakdownReads);
+    }
+
     private sealed class AllowAll : IPermissionEvaluator
     {
         public ValueTask<bool> HasPermissionAsync(PlayerId id, PermissionId permission,
@@ -87,6 +142,8 @@ public sealed class PlaytimeStateModuleTests
         public int LegacyAdvanceCalls { get; private set; }
         public int StateOpenCalls { get; private set; }
         public int BreakdownReads { get; private set; }
+        public TaskCompletionSource<bool>? TotalsReadStarted { get; set; }
+        public TaskCompletionSource<bool>? ReleaseTotalsRead { get; set; }
         public PlaytimeTotals Totals { get; set; } = new(TimeSpan.Zero, TimeSpan.Zero);
         public IReadOnlyList<PlaytimeStateBreakdown> Breakdown { get; set; } = [];
         public List<(DateTimeOffset At, PlaytimeState State, bool Close)> StateAdvances { get; } = [];
@@ -118,8 +175,14 @@ public sealed class PlaytimeStateModuleTests
             return ValueTask.CompletedTask;
         }
 
-        public ValueTask<PlaytimeTotals> ReadAsync(PlayerId playerId, DateOnly utcDay,
-            CancellationToken cancellationToken = default) => ValueTask.FromResult(Totals);
+        public async ValueTask<PlaytimeTotals> ReadAsync(PlayerId playerId, DateOnly utcDay,
+            CancellationToken cancellationToken = default)
+        {
+            TotalsReadStarted?.TrySetResult(true);
+            if (ReleaseTotalsRead is not null)
+                await ReleaseTotalsRead.Task.WaitAsync(cancellationToken);
+            return Totals;
+        }
 
         public ValueTask<IReadOnlyList<PlaytimeStateBreakdown>> ReadStateBreakdownAsync(
             PlayerId playerId, DateOnly utcDay, CancellationToken cancellationToken = default)
