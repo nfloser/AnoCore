@@ -125,8 +125,11 @@ public sealed class MySqlPlaytimeRepository : IPlaytimeStateRepository
                 connection, transaction, playerId, sessionId, token).ConfigureAwait(false);
             if (checkpoint is null || checkpoint.Value.ClosedAtUtc is not null)
                 return true;
-            if (at < checkpoint.Value.AccountedUntilUtc)
+            if (at < checkpoint.Value.AccountedUntilUtc && !close)
                 return true;
+            var effectiveAt = at < checkpoint.Value.AccountedUntilUtc
+                ? checkpoint.Value.AccountedUntilUtc
+                : at;
 
             var current = await ReadOpenSegmentAsync(
                 connection, transaction, playerId, sessionId, token).ConfigureAwait(false);
@@ -140,7 +143,7 @@ public sealed class MySqlPlaytimeRepository : IPlaytimeStateRepository
                         closed_at_utc = CASE WHEN @close = 1 THEN @at ELSE NULL END
                     WHERE session_id = @session AND steam_id = @player AND closed_at_utc IS NULL
                     """;
-                Add(session, "@at", at.UtcDateTime);
+                Add(session, "@at", effectiveAt.UtcDateTime);
                 Add(session, "@close", close ? 1 : 0);
                 Add(session, "@session", sessionId.ToString());
                 Add(session, "@player", playerId.SteamId64);
@@ -151,20 +154,20 @@ public sealed class MySqlPlaytimeRepository : IPlaytimeStateRepository
             {
                 if (!close)
                     await InsertSegmentAsync(connection, transaction, playerId, sessionId,
-                        at, stateAtUtc, token).ConfigureAwait(false);
+                        effectiveAt, stateAtUtc, token).ConfigureAwait(false);
                 return true;
             }
 
             if (close)
             {
-                await CloseSegmentAsync(connection, transaction, current.Value.Id, at, token)
+                await CloseSegmentAsync(connection, transaction, current.Value.Id, effectiveAt, token)
                     .ConfigureAwait(false);
                 return true;
             }
 
             if (current.Value.State == stateAtUtc)
             {
-                await AdvanceSegmentAsync(connection, transaction, current.Value.Id, at, token)
+                await AdvanceSegmentAsync(connection, transaction, current.Value.Id, effectiveAt, token)
                     .ConfigureAwait(false);
                 return true;
             }
@@ -172,7 +175,7 @@ public sealed class MySqlPlaytimeRepository : IPlaytimeStateRepository
             await CloseSegmentAsync(connection, transaction, current.Value.Id, at, token)
                 .ConfigureAwait(false);
             await InsertSegmentAsync(connection, transaction, playerId, sessionId,
-                at, stateAtUtc, token).ConfigureAwait(false);
+                effectiveAt, stateAtUtc, token).ConfigureAwait(false);
             return true;
         }, cancellationToken: cancellationToken).ConfigureAwait(false);
     }
