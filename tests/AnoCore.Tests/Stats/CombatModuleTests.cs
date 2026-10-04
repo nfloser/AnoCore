@@ -134,8 +134,6 @@ public sealed class CombatModuleTests
         Assert.AreEqual(CommandFailureReason.NotFound,
             (await registry.ExecuteAsync("!anohitgroups", Attacker)).FailureReason);
 
-        using var legacy = new CombatModule(
-            new CommandRegistry(new AllowAll()), players, new FakeRepository());
         var legacyRegistry = new CommandRegistry(new AllowAll());
         using var legacyModule = new CombatModule(legacyRegistry, players, new FakeRepository());
         Assert.AreEqual(CommandFailureReason.NotFound,
@@ -255,6 +253,8 @@ public sealed class CombatModuleTests
             LastOffset = offset;
             return ValueTask.FromResult(TopCountEntries);
         }
+    }
+
     private sealed class DetailRepository : FakeRepository, ICombatDetailRepository
     {
         public CombatWeaponFireEvent? LastWeaponFire { get; private set; }
@@ -293,6 +293,5 @@ public sealed class CombatModuleTests
             HitgroupReads++;
             return ValueTask.FromResult(Hitgroups);
         }
-    }
     }
 }
