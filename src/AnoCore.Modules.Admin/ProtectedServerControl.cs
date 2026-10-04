@@ -72,9 +72,9 @@ public sealed class ProtectedServerControlPolicy
         }
 
         return new ProtectedServerControlPolicy(
-            Normalize(configuration.AllowedConVars)
+            Normalize(configuration.AllowedConVars ?? [])
                 .Where(name => !IsDeniedConVar(name)),
-            Normalize(configuration.AllowedServerCommands)
+            Normalize(configuration.AllowedServerCommands ?? [])
                 .Where(name => !DeniedServerCommands.Contains(name)));
     }
 
@@ -85,20 +85,20 @@ public sealed class ProtectedServerControlPolicy
         List<string> errors = [];
 
         ValidateCollection(
-            configuration.AllowedConVars,
+            configuration.AllowedConVars ?? [],
             "AllowedConVars",
             errors);
         ValidateCollection(
-            configuration.AllowedServerCommands,
+            configuration.AllowedServerCommands ?? [],
             "AllowedServerCommands",
             errors);
 
-        if (configuration.AllowedConVars.Length > 128)
+        if ((configuration.AllowedConVars?.Length ?? 0) > 128)
         {
             errors.Add("AllowedConVars cannot contain more than 128 entries.");
         }
 
-        if (configuration.AllowedServerCommands.Length > 64)
+        if ((configuration.AllowedServerCommands?.Length ?? 0) > 64)
         {
             errors.Add("AllowedServerCommands cannot contain more than 64 entries.");
         }
