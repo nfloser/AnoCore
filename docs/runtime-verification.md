@@ -29,6 +29,7 @@ Use a disposable/non-production CS2 server with the pinned CounterStrikeSharp AP
 9. Repeat load → hot reload → unload twice and inspect logs for duplicate event handling or unobserved task failures.
 10. With #165 installed, exercise `anohealth`, `anoarmor`, freeze/unfreeze, noclip/walk, slay, speed/reset, blind/unblind and god/ungod against an authorized target. Confirm permission denial and immunity before native mutation.
 11. For freeze/noclip, speed, blind and god mode, verify explicit reset plus death, disconnect/reconnect and map-change cleanup. A replacement `PlayerSessionId` or reused slot must not receive the previous session's mutation or restoration.
+12. Exercise `anorespawn`, `anorevive`, `anotppos`, `anotp`, `anobury`, `anounbury` and `anoslap`. Verify revive uses the pre-death location only for the current session, teleport rejects invalid coordinates, and reconnect/map change clears old death positions.
 
 ## Release gate
 
