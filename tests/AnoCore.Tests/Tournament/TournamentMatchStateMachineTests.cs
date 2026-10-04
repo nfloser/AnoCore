@@ -144,6 +144,50 @@ public sealed class TournamentMatchStateMachineTests
     }
 
     [TestMethod]
+    public void Restore_RejectsRunningSnapshotWithoutFullyReadyRosters()
+    {
+        var machine = NewMachine(TournamentBestOf.One);
+        var snapshot = new TournamentRecoverySnapshot(
+            machine.Configuration.MatchId,
+            TournamentMatchState.Live,
+            ["de_dust2"],
+            CurrentMapIndex: 0,
+            TeamAMaps: 0,
+            TeamBMaps: 0,
+            ReadyPlayers: [A1, A2, B1],
+            KnifeWinner: TournamentTeamSlot.TeamA,
+            SideChooser: TournamentTeamSlot.TeamA,
+            TeamASide: PlayerTeam.Terrorist,
+            TeamBSide: PlayerTeam.CounterTerrorist,
+            ResumeState: null);
+
+        Assert.ThrowsExactly<ArgumentException>(() =>
+            TournamentMatchStateMachine.Restore(machine.Configuration, snapshot));
+    }
+
+    [TestMethod]
+    public void Restore_RejectsInvalidKnifeOwnership()
+    {
+        var machine = NewMachine(TournamentBestOf.One);
+        var snapshot = new TournamentRecoverySnapshot(
+            machine.Configuration.MatchId,
+            TournamentMatchState.SideChoice,
+            ["de_dust2"],
+            CurrentMapIndex: 0,
+            TeamAMaps: 0,
+            TeamBMaps: 0,
+            ReadyPlayers: [A1, A2, B1, B2],
+            KnifeWinner: TournamentTeamSlot.TeamA,
+            SideChooser: TournamentTeamSlot.TeamB,
+            TeamASide: PlayerTeam.Terrorist,
+            TeamBSide: PlayerTeam.CounterTerrorist,
+            ResumeState: null);
+
+        Assert.ThrowsExactly<ArgumentException>(() =>
+            TournamentMatchStateMachine.Restore(machine.Configuration, snapshot));
+    }
+
+    [TestMethod]
     public void NonRosteredPlayers_CannotReadyAndHaveNoForcedSide()
     {
         var outsider = new PlayerId(76561198000186999);
