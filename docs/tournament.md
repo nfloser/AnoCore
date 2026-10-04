@@ -87,3 +87,63 @@ Real `jointeam` timing, reconnect timing and team-change event ordering remain a
 disposable-server acceptance gate. The current adapter corrects the resulting tracked
 team change; a stricter pre-command interception can be added later if live testing
 shows a visible bypass window.
+
+
+## Match definition and controls
+
+Tournament setup is loaded from the fixed `tournament-match` configuration. The
+command layer never accepts an arbitrary filesystem path. If the file does not exist,
+`anotournamentload` creates a disabled template; edit that generated configuration,
+set `Enabled` to `true`, then run the load command again.
+
+Example shape:
+
+```json
+{
+  "Enabled": true,
+  "MatchId": "22222222-2222-2222-2222-222222222222",
+  "BestOf": 3,
+  "KnifeRound": true,
+  "OvertimeEnabled": true,
+  "TeamA": {
+    "Name": "Alpha",
+    "Tag": "A",
+    "CaptainSteamId": 76561198000000001,
+    "Members": [76561198000000001, 76561198000000002]
+  },
+  "TeamB": {
+    "Name": "Beta",
+    "Tag": "B",
+    "CaptainSteamId": 76561198000000011,
+    "Members": [76561198000000011, 76561198000000012]
+  }
+}
+```
+
+The definition validates BO1/BO3/BO5, printable bounded team metadata, non-zero unique
+SteamIDs, captain membership and cross-team roster overlap.
+
+The management permission is `ano.tournament.manage`. The server console can perform
+management operations without a player permission grant. Supported controls are:
+
+- `anotournamentload`: validate, persist and activate the configured match;
+- `anotournamentstatus`: bounded current state, map, series score and ready progress;
+- `anotournamentreadyopen`: move Setup to Ready;
+- `anoready`: current rostered player marks their SteamID ready;
+- `anotournamentmaps <map1,map2,...>`: commit the already-resolved BO map series after both rosters are ready;
+- `anotournamentknife <a|b>`: record the knife-round winner;
+- `anotournamentside <t|ct>`: knife-winning team's connected captain chooses the starting side;
+- `anotournamentpause`, `anotournamentresume`, `anotournamentovertime`;
+- `anotournamentmapwin <a|b>`: advance the series and deactivate automatically on the winning map;
+- `anotournamentabandon [reason]`: clear the active pointer while retaining the last durable snapshot.
+
+All state-changing commands are serialized. They clone the currently published state,
+apply the transition to the clone, write it with the expected durable revision, and
+publish the new runtime state only after persistence succeeds. A revision conflict
+reloads the active durable state and asks the operator to retry.
+
+Privileged state changes use requested/completed administrative audit records. If the
+request audit fails, persistence is not attempted. If the durable state succeeds but
+the completion audit fails, the runtime still adopts the persisted state and the
+command reports the audit failure explicitly instead of leaving memory behind the
+database.
