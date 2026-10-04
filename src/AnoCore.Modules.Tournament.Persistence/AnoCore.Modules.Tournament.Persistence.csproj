@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\AnoCore.Abstractions\AnoCore.Abstractions.csproj" />
+    <ProjectReference Include="..\AnoCore.Modules.Tournament\AnoCore.Modules.Tournament.csproj" />
+    <ProjectReference Include="..\AnoCore.Runtime\AnoCore.Runtime.csproj" />
+  </ItemGroup>
+</Project>

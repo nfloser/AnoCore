@@ -212,6 +212,42 @@ public sealed class TournamentMatchStateMachine
         if (TeamASide is not (PlayerTeam.Terrorist or PlayerTeam.CounterTerrorist)
             || TeamBSide != Opposite(TeamASide))
             throw new ArgumentException("Snapshot team sides are invalid.");
+        if (KnifeWinner is not null && !Enum.IsDefined(KnifeWinner.Value))
+            throw new ArgumentException("Snapshot knife winner is invalid.");
+        if (SideChooser is not null && !Enum.IsDefined(SideChooser.Value))
+            throw new ArgumentException("Snapshot side chooser is invalid.");
+        if (_resumeState is not null && !Enum.IsDefined(_resumeState.Value))
+            throw new ArgumentException("Snapshot resume state is invalid.");
+
+        var requiresReady = State is >= TournamentMatchState.Veto;
+        if (requiresReady && !IsReady)
+            throw new ArgumentException("A veto or running snapshot requires both rosters to be ready.");
+        if (State == TournamentMatchState.Setup && _ready.Count != 0)
+            throw new ArgumentException("Setup snapshots cannot contain ready players.");
+
+        if (State is TournamentMatchState.Setup or TournamentMatchState.Ready or TournamentMatchState.Veto)
+        {
+            if (_maps.Count != 0)
+                throw new ArgumentException("Pre-veto-completion snapshots cannot contain selected maps.");
+        }
+
+        if (!Configuration.KnifeRound)
+        {
+            if (State is TournamentMatchState.Knife or TournamentMatchState.SideChoice)
+                throw new ArgumentException("Knife states are invalid when knife rounds are disabled.");
+            if (KnifeWinner is not null || SideChooser is not null)
+                throw new ArgumentException("Knife ownership is invalid when knife rounds are disabled.");
+        }
+        else if (State == TournamentMatchState.SideChoice)
+        {
+            if (KnifeWinner is null || SideChooser is null || KnifeWinner != SideChooser)
+                throw new ArgumentException("Side choice requires the knife winner to own the choice.");
+        }
+        else if (State == TournamentMatchState.Knife
+                 && (KnifeWinner is not null || SideChooser is not null))
+        {
+            throw new ArgumentException("An unfinished knife round cannot already have a winner.");
+        }
         if (_maps.Count > 0 && _maps.Count != (int)Configuration.BestOf)
             throw new ArgumentException("Snapshot map count does not match the configured series.");
         if (_maps.Count == 0 && State is >= TournamentMatchState.Knife)
@@ -239,9 +275,15 @@ public sealed class TournamentMatchStateMachine
             if (CurrentMapIndex != playedMaps)
                 throw new ArgumentException("Snapshot map index does not match its series score.");
         }
-        if (State == TournamentMatchState.Paused
-            && _resumeState is not (TournamentMatchState.Live or TournamentMatchState.Overtime))
-            throw new ArgumentException("Paused snapshot must carry a live resume state.");
+        if (State == TournamentMatchState.Paused)
+        {
+            if (_resumeState is not (TournamentMatchState.Live or TournamentMatchState.Overtime))
+                throw new ArgumentException("Paused snapshot must carry a live resume state.");
+        }
+        else if (_resumeState is not null)
+        {
+            throw new ArgumentException("Only paused snapshots may carry a resume state.");
+        }
     }
 
     private void Require(TournamentMatchState expected)
