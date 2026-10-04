@@ -42,3 +42,12 @@ Automated tests cover contract validation, deterministic round/match outcomes, e
 8. Record host/plugin/MariaDB versions and observations under the disposable-server acceptance issue.
 
 Native verification remains part of #157/#23 and is not implied by green CI.
+
+
+## Administrative reset
+
+`!anoresetstats <target> [reason]` requires `ano.stats.reset` and uses the shared target/immunity policy. Online players can be selected by the normal explicit target syntax; offline targets require SteamID64.
+
+A reset is non-destructive. AnoCore stores a per-player cutoff and all combat, detail, hitgroup and gameplay aggregates ignore that player's events at or before the cutoff. The immutable event ledgers remain intact, so resetting one participant never removes another participant's kill, death, assist or other history. Rank adjustment records are intentionally independent and are not deleted by a statistics reset.
+
+The cutoff and `statistics.reset` administrative audit entry are committed in one transaction. A later reset must advance the cutoff. Disposable-server acceptance should verify an online and offline reset, permission/immunity denial, immediate menu/command output after reset, post-reset event accumulation and restart persistence.

@@ -72,7 +72,7 @@ public sealed class MySqlGameplayStatRepository : IGameplayStatRepository
                 await using var command = connection.CreateCommand();
                 command.CommandText = """
                     SELECT stat_kind, COALESCE(SUM(amount), 0)
-                    FROM ano_gameplay_stats
+                    FROM ano_effective_gameplay_stats
                     WHERE player_steam_id = @player
                       AND (@map IS NULL OR map_name = @map)
                     GROUP BY stat_kind

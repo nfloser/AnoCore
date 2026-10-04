@@ -67,11 +67,11 @@ public sealed class MySqlCombatRepository : ICombatDetailRepository
             await using var command = connection.CreateCommand();
             command.CommandText = """
                 SELECT
-                    (SELECT COUNT(*) FROM ano_combat_deaths
-                     WHERE attacker_steam_id = @player AND is_team_kill = 0),
-                    (SELECT COUNT(*) FROM ano_combat_deaths
+                    (SELECT COUNT(*) FROM ano_effective_combat_kills
+                     WHERE attacker_steam_id = @player),
+                    (SELECT COUNT(*) FROM ano_effective_combat_deaths
                      WHERE victim_steam_id = @player),
-                    (SELECT COUNT(*) FROM ano_combat_deaths
+                    (SELECT COUNT(*) FROM ano_effective_combat_assists
                      WHERE assister_steam_id = @player)
                 """;
             Add(command, "@player", playerId.SteamId64);
@@ -199,33 +199,33 @@ public sealed class MySqlCombatRepository : ICombatDetailRepository
             command.CommandText = """
                 SELECT
                     (SELECT COUNT(*)
-                     FROM ano_combat_weapon_fire
+                     FROM ano_effective_combat_weapon_fire
                      WHERE player_steam_id = @player
                        AND (@map IS NULL OR map_name = @map)
                        AND (@weapon IS NULL OR weapon = @weapon)),
                     (SELECT COUNT(*)
-                     FROM ano_combat_damage
+                     FROM ano_effective_combat_damage
                      WHERE attacker_steam_id = @player
                        AND (@map IS NULL OR map_name = @map)
                        AND (@weapon IS NULL OR weapon = @weapon)
                        AND (@include_team = 1 OR is_team_damage = 0)
                        AND (@include_self = 1 OR victim_steam_id <> @player)),
                     (SELECT COALESCE(SUM(damage_health), 0)
-                     FROM ano_combat_damage
+                     FROM ano_effective_combat_damage
                      WHERE attacker_steam_id = @player
                        AND (@map IS NULL OR map_name = @map)
                        AND (@weapon IS NULL OR weapon = @weapon)
                        AND (@include_team = 1 OR is_team_damage = 0)
                        AND (@include_self = 1 OR victim_steam_id <> @player)),
                     (SELECT COALESCE(SUM(damage_armor), 0)
-                     FROM ano_combat_damage
+                     FROM ano_effective_combat_damage
                      WHERE attacker_steam_id = @player
                        AND (@map IS NULL OR map_name = @map)
                        AND (@weapon IS NULL OR weapon = @weapon)
                        AND (@include_team = 1 OR is_team_damage = 0)
                        AND (@include_self = 1 OR victim_steam_id <> @player)),
                     (SELECT COUNT(*)
-                     FROM ano_combat_damage
+                     FROM ano_effective_combat_damage
                      WHERE attacker_steam_id = @player
                        AND hitgroup = 1
                        AND (@map IS NULL OR map_name = @map)
@@ -258,7 +258,7 @@ public sealed class MySqlCombatRepository : ICombatDetailRepository
                 SELECT hitgroup, COUNT(*),
                     COALESCE(SUM(damage_health), 0),
                     COALESCE(SUM(damage_armor), 0)
-                FROM ano_combat_damage
+                FROM ano_effective_combat_damage
                 WHERE attacker_steam_id = @player
                   AND (@map IS NULL OR map_name = @map)
                   AND (@weapon IS NULL OR weapon = @weapon)
@@ -294,8 +294,8 @@ public sealed class MySqlCombatRepository : ICombatDetailRepository
                 SELECT ranked.attacker_steam_id, ranked.kills, profiles.last_known_name
                 FROM (
                     SELECT attacker_steam_id, COUNT(*) AS kills
-                    FROM ano_combat_deaths
-                    WHERE attacker_steam_id IS NOT NULL AND is_team_kill = 0
+                    FROM ano_effective_combat_kills
+                    WHERE attacker_steam_id IS NOT NULL
                     GROUP BY attacker_steam_id
                 ) AS ranked
                 LEFT JOIN ano_players AS profiles ON profiles.steam_id = ranked.attacker_steam_id
@@ -329,6 +329,9 @@ public sealed class MySqlCombatRepository : ICombatDetailRepository
         if (limit is < 1 or > 100) throw new ArgumentOutOfRangeException(nameof(limit));
         if (offset is < 0 or > 10000) throw new ArgumentOutOfRangeException(nameof(offset));
         // Only the two fixed, internal column names above may reach this SQL template.
+        var view = column == "victim_steam_id"
+            ? "ano_effective_combat_deaths"
+            : "ano_effective_combat_assists";
         return _database.WithConnectionAsync<IReadOnlyList<CombatCountRankEntry>>(async (connection, token) =>
         {
             await using var command = connection.CreateCommand();
@@ -336,7 +339,7 @@ public sealed class MySqlCombatRepository : ICombatDetailRepository
                 SELECT ranked.steam_id, ranked.total, profiles.last_known_name
                 FROM (
                     SELECT {column} AS steam_id, COUNT(*) AS total
-                    FROM ano_combat_deaths
+                    FROM {view}
                     WHERE {column} IS NOT NULL
                     GROUP BY {column}
                 ) AS ranked
@@ -371,24 +374,24 @@ public sealed class MySqlCombatRepository : ICombatDetailRepository
             await using var command = connection.CreateCommand();
             command.CommandText = """
                 WITH players AS (
-                    SELECT victim_steam_id AS steam_id FROM ano_combat_deaths
+                    SELECT victim_steam_id AS steam_id FROM ano_effective_combat_deaths
                     UNION
-                    SELECT attacker_steam_id FROM ano_combat_deaths
+                    SELECT attacker_steam_id FROM ano_effective_combat_kills
                         WHERE attacker_steam_id IS NOT NULL
                     UNION
-                    SELECT assister_steam_id FROM ano_combat_deaths
+                    SELECT assister_steam_id FROM ano_effective_combat_assists
                         WHERE assister_steam_id IS NOT NULL
                     UNION
                     SELECT player_steam_id FROM ano_rank_adjustments
                 ), scored AS (
                     SELECT players.steam_id,
                         GREATEST(0,
-                            CAST((SELECT COUNT(*) FROM ano_combat_deaths
-                                WHERE attacker_steam_id = players.steam_id AND is_team_kill = 0) AS SIGNED)
+                            CAST((SELECT COUNT(*) FROM ano_effective_combat_kills
+                                WHERE attacker_steam_id = players.steam_id) AS SIGNED)
                                 * @kill_points
-                            + CAST((SELECT COUNT(*) FROM ano_combat_deaths
+                            + CAST((SELECT COUNT(*) FROM ano_effective_combat_assists
                                 WHERE assister_steam_id = players.steam_id) AS SIGNED) * @assist_points
-                            - CAST((SELECT COUNT(*) FROM ano_combat_deaths
+                            - CAST((SELECT COUNT(*) FROM ano_effective_combat_deaths
                                 WHERE victim_steam_id = players.steam_id) AS SIGNED) * @death_penalty
                             + COALESCE(adjustments.points, 0)
                         ) AS points
@@ -431,24 +434,24 @@ public sealed class MySqlCombatRepository : ICombatDetailRepository
             await using var command = connection.CreateCommand();
             command.CommandText = """
                 WITH players AS (
-                    SELECT victim_steam_id AS steam_id FROM ano_combat_deaths
+                    SELECT victim_steam_id AS steam_id FROM ano_effective_combat_deaths
                     UNION
-                    SELECT attacker_steam_id FROM ano_combat_deaths
+                    SELECT attacker_steam_id FROM ano_effective_combat_kills
                         WHERE attacker_steam_id IS NOT NULL
                     UNION
-                    SELECT assister_steam_id FROM ano_combat_deaths
+                    SELECT assister_steam_id FROM ano_effective_combat_assists
                         WHERE assister_steam_id IS NOT NULL
                     UNION
                     SELECT player_steam_id FROM ano_rank_adjustments
                 ), scored AS (
                     SELECT players.steam_id,
                         GREATEST(0,
-                            CAST((SELECT COUNT(*) FROM ano_combat_deaths
-                                WHERE attacker_steam_id = players.steam_id AND is_team_kill = 0) AS SIGNED)
+                            CAST((SELECT COUNT(*) FROM ano_effective_combat_kills
+                                WHERE attacker_steam_id = players.steam_id) AS SIGNED)
                                 * @kill_points
-                            + CAST((SELECT COUNT(*) FROM ano_combat_deaths
+                            + CAST((SELECT COUNT(*) FROM ano_effective_combat_assists
                                 WHERE assister_steam_id = players.steam_id) AS SIGNED) * @assist_points
-                            - CAST((SELECT COUNT(*) FROM ano_combat_deaths
+                            - CAST((SELECT COUNT(*) FROM ano_effective_combat_deaths
                                 WHERE victim_steam_id = players.steam_id) AS SIGNED) * @death_penalty
                             + COALESCE(adjustments.points, 0)
                         ) AS points

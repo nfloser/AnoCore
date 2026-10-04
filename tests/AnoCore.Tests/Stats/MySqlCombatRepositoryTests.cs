@@ -39,8 +39,10 @@ public sealed class MySqlCombatRepositoryTests
             new CoreSchemaMigration001(), new ModerationSchemaMigration002(),
             new AdminAuditSchemaMigration003(), new WarningSchemaMigration004(),
             new PlaytimeSchemaMigration005(), new CombatSchemaMigration006(),
-            new RankAdjustmentSchemaMigration007()]);
-        Assert.AreEqual(7, await migrations.ApplyPendingAsync());
+            new RankAdjustmentSchemaMigration007(), new PlaytimeStateSchemaMigration008(),
+            new CombatDetailSchemaMigration009(), new GameplayStatSchemaMigration010(),
+            new StatisticsResetSchemaMigration011()]);
+        Assert.AreEqual(11, await migrations.ApplyPendingAsync());
         Assert.AreEqual(0, await migrations.ApplyPendingAsync());
 
         var repo = new MySqlCombatRepository(_database);
@@ -63,7 +65,9 @@ public sealed class MySqlCombatRepositoryTests
             new CoreSchemaMigration001(), new ModerationSchemaMigration002(),
             new AdminAuditSchemaMigration003(), new WarningSchemaMigration004(),
             new PlaytimeSchemaMigration005(), new CombatSchemaMigration006(),
-            new RankAdjustmentSchemaMigration007()]).ApplyPendingAsync();
+            new RankAdjustmentSchemaMigration007(), new PlaytimeStateSchemaMigration008(),
+            new CombatDetailSchemaMigration009(), new GameplayStatSchemaMigration010(),
+            new StatisticsResetSchemaMigration011()]).ApplyPendingAsync();
         var repo = new MySqlCombatRepository(_database);
         await repo.RecordAsync(new CombatDeath(Guid.NewGuid(), Victim, Victim, null, Now));
         await repo.RecordAsync(new CombatDeath(Guid.NewGuid(), Victim, null, null, Now.AddSeconds(1)));
@@ -81,7 +85,9 @@ public sealed class MySqlCombatRepositoryTests
             new CoreSchemaMigration001(), new ModerationSchemaMigration002(),
             new AdminAuditSchemaMigration003(), new WarningSchemaMigration004(),
             new PlaytimeSchemaMigration005(), new CombatSchemaMigration006(),
-            new RankAdjustmentSchemaMigration007()]).ApplyPendingAsync();
+            new RankAdjustmentSchemaMigration007(), new PlaytimeStateSchemaMigration008(),
+            new CombatDetailSchemaMigration009(), new GameplayStatSchemaMigration010(),
+            new StatisticsResetSchemaMigration011()]).ApplyPendingAsync();
         var repo = new MySqlCombatRepository(_database);
         var lower = new PlayerId(76561198000012001);
         var higher = new PlayerId(76561198000012002);
@@ -112,7 +118,9 @@ public sealed class MySqlCombatRepositoryTests
             new CoreSchemaMigration001(), new ModerationSchemaMigration002(),
             new AdminAuditSchemaMigration003(), new WarningSchemaMigration004(),
             new PlaytimeSchemaMigration005(), new CombatSchemaMigration006(),
-            new RankAdjustmentSchemaMigration007()]).ApplyPendingAsync();
+            new RankAdjustmentSchemaMigration007(), new PlaytimeStateSchemaMigration008(),
+            new CombatDetailSchemaMigration009(), new GameplayStatSchemaMigration010(),
+            new StatisticsResetSchemaMigration011()]).ApplyPendingAsync();
         var secondVictim = new PlayerId(76561198000012204);
         var secondAssister = new PlayerId(76561198000012205);
         var repo = new MySqlCombatRepository(_database);
@@ -146,7 +154,8 @@ public sealed class MySqlCombatRepositoryTests
             new AdminAuditSchemaMigration003(), new WarningSchemaMigration004(),
             new PlaytimeSchemaMigration005(), new CombatSchemaMigration006(),
             new RankAdjustmentSchemaMigration007(), new PlaytimeStateSchemaMigration008(),
-            new CombatDetailSchemaMigration009()]).ApplyPendingAsync();
+            new CombatDetailSchemaMigration009(), new GameplayStatSchemaMigration010(),
+            new StatisticsResetSchemaMigration011()]).ApplyPendingAsync();
 
         var repo = new MySqlCombatRepository(_database);
         var fire = new CombatWeaponFireEvent(Guid.NewGuid(), Attacker, Now,
@@ -184,7 +193,8 @@ public sealed class MySqlCombatRepositoryTests
             new AdminAuditSchemaMigration003(), new WarningSchemaMigration004(),
             new PlaytimeSchemaMigration005(), new CombatSchemaMigration006(),
             new RankAdjustmentSchemaMigration007(), new PlaytimeStateSchemaMigration008(),
-            new CombatDetailSchemaMigration009()]).ApplyPendingAsync();
+            new CombatDetailSchemaMigration009(), new GameplayStatSchemaMigration010(),
+            new StatisticsResetSchemaMigration011()]).ApplyPendingAsync();
 
         var repo = new MySqlCombatRepository(_database);
         await repo.RecordWeaponFireAsync(new CombatWeaponFireEvent(
@@ -238,7 +248,9 @@ public sealed class MySqlCombatRepositoryTests
             new CoreSchemaMigration001(), new ModerationSchemaMigration002(),
             new AdminAuditSchemaMigration003(), new WarningSchemaMigration004(),
             new PlaytimeSchemaMigration005(), new CombatSchemaMigration006(),
-            new RankAdjustmentSchemaMigration007()]).ApplyPendingAsync();
+            new RankAdjustmentSchemaMigration007(), new PlaytimeStateSchemaMigration008(),
+            new CombatDetailSchemaMigration009(), new GameplayStatSchemaMigration010(),
+            new StatisticsResetSchemaMigration011()]).ApplyPendingAsync();
         var lower = new PlayerId(76561198000012001);
         var higher = new PlayerId(76561198000012002);
         var repo = new MySqlCombatRepository(_database);
@@ -278,7 +290,9 @@ public sealed class MySqlCombatRepositoryTests
             new CoreSchemaMigration001(), new ModerationSchemaMigration002(),
             new AdminAuditSchemaMigration003(), new WarningSchemaMigration004(),
             new PlaytimeSchemaMigration005(), new CombatSchemaMigration006(),
-            new RankAdjustmentSchemaMigration007()]).ApplyPendingAsync();
+            new RankAdjustmentSchemaMigration007(), new PlaytimeStateSchemaMigration008(),
+            new CombatDetailSchemaMigration009(), new GameplayStatSchemaMigration010(),
+            new StatisticsResetSchemaMigration011()]).ApplyPendingAsync();
         var lower = new PlayerId(76561198000012001);
         var higher = new PlayerId(76561198000012002);
         var adjustedOnly = new PlayerId(76561198000012003);
@@ -312,8 +326,18 @@ public sealed class MySqlCombatRepositoryTests
     {
         await _database.WithConnectionAsync(async (connection, token) =>
         {
+            foreach (var view in new[] {
+                "ano_effective_gameplay_stats", "ano_effective_combat_damage",
+                "ano_effective_combat_weapon_fire", "ano_effective_combat_assists",
+                "ano_effective_combat_deaths", "ano_effective_combat_kills"
+            })
+            {
+                await using var dropView = connection.CreateCommand();
+                dropView.CommandText = $"DROP VIEW IF EXISTS {view}";
+                await dropView.ExecuteNonQueryAsync(token);
+            }
             foreach (var table in new[] {
-                "ano_gameplay_stats", "ano_combat_damage", "ano_combat_weapon_fire", "ano_rank_adjustments", "ano_playtime_segments", "ano_combat_deaths", "ano_playtime_sessions", "ano_admin_warnings",
+                "ano_statistics_resets", "ano_gameplay_stats", "ano_combat_damage", "ano_combat_weapon_fire", "ano_rank_adjustments", "ano_playtime_segments", "ano_combat_deaths", "ano_playtime_sessions", "ano_admin_warnings",
                 "ano_admin_action_audit", "ano_moderation_audit", "ano_moderation_sanctions",
                 "ano_module_data", "ano_players", "ano_schema_migrations" })
             {
