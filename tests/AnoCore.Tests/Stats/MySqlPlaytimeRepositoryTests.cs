@@ -1,5 +1,6 @@
 using AnoCore.Abstractions.Persistence;
 using AnoCore.Abstractions.Players;
+using AnoCore.Abstractions.Stats;
 using AnoCore.Runtime.Persistence;
 using AnoCore.Runtime.Persistence.Migrations;
 using AnoCore.Runtime.Stats;
