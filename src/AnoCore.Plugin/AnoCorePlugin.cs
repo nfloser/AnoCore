@@ -59,6 +59,7 @@ public sealed class AnoCorePlugin : BasePlugin
     private ModerationCommandController? _adminCommands;
     private RankAdjustmentCommandController? _rankAdminCommands;
     private RankAdjustmentNotificationService? _rankAdminNotifications;
+    private StatisticsResetCommandController? _statisticsResetCommands;
     private KickCommandController? _kickCommands;
     private ConnectBanEnforcement? _connectBan;
     private WarningCommandController? _warningCommands;
@@ -171,6 +172,8 @@ public sealed class AnoCorePlugin : BasePlugin
             _rankAdminCommands = null;
             _rankAdminNotifications?.Dispose();
             _rankAdminNotifications = null;
+            _statisticsResetCommands?.Dispose();
+            _statisticsResetCommands = null;
             _warningCommands?.Dispose();
             _warningCommands = null;
             _protectedServerControlCommands?.Dispose();
@@ -511,6 +514,7 @@ public sealed class AnoCorePlugin : BasePlugin
             ModerationCommandController? adminCommands = null;
             RankAdjustmentCommandController? rankAdminCommands = null;
             RankAdjustmentNotificationService? rankAdminNotifications = null;
+            StatisticsResetCommandController? statisticsResetCommands = null;
             RankTransitionMonitor? transitionMonitor = null;
             CombatModule? combat = null;
             KickCommandController? kickCommands = null;
@@ -585,6 +589,10 @@ public sealed class AnoCorePlugin : BasePlugin
                     runtime.Commands,
                     new RankAdjustmentCommandExecutor(
                         targetGateway, rankAdministration));
+                statisticsResetCommands = new StatisticsResetCommandController(
+                    runtime.Commands,
+                    new StatisticsResetCommandExecutor(
+                        targetGateway, runtime.StatisticsResetAdministration));
                 var disconnect = new CounterStrikePlayerDisconnectAction(runtime.Players, cancellationToken);
                 kickCommands = new KickCommandController(
                     runtime.Commands,
@@ -712,6 +720,8 @@ public sealed class AnoCorePlugin : BasePlugin
                 _rankAdminCommands = rankAdminCommands;
                 _rankAdminNotifications = rankAdminNotifications;
                 rankAdminNotifications = null;
+                _statisticsResetCommands = statisticsResetCommands;
+                statisticsResetCommands = null;
                 _kickCommands = kickCommands;
                 _connectBan = connectBan;
                 _warningCommands = warningCommands;
@@ -766,6 +776,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 bridge.Dispose();
                 rankAdminCommands?.Dispose();
                 rankAdminNotifications?.Dispose();
+                statisticsResetCommands?.Dispose();
                 warningCommands?.Dispose();
                 protectedServerControlCommands?.Dispose();
                 extendedInventoryTeamCommands?.Dispose();
