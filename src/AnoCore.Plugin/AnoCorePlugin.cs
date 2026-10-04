@@ -942,8 +942,8 @@ public sealed class AnoCorePlugin : BasePlugin
             var player = CombatPlayer(@event.Userid);
             if (player is null) return HookResult.Continue;
 
-            var map = CombatDetailKey(Server.MapName, "unknown_map");
-            var weapon = CombatDetailKey(@event.Weapon, "unknown");
+            var map = CombatDetailKey(Server.MapName, "unknown_map", 128);
+            var weapon = CombatDetailKey(@event.Weapon, "unknown", 64);
             var eventId = CombatEventIdentity.CreateDetail(
                 _combatServerInstance, map, CombatMapEpoch(), Server.TickCount,
                 "weapon_fire", player.Id, null, weapon);
@@ -973,9 +973,9 @@ public sealed class AnoCorePlugin : BasePlugin
             var teamDamage = attacker is not null && attacker.Id != victim.Id
                 && victim.Team is PlayerTeam.Terrorist or PlayerTeam.CounterTerrorist
                 && attacker.Team == victim.Team;
-            var map = CombatDetailKey(Server.MapName, "unknown_map");
+            var map = CombatDetailKey(Server.MapName, "unknown_map", 128);
             var weapon = CombatDetailKey(
-                @event.Weapon, attacker is null ? "world" : "unknown");
+                @event.Weapon, attacker is null ? "world" : "unknown", 64);
             var signature = FormattableString.Invariant(
                 $"{weapon}|{@event.Hitgroup}|{@event.DmgHealth}|{@event.DmgArmor}|"
                 + $"{@event.Health}|{@event.Armor}");
@@ -1031,13 +1031,14 @@ public sealed class AnoCorePlugin : BasePlugin
     private static long CombatMapEpoch()
         => checked((long)Math.Round(Server.EngineTime - Server.CurrentTime));
 
-    private static string CombatDetailKey(string? value, string fallback)
+    private static string CombatDetailKey(string? value, string fallback, int maxLength)
     {
         var normalized = string.IsNullOrWhiteSpace(value) ? fallback : value.Trim();
-        return new string(normalized
+        var safe = new string(normalized
             .Where(character => !char.IsControl(character))
-            .Take(128)
+            .Take(maxLength)
             .ToArray());
+        return string.IsNullOrWhiteSpace(safe) ? fallback : safe;
     }
 
     private PlayerSnapshot? CombatPlayer(CCSPlayerController? controller)
