@@ -9,13 +9,17 @@ public sealed class MessageService : IMessageService, IDisposable
     private readonly CancellationTokenSource _lifetime = new();
     private readonly Dictionary<MessageSlot, ActiveMessage> _active = [];
     private readonly Func<TimeSpan, CancellationToken, Task> _delay;
+    private readonly Action<Exception>? _onBackgroundError;
     private IMessageTransport? _transport;
     private long _version;
     private bool _disposed;
 
-    public MessageService(Func<TimeSpan, CancellationToken, Task>? delay = null)
+    public MessageService(
+        Func<TimeSpan, CancellationToken, Task>? delay = null,
+        Action<Exception>? onBackgroundError = null)
     {
         _delay = delay ?? static (duration, token) => Task.Delay(duration, token);
+        _onBackgroundError = onBackgroundError;
     }
 
     public IDisposable AttachTransport(IMessageTransport transport)
@@ -42,7 +46,16 @@ public sealed class MessageService : IMessageService, IDisposable
         ArgumentNullException.ThrowIfNull(request);
         cancellationToken.ThrowIfCancellationRequested();
 
-        await _sendGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        CancellationToken lifetimeToken;
+        lock (_gate)
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            lifetimeToken = _lifetime.Token;
+        }
+
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(
+            cancellationToken, lifetimeToken);
+        await _sendGate.WaitAsync(linked.Token).ConfigureAwait(false);
         try
         {
             IMessageTransport? transport;
@@ -72,7 +85,7 @@ public sealed class MessageService : IMessageService, IDisposable
                 }
             }
 
-            var delivered = await transport.TrySendAsync(request, cancellationToken)
+            var delivered = await transport.TrySendAsync(request, linked.Token)
                 .ConfigureAwait(false);
             if (!delivered)
             {
@@ -113,7 +126,6 @@ public sealed class MessageService : IMessageService, IDisposable
         }
 
         _lifetime.Dispose();
-        _sendGate.Dispose();
     }
 
     private async Task ExpireAsync(
@@ -158,6 +170,10 @@ public sealed class MessageService : IMessageService, IDisposable
         }
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
         {
+        }
+        catch (Exception exception)
+        {
+            _onBackgroundError?.Invoke(exception);
         }
     }
 
