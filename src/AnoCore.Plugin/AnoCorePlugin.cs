@@ -144,7 +144,6 @@ public sealed class AnoCorePlugin : BasePlugin
             _pendingPlaytime = null;
             _pendingRank?.Dispose();
             _pendingRank = null;
-            _pendingGameplayStats = null;
             _pendingGameplayStats?.Dispose();
             _pendingGameplayStats = null;
             _pendingChatFormatter = null;
@@ -328,9 +327,7 @@ public sealed class AnoCorePlugin : BasePlugin
             catch (Exception exception)
             {
                 createdRank?.Dispose();
-            createdGameplayStats?.Dispose();
                 createdRank = null;
-                createdGameplayStats = null;
                 Logger.LogError(exception,
                     "Rank composition failed; AnoCore will continue without ranks.");
             }
@@ -427,6 +424,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 createdAnoVeto = null;
                 createdPlaytime = null;
                 createdRank = null;
+                createdGameplayStats = null;
                 createdChatFormatter = null;
                 createdChatTags = null;
                 Server.NextWorldUpdate(() => ActivateRuntime(cancellationToken));
@@ -494,6 +492,7 @@ public sealed class AnoCorePlugin : BasePlugin
             _pendingAnoVeto = null;
             _pendingPlaytime = null;
             _pendingRank = null;
+            _pendingGameplayStats = null;
             _pendingChatFormatter = null;
             _pendingChatTags = null;
             var protectedServerControlPolicy = _pendingProtectedServerControlPolicy
