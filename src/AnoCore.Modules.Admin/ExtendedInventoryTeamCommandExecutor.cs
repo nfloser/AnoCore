@@ -59,8 +59,8 @@ public sealed class ExtendedInventoryTeamCommandExecutor
                 : MapTargetFailure(resolved.Failure);
         }
 
-        if (operation is ExtendedInventoryTeamOperation.Strip
-            or ExtendedInventoryTeamOperation.Give
+        if ((operation is ExtendedInventoryTeamOperation.Strip
+                or ExtendedInventoryTeamOperation.Give)
             && !player.IsAlive)
         {
             return CommandResult.Fail(
