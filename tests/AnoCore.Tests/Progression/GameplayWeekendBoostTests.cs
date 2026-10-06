@@ -28,11 +28,11 @@ public sealed class GameplayWeekendBoostTests
     public void Overlap_UsesStrongestBoostAndOrdinalTieWithoutMultiplying()
     {
         var policy = new GameplayXpConfiguration { WeekendMultiplier = 2 }.Snapshot();
-        var stronger = Definitions(new("event", Saturday, Saturday.AddDays(2), 3));
+        var stronger = Definitions(new XpBoostDefinition("event", Saturday, Saturday.AddDays(2), 3));
         Assert.AreEqual(new XpBoostResolution("event", 3), policy.ResolveGameplayBoost(stronger, Saturday));
-        var tie = Definitions(new("aaa", Saturday, Saturday.AddDays(2), 2));
+        var tie = Definitions(new XpBoostDefinition("aaa", Saturday, Saturday.AddDays(2), 2));
         Assert.AreEqual(new XpBoostResolution("aaa", 2), policy.ResolveGameplayBoost(tie, Saturday));
-        var rewardOnly = Definitions(new("rewards", Saturday, Saturday.AddDays(2), 5, ProgressionXpSourceMask.ChallengeReward));
+        var rewardOnly = Definitions(new XpBoostDefinition("rewards", Saturday, Saturday.AddDays(2), 5, ProgressionXpSourceMask.ChallengeReward));
         Assert.AreEqual(2m, policy.ResolveGameplayBoost(rewardOnly, Saturday).Multiplier);
         Assert.AreEqual(1m, Definitions().ResolveBoost(Saturday, ProgressionXpSource.AchievementReward).Multiplier);
     }
