@@ -536,3 +536,32 @@ Acceptance: finish a challenge, verify one own notice with the granted XP, run t
 checkpoint/reconnect again, disable the toggle, verify no extra notices, and test
 unload/reconnect during delivery on a disposable CS2 server. Automated tests cover
 commit/replay, settings, transport failures, stale sessions and module ownership.
+
+## Routing earned rewards into season XP
+
+Issue #268 adds `ISeasonRewardRepository` and a MariaDB reconciler over the existing
+committed lifetime grant ledger. Gameplay, challenge and achievement rewards in an
+accepted season's half-open UTC window are copied into that season's independent
+ledger. Administrative lifetime adjustments are excluded. Offline players are
+included; event time, source, base/awarded XP and boost metadata are preserved.
+Boosts are not recalculated and lifetime totals are not changed by reconciliation.
+
+Each call reads at most 100 pending grants, ordered by original timestamp, SteamID
+and grant ID. Each season grant is independently transactional. A failure can leave
+a committed prefix; retry/restart discovers remaining grants without paying again.
+There is no moving time cursor, so late commits with older event timestamps remain
+discoverable. Queries scan the eligible season window; bound write batches do not
+guarantee constant query cost as a ledger grows.
+
+An ended but unclosed season can still drain delayed rewards. Explicit durable
+closure freezes it and rejects further grants, including late arrivals. A closure
+racing routing can stop the batch through the existing season transaction guard.
+Operators must allow reward checkpoints/backlogs to drain before freezing winners.
+
+Season rankings read only independent season accounts, ordered by XP descending and
+SteamID ascending for ties. Pagination is bounded and placement remains global.
+Closed seasons remain queryable. This backend does not yet compose a live timer or
+commands; those require the season configuration/presentation integration.
+
+Seven MariaDB tests cover eligibility/metadata, late offline rewards, bounded retry,
+concurrency, closure, partial failure recovery, rankings and cancellation/bounds.

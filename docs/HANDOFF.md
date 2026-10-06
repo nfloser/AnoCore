@@ -1,3 +1,11 @@
+# Season reward routing backend — 2026-10-06
+
+- #268 copies committed earned lifetime grants to accepted independent season accounts.
+- Original event/amount/boost metadata is preserved; administration is excluded.
+- Global bounded reconciliation includes offline players and late grants until closure.
+- Seven MariaDB tests cover routing/retry/concurrency/closure/failure/rankings/bounds.
+- Live season configuration, timer, own/history commands and leaderboards remain next.
+
 # Challenge completion notices — 2026-10-06
 
 - #266 composes committed-only session-pinned notices into the live challenge module.
