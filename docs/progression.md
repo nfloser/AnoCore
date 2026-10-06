@@ -185,11 +185,38 @@ Prerequisites, combat totals such as kills/assists, daily/weekly challenge windo
 menus and plugin composition remain separate #229 packages. This package creates
 no duplicate statistic counter and does not access competitive rank points.
 
+
+## Durable season XP
+
+Issue #243 adds isolated per-player season XP on top of the accepted season
+catalog. Season state is keyed by SteamID64 plus stable season ID and records the
+accepted definition version used for grants. Season XP never reads or writes
+lifetime XP or competitive rank points.
+
+Migration 015 adds season accounts and an idempotent grant ledger. Grants are
+accepted only for the effective accepted season whose half-open UTC window contains
+the event timestamp. New grants are rejected after explicit season closure, while
+retries of an already committed grant remain idempotent. Gameplay/reward grants use
+the shared scheduled boost resolver; administrative adjustments are never boosted
+and may reduce season XP, but never below zero.
+
+Season definition rows are held with a shared lock during a commit. That keeps
+ordinary grants concurrent while ensuring explicit season closure cannot overtake a
+grant that is being committed. Per-player account rows still serialize competing
+writes for one player's season total.
+
+Season levels are derived from the existing immutable XP threshold definition rather
+than persisted as mutable state. Historical season state remains addressable by
+season ID/version, while current-season reads resolve against the accepted effective
+catalog. Challenge evaluation, durable achievement unlock/reward persistence,
+season leaderboards/result snapshots and CounterStrikeSharp presentation remain
+separate follow-up packages under #229.
+
 ## Atomic permanent achievement rewards
 
 Issue #248 adds `IAchievementRepository` and `MySqlAchievementRepository`.
-Migration 016 creates `ano_progression_achievements`; version 015 is reserved
-for the separate season-XP package. Unlock identity is case-sensitive and uses
+Migration 016 creates `ano_progression_achievements` after the integrated
+season-XP migration 015. Unlock identity is case-sensitive and uses
 `(SteamID64, achievement ID, tier)`. Each row retains its definition version and
 references the matching XP ledger grant. The shared progression bootstrap applies
 the achievement migration idempotently.

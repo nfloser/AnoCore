@@ -2,12 +2,29 @@
 
 - #248 commits permanent unlocks and XP ledger rewards in the same transaction,
   reusing `IDatabase` and the common progression account lock/grant implementation.
-- Migration 016 leaves version 015 reserved for the ongoing season-XP package.
+- Migration 016 follows the now integrated season-XP migration 015.
 - Eight MariaDB tests cover replay/restart, concurrent evaluators, stats reset,
   complete-batch rollback, overflow, boost opt-in, orphan grant collisions and
   independent player identities. Local SDK remains unavailable; CI is required.
 - No separate DB connection or production credential is added. Catalog loading,
   native event wiring and player UI remain the next integration boundary.
+
+# Season XP persistence checkpoint — 2026-10-06
+
+- #243 / branch `feature/243-season-xp-persistence-v2` adds isolated durable
+  season accounts and an idempotent season grant ledger in migration 015.
+- Grants resolve against the accepted effective season catalog, enforce half-open UTC
+  windows, reject new writes after closure and keep committed retries idempotent.
+- Gameplay/reward XP reuses scheduled boost definitions; administrative season
+  adjustments are unboosted and cannot reduce season XP below zero.
+- Season levels are derived from the shared XP curve. Lifetime XP and competitive
+  rank points remain untouched.
+- Shared definition locks allow concurrent grants while preventing closure races.
+- MariaDB coverage includes retry/restart, boundaries, closure, negative admin
+  adjustment floor, duplicate concurrency, conflicting retry, rollback, historical
+  reads, derived levels and lifetime isolation.
+- Challenges, durable achievement unlocks, leaderboard/result snapshots and native
+  presentation remain follow-ups under #229.
 
 # Permanent achievement evaluation — 2026-10-06
 

@@ -153,6 +153,8 @@ public sealed class MySqlAchievementRepositoryTests
             {
                 "DROP TRIGGER IF EXISTS fail_achievement_unlock",
                 "DROP TABLE IF EXISTS ano_progression_achievements",
+                "DROP TABLE IF EXISTS ano_progression_season_grants",
+                "DROP TABLE IF EXISTS ano_progression_season_accounts",
                 "DROP TABLE IF EXISTS ano_progression_season_runtime",
                 "DROP TABLE IF EXISTS ano_progression_seasons",
                 "DROP TABLE IF EXISTS ano_progression_grants",
