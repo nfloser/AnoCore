@@ -7,7 +7,7 @@ using AnoCore.Runtime.Persistence.Migrations;
 
 namespace AnoCore.Runtime.Stats;
 
-public sealed class MySqlCombatRepository : ICombatDetailRepository, IGameplayRankScoreRepository
+public sealed class MySqlCombatRepository : ICombatDetailRepository, IRankEventScoreRepository
 {
     private readonly IDatabase _database;
 
@@ -442,20 +442,32 @@ public sealed class MySqlCombatRepository : ICombatDetailRepository, IGameplayRa
             await using var command = connection.CreateCommand();
             Add(command, "@player", playerId.SteamId64);
             Add(command, "@starting_points", weights.StartingPoints);
-            Add(command, "@kill_points", weights.KillPoints);
-            Add(command, "@assist_points", weights.AssistPoints);
-            Add(command, "@death_penalty", weights.DeathPenalty);
-            var gameplay = GameplayScore(command, weights, "@player");
-            command.CommandText = $"""
-                SELECT @starting_points
-                + CAST((SELECT COUNT(*) FROM ano_effective_combat_kills
-                    WHERE attacker_steam_id = @player) AS SIGNED) * @kill_points
-                + CAST((SELECT COUNT(*) FROM ano_effective_combat_assists
-                    WHERE assister_steam_id = @player) AS SIGNED) * @assist_points
-                - CAST((SELECT COUNT(*) FROM ano_effective_combat_deaths
-                    WHERE victim_steam_id = @player) AS SIGNED) * @death_penalty
-                + {gameplay}
-                """;
+            if (weights.ScoringMode == RankScoringMode.EventLedger)
+            {
+                command.CommandText = """
+                    SELECT @starting_points
+                        + COALESCE((SELECT SUM(points)
+                            FROM ano_rank_point_events
+                            WHERE player_steam_id = @player), 0)
+                    """;
+            }
+            else
+            {
+                Add(command, "@kill_points", weights.KillPoints);
+                Add(command, "@assist_points", weights.AssistPoints);
+                Add(command, "@death_penalty", weights.DeathPenalty);
+                var gameplay = GameplayScore(command, weights, "@player");
+                command.CommandText = $"""
+                    SELECT @starting_points
+                    + CAST((SELECT COUNT(*) FROM ano_effective_combat_kills
+                        WHERE attacker_steam_id = @player) AS SIGNED) * @kill_points
+                    + CAST((SELECT COUNT(*) FROM ano_effective_combat_assists
+                        WHERE assister_steam_id = @player) AS SIGNED) * @assist_points
+                    - CAST((SELECT COUNT(*) FROM ano_effective_combat_deaths
+                        WHERE victim_steam_id = @player) AS SIGNED) * @death_penalty
+                    + {gameplay}
+                    """;
+            }
             return Convert.ToInt64(await command.ExecuteScalarAsync(token).ConfigureAwait(false),
                 CultureInfo.InvariantCulture);
         }, cancellationToken);
@@ -480,6 +492,31 @@ public sealed class MySqlCombatRepository : ICombatDetailRepository, IGameplayRa
     private static string ScoreCte(DbCommand command, RankScoreWeights weights)
     {
         Add(command, "@starting_points", weights.StartingPoints);
+        if (weights.ScoringMode == RankScoringMode.EventLedger)
+        {
+            var profilePlayers = weights.StartingPoints == 0 ? ""
+                : "UNION SELECT steam_id FROM ano_players";
+            return $"""
+                    WITH players AS (
+                        SELECT player_steam_id AS steam_id FROM ano_rank_point_events
+                        UNION
+                        SELECT player_steam_id FROM ano_rank_adjustments
+                        {profilePlayers}
+                    ), scored AS (
+                        SELECT players.steam_id,
+                            GREATEST(0,
+                                @starting_points
+                                + COALESCE((SELECT SUM(points)
+                                    FROM ano_rank_point_events
+                                    WHERE player_steam_id = players.steam_id), 0)
+                                + COALESCE(adjustments.points, 0)
+                            ) AS points
+                        FROM players
+                        LEFT JOIN ano_rank_adjustments AS adjustments
+                            ON adjustments.player_steam_id = players.steam_id
+                    )
+                    """ + "\n";
+        }
         Add(command, "@kill_points", weights.KillPoints);
         Add(command, "@assist_points", weights.AssistPoints);
         Add(command, "@death_penalty", weights.DeathPenalty);
