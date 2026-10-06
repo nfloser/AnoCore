@@ -18,6 +18,7 @@ On startup `config/ranks.json` is created with the defaults below if missing:
   "KillPoints": 2,
   "AssistPoints": 1,
   "DeathPenalty": 1,
+  "GameplayPoints": {},
   "NotifyRankChanges": true,
   "NotifyAdministrativeRankChanges": true,
   "Thresholds": [
@@ -28,7 +29,7 @@ On startup `config/ranks.json` is created with the defaults below if missing:
 }
 ```
 
-Points = max(0, kills × KillPoints + assists × AssistPoints − deaths × DeathPenalty). The highest threshold at or below the point total determines the rank. Kills award 1–1000 points; assists and death penalty allow 0–1000. There must be 1–100 strictly increasing thresholds starting at zero with printable names up to 48 characters. Each threshold can expose a printable tag up to 24 characters; an empty tag intentionally suppresses it. Invalid configuration disables the rank module and logs a composition error while shared services continue.
+Points = max(0, kills × KillPoints + assists × AssistPoints − deaths × DeathPenalty + weighted gameplay events + administrative adjustment). The highest threshold at or below the point total determines the rank. Kills award 1–1000 points; assists and death penalty allow 0–1000. There must be 1–100 strictly increasing thresholds starting at zero with printable names up to 48 characters. Each threshold can expose a printable tag up to 24 characters; an empty tag intentionally suppresses it. Invalid configuration disables the rank module and logs a composition error while shared services continue.
 
 Changing the configuration takes effect after a plugin restart or reload; ranks are derived again from persisted combat totals. This means historical events are rescored under the new weights. A reusable transition policy detects promotions, demotions and unchanged ranks across exact or multi-rank threshold changes. A durable adjustment store records bounded per-player manual point adjustments with actor/time metadata and reset semantics. Rank view, progress, placement and top list add that adjustment to the combat-derived score in one database snapshot; the result is floored at zero. Adjustment-only offline SteamIDs participate in the top list. An atomic administration service performs concurrency-safe give/take/set/reset mutations and writes the matching administrative audit entry in the same transaction. The commands above expose this service through centralized permissions and target authorization. Durable combat writes now compare each affected player's adjusted score before and after the idempotent event. When `NotifyRankChanges` is enabled, connected players crossing a threshold receive one promotion or demotion chat message; replays and within-rank changes produce none. Local combat callbacks are serialized so overlapping events cannot skip an intermediate transition. When `NotifyAdministrativeRankChanges` is enabled, successful give/take/set/reset operations use their returned durable adjustments and one combat-total snapshot to notify an online target about a resulting threshold change. Notification preparation/delivery is best-effort after the atomic mutation and audit; failure is logged without reporting the committed command as failed. The module registers shared asynchronous placeholders `{rank.tag}`, `{rank.name}` and `{rank.points}`; consumers pass the player as a `PlayerId` under the case-insensitive `player` context key. Missing player context resolves to an empty value. This is the common tag data source, not a claim that native chat or clan tags are already rewritten; that adapter and native menu rendering still require live acceptance. The rank top list uses current weights and adjustments; it does not store a second derived score. Rank score arithmetic rejects overflow rather than silently wrapping.
 
@@ -40,3 +41,22 @@ When the rank module is composed with the shared player-toggle catalog it regist
 Players can inspect the option with `anosettings`, change it with `anotoggle rank.notifications on|off|default`, or use `anosettingsmenu`. `default` removes the stored override and therefore returns to the enabled default. The toggle registration is owned by the rank module and disappears again if rank composition rolls back or the module unloads.
 
 Disposable-server acceptance: verify a consuming chat/tag adapter renders configured tags without leaking them across reconnects, then verify first startup creates `ranks.json`, combat and administrative promotion/demotion chat delivery, server-level notification switches, per-player `rank.notifications` opt-out/default behavior, reconnect suppression for stale sessions, `!anorank` for two human accounts, `!anotopranks 1` ordering and pagination, exact threshold transitions through kills and assists, suicide/world death penalties, reconnect, reload with changed weights, and invalid configuration isolation. Record installed SHA and observations under #23. Native combat ingestion in #79 must pass its own acceptance gate before this rank can be released.
+
+## Gameplay event weights
+
+`GameplayPoints` maps existing `GameplayStatKind` names to integer weights from -1000 to 1000. Omitted and zero weights contribute nothing; the default empty object preserves existing scores. For example:
+
+```json
+"GameplayPoints": {
+  "HeadshotKill": 1,
+  "Mvp": 3,
+  "RoundWon": 2,
+  "BombPlanted": 3,
+  "BombDefused": 5,
+  "HostageKilled": -5
+}
+```
+
+Each weight multiplies the persisted event amount. Bonuses stack with normal kill points. Changing weights recalculates effective historical events; statistics reset cutoffs exclude earlier events, and replayed event IDs do not award points twice. Players with weighted gameplay events can enter the leaderboard without a combat event. Own rank, menu, leaderboard, chat placeholders and administrative transition notifications use the same combined score. Gameplay ingestion refreshes chat rank snapshots and sends configured promotion/demotion notices after persistence; delivery failures cannot invalidate the committed event. Competitive rank weights have no effect on the planned progression or AnoRating modules.
+
+Server acceptance for this addition: enable an MVP/objective bonus, verify a threshold promotion and refreshed chat placeholder, replay/reload without duplicate points, apply an administrative adjustment, then reset statistics and confirm leaderboard/own-rank agreement. Native Steam group clan tags remain controlled by CS2.

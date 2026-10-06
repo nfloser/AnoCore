@@ -27,6 +27,7 @@ public sealed class GameplayStatsModule : IDisposable
     private readonly IDisposable _command;
     private readonly IDisposable? _menuCommand;
     private readonly AnoRatingModule? _rating;
+    private GameplayRankTransitionMonitor? _rankTracking;
     private int _generation;
     private int _disposed;
 
@@ -163,7 +164,20 @@ public sealed class GameplayStatsModule : IDisposable
     {
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, this);
         ArgumentNullException.ThrowIfNull(statistic);
-        return _repository.RecordAsync(statistic, cancellationToken);
+        return _rankTracking is null
+            ? _repository.RecordAsync(statistic, cancellationToken)
+            : _rankTracking.RecordAsync(statistic, cancellationToken);
+    }
+
+    public void EnableRankTracking(RankConfiguration configuration, ICombatRepository combat,
+        IRankTransitionNotificationSink notifications, IRankScoreChangeSink? scoreChanges = null,
+        Action<Exception>? reportError = null)
+    {
+        ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, this);
+        if (_rankTracking is not null)
+            throw new InvalidOperationException("Gameplay rank tracking is already configured.");
+        _rankTracking = new GameplayRankTransitionMonitor(configuration, combat, _repository,
+            notifications, scoreChanges, reportError);
     }
 
     private async ValueTask<CommandResult> OwnStatsAsync(CommandContext context)
@@ -428,6 +442,7 @@ public sealed class GameplayStatsModule : IDisposable
         }
 
         _rating?.Dispose();
+        _rankTracking?.Dispose();
         _menuCommand?.Dispose();
         _command.Dispose();
     }

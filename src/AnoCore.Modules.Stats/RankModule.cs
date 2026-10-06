@@ -37,6 +37,7 @@ public sealed class RankModule : IDisposable
         _players = players;
         _combat = combat;
         _menus = menus;
+        RankScoreQueries.ValidateRepository(combat, configuration);
         _command = commands.Register(Owner,
             new CommandDescriptor("anorank", "Show your combat rank and points."),
             context => ShowRankAsync(context.Caller, context.CancellationToken));
@@ -232,9 +233,8 @@ public sealed class RankModule : IDisposable
             string.Equals(pair.Key, "player", StringComparison.OrdinalIgnoreCase)).Value;
         if (player is not PlayerId playerId)
             return null;
-        var placement = await _combat.GetScorePlacementAsync(playerId,
-            _configuration.KillPoints, _configuration.AssistPoints,
-            _configuration.DeathPenalty, cancellationToken).ConfigureAwait(false);
+        var placement = await RankScoreQueries.PlacementAsync(_combat, _configuration, playerId,
+            cancellationToken).ConfigureAwait(false);
         return placement?.Points ?? 0;
     }
 
@@ -244,9 +244,8 @@ public sealed class RankModule : IDisposable
         if (!TryGetConnected(caller, out _))
             return CommandResult.Fail(CommandFailureReason.InvalidInput,
                 "A connected player is required.");
-        var placement = await _combat.GetScorePlacementAsync(caller!,
-            _configuration.KillPoints, _configuration.AssistPoints,
-            _configuration.DeathPenalty, cancellationToken).ConfigureAwait(false);
+        var placement = await RankScoreQueries.PlacementAsync(_combat, _configuration, caller!,
+            cancellationToken).ConfigureAwait(false);
         var points = placement?.Points ?? 0;
         var rank = _configuration.ForScore(points);
         var position = placement is null ? " Unranked." : $" Placement: #{placement.Position}.";
@@ -263,9 +262,7 @@ public sealed class RankModule : IDisposable
         var page = Page(context);
         if (page is < 1 or > 1000)
             return InvalidPage();
-        var entries = await _combat.GetTopScoresAsync(
-            _configuration.KillPoints, _configuration.AssistPoints,
-            _configuration.DeathPenalty, PageSize, (page - 1) * PageSize,
+        var entries = await RankScoreQueries.TopAsync(_combat, _configuration, PageSize, (page - 1) * PageSize,
             context.CancellationToken).ConfigureAwait(false);
         if (entries.Count == 0)
             return CommandResult.Ok("No rank entries on this page.");
@@ -298,12 +295,9 @@ public sealed class RankModule : IDisposable
         if (page is < 1 or > 1000 || !TryGetConnected(playerId, out _))
             return;
 
-        var placement = await _combat.GetScorePlacementAsync(playerId,
-            _configuration.KillPoints, _configuration.AssistPoints,
-            _configuration.DeathPenalty, cancellationToken).ConfigureAwait(false);
-        var entries = await _combat.GetTopScoresAsync(
-            _configuration.KillPoints, _configuration.AssistPoints,
-            _configuration.DeathPenalty, PageSize + 1, (page - 1) * PageSize,
+        var placement = await RankScoreQueries.PlacementAsync(_combat, _configuration, playerId,
+            cancellationToken).ConfigureAwait(false);
+        var entries = await RankScoreQueries.TopAsync(_combat, _configuration, PageSize + 1, (page - 1) * PageSize,
             cancellationToken).ConfigureAwait(false);
 
         if (Volatile.Read(ref _disposed) != 0

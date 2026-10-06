@@ -35,6 +35,7 @@ public sealed class RankTransitionMonitor : IDisposable
         var errors = RankConfiguration.Validate(configuration);
         if (errors.Count > 0)
             throw new ArgumentException(string.Join(" ", errors), nameof(configuration));
+        RankScoreQueries.ValidateRepository(_repository, _configuration);
     }
 
     public async ValueTask RecordAsync(CombatDeath death,
@@ -116,9 +117,8 @@ public sealed class RankTransitionMonitor : IDisposable
     private async ValueTask<long> ReadPointsAsync(PlayerId playerId,
         CancellationToken cancellationToken)
     {
-        var score = await _repository.GetScorePlacementAsync(playerId,
-            _configuration.KillPoints, _configuration.AssistPoints,
-            _configuration.DeathPenalty, cancellationToken).ConfigureAwait(false);
+        var score = await RankScoreQueries.PlacementAsync(_repository, _configuration, playerId,
+            cancellationToken).ConfigureAwait(false);
         return score?.Points ?? 0;
     }
 

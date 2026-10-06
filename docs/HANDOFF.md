@@ -5,9 +5,10 @@
   predefined season catalogs and scheduled XP modifiers such as double-XP weekends.
 - Progression must never read or write the competitive rank-point score and must
   reuse existing gameplay/stat signals rather than duplicate event counting.
-- #230 adds confidence-aware `AnoRating` for manual team composition through
-  player-facing rating views. Automatic team balancing and FACEIT are explicitly
-  out of scope.
+- #234 / PR #235 implements the internal versioned `!anorating` list/detail views,
+  multidimensional estimates, provisional/unscored state and observed-sample confidence.
+  #230 remains open for optional Leetify context. Automatic balancing and FACEIT
+  remain outside scope.
 - Leetify is the only accepted optional external player-context provider. Its data
   stays separate from AnoRating, is not persisted in AnoCore, is displayed without
   renaming/rescaling/recalculation, and requires current attribution/compliance
@@ -24,11 +25,12 @@
 - #226 / PR #227 adds periodic playtime notices, validated server configuration and
   the persisted `playtime.notifications` toggle through existing settings UI.
   Notices read totals after checkpointing and use session-pinned shared messaging.
-  Check the exact PR head's full CI before merging.
-- #228 records actual missing rank functionality found in the reference source.
-  The current rank formula only weights K/D/A. Objective/special-kill statistics
-  do not yet imply rank rewards, dynamic multipliers, streak bonuses or native
-  scoreboard rank presentation. Do not classify these as native-test-only gaps.
+  PR #227 merged after complete CI #613 passed.
+- #232 / PR #233 merged after complete CI #618 passed. Ranks now support bounded
+  optional event bonuses/penalties across all existing score views and notifications,
+  reusing effective gameplay events without duplicate counters. Empty defaults preserve scores.
+- #228 retains dynamic multipliers, VIP, streak/distance/time policy, summaries and
+  native scoreboard rank presentation. These are implementation gaps, not only native tests.
 - #225 was withdrawn at the user's direction. CS2 native Steam group clan-tag
   selection/display is retained; no new clan-tag override implementation was
   published. CounterStrikeSharp latest release is 1.0.376 and already pinned.
