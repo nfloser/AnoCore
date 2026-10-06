@@ -1,3 +1,14 @@
+# Recurring weekend gameplay boosts — 2026-10-06
+
+- #264 adds optional WeekendMultiplier (default 1/off; 2 enables double gameplay XP).
+- Windows are Saturday 00:00 through Monday 00:00 UTC; original event time governs
+  delayed processing. Stable occurrence IDs are stored in the common grant ledger.
+- The strongest eligible scheduled/recurring boost wins; ordinal ID breaks ties.
+- Four tests cover boundaries/offsets, overlaps/ties, bounds/snapshots and delayed
+  idempotent MariaDB payout. Rank points and challenge/achievement rewards stay separate.
+- Gameplay XP #262 is merged with green CI #669 (785 tests and full package checks).
+- Season routing/history/leaderboards, progression notices and rank policies remain open.
+
 # Live gameplay XP — 2026-10-06
 
 - #262 adds configurable kill/assist/objective XP from existing accepted raw ledgers.

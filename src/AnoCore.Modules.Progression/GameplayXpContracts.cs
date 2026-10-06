@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Globalization;
 using AnoCore.Abstractions.Players;
 using AnoCore.Abstractions.Stats;
 
@@ -12,6 +13,7 @@ public sealed class GameplayXpConfiguration
     public int BatchSize { get; set; } = 100;
     public int KillXp { get; set; } = 10;
     public int AssistXp { get; set; } = 5;
+    public decimal WeekendMultiplier { get; set; } = 1m;
     public Dictionary<GameplayStatKind, int> GameplayXp { get; set; } = new()
     {
         [GameplayStatKind.HeadshotKill] = 5,
@@ -46,6 +48,7 @@ public sealed class GameplayXpPolicy
         BatchSize = configuration.BatchSize;
         KillXp = configuration.KillXp;
         AssistXp = configuration.AssistXp;
+        WeekendMultiplier = configuration.WeekendMultiplier;
         GameplayXp = weights;
     }
 
@@ -54,7 +57,23 @@ public sealed class GameplayXpPolicy
     public int BatchSize { get; }
     public int KillXp { get; }
     public int AssistXp { get; }
+    public decimal WeekendMultiplier { get; }
     public IReadOnlyDictionary<GameplayStatKind, int> GameplayXp { get; }
+
+    public XpBoostResolution ResolveGameplayBoost(ProgressionDefinitionSnapshot definitions, DateTimeOffset at)
+    {
+        ArgumentNullException.ThrowIfNull(definitions);
+        var scheduled = definitions.ResolveBoost(at, ProgressionXpSource.Gameplay);
+        var day = new DateTimeOffset(at.UtcDateTime.Date, TimeSpan.Zero);
+        if (WeekendMultiplier == 1m || day.DayOfWeek is not DayOfWeek.Saturday and not DayOfWeek.Sunday)
+            return scheduled;
+        var start = day.DayOfWeek == DayOfWeek.Sunday ? day.AddDays(-1) : day;
+        var id = "gameplay.weekend." + start.ToString("yyyyMMdd", CultureInfo.InvariantCulture);
+        return WeekendMultiplier > scheduled.Multiplier
+            || WeekendMultiplier == scheduled.Multiplier && string.CompareOrdinal(id, scheduled.BoostId) < 0
+            ? new XpBoostResolution(id, WeekendMultiplier)
+            : scheduled;
+    }
 
     internal static GameplayXpPolicy Create(GameplayXpConfiguration configuration)
     {
@@ -63,8 +82,9 @@ public sealed class GameplayXpPolicy
             || configuration.EarnFromUtc.Ticks % TimeSpan.TicksPerMicrosecond != 0
             || configuration.CheckpointSeconds is < 10 or > 600 || configuration.BatchSize is < 1 or > 100
             || configuration.KillXp is < 0 or > 1000 || configuration.AssistXp is < 0 or > 1000
+            || configuration.WeekendMultiplier is < 1m or > ProgressionDefinitionSnapshot.MaxBoostMultiplier
             || configuration.GameplayXp is null)
-            throw new ArgumentException("Gameplay XP requires a microsecond UTC start, bounded checkpoint/batch and 0-1000 XP weights.");
+            throw new ArgumentException("Gameplay XP requires a microsecond UTC start, bounded checkpoint/batch, 0-1000 XP weights and a 1-10 weekend multiplier.");
         var weights = new Dictionary<GameplayStatKind, int>();
         foreach (var (kind, value) in configuration.GameplayXp)
         {

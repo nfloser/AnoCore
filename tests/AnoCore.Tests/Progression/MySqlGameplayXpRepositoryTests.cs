@@ -167,6 +167,23 @@ public sealed class MySqlGameplayXpRepositoryTests
         Assert.AreEqual(0L, (await new MySqlProgressionGrantRepository(_database).ReadLifetimeAsync(Player)).LifetimeXp);
     }
 
+    [TestMethod]
+    public async Task RecurringWeekend_AwardsDelayedEventsAtOriginalTimeAndNeverRepays()
+    {
+        var saturday = Start.AddDays(1);
+        await Stat(saturday, GameplayStatKind.Mvp);
+        await Stat(saturday.AddDays(2), GameplayStatKind.Mvp);
+        var policy = new GameplayXpConfiguration { EarnFromUtc = Start, WeekendMultiplier = 2 }.Snapshot();
+        var result = await Repository.ReconcileAsync(Player, policy, Xp, saturday.AddDays(3));
+        Assert.AreEqual(20L, result[0].AwardedXp);
+        Assert.AreEqual("gameplay.weekend.20261010", result[0].BoostId);
+        Assert.AreEqual(saturday, result[0].OccurredAtUtc);
+        Assert.AreEqual(10L, result[1].AwardedXp);
+        var changed = new GameplayXpConfiguration { EarnFromUtc = Start, WeekendMultiplier = 3 }.Snapshot();
+        Assert.IsEmpty(await Repository.ReconcileAsync(Player, changed, Xp, saturday.AddDays(10)));
+        Assert.AreEqual(30L, (await new MySqlProgressionGrantRepository(_database).ReadLifetimeAsync(Player)).LifetimeXp);
+    }
+
     private async Task Stat(DateTimeOffset at, GameplayStatKind kind, int amount = 1, PlayerId? player = null)
         => await new MySqlGameplayStatRepository(_database).RecordAsync(new(Guid.NewGuid(), player ?? Player, at, "de_dust2", kind, amount));
     private async Task Combat(PlayerId victim, PlayerId? attacker, PlayerId? assister, DateTimeOffset at, bool team = false)

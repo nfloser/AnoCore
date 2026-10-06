@@ -474,7 +474,7 @@ failure, overflow or cancellation.
 Boosts resolve at the original persisted event timestamp, so delayed processing
 preserves the event's scheduled boost eligibility. Already committed amounts and
 boost metadata remain immutable. This supports explicitly dated double-XP weekend
-windows; recurring weekend generation remains separate scheduling work. Raw ledgers
+windows; #264 adds optional recurring weekend boosts as described below. Raw ledgers
 are used, so display/statistics-reset cutoffs do not erase earned or pending XP.
 Deleting raw events can remove unprocessed rewards. Only events already accepted by
 the existing combat/statistics intake policy are considered; this adds no counters
@@ -494,3 +494,28 @@ and objective bonus, verify !anoxp, restart/replay without duplicate XP, check a
 configured event-time boost, teamkill/suicide behavior, backlog/reconnect and disabled
 or invalid configuration isolation on a disposable CS2/DatHost server. Automated
 transaction/contract tests do not establish native event behavior.
+
+## Recurring double-XP weekends
+
+Issue #264 adds `WeekendMultiplier` to gameplay-xp.json. The default `1` disables
+recurring weekend boosts; set `2` for double gameplay XP, then restart/reload the
+plugin. Values from 1 through 10 are supported. Existing files that omit the new
+field keep the disabled default.
+
+A weekend is `[Saturday 00:00 UTC, Monday 00:00 UTC)`. Calendar boundaries use UTC
+even during daylight-saving changes. Boost selection uses the original event time,
+including delayed/backlogged events. Each occurrence has a stable recorded ID such
+as `gameplay.weekend.20261010`. Changing the multiplier can affect unprocessed
+events but never changes or repays an existing committed grant.
+
+The recurring boost competes with eligible explicit scheduled boosts from
+achievements.json: the largest multiplier wins, with ordinal boost-ID ordering
+on equal multipliers. Multipliers do not stack. This applies only to gameplay XP,
+including configured kill/assist/objective bonuses; challenge/achievement rewards
+and competitive rank points are unaffected by the recurring setting.
+
+Acceptance: set WeekendMultiplier to 2, check Friday/Saturday/Monday UTC boundaries,
+verify original-event-time processing after reconnect/restart, overlap with a
+stronger explicit event, and confirm challenge rewards/rank points remain separate.
+Four added tests cover UTC/offset boundaries, overlap/ties, configuration bounds and
+snapshots, and delayed idempotent MariaDB payout. Native server checks remain manual.
