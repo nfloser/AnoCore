@@ -43,8 +43,9 @@ as a Bearer authorization header, is not copied into generated JSON configuratio
 and is not included in user-facing failures.
 
 Live requests are pinned to the official HTTPS API host, do not follow redirects,
-time out after three seconds, accept at most 128 KiB, and permit at most two
-concurrent lookups. Not-found/non-user, private, rate-limited, unauthorized,
+time out after three seconds, accept at most 128 KiB, permit at most two
+concurrent lookups and enforce a local budget of 30 outbound requests per minute.
+Saturated concurrency fails immediately instead of building an unbounded queue. Not-found/non-user, private, rate-limited, unauthorized,
 timeout, transport and malformed-response states fail closed while the internal
 `!anorating` command remains available.
 
