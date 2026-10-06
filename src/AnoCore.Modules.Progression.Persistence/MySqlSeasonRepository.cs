@@ -58,14 +58,17 @@ public sealed class MySqlSeasonRepository : ISeasonRepository
                 return new SeasonAcceptResult(false, existing);
             }
 
+            if (acceptedAt >= canonical.StartsAtUtc)
+                throw new SeasonDefinitionConflictException(
+                    canonical.Id, canonical.Version);
+
             var latest = await ReadLatestAsync(
                 connection, transaction, canonical.Id, token).ConfigureAwait(false);
             if (latest is not null)
             {
                 if (canonical.Version <= latest.Definition.Version
                     || latest.ClosedAtUtc is not null
-                    || acceptedAt >= latest.Definition.StartsAtUtc
-                    || acceptedAt >= canonical.StartsAtUtc)
+                    || acceptedAt >= latest.Definition.StartsAtUtc)
                 {
                     throw new SeasonDefinitionConflictException(
                         canonical.Id, canonical.Version);
