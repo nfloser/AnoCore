@@ -112,18 +112,22 @@ public sealed class LeetifyContextModuleTests
 
         Assert.AreEqual(
             CommandFailureReason.InvalidInput,
-            (await commands.ExecuteAsync("!anoleetify Same", Alice)).FailureReason);
+            (await commands.ExecuteAsync("!anoleetify Sam", Alice)).FailureReason);
         Assert.AreEqual(
             CommandFailureReason.InvalidInput,
             (await commands.ExecuteAsync("!anoleetify Missing", Alice)).FailureReason);
-        Assert.IsTrue(
-            (await commands.ExecuteAsync($"!anoleetify {Bob.SteamId64}", Alice)).FailureReason
-            == CommandFailureReason.NotFound);
+        Assert.AreEqual(
+            CommandFailureReason.NotFound,
+            (await commands.ExecuteAsync($"!anoleetify {Bob.SteamId64}", Alice)).FailureReason);
+        var requestsBeforeDispose = ((Provider)module.ProviderForTests).Requested.Count;
 
         module.Dispose();
         Assert.AreEqual(
             CommandFailureReason.NotFound,
             (await commands.ExecuteAsync($"!anoleetify {Bob.SteamId64}", Alice)).FailureReason);
+        Assert.AreEqual(
+            requestsBeforeDispose,
+            ((Provider)module.ProviderForTests).Requested.Count);
     }
 
     private sealed class AllowAll : IPermissionEvaluator
