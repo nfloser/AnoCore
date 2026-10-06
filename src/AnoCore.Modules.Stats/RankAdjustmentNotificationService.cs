@@ -33,6 +33,7 @@ public sealed class RankAdjustmentNotificationService
         var errors = RankConfiguration.Validate(configuration);
         if (errors.Count > 0)
             throw new ArgumentException(string.Join(" ", errors), nameof(configuration));
+        RankScoreQueries.ValidateRepository(_combat, _configuration);
     }
 
     public async ValueTask<RankAdjustmentAdminResult> ApplyAsync(
@@ -67,7 +68,10 @@ public sealed class RankAdjustmentNotificationService
         {
             var totals = await _combat.ReadAsync(targetId, CancellationToken.None)
                 .ConfigureAwait(false);
-            var combatPoints = _configuration.RawScore(totals);
+            var combatPoints = _combat is IGameplayRankScoreRepository combined
+                ? await combined.ReadRawScoreAsync(targetId, _configuration.ScoreWeights,
+                    CancellationToken.None).ConfigureAwait(false)
+                : _configuration.RawScore(totals);
             var previousPoints = Adjust(combatPoints, result.PreviousPoints);
             var currentPoints = Adjust(combatPoints, result.CurrentPoints);
             var transition = RankTransitionEvaluator.Evaluate(

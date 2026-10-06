@@ -1,5 +1,6 @@
 using AnoCore.Abstractions.Players;
 using AnoCore.Abstractions.Stats;
+using AnoCore.Modules.Stats;
 using AnoCore.Runtime.Persistence;
 using AnoCore.Runtime.Persistence.Migrations;
 using AnoCore.Runtime.Stats;
@@ -38,6 +39,89 @@ public sealed class MySqlGameplayStatRepositoryTests
     public async Task CleanupAsync()
     {
         if (_database is not null) await DropAsync();
+    }
+
+    [TestMethod]
+    public async Task GameplayRankMonitor_RefreshesAfterCommitAndIsolatesPresentationFailures()
+    {
+        var gameplay = new MySqlGameplayStatRepository(_database);
+        var ranks = new MySqlCombatRepository(_database);
+        var configuration = new RankConfiguration
+        {
+            GameplayPoints = new() { [GameplayStatKind.Mvp] = 10 },
+        };
+        var sink = new RankSink();
+        var errors = new List<Exception>();
+        using var monitor = new GameplayRankTransitionMonitor(configuration, ranks, gameplay,
+            sink, sink, errors.Add);
+        var statistic = new GameplayStatEvent(Guid.NewGuid(), Player, Now,
+            "de_dust2", GameplayStatKind.Mvp);
+        await monitor.RecordAsync(statistic);
+        Assert.AreEqual(1, sink.Notifications);
+        Assert.AreEqual(1, sink.Refreshes);
+        Assert.AreEqual(2, errors.Count);
+        await monitor.RecordAsync(statistic);
+        Assert.AreEqual(1, sink.Notifications);
+        Assert.AreEqual(10L, (await ranks.GetScorePlacementAsync(Player,
+            configuration.ScoreWeights))!.Points);
+    }
+
+    private sealed class RankSink : IRankTransitionNotificationSink, IRankScoreChangeSink
+    {
+        public int Notifications { get; private set; }
+        public int Refreshes { get; private set; }
+        public ValueTask NotifyAsync(PlayerId playerId, RankTransition transition,
+            CancellationToken cancellationToken = default)
+        {
+            Notifications++;
+            throw new InvalidOperationException("Disconnected presentation sink.");
+        }
+        public ValueTask ScoreChangedAsync(PlayerId playerId,
+            CancellationToken cancellationToken = default)
+        {
+            Refreshes++;
+            throw new InvalidOperationException("Disconnected refresh sink.");
+        }
+    }
+
+    [TestMethod]
+    public async Task RankWeights_IncludeGameplayOnlyPlayersAndReplayWithoutDuplicatingPoints()
+    {
+        var gameplay = new MySqlGameplayStatRepository(_database);
+        var ranks = new MySqlCombatRepository(_database);
+        var other = new PlayerId(Player.SteamId64 + 1);
+        var weights = new RankScoreWeights(2, 1, 1,
+            new Dictionary<GameplayStatKind, int>
+            {
+                [GameplayStatKind.Mvp] = 5,
+                [GameplayStatKind.HostageKilled] = -3,
+            });
+        var bonus = new GameplayStatEvent(Guid.NewGuid(), Player, Now,
+            "de_dust2", GameplayStatKind.Mvp, 2);
+        await gameplay.RecordAsync(bonus);
+        await gameplay.RecordAsync(bonus);
+        await gameplay.RecordAsync(new GameplayStatEvent(Guid.NewGuid(), other, Now,
+            "de_dust2", GameplayStatKind.Mvp, 2));
+        var top = await ranks.GetTopScoresAsync(weights, 10, 0);
+        Assert.AreEqual(2, top.Count);
+        Assert.AreEqual(Player, top[0].PlayerId);
+        Assert.AreEqual(10L, top[0].Points);
+        Assert.AreEqual(2, (await ranks.GetScorePlacementAsync(other, weights))!.Position);
+        Assert.AreEqual(10L, await ranks.ReadRawScoreAsync(Player, weights));
+        Assert.IsEmpty(await ranks.GetTopScoresAsync(2, 1, 1, 10, 0));
+        await gameplay.RecordAsync(new GameplayStatEvent(Guid.NewGuid(), Player, Now,
+            "de_dust2", GameplayStatKind.HostageKilled, 4));
+        Assert.AreEqual(-2L, await ranks.ReadRawScoreAsync(Player, weights));
+        Assert.AreEqual(0L, (await ranks.GetScorePlacementAsync(Player, weights))!.Points);
+        Assert.AreEqual(other, (await ranks.GetTopScoresAsync(weights, 1, 0))[0].PlayerId);
+        await new MySqlStatisticsResetAdministrationService(_database).ResetAsync(
+            Player, null, "rank integration reset", Now.AddSeconds(1));
+        Assert.IsNull(await ranks.GetScorePlacementAsync(Player, weights));
+        await gameplay.RecordAsync(bonus);
+        Assert.IsNull(await ranks.GetScorePlacementAsync(Player, weights));
+        await gameplay.RecordAsync(new GameplayStatEvent(Guid.NewGuid(), Player, Now.AddSeconds(2),
+            "de_dust2", GameplayStatKind.Mvp));
+        Assert.AreEqual(5L, (await ranks.GetScorePlacementAsync(Player, weights))!.Points);
     }
 
     [TestMethod]

@@ -782,6 +782,17 @@ public sealed class AnoCorePlugin : BasePlugin
                             exception => Logger.LogError(
                                 exception, "Rank notification preference read failed.")),
                         rankScoreChanges);
+                if (rank is not null && gameplayStats is not null)
+                    gameplayStats.EnableRankTracking(
+                        rank.Configuration,
+                        runtime.Combat,
+                        new RankNotificationPreferenceSink(
+                            runtime.Settings,
+                            new CounterStrikeRankTransitionNotifier(runtime.Players),
+                            exception => Logger.LogError(
+                                exception, "Rank notification preference read failed.")),
+                        rankScoreChanges,
+                        exception => Logger.LogError(exception, "Gameplay rank presentation failed."));
                 combat = new CombatModule(
                     runtime.Commands, runtime.Players, runtime.Combat, transitionMonitor);
                 transitionMonitor = null;
