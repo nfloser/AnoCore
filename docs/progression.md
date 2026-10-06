@@ -432,8 +432,7 @@ an explicitly eligible reward boost. XP curves and scheduled boosts reuse
 achievement evaluation. Invalid shared XP definitions disable challenge composition
 as well. Rank points remain independent.
 
-Challenge notifications, season-XP routing, historical presentation and leaderboards
-remain follow-ups. Native acceptance: verify default creation, `!anochallenges`,
+Challenge notifications are composed by #266; #268/#270 add season routing, historical presentation and leaderboards. Native acceptance: verify default creation, `!anochallenges`,
 accepted gameplay progress, one durable reward, restart replay, Monday/daily rollover,
 predefined season tasks, disabled/invalid configuration isolation and unload/reconnect
 on a disposable CS2/DatHost server. Automated tests do not establish native behavior.
@@ -487,7 +486,7 @@ the bound limits writes, not the cost of scanning retained eligible event histor
 There is no timestamp cursor that could silently skip late-arriving old events.
 Unload cancels pending transactions and stale sessions cannot receive command output.
 Restart/reload is required for configuration changes. Disabled configuration retains
-already earned XP. There is no per-grant notification or season-XP routing yet.
+already earned XP. There is no per-gameplay-grant notice. #268/#270 route committed rewards into accepted seasons.
 
 Native acceptance: create the defaults, inspect saved EarnFromUtc, earn a kill/assist
 and objective bonus, verify !anoxp, restart/replay without duplicate XP, check a
@@ -560,8 +559,68 @@ Operators must allow reward checkpoints/backlogs to drain before freezing winner
 
 Season rankings read only independent season accounts, ordered by XP descending and
 SteamID ascending for ties. Pagination is bounded and placement remains global.
-Closed seasons remain queryable. This backend does not yet compose a live timer or
-commands; those require the season configuration/presentation integration.
+Closed seasons remain queryable. #270 composes the live timer and commands described below.
 
 Seven MariaDB tests cover eligibility/metadata, late offline rewards, bounded retry,
 concurrency, closure, partial failure recovery, rankings and cancellation/bounds.
+
+## Live configured seasons and history
+
+Issue #270 loads `config/seasons.json`. Default `Enabled: false` leaves season
+configuration opt-in. Set Enabled to true and define future non-overlapping UTC
+seasons before their start. CheckpointSeconds defaults to 30 (10–600); BatchSize
+defaults to 100 (1–100 per unclosed started season per checkpoint). Example:
+
+```json
+{
+  "Enabled": true,
+  "CheckpointSeconds": 30,
+  "BatchSize": 100,
+  "Seasons": [
+    {
+      "Id": "winter-2027",
+      "Version": 1,
+      "Name": "Winter 2027",
+      "StartsAtUtc": "2027-01-01T00:00:00Z",
+      "EndsAtUtc": "2027-02-01T00:00:00Z"
+    }
+  ]
+}
+```
+
+Startup accepts definitions through the durable lifecycle repository before command
+registration. Existing definitions can be reloaded after start, but creating or
+changing a started season is rejected. Removing a definition from the file does not
+delete accepted history. Earlier definitions successfully accepted before a later
+configuration conflict remain durable. Invalid season composition disables this
+optional module while other modules continue. Restart/reload applies config changes.
+
+The global timer runs independently of connected players and of achievement/gameplay
+module enable switches. It copies only rewards that those modules already committed.
+Ended but unclosed seasons continue receiving eligible delayed rewards. Per-season
+errors are isolated; unload cancels in-flight work and unregisters all owned commands.
+Season level curves reuse achievements.json Levels independently of achievement
+enablement. There is no automatic balancing, rank-point mutation or prize payout.
+
+| Command | Behavior |
+| --- | --- |
+| `!anoseason [season]` | Own current season XP/level, or accepted historical ID |
+| `!anoseasons [page]` | Five accepted season windows per page, newest first |
+| `!anoseasontop [season] [page]` | Five independent ranked SteamIDs per page; defaults to current season |
+| `!anocloseseason <season>` | Explicitly freezes an ended season; requires `ano.progression.season.close` |
+
+Read commands require a connected player and suppress output if the session changes
+during database access. Toplist placement uses XP descending then SteamID ascending;
+SteamIDs identify offline players without requiring a mutable display-name cache.
+Closed seasons show `(frozen)` and remain readable by ID. Closure may be dispatched
+from the authorized server console. It is idempotent and never closes before the
+configured end. Drain gameplay/reward/season checkpoints before closing: late and
+unprocessed rewards are deliberately excluded after the durable freeze. The command
+does not assert that raw-event or reward backlogs have drained.
+
+Native acceptance: create a future season, restart to accept it, cross its start,
+earn gameplay/achievement/challenge XP, verify own season/lifetime separation and
+boost metadata, include an offline account, cross the end, drain delayed processing,
+close with an authorized admin, then query frozen history and the next season. Check
+permission denial, invalid config isolation, pagination, reconnect and unload. Nine
+module tests complement the transactional MariaDB tests; native behavior is manual.
