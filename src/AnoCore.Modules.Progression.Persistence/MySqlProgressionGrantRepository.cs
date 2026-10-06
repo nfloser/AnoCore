@@ -250,14 +250,13 @@ public sealed class MySqlProgressionGrantRepository : IProgressionGrantRepositor
         ProgressionGrantCandidate candidate)
     {
         ValidateGrantId(candidate.GrantId);
-        if (!ProgressionGrantService.PrintableBounded(
-                candidate.Reason, ProgressionGrantService.MaxReasonLength)
+        if (!PrintableBounded(candidate.Reason, ProgressionGrantService.MaxReasonLength)
             || candidate.BaseXp < 0
             || candidate.AwardedXp < 0
             || !Enum.IsDefined(candidate.Source)
             || candidate.BoostMultiplier is < 1m or > ProgressionDefinitionSnapshot.MaxBoostMultiplier
             || candidate.BoostId is not null
-                && !ProgressionGrantService.PrintableBounded(candidate.BoostId, 64)
+                && !PrintableBounded(candidate.BoostId, 64)
             || candidate.BoostId is null && candidate.BoostMultiplier != 1m
             || candidate.Source == ProgressionXpSource.Administration
                 && (candidate.BoostId is not null || candidate.BoostMultiplier != 1m))
@@ -274,14 +273,13 @@ public sealed class MySqlProgressionGrantRepository : IProgressionGrantRepositor
 
         return candidate with
         {
-            OccurredAtUtc = ProgressionGrantService.NormalizeUtc(candidate.OccurredAtUtc),
+            OccurredAtUtc = NormalizeUtc(candidate.OccurredAtUtc),
         };
     }
 
     private static void ValidateGrantId(string? grantId)
     {
-        if (!ProgressionGrantService.PrintableBounded(
-                grantId, ProgressionGrantService.MaxGrantIdLength)
+        if (!PrintableBounded(grantId, ProgressionGrantService.MaxGrantIdLength)
             || grantId!.Any(character => character > 0x7f))
         {
             throw new ArgumentException(
@@ -289,6 +287,21 @@ public sealed class MySqlProgressionGrantRepository : IProgressionGrantRepositor
                 nameof(grantId));
         }
     }
+
+
+    private static DateTimeOffset NormalizeUtc(DateTimeOffset value)
+    {
+        var utc = value.ToUniversalTime();
+        var ticks = utc.UtcDateTime.Ticks;
+        ticks -= ticks % TimeSpan.TicksPerMicrosecond;
+        return new DateTimeOffset(new DateTime(ticks, DateTimeKind.Utc));
+    }
+
+    private static bool PrintableBounded(string? value, int maximum)
+        => !string.IsNullOrWhiteSpace(value)
+            && value.Length <= maximum
+            && value == value.Trim()
+            && value.All(character => !char.IsControl(character));
 
     private static bool MatchesCandidate(
         ProgressionGrantRecord existing,
