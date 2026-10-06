@@ -106,9 +106,9 @@ public sealed class LeetifyContextModuleTests
         await players.ConnectAsync(new PlayerConnection(
             Bob, "SameName", PlayerTeam.Terrorist, true, Now));
         var commands = new CommandRegistry(new AllowAll());
-        var module = new LeetifyContextModule(
-            commands, players,
-            new Provider(new LeetifyLookupResult(LeetifyLookupStatus.NotFound)));
+        var provider = new Provider(
+            new LeetifyLookupResult(LeetifyLookupStatus.NotFound));
+        var module = new LeetifyContextModule(commands, players, provider);
 
         Assert.AreEqual(
             CommandFailureReason.InvalidInput,
@@ -119,7 +119,7 @@ public sealed class LeetifyContextModuleTests
         Assert.AreEqual(
             CommandFailureReason.NotFound,
             (await commands.ExecuteAsync($"!anoleetify {Bob.SteamId64}", Alice)).FailureReason);
-        var requestsBeforeDispose = ((Provider)module.ProviderForTests).Requested.Count;
+        var requestsBeforeDispose = provider.Requested.Count;
 
         module.Dispose();
         Assert.AreEqual(
@@ -127,7 +127,7 @@ public sealed class LeetifyContextModuleTests
             (await commands.ExecuteAsync($"!anoleetify {Bob.SteamId64}", Alice)).FailureReason);
         Assert.AreEqual(
             requestsBeforeDispose,
-            ((Provider)module.ProviderForTests).Requested.Count);
+            provider.Requested.Count);
     }
 
     private sealed class AllowAll : IPermissionEvaluator
