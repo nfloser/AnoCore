@@ -137,3 +137,9 @@ tasks. UTC windows roll automatically. It reuses XP curves/boosts from
 `config/achievements.json` and the shared gameplay/progression tables. Back up both
 configuration files with the database. Set `Enabled` false in challenges.json and
 restart/reload to disable the optional feature without removing committed rewards.
+
+Gameplay XP creates `config/gameplay-xp.json`; retain its saved `EarnFromUtc` value
+when upgrading/restarting. It reads existing combat/gameplay tables and writes the
+shared progression ledger, without a new connection or schema migration. Back up the
+configuration together with progression data. Changes require restart/reload.
+`!anoxp` reads lifetime levels through the same XP curve as `!anolevel`.

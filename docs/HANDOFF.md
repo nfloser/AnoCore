@@ -1,3 +1,17 @@
+# Live gameplay XP — 2026-10-06
+
+- #262 adds configurable kill/assist/objective XP from existing accepted raw ledgers.
+- Default persisted EarnFromUtc starts eligibility at configuration creation, avoiding
+  accidental full-history payout. Explicitly earlier starts opt into historical data.
+- Batches are bounded to 100 events/player and atomic through the common account lock.
+- Stable event/role IDs preserve retry/concurrency safety; boosts use original event time.
+- !anoxp is independent from permanent achievement enablement and competitive ranks.
+- Startup/checkpoint/unload ownership and session safety are composed in the plugin.
+- Eight MariaDB and six unit tests cover eligibility, batching/late events, retries,
+  concurrency, rollback, overflow, boosts, config persistence, failure isolation and unload.
+- Native tests remain manual. Season routing/history/leaderboards, recurring weekend
+  generation, progression notices and remaining rank policies are still open.
+
 # Live daily/weekly/season challenge integration — 2026-10-06
 
 - #260 loads immutable bounded `challenges.json` schedules. Defaults are three weekly

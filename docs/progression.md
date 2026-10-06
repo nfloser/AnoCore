@@ -437,3 +437,60 @@ remain follow-ups. Native acceptance: verify default creation, `!anochallenges`,
 accepted gameplay progress, one durable reward, restart replay, Monday/daily rollover,
 predefined season tasks, disabled/invalid configuration isolation and unload/reconnect
 on a disposable CS2/DatHost server. Automated tests do not establish native behavior.
+
+## Gameplay XP from accepted durable events
+
+Issue #262 composes gameplay XP through `config/gameplay-xp.json` and the shared
+combat/gameplay event ledgers. `!anoxp` shows independent lifetime XP and level,
+including achievement/challenge rewards, even when permanent achievement evaluation
+is disabled. Shared XP curves and scheduled boosts still come from achievements.json.
+
+Defaults: enabled, 30-second checkpoints, at most 100 events per player per batch,
+10 XP per kill, 5 per assist, plus these additive event bonuses: headshot 5, bomb
+plant 20, bomb defuse 30, hostage rescue 30, MVP 10 and round win 10. Other gameplay
+event weights are zero. A headshot may earn both ordinary kill XP and its bonus;
+these are distinct accepted events. Deaths, suicides and teamkills do not earn kill
+XP and no XP penalties are applied. Rewards do not change competitive rank points.
+
+`EarnFromUtc` is created once when the configuration is first saved, at the current
+UTC instant with microsecond precision. Keep that value across restarts. It prevents
+unintentional lifetime-history payouts. Setting an earlier start deliberately opts
+into historical accepted events; setting it later excludes earlier unprocessed
+events. `KillXp`/`AssistXp` and each `GameplayXp` map value allow 0-1000. The map uses
+existing GameplayStatKind names, like `HeadshotKill` and `BombPlanted`. Batch size
+allows 1-100 and checkpoint seconds 10-600. Null/unknown/negative values, non-UTC or
+sub-microsecond starts and out-of-range limits disable this optional module.
+
+Each batch takes the shared per-player progression account lock, selects ungranted
+accepted events between EarnFromUtc and the checkpoint instant, orders by event time
+and stable grant ID, and atomically commits all grants in that batch. A future-dated
+event cannot earn early. Grant identities include source role and original event
+GUID, so kill, assist and objective rewards cannot collide. Event-ID retries,
+concurrent checks and restarts do not repay committed events. Changing weights does
+not rescore committed grants; previously unweighted events can become eligible
+under new positive weights. Entire-batch rollback preserves retryability on insert
+failure, overflow or cancellation.
+
+Boosts resolve at the original persisted event timestamp, so delayed processing
+preserves the event's scheduled boost eligibility. Already committed amounts and
+boost metadata remain immutable. This supports explicitly dated double-XP weekend
+windows; recurring weekend generation remains separate scheduling work. Raw ledgers
+are used, so display/statistics-reset cutoffs do not erase earned or pending XP.
+Deleting raw events can remove unprocessed rewards. Only events already accepted by
+the existing combat/statistics intake policy are considered; this adds no counters
+or native event ingestion calls.
+
+Startup and non-overlapping repeating checkpoints reconcile current online players.
+A failing player does not stop others. An offline player's pending events wait for
+a later connected checkpoint. Large backlogs drain across multiple bounded batches;
+the bound limits writes, not the cost of scanning retained eligible event history.
+There is no timestamp cursor that could silently skip late-arriving old events.
+Unload cancels pending transactions and stale sessions cannot receive command output.
+Restart/reload is required for configuration changes. Disabled configuration retains
+already earned XP. There is no per-grant notification or season-XP routing yet.
+
+Native acceptance: create the defaults, inspect saved EarnFromUtc, earn a kill/assist
+and objective bonus, verify !anoxp, restart/replay without duplicate XP, check a
+configured event-time boost, teamkill/suicide behavior, backlog/reconnect and disabled
+or invalid configuration isolation on a disposable CS2/DatHost server. Automated
+transaction/contract tests do not establish native event behavior.
