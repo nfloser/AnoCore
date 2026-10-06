@@ -29,7 +29,6 @@ public sealed class LeetifyContextModuleTests
             LeetifyLookupStatus.Available,
             new LeetifyProfileContext(
                 Bob,
-                "Leetify Bob",
                 [
                     new("Aim", "95.25"),
                     new("Positioning", "61"),
