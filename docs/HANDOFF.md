@@ -1,3 +1,11 @@
+# Configurable starting rank points — 2026-10-06
+
+- #272 adds a bounded optional `StartingPoints` baseline (default zero) to the shared rank score contract.
+- Non-zero baselines include registered profiles without score events; zero preserves prior participant semantics.
+- Baseline, combat/gameplay score and audited adjustments combine before zero flooring in placement/toplists/raw-score consumers.
+- Legacy `RankScoreWeights` construction remains source-compatible; tests cover bounds, profile-only players, penalties, reset, ties, pagination and zero-default upgrade behavior.
+- Remaining #228 policy gaps are dynamic/VIP multipliers, streak/distance/time bonuses, summaries and native scoreboard presentation.
+
 # Live seasons and historical standings — 2026-10-06
 
 - #270 composes opt-in seasons.json and global reward reconciliation into the plugin.

@@ -9,9 +9,10 @@ public sealed class RankConfiguration
     public int KillPoints { get; set; } = 2;
     public int AssistPoints { get; set; } = 1;
     public int DeathPenalty { get; set; } = 1;
+    public long StartingPoints { get; set; }
     public Dictionary<GameplayStatKind, int> GameplayPoints { get; set; } = [];
     [System.Text.Json.Serialization.JsonIgnore]
-    public RankScoreWeights ScoreWeights => new(KillPoints, AssistPoints, DeathPenalty, GameplayPoints);
+    public RankScoreWeights ScoreWeights => new(KillPoints, AssistPoints, DeathPenalty, StartingPoints, GameplayPoints);
     public bool NotifyRankChanges { get; set; } = true;
     public bool NotifyAdministrativeRankChanges { get; set; } = true;
     public List<RankThreshold> Thresholds { get; set; } =
@@ -30,7 +31,8 @@ public sealed class RankConfiguration
         ArgumentNullException.ThrowIfNull(totals);
         if (totals.Kills < 0 || totals.Deaths < 0 || totals.Assists < 0)
             throw new ArgumentOutOfRangeException(nameof(totals));
-        return checked(checked(totals.Kills * KillPoints)
+        return checked(StartingPoints
+            + checked(totals.Kills * KillPoints)
             + checked(totals.Assists * AssistPoints)
             - checked(totals.Deaths * DeathPenalty));
     }
@@ -52,6 +54,8 @@ public sealed class RankConfiguration
             || configuration.AssistPoints is < 0 or > 1000
             || configuration.DeathPenalty is < 0 or > 1000)
             errors.Add("Rank weights must be between 0 and 1000; kills must award points.");
+        if (configuration.StartingPoints is < 0 or > RankScoreWeights.MaximumStartingPoints)
+            errors.Add($"StartingPoints must be between 0 and {RankScoreWeights.MaximumStartingPoints}.");
         if (configuration.GameplayPoints is null || configuration.GameplayPoints.Any(pair =>
                 !Enum.IsDefined(pair.Key) || pair.Value is < -1000 or > 1000))
             errors.Add("Gameplay rank weights must use known event kinds and values between -1000 and 1000.");

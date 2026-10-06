@@ -441,12 +441,14 @@ public sealed class MySqlCombatRepository : ICombatDetailRepository, IGameplayRa
         {
             await using var command = connection.CreateCommand();
             Add(command, "@player", playerId.SteamId64);
+            Add(command, "@starting_points", weights.StartingPoints);
             Add(command, "@kill_points", weights.KillPoints);
             Add(command, "@assist_points", weights.AssistPoints);
             Add(command, "@death_penalty", weights.DeathPenalty);
             var gameplay = GameplayScore(command, weights, "@player");
             command.CommandText = $"""
-                SELECT CAST((SELECT COUNT(*) FROM ano_effective_combat_kills
+                SELECT @starting_points
+                + CAST((SELECT COUNT(*) FROM ano_effective_combat_kills
                     WHERE attacker_steam_id = @player) AS SIGNED) * @kill_points
                 + CAST((SELECT COUNT(*) FROM ano_effective_combat_assists
                     WHERE assister_steam_id = @player) AS SIGNED) * @assist_points
@@ -477,6 +479,7 @@ public sealed class MySqlCombatRepository : ICombatDetailRepository, IGameplayRa
 
     private static string ScoreCte(DbCommand command, RankScoreWeights weights)
     {
+        Add(command, "@starting_points", weights.StartingPoints);
         Add(command, "@kill_points", weights.KillPoints);
         Add(command, "@assist_points", weights.AssistPoints);
         Add(command, "@death_penalty", weights.DeathPenalty);
@@ -485,6 +488,8 @@ public sealed class MySqlCombatRepository : ICombatDetailRepository, IGameplayRa
             : "UNION SELECT player_steam_id FROM ano_effective_gameplay_stats WHERE stat_kind IN ("
                 + string.Join(", ", Enumerable.Range(0, weights.GameplayPoints.Count)
                     .Select(index => $"@kind{index}")) + ")";
+        var profilePlayers = weights.StartingPoints == 0 ? ""
+            : "UNION SELECT steam_id FROM ano_players";
         return $"""
                 WITH players AS (
                     SELECT victim_steam_id AS steam_id FROM ano_effective_combat_deaths
@@ -497,10 +502,12 @@ public sealed class MySqlCombatRepository : ICombatDetailRepository, IGameplayRa
                     UNION
                     SELECT player_steam_id FROM ano_rank_adjustments
                     {gameplayPlayers}
+                    {profilePlayers}
                 ), scored AS (
                     SELECT players.steam_id,
                         GREATEST(0,
-                            CAST((SELECT COUNT(*) FROM ano_effective_combat_kills
+                            @starting_points
+                            + CAST((SELECT COUNT(*) FROM ano_effective_combat_kills
                                 WHERE attacker_steam_id = players.steam_id) AS SIGNED)
                                 * @kill_points
                             + CAST((SELECT COUNT(*) FROM ano_effective_combat_assists
