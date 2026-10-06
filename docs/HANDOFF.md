@@ -1,3 +1,12 @@
+# Durable rank event ledger foundation — 2026-10-06
+
+- #275 introduces an explicit Derived/EventLedger score-source switch; Derived remains the upgrade-safe default.
+- EventLedger totals StartingPoints + idempotent point components + audited admin adjustment, then floors at zero.
+- The ledger primary key is source-event/player/component, allowing stacked bonuses from one source event while preventing duplicate replay.
+- Exact replay is ignored; conflicting replay data fails instead of silently rewriting history.
+- Runtime migration/composition and MariaDB tests cover persistence, baseline, adjustments, flooring, deterministic placement and service exposure.
+- The next #275 slice is the independent live eligibility/event policy (warmup/min players/bots/FFA, dynamic/VIP, special kills/objectives/streaks), followed by native presentation acceptance.
+
 # HTTPS management sidecar — 2026-10-06
 
 - #222 adds a separate ASP.NET Core host over the existing local ManagementPipeClient.
