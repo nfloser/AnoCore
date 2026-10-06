@@ -18,6 +18,12 @@ public sealed class GameplayRankWeightsTests
         Assert.IsNotEmpty(RankConfiguration.Validate(configuration));
         configuration.GameplayPoints = new() { [GameplayStatKind.HostageKilled] = -1000 };
         Assert.IsEmpty(RankConfiguration.Validate(configuration));
+        configuration.StartingPoints = -1;
+        Assert.IsNotEmpty(RankConfiguration.Validate(configuration));
+        configuration.StartingPoints = RankScoreWeights.MaximumStartingPoints + 1;
+        Assert.IsNotEmpty(RankConfiguration.Validate(configuration));
+        configuration.StartingPoints = RankScoreWeights.MaximumStartingPoints;
+        Assert.IsEmpty(RankConfiguration.Validate(configuration));
     }
 
     [TestMethod]
@@ -32,6 +38,13 @@ public sealed class GameplayRankWeightsTests
         source[GameplayStatKind.Mvp] = 999;
         Assert.AreEqual(5, weights.GameplayPoints[GameplayStatKind.Mvp]);
         Assert.AreEqual(1, weights.GameplayPoints.Count);
+        Assert.AreEqual(0L, weights.StartingPoints);
+        Assert.AreEqual(25L,
+            new RankScoreWeights(2, 1, 1, 25, source).StartingPoints);
+        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() =>
+            new RankScoreWeights(2, 1, 1, -1));
+        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() =>
+            new RankScoreWeights(2, 1, 1, RankScoreWeights.MaximumStartingPoints + 1));
         Assert.ThrowsExactly<ArgumentOutOfRangeException>(() =>
             new RankScoreWeights(2, 1, 1,
                 new Dictionary<GameplayStatKind, int> { [GameplayStatKind.Mvp] = -1001 }));
