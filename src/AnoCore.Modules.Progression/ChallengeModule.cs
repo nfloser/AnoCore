@@ -1,6 +1,8 @@
 using AnoCore.Abstractions.Commands;
+using AnoCore.Abstractions.Messaging;
 using AnoCore.Abstractions.Modules;
 using AnoCore.Abstractions.Players;
+using AnoCore.Abstractions.Settings;
 
 namespace AnoCore.Modules.Progression;
 
@@ -14,13 +16,15 @@ public sealed class ChallengeModule : IDisposable
     private readonly Func<DateTimeOffset> _clock;
     private readonly Action<Exception>? _reportError;
     private readonly IDisposable _command;
+    private readonly ChallengeNotificationService? _notifications;
     private readonly SemaphoreSlim _checkpointGate = new(1, 1);
     private readonly CancellationTokenSource _lifetime = new();
     private int _disposed;
 
     public ChallengeModule(ChallengeScheduleSnapshot schedule, ProgressionDefinitionSnapshot xp,
         IPlayerRegistry players, IChallengeRepository repository, IAnoCommandRegistry commands,
-        Func<DateTimeOffset>? clock = null, Action<Exception>? reportError = null)
+        Func<DateTimeOffset>? clock = null, Action<Exception>? reportError = null,
+        IPlayerSettingsService? settings = null, IPlayerToggleCatalog? toggles = null, IMessageService? messages = null)
     {
         _schedule = schedule ?? throw new ArgumentNullException(nameof(schedule));
         _xp = xp ?? throw new ArgumentNullException(nameof(xp));
@@ -29,9 +33,22 @@ public sealed class ChallengeModule : IDisposable
         ArgumentNullException.ThrowIfNull(commands);
         _clock = clock ?? (() => DateTimeOffset.UtcNow);
         _reportError = reportError;
-        _command = commands.Register(new ModuleId("ano.progression.challenges"),
-            new CommandDescriptor("anochallenges", "Show your daily, weekly and season challenges.", arguments:
-                [new("page", CommandArgumentKind.Int32, "Page number.", required: false)]), ChallengesAsync);
+        if ((settings is not null || toggles is not null || messages is not null)
+            && (settings is null || toggles is null || messages is null))
+            throw new ArgumentException("Challenge notifications require settings, toggles and messages together.");
+        try
+        {
+            if (settings is not null && toggles is not null && messages is not null)
+                _notifications = new ChallengeNotificationService(players, settings, toggles, messages, reportError);
+            _command = commands.Register(new ModuleId("ano.progression.challenges"),
+                new CommandDescriptor("anochallenges", "Show your daily, weekly and season challenges.", arguments:
+                    [new("page", CommandArgumentKind.Int32, "Page number.", required: false)]), ChallengesAsync);
+        }
+        catch
+        {
+            _notifications?.Dispose();
+            throw;
+        }
     }
 
     public int CheckpointSeconds => _schedule.CheckpointSeconds;
@@ -54,7 +71,9 @@ public sealed class ChallengeModule : IDisposable
                     if (at < definition.StartsAtUtc || at >= definition.EndsAtUtc) continue;
                     try
                     {
-                        await _repository.CompleteAsync(player.Id, catalog, definition.Id, at, _xp, linked.Token).ConfigureAwait(false);
+                        var result = await _repository.CompleteAsync(player.Id, catalog, definition.Id, at, _xp, linked.Token).ConfigureAwait(false);
+                        if (_notifications is not null)
+                            await _notifications.NotifyAsync(player, definition.Name, result, linked.Token).ConfigureAwait(false);
                     }
                     catch (OperationCanceledException) when (linked.IsCancellationRequested) { throw; }
                     catch (Exception exception) { Report(exception); }
@@ -121,6 +140,7 @@ public sealed class ChallengeModule : IDisposable
     {
         if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
         _lifetime.Cancel();
+        _notifications?.Dispose();
         _command.Dispose();
     }
 }

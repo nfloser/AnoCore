@@ -1,3 +1,11 @@
+# Challenge completion notices — 2026-10-06
+
+- #266 composes committed-only session-pinned notices into the live challenge module.
+- Independent persistent toggle: progression.challenge-notifications (default true).
+- Six new tests cover replay, actual award XP, preference, reconnect/dispose, failures,
+  cancellation and module/registration ownership. Native acceptance remains manual.
+- Season routing/presentation/leaderboards and rank policy gaps remain open.
+
 # Recurring weekend gameplay boosts — 2026-10-06
 
 - #264 adds optional WeekendMultiplier (default 1/off; 2 enables double gameplay XP).
