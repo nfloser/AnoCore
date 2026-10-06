@@ -135,6 +135,47 @@ public sealed class MySqlProgressionGrantRepositoryTests
     }
 
     [TestMethod]
+    public async Task LifetimeOverflow_RollsBackGrant()
+    {
+        await _database.WithConnectionAsync(async (connection, token) =>
+        {
+            await using var command = connection.CreateCommand();
+            command.CommandText = """
+                INSERT INTO ano_progression_accounts (
+                    player_steam_id, lifetime_xp, revision, updated_at_utc)
+                VALUES (@player, @xp, 1, @updated)
+                """;
+            var player = command.CreateParameter();
+            player.ParameterName = "@player";
+            player.Value = Player.SteamId64;
+            command.Parameters.Add(player);
+            var xp = command.CreateParameter();
+            xp.ParameterName = "@xp";
+            xp.Value = long.MaxValue;
+            command.Parameters.Add(xp);
+            var updated = command.CreateParameter();
+            updated.ParameterName = "@updated";
+            updated.Value = DateTime.UtcNow;
+            command.Parameters.Add(updated);
+            await command.ExecuteNonQueryAsync(token);
+            return true;
+        });
+
+        var service = Service(new MySqlProgressionGrantRepository(_database));
+        await Assert.ThrowsExactlyAsync<OverflowException>(async () =>
+            await service.GrantAsync(Player,
+                new("overflow", ProgressionXpSource.ChallengeReward,
+                    1, "challenge.reward", Friday)));
+
+        var state = await service.ReadLifetimeAsync(Player);
+        Assert.AreEqual(long.MaxValue, state.LifetimeXp);
+        Assert.AreEqual(1L, state.Revision);
+        var stored = await new MySqlProgressionGrantRepository(_database)
+            .ReadGrantAsync(Player, "overflow");
+        Assert.IsNull(stored);
+    }
+
+    [TestMethod]
     public async Task Bootstrap_IsIdempotent()
     {
         await ProgressionPersistenceBootstrap.EnsureReadyAsync(_database);
