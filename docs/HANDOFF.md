@@ -1,3 +1,12 @@
+# HTTPS management sidecar — 2026-10-06
+
+- #222 adds a separate ASP.NET Core host over the existing local ManagementPipeClient.
+- Non-HTTPS, query-string, unsupported-route/method, oversized-body and malformed-header requests fail before pipe access.
+- Only Authorization, X-AnoCore-Token and X-Correlation-ID cross the pipe; forwarded headers/cookies are ignored and remote identity is the direct peer only.
+- Kestrel request bounds, per-peer fixed-window limiting and independent pipe connect/exchange deadlines are configured.
+- The sidecar publishes independently in CI and is checked not to ship CounterStrikeSharp.API.dll.
+- Unit acceptance covers TLS enforcement, forwarding boundaries, body limits, unavailable pipe, response header allowlisting and secret non-reflection.
+
 # Live seasons and historical standings — 2026-10-06
 
 - #270 composes opt-in seasons.json and global reward reconciliation into the plugin.
