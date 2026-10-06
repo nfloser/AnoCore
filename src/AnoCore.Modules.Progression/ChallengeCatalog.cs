@@ -141,7 +141,7 @@ public sealed class ChallengeCatalogSnapshot
             .AsReadOnly();
     }
 
-    private static ChallengeEvaluation Evaluate(
+    private ChallengeEvaluation Evaluate(
         ChallengeDefinition definition,
         IEnumerable<GameplayStatTotal> windowTotals,
         IEnumerable<string>? completedChallengeIds,
