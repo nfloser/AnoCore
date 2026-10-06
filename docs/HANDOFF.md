@@ -1,3 +1,23 @@
+# Lifetime progression persistence checkpoint — 2026-10-06
+
+- #238 / branch `feature/238-lifetime-xp-persistence` builds on merged #236 with
+  durable lifetime XP and an append-only per-player grant ledger.
+- Stable grant IDs are idempotent across retry/reconnect/restart. A retry returns
+  the stored award before current boost definitions are reevaluated; reusing the
+  ID with a different original payload fails explicitly.
+- Migration 013 stores account lifetime XP/revision plus bounded source, base/final
+  XP, reason, UTC occurrence time and selected boost metadata for every grant.
+- Same-player writes serialize on the account row. Ledger insert and cumulative XP
+  update share one transaction; checked arithmetic and transaction failures roll
+  back without a partial total.
+- Lifetime level is derived from the accepted level-definition snapshot and is not
+  stored as a second score. Competitive rank points remain completely untouched.
+- Automated coverage includes restart retry, changed-definition retry, conflicting
+  IDs, concurrent same/different grants, forced database rollback, overflow and
+  migration idempotency.
+- Native gameplay-event composition, season XP, achievements/challenges, commands
+  and administrative adjustment surfaces remain follow-up packages under #229.
+
 # Progression definitions checkpoint — 2026-10-06
 
 - #236 / branch `feature/236-progression-levels-boosts` adds the first
