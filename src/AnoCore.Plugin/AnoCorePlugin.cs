@@ -9,6 +9,8 @@ using AnoCore.Abstractions.Voting;
 using AnoCore.Modules.Admin;
 using AnoCore.Modules.AnoVeto;
 using AnoCore.Modules.Stats;
+using AnoCore.Modules.Progression;
+using AnoCore.Modules.Progression.Persistence;
 using AnoCore.Modules.Tournament;
 using AnoCore.Modules.Tournament.Persistence;
 using AnoCore.Plugin.Administration;
@@ -51,6 +53,7 @@ public sealed class AnoCorePlugin : BasePlugin
     private PlaytimeModule? _pendingPlaytime;
     private RankModule? _pendingRank;
     private GameplayStatsModule? _pendingGameplayStats;
+    private AchievementModule? _pendingAchievements;
     private TournamentMatchRuntime? _pendingTournamentMatch;
     private ChatMessageFormatter? _pendingChatFormatter;
     private SelectableChatTagModule? _pendingChatTags;
@@ -61,6 +64,7 @@ public sealed class AnoCorePlugin : BasePlugin
     private PlaytimeModule? _playtime;
     private RankModule? _rank;
     private GameplayStatsModule? _gameplayStats;
+    private AchievementModule? _achievements;
     private TournamentMatchRuntime? _tournamentMatch;
     private TournamentTeamEnforcement? _tournamentTeamEnforcement;
     private TournamentSpectatorPolicySource? _tournamentSpectatorPolicies;
@@ -95,6 +99,7 @@ public sealed class AnoCorePlugin : BasePlugin
     private CounterStrikeSharp.API.Modules.Timers.Timer? _anoVetoExpiryTimer;
     private CounterStrikeSharp.API.Modules.Timers.Timer? _voiceModerationTimer;
     private CounterStrikeSharp.API.Modules.Timers.Timer? _playtimeTimer;
+    private CounterStrikeSharp.API.Modules.Timers.Timer? _achievementTimer;
     private string _runtimeStatus = "not started";
 
     public RuntimeServices? Runtime => _runtime;
@@ -150,6 +155,10 @@ public sealed class AnoCorePlugin : BasePlugin
             _voiceModerationTimer = null;
             _playtimeTimer?.Kill();
             _playtimeTimer = null;
+            _achievementTimer?.Kill();
+            _achievementTimer = null;
+            _achievements?.Dispose();
+            _achievements = null;
             if (_playtime is not null)
                 Observe(_playtime.CheckpointOnlineAsync(DateTimeOffset.UtcNow).AsTask(), "playtime_unload");
             _playtime?.Dispose();
@@ -181,7 +190,9 @@ public sealed class AnoCorePlugin : BasePlugin
             _pendingRank?.Dispose();
             _pendingRank = null;
             _pendingGameplayStats?.Dispose();
+            _pendingAchievements?.Dispose();
             _pendingGameplayStats = null;
+            _pendingAchievements = null;
             _pendingTournamentMatch = null;
             _pendingChatFormatter = null;
             _pendingChatTags?.Dispose();
@@ -277,6 +288,7 @@ public sealed class AnoCorePlugin : BasePlugin
         PlaytimeModule? createdPlaytime = null;
         RankModule? createdRank = null;
         GameplayStatsModule? createdGameplayStats = null;
+        AchievementModule? createdAchievements = null;
         TournamentMatchRuntime? createdTournamentMatch = null;
         ChatMessageFormatter? createdChatFormatter = null;
         SelectableChatTagModule? createdChatTags = null;
@@ -534,6 +546,31 @@ public sealed class AnoCorePlugin : BasePlugin
                     "AnoVeto configuration/composition failed; AnoCore will continue without AnoVeto.");
             }
 
+            try
+            {
+                var achievementConfiguration = await configuration.LoadAsync("achievements",
+                    () => new AchievementConfiguration(), AchievementConfiguration.Validate, timeout.Token).ConfigureAwait(false);
+                if (achievementConfiguration.Enabled)
+                {
+                    var database = (IDatabase)created.GetService(typeof(IDatabase))!;
+                    await ProgressionPersistenceBootstrap.EnsureReadyAsync(database, timeout.Token).ConfigureAwait(false);
+                    createdAchievements = new AchievementModule(achievementConfiguration.Snapshot(), players,
+                        created.GameplayStats, new MySqlAchievementRepository(database),
+                        new MySqlProgressionGrantRepository(database), created.Commands,
+                        exception => Logger.LogError(exception, "Achievement checkpoint failed."));
+                }
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception exception)
+            {
+                createdAchievements?.Dispose();
+                createdAchievements = null;
+                Logger.LogError(exception, "Achievement composition failed; other AnoCore modules continue.");
+            }
+
             lock (_startupGate)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -543,6 +580,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 _pendingPlaytime = createdPlaytime;
                 _pendingRank = createdRank;
                 _pendingGameplayStats = createdGameplayStats;
+                _pendingAchievements = createdAchievements;
                 _pendingTournamentMatch = createdTournamentMatch;
                 _pendingChatFormatter = createdChatFormatter;
                 _pendingChatTags = createdChatTags;
@@ -553,6 +591,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 createdPlaytime = null;
                 createdRank = null;
                 createdGameplayStats = null;
+                createdAchievements = null;
                 createdTournamentMatch = null;
                 createdChatFormatter = null;
                 createdChatTags = null;
@@ -566,6 +605,7 @@ public sealed class AnoCorePlugin : BasePlugin
             createdPlaytime?.Dispose();
             createdRank?.Dispose();
             createdGameplayStats?.Dispose();
+            createdAchievements?.Dispose();
             createdChatTags?.Dispose();
             created?.Dispose();
         }
@@ -576,6 +616,7 @@ public sealed class AnoCorePlugin : BasePlugin
             createdPlaytime?.Dispose();
             createdRank?.Dispose();
             createdGameplayStats?.Dispose();
+            createdAchievements?.Dispose();
             createdChatTags?.Dispose();
             created?.Dispose();
             lock (_startupGate)
@@ -587,7 +628,9 @@ public sealed class AnoCorePlugin : BasePlugin
                     _pendingRank?.Dispose();
                     _pendingRank = null;
                     _pendingGameplayStats?.Dispose();
+                    _pendingAchievements?.Dispose();
                     _pendingGameplayStats = null;
+                    _pendingAchievements = null;
                     _pendingTournamentMatch = null;
                     _pendingChatFormatter = null;
                     _pendingChatTags?.Dispose();
@@ -623,6 +666,7 @@ public sealed class AnoCorePlugin : BasePlugin
             var playtime = _pendingPlaytime;
             var rank = _pendingRank;
             var gameplayStats = _pendingGameplayStats;
+            var achievements = _pendingAchievements;
             var tournamentMatch = _pendingTournamentMatch;
             var chatFormatter = _pendingChatFormatter;
             var chatTags = _pendingChatTags;
@@ -632,6 +676,7 @@ public sealed class AnoCorePlugin : BasePlugin
             _pendingPlaytime = null;
             _pendingRank = null;
             _pendingGameplayStats = null;
+            _pendingAchievements = null;
             _pendingTournamentMatch = null;
             _pendingChatFormatter = null;
             _pendingChatTags = null;
@@ -688,6 +733,7 @@ public sealed class AnoCorePlugin : BasePlugin
             CounterStrikeSharp.API.Modules.Timers.Timer? expiryTimer = null;
             CounterStrikeSharp.API.Modules.Timers.Timer? voiceTimer = null;
             CounterStrikeSharp.API.Modules.Timers.Timer? playtimeTimer = null;
+            CounterStrikeSharp.API.Modules.Timers.Timer? achievementTimer = null;
 
             try
             {
@@ -916,6 +962,13 @@ public sealed class AnoCorePlugin : BasePlugin
                         () => Observe(playtime.CheckpointOnlineAsync(DateTimeOffset.UtcNow).AsTask(),
                             "playtime_checkpoint"), TimerFlags.REPEAT);
 
+                if (achievements is not null)
+                {
+                    achievementTimer = AddTimer(achievements.CheckpointSeconds,
+                        () => Observe(achievements.ReconcileOnlineAsync(DateTimeOffset.UtcNow).AsTask(),
+                            "achievement_checkpoint"), TimerFlags.REPEAT);
+                }
+
                 foreach (var descriptor in runtime.Commands.GetCommands())
                 {
                     bridge.Bind(descriptor);
@@ -960,6 +1013,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 _playtime = playtime;
                 _rank = rank;
                 _gameplayStats = gameplayStats;
+                _achievements = achievements;
                 _tournamentMatch = tournamentMatch;
                 _tournamentTeamEnforcement = tournamentTeamEnforcement;
                 _tournamentSpectatorPolicies = tournamentSpectatorPolicies;
@@ -972,7 +1026,10 @@ public sealed class AnoCorePlugin : BasePlugin
                 _anoVetoExpiryTimer = expiryTimer;
                 _voiceModerationTimer = voiceTimer;
                 _playtimeTimer = playtimeTimer;
+                _achievementTimer = achievementTimer;
                 _runtimeStatus = "ready";
+                if (achievements is not null)
+                    Observe(achievements.ReconcileOnlineAsync(DateTimeOffset.UtcNow).AsTask(), "achievement_bootstrap");
                 foreach (var player in runtime.Players.OnlinePlayers.ToArray())
                 {
                     Observe(connectBan.CheckAsync(player, cancellationToken).AsTask(), "connect_ban_bootstrap");
@@ -988,9 +1045,11 @@ public sealed class AnoCorePlugin : BasePlugin
                 expiryTimer?.Kill();
                 voiceTimer?.Kill();
                 playtimeTimer?.Kill();
+                achievementTimer?.Kill();
                 playtime?.Dispose();
                 rank?.Dispose();
                 gameplayStats?.Dispose();
+                achievements?.Dispose();
                 tournamentMapSelectionCommands?.Dispose();
                 tournamentCommands?.Dispose();
                 tournamentSpectatorEnforcement?.Dispose();
