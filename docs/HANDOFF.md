@@ -9,7 +9,9 @@
 - Season levels are derived from the shared XP curve. Lifetime XP and competitive
   rank points remain untouched.
 - MariaDB coverage includes retry/restart, boundaries, closure, negative admin
-  adjustment floor, duplicate concurrency, derived levels and lifetime isolation.
+  adjustment floor, duplicate concurrency, derived levels, rollback and lifetime isolation.
+- PR review replaced the season-wide exclusive row lock with a shared definition
+  lock so grants can run concurrently while closure remains race-safe.
 - Challenges, achievements, leaderboard/result snapshots and native presentation
   remain follow-ups under #229.
 
