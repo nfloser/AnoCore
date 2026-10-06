@@ -151,13 +151,15 @@ public sealed class LeetifyProfileProviderTests
     {
         var active = 0;
         var maximum = 0;
-        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource<bool>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        var entered = new TaskCompletionSource<bool>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
         using var client = new HttpClient(new Handler(async (_, token) =>
         {
             var now = Interlocked.Increment(ref active);
             maximum = Math.Max(maximum, now);
-            entered.TrySetResult();
+            entered.TrySetResult(true);
             try
             {
                 await release.Task.WaitAsync(token);
@@ -179,7 +181,7 @@ public sealed class LeetifyProfileProviderTests
         var second = provider.ReadAsync(Player).AsTask();
         await Task.Delay(25);
         Assert.AreEqual(1, maximum);
-        release.TrySetResult();
+        release.TrySetResult(true);
 
         await Task.WhenAll(first, second);
         Assert.AreEqual(1, maximum);
