@@ -10,9 +10,11 @@ public sealed class RankConfiguration
     public int AssistPoints { get; set; } = 1;
     public int DeathPenalty { get; set; } = 1;
     public long StartingPoints { get; set; }
+    public RankScoringMode ScoringMode { get; set; } = RankScoringMode.Derived;
     public Dictionary<GameplayStatKind, int> GameplayPoints { get; set; } = [];
     [System.Text.Json.Serialization.JsonIgnore]
-    public RankScoreWeights ScoreWeights => new(KillPoints, AssistPoints, DeathPenalty, StartingPoints, GameplayPoints);
+    public RankScoreWeights ScoreWeights => new(
+        KillPoints, AssistPoints, DeathPenalty, StartingPoints, GameplayPoints, ScoringMode);
     public bool NotifyRankChanges { get; set; } = true;
     public bool NotifyAdministrativeRankChanges { get; set; } = true;
     public List<RankThreshold> Thresholds { get; set; } =
@@ -29,6 +31,9 @@ public sealed class RankConfiguration
     public long RawScore(CombatTotals totals)
     {
         ArgumentNullException.ThrowIfNull(totals);
+        if (ScoringMode == RankScoringMode.EventLedger)
+            throw new InvalidOperationException(
+                "Event-ledger rank scores require an event score repository.");
         if (totals.Kills < 0 || totals.Deaths < 0 || totals.Assists < 0)
             throw new ArgumentOutOfRangeException(nameof(totals));
         return checked(StartingPoints
@@ -56,6 +61,8 @@ public sealed class RankConfiguration
             errors.Add("Rank weights must be between 0 and 1000; kills must award points.");
         if (configuration.StartingPoints is < 0 or > RankScoreWeights.MaximumStartingPoints)
             errors.Add($"StartingPoints must be between 0 and {RankScoreWeights.MaximumStartingPoints}.");
+        if (!Enum.IsDefined(configuration.ScoringMode))
+            errors.Add("ScoringMode is invalid.");
         if (configuration.GameplayPoints is null || configuration.GameplayPoints.Any(pair =>
                 !Enum.IsDefined(pair.Key) || pair.Value is < -1000 or > 1000))
             errors.Add("Gameplay rank weights must use known event kinds and values between -1000 and 1000.");
