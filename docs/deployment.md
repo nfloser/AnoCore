@@ -131,3 +131,9 @@ to the common XP ledger. Challenge storage reuses `IDatabase` and existing gamep
 events; no separate connection or credentials are required. Back up progression
 accounts, grants and completions together. Rolling back plugin binaries does not
 require deleting the additive table. Live challenge scheduling is not included yet.
+
+The live challenge module creates `config/challenges.json` with three default weekly
+tasks. UTC windows roll automatically. It reuses XP curves/boosts from
+`config/achievements.json` and the shared gameplay/progression tables. Back up both
+configuration files with the database. Set `Enabled` false in challenges.json and
+restart/reload to disable the optional feature without removing committed rewards.

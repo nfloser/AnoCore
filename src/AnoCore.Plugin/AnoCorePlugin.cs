@@ -54,6 +54,7 @@ public sealed class AnoCorePlugin : BasePlugin
     private RankModule? _pendingRank;
     private GameplayStatsModule? _pendingGameplayStats;
     private AchievementModule? _pendingAchievements;
+    private ChallengeModule? _pendingChallenges;
     private TournamentMatchRuntime? _pendingTournamentMatch;
     private ChatMessageFormatter? _pendingChatFormatter;
     private SelectableChatTagModule? _pendingChatTags;
@@ -65,6 +66,7 @@ public sealed class AnoCorePlugin : BasePlugin
     private RankModule? _rank;
     private GameplayStatsModule? _gameplayStats;
     private AchievementModule? _achievements;
+    private ChallengeModule? _challenges;
     private TournamentMatchRuntime? _tournamentMatch;
     private TournamentTeamEnforcement? _tournamentTeamEnforcement;
     private TournamentSpectatorPolicySource? _tournamentSpectatorPolicies;
@@ -100,6 +102,7 @@ public sealed class AnoCorePlugin : BasePlugin
     private CounterStrikeSharp.API.Modules.Timers.Timer? _voiceModerationTimer;
     private CounterStrikeSharp.API.Modules.Timers.Timer? _playtimeTimer;
     private CounterStrikeSharp.API.Modules.Timers.Timer? _achievementTimer;
+    private CounterStrikeSharp.API.Modules.Timers.Timer? _challengeTimer;
     private string _runtimeStatus = "not started";
 
     public RuntimeServices? Runtime => _runtime;
@@ -157,6 +160,10 @@ public sealed class AnoCorePlugin : BasePlugin
             _playtimeTimer = null;
             _achievementTimer?.Kill();
             _achievementTimer = null;
+            _challengeTimer?.Kill();
+            _challengeTimer = null;
+            _challenges?.Dispose();
+            _challenges = null;
             _achievements?.Dispose();
             _achievements = null;
             if (_playtime is not null)
@@ -191,8 +198,10 @@ public sealed class AnoCorePlugin : BasePlugin
             _pendingRank = null;
             _pendingGameplayStats?.Dispose();
             _pendingAchievements?.Dispose();
+            _pendingChallenges?.Dispose();
             _pendingGameplayStats = null;
             _pendingAchievements = null;
+            _pendingChallenges = null;
             _pendingTournamentMatch = null;
             _pendingChatFormatter = null;
             _pendingChatTags?.Dispose();
@@ -289,6 +298,7 @@ public sealed class AnoCorePlugin : BasePlugin
         RankModule? createdRank = null;
         GameplayStatsModule? createdGameplayStats = null;
         AchievementModule? createdAchievements = null;
+        ChallengeModule? createdChallenges = null;
         TournamentMatchRuntime? createdTournamentMatch = null;
         ChatMessageFormatter? createdChatFormatter = null;
         SelectableChatTagModule? createdChatTags = null;
@@ -590,6 +600,32 @@ public sealed class AnoCorePlugin : BasePlugin
                 Logger.LogError(exception, "Achievement composition failed; other AnoCore modules continue.");
             }
 
+            try
+            {
+                var challengeConfiguration = await configuration.LoadAsync("challenges",
+                    () => new ChallengeConfiguration(), ChallengeConfiguration.Validate, timeout.Token).ConfigureAwait(false);
+                if (challengeConfiguration.Enabled)
+                {
+                    var xpConfiguration = await configuration.LoadAsync("achievements",
+                        () => new AchievementConfiguration(), AchievementConfiguration.Validate, timeout.Token).ConfigureAwait(false);
+                    var database = (IDatabase)created.GetService(typeof(IDatabase))!;
+                    await ProgressionPersistenceBootstrap.EnsureReadyAsync(database, timeout.Token).ConfigureAwait(false);
+                    createdChallenges = new ChallengeModule(challengeConfiguration.Snapshot(), xpConfiguration.Snapshot().Xp,
+                        players, new MySqlChallengeRepository(database), created.Commands,
+                        reportError: exception => Logger.LogError(exception, "Challenge checkpoint failed."));
+                }
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception exception)
+            {
+                createdChallenges?.Dispose();
+                createdChallenges = null;
+                Logger.LogError(exception, "Challenge composition failed; other AnoCore modules continue.");
+            }
+
             lock (_startupGate)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -600,6 +636,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 _pendingRank = createdRank;
                 _pendingGameplayStats = createdGameplayStats;
                 _pendingAchievements = createdAchievements;
+                _pendingChallenges = createdChallenges;
                 _pendingTournamentMatch = createdTournamentMatch;
                 _pendingChatFormatter = createdChatFormatter;
                 _pendingChatTags = createdChatTags;
@@ -611,6 +648,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 createdRank = null;
                 createdGameplayStats = null;
                 createdAchievements = null;
+                createdChallenges = null;
                 createdTournamentMatch = null;
                 createdChatFormatter = null;
                 createdChatTags = null;
@@ -625,6 +663,7 @@ public sealed class AnoCorePlugin : BasePlugin
             createdRank?.Dispose();
             createdGameplayStats?.Dispose();
             createdAchievements?.Dispose();
+            createdChallenges?.Dispose();
             createdChatTags?.Dispose();
             created?.Dispose();
         }
@@ -636,6 +675,7 @@ public sealed class AnoCorePlugin : BasePlugin
             createdRank?.Dispose();
             createdGameplayStats?.Dispose();
             createdAchievements?.Dispose();
+            createdChallenges?.Dispose();
             createdChatTags?.Dispose();
             created?.Dispose();
             lock (_startupGate)
@@ -648,8 +688,10 @@ public sealed class AnoCorePlugin : BasePlugin
                     _pendingRank = null;
                     _pendingGameplayStats?.Dispose();
                     _pendingAchievements?.Dispose();
+                    _pendingChallenges?.Dispose();
                     _pendingGameplayStats = null;
                     _pendingAchievements = null;
+                    _pendingChallenges = null;
                     _pendingTournamentMatch = null;
                     _pendingChatFormatter = null;
                     _pendingChatTags?.Dispose();
@@ -686,6 +728,7 @@ public sealed class AnoCorePlugin : BasePlugin
             var rank = _pendingRank;
             var gameplayStats = _pendingGameplayStats;
             var achievements = _pendingAchievements;
+            var challenges = _pendingChallenges;
             var tournamentMatch = _pendingTournamentMatch;
             var chatFormatter = _pendingChatFormatter;
             var chatTags = _pendingChatTags;
@@ -696,6 +739,7 @@ public sealed class AnoCorePlugin : BasePlugin
             _pendingRank = null;
             _pendingGameplayStats = null;
             _pendingAchievements = null;
+            _pendingChallenges = null;
             _pendingTournamentMatch = null;
             _pendingChatFormatter = null;
             _pendingChatTags = null;
@@ -753,6 +797,7 @@ public sealed class AnoCorePlugin : BasePlugin
             CounterStrikeSharp.API.Modules.Timers.Timer? voiceTimer = null;
             CounterStrikeSharp.API.Modules.Timers.Timer? playtimeTimer = null;
             CounterStrikeSharp.API.Modules.Timers.Timer? achievementTimer = null;
+            CounterStrikeSharp.API.Modules.Timers.Timer? challengeTimer = null;
 
             try
             {
@@ -981,6 +1026,13 @@ public sealed class AnoCorePlugin : BasePlugin
                         () => Observe(playtime.CheckpointOnlineAsync(DateTimeOffset.UtcNow).AsTask(),
                             "playtime_checkpoint"), TimerFlags.REPEAT);
 
+                if (challenges is not null)
+                {
+                    challengeTimer = AddTimer(challenges.CheckpointSeconds,
+                        () => Observe(challenges.ReconcileOnlineAsync(DateTimeOffset.UtcNow).AsTask(),
+                            "challenge_checkpoint"), TimerFlags.REPEAT);
+                }
+
                 if (achievements is not null)
                 {
                     achievementTimer = AddTimer(achievements.CheckpointSeconds,
@@ -1033,6 +1085,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 _rank = rank;
                 _gameplayStats = gameplayStats;
                 _achievements = achievements;
+                _challenges = challenges;
                 _tournamentMatch = tournamentMatch;
                 _tournamentTeamEnforcement = tournamentTeamEnforcement;
                 _tournamentSpectatorPolicies = tournamentSpectatorPolicies;
@@ -1046,7 +1099,10 @@ public sealed class AnoCorePlugin : BasePlugin
                 _voiceModerationTimer = voiceTimer;
                 _playtimeTimer = playtimeTimer;
                 _achievementTimer = achievementTimer;
+                _challengeTimer = challengeTimer;
                 _runtimeStatus = "ready";
+                if (challenges is not null)
+                    Observe(challenges.ReconcileOnlineAsync(DateTimeOffset.UtcNow).AsTask(), "challenge_bootstrap");
                 if (achievements is not null)
                     Observe(achievements.ReconcileOnlineAsync(DateTimeOffset.UtcNow).AsTask(), "achievement_bootstrap");
                 foreach (var player in runtime.Players.OnlinePlayers.ToArray())
@@ -1065,10 +1121,12 @@ public sealed class AnoCorePlugin : BasePlugin
                 voiceTimer?.Kill();
                 playtimeTimer?.Kill();
                 achievementTimer?.Kill();
+                challengeTimer?.Kill();
                 playtime?.Dispose();
                 rank?.Dispose();
                 gameplayStats?.Dispose();
                 achievements?.Dispose();
+                challenges?.Dispose();
                 tournamentMapSelectionCommands?.Dispose();
                 tournamentCommands?.Dispose();
                 tournamentSpectatorEnforcement?.Dispose();
