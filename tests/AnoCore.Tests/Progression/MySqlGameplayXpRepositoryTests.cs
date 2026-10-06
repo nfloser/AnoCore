@@ -17,8 +17,15 @@ public sealed class MySqlGameplayXpRepositoryTests
     private static readonly DateTimeOffset Start = new(2026, 10, 9, 0, 0, 0, TimeSpan.Zero);
     private MySqlDatabase _database = null!;
     private static ProgressionDefinitionSnapshot Xp => ProgressionDefinitionSnapshot.Create([new(1, 0)], []);
-    private static GameplayXpPolicy Policy(int batch = 100) => new GameplayXpConfiguration
-        { EarnFromUtc = Start, BatchSize = batch }.Snapshot();
+    private static GameplayXpPolicy Policy(int batch = 100)
+    {
+        var configuration = new GameplayXpConfiguration
+        {
+            EarnFromUtc = Start,
+            BatchSize = batch,
+        };
+        return configuration.Snapshot();
+    }
     private MySqlGameplayXpRepository Repository => new(_database);
 
     [TestInitialize]
@@ -77,8 +84,11 @@ public sealed class MySqlGameplayXpRepositoryTests
         await new MySqlGameplayStatRepository(_database).RecordAsync(statistic);
         Assert.HasCount(1, await Repository.ReconcileAsync(Player, Policy(), Xp, Start));
         await new MySqlGameplayStatRepository(_database).RecordAsync(statistic);
-        var changed = new GameplayXpConfiguration { EarnFromUtc = Start,
-            GameplayXp = new() { [GameplayStatKind.BombPlanted] = 999 } }.Snapshot();
+        var changed = new GameplayXpConfiguration
+        {
+            EarnFromUtc = Start,
+            GameplayXp = new() { [GameplayStatKind.BombPlanted] = 999 },
+        }.Snapshot();
         Assert.IsEmpty(await new MySqlGameplayXpRepository(_database).ReconcileAsync(Player, changed, Xp, Start));
         Assert.AreEqual(20L, (await new MySqlProgressionGrantRepository(_database).ReadLifetimeAsync(Player)).LifetimeXp);
     }
@@ -146,8 +156,13 @@ public sealed class MySqlGameplayXpRepositoryTests
         cancelled.Cancel();
         await Assert.ThrowsAsync<OperationCanceledException>(async () =>
             await Repository.ReconcileAsync(Player, Policy(), Xp, Start, cancelled.Token));
-        var disabled = new GameplayXpConfiguration { EarnFromUtc = Start, KillXp = 0, AssistXp = 0,
-            GameplayXp = [] }.Snapshot();
+        var disabled = new GameplayXpConfiguration
+        {
+            EarnFromUtc = Start,
+            KillXp = 0,
+            AssistXp = 0,
+            GameplayXp = [],
+        }.Snapshot();
         Assert.IsEmpty(await Repository.ReconcileAsync(Player, disabled, Xp, Start));
         Assert.AreEqual(0L, (await new MySqlProgressionGrantRepository(_database).ReadLifetimeAsync(Player)).LifetimeXp);
     }
