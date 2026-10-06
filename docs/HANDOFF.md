@@ -1,3 +1,21 @@
+# Progression definitions checkpoint — 2026-10-06
+
+- #236 / branch `feature/236-progression-levels-boosts` adds the first
+  engine-independent progression package: immutable level/boost definition snapshots,
+  bounded consecutive XP thresholds and deterministic XP-to-level lookup.
+- Scheduled boost windows are UTC-only and half-open (`[start, end)`). Overlap uses
+  the highest eligible multiplier with deterministic ID tie-breaking.
+- Gameplay XP is boost-eligible by default. Challenge and achievement reward XP must
+  be explicitly opted into a boost definition; administrative adjustments are never
+  multiplied by this schedule.
+- Integer XP awards use decimal multiplication followed by truncation toward zero and
+  checked conversion, so fractional results and overflow have explicit behavior.
+- This package intentionally does not add persistence, seasons, challenges,
+  achievements, commands or CounterStrikeSharp composition. Those remain follow-up
+  packages under #229 after this definition contract is merged.
+- Contract tests cover level boundaries, caller-mutation isolation, UTC window
+  boundaries/overlap, payout isolation, invalid definitions and overflow.
+
 # Progression and rating scope — 2026-10-06
 
 - #229 adds the accepted independent progression workstream: lifetime XP/levels,
