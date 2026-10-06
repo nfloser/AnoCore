@@ -26,6 +26,7 @@ public sealed class GameplayStatsModule : IDisposable
     private readonly IDisposable[] _subscriptions;
     private readonly IDisposable _command;
     private readonly IDisposable? _menuCommand;
+    private readonly AnoRatingModule? _rating;
     private int _generation;
     private int _disposed;
 
@@ -95,6 +96,8 @@ public sealed class GameplayStatsModule : IDisposable
                     }));
             }
 
+            _rating = combat is null ? null
+                : new AnoRatingModule(commands, players, combat, repository);
             _subscriptions = subscriptions.ToArray();
         }
         catch
@@ -424,6 +427,7 @@ public sealed class GameplayStatsModule : IDisposable
             _playerMenus.Clear();
         }
 
+        _rating?.Dispose();
         _menuCommand?.Dispose();
         _command.Dispose();
     }
