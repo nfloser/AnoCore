@@ -42,7 +42,7 @@ public sealed class ProgressionSchemaMigration013 : IDatabaseMigration
             reason VARCHAR(128) NOT NULL,
             occurred_at_utc DATETIME(6) NOT NULL,
             boost_id VARCHAR(64) NULL,
-            boost_multiplier DECIMAL(6,3) NOT NULL,
+            boost_multiplier DECIMAL(30,28) NOT NULL,
             lifetime_xp_after BIGINT UNSIGNED NOT NULL,
             account_revision_after BIGINT UNSIGNED NOT NULL,
             created_at_utc DATETIME(6) NOT NULL,
