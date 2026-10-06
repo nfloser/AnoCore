@@ -127,6 +127,19 @@ jobs:
       - name: Publish development plugin
         run: dotnet publish src/AnoCore.Plugin/AnoCore.Plugin.csproj --configuration Release --no-build --output artifacts/plugins/AnoCore
 
+      - name: Publish management sidecar
+        run: dotnet publish src/AnoCore.Management.Host/AnoCore.Management.Host.csproj --configuration Release --no-build --output artifacts/management/AnoCore.Management.Host
+
+      - name: Validate management sidecar
+        shell: bash
+        run: |
+          test -s artifacts/management/AnoCore.Management.Host/AnoCore.Management.Host.dll
+          test -s artifacts/management/AnoCore.Management.Host/AnoCore.Runtime.dll
+          if find artifacts/management/AnoCore.Management.Host -iname 'CounterStrikeSharp.API.dll' -print -quit | grep -q .; then
+            echo 'Management sidecar must not depend on CounterStrikeSharp.' >&2
+            exit 1
+          fi
+
       - name: Validate deployment package
         run: |
           test -s artifacts/plugins/AnoCore/AnoCore.dll
