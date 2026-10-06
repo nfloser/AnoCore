@@ -168,7 +168,8 @@ public sealed class MySqlChallengeRepositoryTests
         await Record(Start, 10);
         await Sql("""
             CREATE TABLE IF NOT EXISTS ano_statistics_resets
-                (player_steam_id BIGINT UNSIGNED PRIMARY KEY, reset_at_utc DATETIME(6) NOT NULL);
+                (player_steam_id BIGINT UNSIGNED PRIMARY KEY, reset_at_utc DATETIME(6) NOT NULL,
+                 updated_by_steam_id BIGINT UNSIGNED NULL);
             DELETE FROM ano_statistics_resets;
             INSERT INTO ano_statistics_resets (player_steam_id, reset_at_utc) VALUES (76561198000258101, '2026-10-09 01:00:00');
             CREATE OR REPLACE VIEW ano_effective_gameplay_stats AS
