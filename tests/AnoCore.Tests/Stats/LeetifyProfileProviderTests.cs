@@ -178,13 +178,35 @@ public sealed class LeetifyProfileProviderTests
 
         var first = provider.ReadAsync(Player).AsTask();
         await entered.Task.WaitAsync(TimeSpan.FromSeconds(1));
-        var second = provider.ReadAsync(Player).AsTask();
-        await Task.Delay(25);
+        var second = await provider.ReadAsync(Player);
+        Assert.AreEqual(LeetifyLookupStatus.RateLimited, second.Status);
         Assert.AreEqual(1, maximum);
         release.TrySetResult(true);
 
-        await Task.WhenAll(first, second);
+        Assert.AreEqual(
+            LeetifyLookupStatus.Available,
+            (await first).Status);
         Assert.AreEqual(1, maximum);
+    }
+
+    [TestMethod]
+    public async Task ReadAsync_EnforcesLocalPerMinuteRequestBudget()
+    {
+        using var client = new HttpClient(new Handler((_, _) => Task.FromResult(Json("""
+            {"privacy_mode":"public","steam64_id":"76561198096123254","name":"A",
+             "rating":{"aim":1,"positioning":2,"utility":3}}
+            """))));
+        var provider = new LeetifyHttpProfileProvider(
+            client,
+            "key",
+            maxRequestsPerMinute: 1);
+
+        Assert.AreEqual(
+            LeetifyLookupStatus.Available,
+            (await provider.ReadAsync(Player)).Status);
+        Assert.AreEqual(
+            LeetifyLookupStatus.RateLimited,
+            (await provider.ReadAsync(Player)).Status);
     }
 
     private static HttpResponseMessage Json(string content)
