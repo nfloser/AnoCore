@@ -9,18 +9,21 @@ public sealed class RankScoreWeights
 
     public RankScoreWeights(int killPoints, int assistPoints, int deathPenalty,
         IReadOnlyDictionary<GameplayStatKind, int>? gameplayPoints = null)
-        : this(killPoints, assistPoints, deathPenalty, 0, gameplayPoints)
+        : this(killPoints, assistPoints, deathPenalty, 0, gameplayPoints, RankScoringMode.Derived)
     {
     }
 
     public RankScoreWeights(int killPoints, int assistPoints, int deathPenalty,
-        long startingPoints, IReadOnlyDictionary<GameplayStatKind, int>? gameplayPoints = null)
+        long startingPoints, IReadOnlyDictionary<GameplayStatKind, int>? gameplayPoints = null,
+        RankScoringMode scoringMode = RankScoringMode.Derived)
     {
         if (killPoints is < 1 or > 1000) throw new ArgumentOutOfRangeException(nameof(killPoints));
         if (assistPoints is < 0 or > 1000) throw new ArgumentOutOfRangeException(nameof(assistPoints));
         if (deathPenalty is < 0 or > 1000) throw new ArgumentOutOfRangeException(nameof(deathPenalty));
         if (startingPoints is < 0 or > MaximumStartingPoints)
             throw new ArgumentOutOfRangeException(nameof(startingPoints));
+        if (!Enum.IsDefined(scoringMode))
+            throw new ArgumentOutOfRangeException(nameof(scoringMode));
         if (gameplayPoints is not null && gameplayPoints.Any(pair =>
                 !Enum.IsDefined(pair.Key) || pair.Value is < -1000 or > 1000))
             throw new ArgumentOutOfRangeException(nameof(gameplayPoints));
@@ -28,6 +31,7 @@ public sealed class RankScoreWeights
         AssistPoints = assistPoints;
         DeathPenalty = deathPenalty;
         StartingPoints = startingPoints;
+        ScoringMode = scoringMode;
         GameplayPoints = (gameplayPoints ?? new Dictionary<GameplayStatKind, int>())
             .Where(pair => pair.Value != 0).ToFrozenDictionary();
     }
@@ -36,6 +40,7 @@ public sealed class RankScoreWeights
     public int AssistPoints { get; }
     public int DeathPenalty { get; }
     public long StartingPoints { get; }
+    public RankScoringMode ScoringMode { get; }
     public IReadOnlyDictionary<GameplayStatKind, int> GameplayPoints { get; }
 }
 
