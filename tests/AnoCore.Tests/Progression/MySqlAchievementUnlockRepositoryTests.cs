@@ -126,9 +126,9 @@ public sealed class MySqlAchievementUnlockRepositoryTests
                 999,
                 AchievementUnlockService.GrantId("headshots", 1),
                 Friday.AddDays(1),
-                999,
-                null,
-                1m));
+                1998,
+                "later-boost",
+                2m));
 
         var lifetime = await new MySqlProgressionGrantRepository(_database)
             .ReadLifetimeAsync(Player);
