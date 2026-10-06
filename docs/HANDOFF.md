@@ -7,7 +7,7 @@
 - Shared `achievements.json` XP definitions apply; rank points are unchanged.
 - Non-overlapping checkpoints respect dependency order, isolate failures and cancel
   on unload. Pending/active ownership and native repeat timers are integrated.
-- Seven unit tests cover snapshots, UTC windows, command/session safety, dependency
+- Eight unit tests cover snapshots, UTC windows, command/session safety, dependency
   ordering, failures, overlap/unload and registration collision. CI is required.
 - Challenge notices, gameplay XP, season reward routing/history/leaderboards and
   remaining rank policies are still open. Native CS2 tests remain manual.

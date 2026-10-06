@@ -49,6 +49,23 @@ public sealed class ChallengeModuleTests
     }
 
     [TestMethod]
+    public void Configuration_SnapshotsPrerequisitesAndRejectsNullOrOversizedLists()
+    {
+        var configuration = new ChallengeConfiguration();
+        var prerequisites = new List<string> { configuration.Recurring[2].Id };
+        configuration.Recurring[0] = configuration.Recurring[0] with { PrerequisiteIds = prerequisites };
+        var snapshot = configuration.Snapshot();
+        prerequisites.Clear();
+        Assert.HasCount(1, snapshot.ResolveAt(Monday).Get(configuration.Recurring[0].Id).PrerequisiteIds);
+        configuration.Recurring[0] = configuration.Recurring[0] with
+        {
+            PrerequisiteIds = Enumerable.Range(0, 33).Select(index => $"dependency.{index}").ToArray(),
+        };
+        Assert.IsNotEmpty(ChallengeConfiguration.Validate(configuration));
+        Assert.IsNotEmpty(ChallengeConfiguration.Validate(null!));
+    }
+
+    [TestMethod]
     public async Task Command_ShowsOwnProgressAndDisposesRegistration()
     {
         var players = new PlayerRegistry(new AnoEventBus());

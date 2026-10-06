@@ -49,11 +49,18 @@ public sealed class ChallengeScheduleSnapshot
         if (configuration.CheckpointSeconds is < 10 or > 600 || configuration.Recurring is null
             || configuration.Predefined is null || configuration.Recurring.Count > 32 || configuration.Predefined.Count > 96)
             throw new ArgumentException("Challenges require a 10-600 second checkpoint, at most 32 recurring and 96 predefined definitions.");
-        var recurring = configuration.Recurring.Select(item => item is null
-            ? throw new ArgumentException("Recurring challenges cannot be null.")
-            : item with { PrerequisiteIds = item.PrerequisiteIds is null || item.PrerequisiteIds.Count > ChallengeCatalogSnapshot.MaxPrerequisites
-                ? throw new ArgumentException("Recurring prerequisites are required and bounded.")
-                : Array.AsReadOnly(item.PrerequisiteIds.ToArray()) }).ToArray();
+        var recurring = configuration.Recurring.Select(item =>
+        {
+            if (item is null || item.PrerequisiteIds is null)
+                throw new ArgumentException("Recurring challenges and prerequisites cannot be null.");
+            var prerequisites = item.PrerequisiteIds.Take(ChallengeCatalogSnapshot.MaxPrerequisites + 1).ToArray();
+            if (prerequisites.Length > ChallengeCatalogSnapshot.MaxPrerequisites)
+                throw new ArgumentException("Recurring prerequisites exceed the supported bound.");
+            return item with
+            {
+                PrerequisiteIds = Array.AsReadOnly(prerequisites),
+            };
+        }).ToArray();
         if (recurring.Any(item => item.WindowKind is not ChallengeWindowKind.Daily and not ChallengeWindowKind.Weekly))
             throw new ArgumentException("Recurring challenges must be daily or weekly; seasons require dated predefined definitions.");
         var predefined = ChallengeCatalogSnapshot.Create(configuration.Predefined).Challenges;
