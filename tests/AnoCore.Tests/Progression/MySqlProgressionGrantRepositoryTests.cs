@@ -54,6 +54,24 @@ public sealed class MySqlProgressionGrantRepositoryTests
     }
 
     [TestMethod]
+    public async Task Grant_PreservesFullDecimalBoostMetadataAfterRestart()
+    {
+        var repository = new MySqlProgressionGrantRepository(_database);
+        var committed = await repository.ApplyAsync(Player,
+            new ProgressionGrantCandidate(
+                "precision", ProgressionXpSource.Gameplay, 1000, 1234,
+                "gameplay.round", Friday, "fractional", 1.2345m));
+
+        var restarted = new MySqlProgressionGrantRepository(_database);
+        var stored = await restarted.ReadGrantAsync(Player, "precision");
+
+        Assert.IsTrue(committed.Applied);
+        Assert.IsNotNull(stored);
+        Assert.AreEqual(1.2345m, stored.BoostMultiplier);
+        Assert.AreEqual(1234L, stored.AwardedXp);
+    }
+
+    [TestMethod]
     public async Task SameOriginalGrant_FirstCommittedBoostWinsAcrossDefinitionChanges()
     {
         var repository = new MySqlProgressionGrantRepository(_database);
