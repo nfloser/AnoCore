@@ -380,3 +380,60 @@ a successful completion call before expiry does not produce a late payout. Store
 completions remain completed after expiry/restart. This is a storage API, not live
 challenge configuration, a scheduler, commands, notifications or season-XP routing;
 those remain integration work under #229. No competitive rank mutation occurs.
+
+## Live recurring and predefined challenges
+
+Issue #260 loads `config/challenges.json` and registers `!anochallenges [page]`
+for connected players. The default enabled configuration has three weekly tasks:
+10 headshots, 10 round wins and 5 bomb plants, each with a base reward of 100 XP.
+Daily windows start at 00:00 UTC; weekly windows start Monday 00:00 UTC. They follow
+UTC through daylight-saving changes. A new window is a new payable occurrence.
+
+Configuration fields:
+
+- `Enabled` (default true) controls challenge module composition.
+- `CheckpointSeconds` (default 30, valid 10-600) controls completion polling.
+- `Recurring` contains at most 32 daily/weekly templates with `Id`, `Version`,
+  `Name`, `WindowKind`, `Statistic`, `Target`, `RewardXp`, `PrerequisiteIds`.
+- `Predefined` contains at most 96 dated `ChallengeDefinition` entries, including
+  `StartsAtUtc` and `EndsAtUtc`. Season challenges use `WindowKind: 2` and arbitrary
+  non-empty UTC windows. They do not automatically create/close a season account.
+
+Enums use the existing numeric JSON representation (`Daily=0`, `Weekly=1`,
+`Season=2`, `HeadshotKill=15`, `RoundWon=8`, `BombPlanted=2`). Example weekly template:
+
+```json
+{
+  "Id": "weekly.headshots", "Version": 1, "Name": "Weekly headshots",
+  "WindowKind": 1, "Statistic": 15, "Target": 10, "RewardXp": 100,
+  "PrerequisiteIds": []
+}
+```
+
+Defaults are written by the existing configuration store. Empty template and
+predefined lists intentionally expose no active challenges. IDs are case-sensitive
+and unique across both lists; prerequisite references and cycles are validated.
+Invalid challenge configuration disables this optional module while other features
+continue. Changes require plugin restart/reload. Immutable configuration snapshots
+prevent later list mutations from changing an active module.
+
+Checkpoints start after successful plugin activation, then repeat without overlap.
+They attempt active challenges in prerequisite order using the existing shared
+database and raw accepted gameplay events. Failures are logged per challenge and
+retried on later checkpoints. Current-window events predating plugin startup count;
+expired windows cannot receive a new completion. A server stopped across an expiry
+therefore does not receive retrospective payouts. Pending checkpoints are cancelled
+on unload and stale player sessions cannot receive command output.
+
+The command lists up to five active challenges per page with completion/lock state,
+progress, configured base reward and UTC expiry. Actual awarded XP can differ under
+an explicitly eligible reward boost. XP curves and scheduled boosts reuse
+`achievements.json`'s `Levels`/`Boosts`, even if its `Enabled` flag disables permanent
+achievement evaluation. Invalid shared XP definitions disable challenge composition
+as well. Rank points remain independent.
+
+Challenge notifications, season-XP routing, historical presentation and leaderboards
+remain follow-ups. Native acceptance: verify default creation, `!anochallenges`,
+accepted gameplay progress, one durable reward, restart replay, Monday/daily rollover,
+predefined season tasks, disabled/invalid configuration isolation and unload/reconnect
+on a disposable CS2/DatHost server. Automated tests do not establish native behavior.

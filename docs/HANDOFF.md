@@ -1,3 +1,17 @@
+# Live daily/weekly/season challenge integration — 2026-10-06
+
+- #260 loads immutable bounded `challenges.json` schedules. Defaults are three weekly
+  headshot/round-win/bomb-plant tasks; UTC daily and Monday-weekly rollover is automatic.
+- Dated predefined daily/weekly/season tasks share the same durable repository.
+- `!anochallenges [page]` shows session-checked active progress and expiry.
+- Shared `achievements.json` XP definitions apply; rank points are unchanged.
+- Non-overlapping checkpoints respect dependency order, isolate failures and cancel
+  on unload. Pending/active ownership and native repeat timers are integrated.
+- Seven unit tests cover snapshots, UTC windows, command/session safety, dependency
+  ordering, failures, overlap/unload and registration collision. CI is required.
+- Challenge notices, gameplay XP, season reward routing/history/leaderboards and
+  remaining rank policies are still open. Native CS2 tests remain manual.
+
 # Durable challenge rewards — 2026-10-06
 
 - #258 adds window-scoped reads from the raw gameplay ledger and migration 017.
