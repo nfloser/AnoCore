@@ -69,6 +69,7 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
         Combat = new MySqlCombatRepository(database);
         GameplayStats = new MySqlGameplayStatRepository(database);
         RankAdjustments = new MySqlRankAdjustmentRepository(database);
+        RankPointEvents = new MySqlRankPointEventRepository(database);
         RankAdjustmentAdministration = new MySqlRankAdjustmentAdministrationService(database);
         StatisticsResetAdministration = new MySqlStatisticsResetAdministrationService(database);
         WarningRepository = new MySqlWarningRepository(database);
@@ -117,6 +118,7 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
         Add<ICombatDetailRepository>(Combat);
         Add<IGameplayStatRepository>(GameplayStats);
         Add<IRankAdjustmentRepository>(RankAdjustments);
+        Add<IRankPointEventRepository>(RankPointEvents);
         Add<IRankAdjustmentAdministrationService>(RankAdjustmentAdministration);
         Add<IStatisticsResetAdministrationService>(StatisticsResetAdministration);
         Add<IWarningRepository>(WarningRepository);
@@ -164,6 +166,8 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
 
     public MySqlRankAdjustmentRepository RankAdjustments { get; }
 
+    public MySqlRankPointEventRepository RankPointEvents { get; }
+
     public MySqlRankAdjustmentAdministrationService RankAdjustmentAdministration { get; }
 
     public MySqlStatisticsResetAdministrationService StatisticsResetAdministration { get; }
@@ -202,7 +206,7 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
         await new DatabaseStartupProbe(
             database,
             [new CoreSchemaMigration001(), new ModerationSchemaMigration002(), new AdminAuditSchemaMigration003(), new WarningSchemaMigration004(), new PlaytimeSchemaMigration005(), new CombatSchemaMigration006(), new RankAdjustmentSchemaMigration007(), new PlaytimeStateSchemaMigration008(), new CombatDetailSchemaMigration009(), new GameplayStatSchemaMigration010(),
-             new StatisticsResetSchemaMigration011()])
+             new StatisticsResetSchemaMigration011(), new RankPointEventSchemaMigration018()])
             .EnsureReadyAsync(cancellationToken).ConfigureAwait(false);
         var runtime = new RuntimeServices(
             database,
