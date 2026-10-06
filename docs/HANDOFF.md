@@ -1,4 +1,25 @@
-# Current authoritative checkpoint — 2026-10-04
+# Reference parity follow-up — 2026-10-06
+
+- Reference checked: K4ryuu/K4-Zenith `dev` commit
+  `94cd8fb34ffa2121d07ec7846dbcb9c1ac37935e`.
+- #224 is merged: local management clients now bound response exchanges separately
+  from connection establishment. CI #610 passed before merge.
+- #226 / PR #227 adds periodic playtime notices, validated server configuration and
+  the persisted `playtime.notifications` toggle through existing settings UI.
+  Notices read totals after checkpointing and use session-pinned shared messaging.
+  Check the exact PR head's full CI before merging.
+- #228 records actual missing rank functionality found in the reference source.
+  The current rank formula only weights K/D/A. Objective/special-kill statistics
+  do not yet imply rank rewards, dynamic multipliers, streak bonuses or native
+  scoreboard rank presentation. Do not classify these as native-test-only gaps.
+- #225 was withdrawn at the user's direction. CS2 native Steam group clan-tag
+  selection/display is retained; no new clan-tag override implementation was
+  published. CounterStrikeSharp latest release is 1.0.376 and already pinned.
+- Current scope: continue implementation, integration, automated tests and docs
+  without waiting for user-run CS2/DatHost tests. Keep native verification evidence
+  separate and do not claim production verification from automated checks.
+
+# Consolidated main checkpoint — 2026-10-04
 
 - `main` has been consolidated through #209 and then hardened with #211 (management status rate-limit/audit/exception guards) and #212 (Tournament-AnoVeto coordination).
 - The current code-complete stack includes persistent player/settings/moderation/statistics/ranks/playtime, combined statistics and settings/rank/tag menus, audited statistics reset, extended administration, CustomHud/AnoVeto, tournament state/persistence/reconnect enforcement/control/demo-backup/spectator policy/map selection, the packaged module SDK and the authenticated transport-neutral management API core.

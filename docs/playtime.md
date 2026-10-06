@@ -1,5 +1,23 @@
 # Player playtime (development)
 
+## Periodic notifications
+
+`config/playtime-notifications.json` defaults to `Enabled: true` and
+`IntervalSeconds: 300`. Intervals must be between 30 and 86400 seconds; set
+`Enabled` to false to turn off notifications server-wide. Configuration changes
+take effect after plugin restart.
+
+The persisted default-on `playtime.notifications` preference appears in the shared
+settings menu and commands. For example, `!anotoggle playtime.notifications off`
+turns off periodic messages for the caller. Manual `!anoplaytime` queries remain
+available. The first periodic message follows one complete interval after connecting;
+reconnect starts a fresh interval. Each notification uses totals read after the
+durable heartbeat checkpoint and targets the exact current session through the
+shared messaging service. Overlapping ticks cannot duplicate notifications.
+Disabled preferences and failed reads/deliveries are attempted at most once per
+interval; they never roll back tracked playtime. Unload cancels pending reads and
+removes the owned toggle. Native chat delivery remains a separate server check.
+
 A separate Stats module records sessions by SteamID64 and random session ID. Its MariaDB ledger stores connection start, the last accounted checkpoint and optional close time. Replayed connect and heartbeat callbacks do not duplicate time; delayed events for an older session cannot update a newer session. A closed session never advances again. A reconnect closes the previous session and opens a new one.
 
 The plugin records disconnects and checkpoints connected players every five seconds. At startup it opens already connected players. On unload it schedules a final checkpoint; an abrupt host crash can lose time since the last successful checkpoint, bounded by the heartbeat interval when the database is responsive. Offline time is never inferred across a restart. Durable writes may lag during database outages; errors appear in runtime logs.
