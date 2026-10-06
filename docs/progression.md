@@ -519,3 +519,20 @@ verify original-event-time processing after reconnect/restart, overlap with a
 stronger explicit event, and confirm challenge rewards/rank points remain separate.
 Four added tests cover UTC/offset boundaries, overlap/ties, configuration bounds and
 snapshots, and delayed idempotent MariaDB payout. Native server checks remain manual.
+
+## Challenge completion notices
+
+Issue #266 adds private chat notices after newly committed challenge rewards. Messages
+use the stored awarded XP (including eligible scheduled boosts), never an estimated
+base reward. Replayed completions and unsuccessful claims produce no notice.
+
+The persistent `progression.challenge-notifications` toggle defaults to true and is
+available through the shared settings menu/commands. It remains available when
+achievements are disabled. Notices are pinned to the connected player session;
+reconnect, unload, preference-read and delivery failures cannot replay or undo XP.
+Delivery is best effort: a message lost after commit is not replayed after restart.
+
+Acceptance: finish a challenge, verify one own notice with the granted XP, run the
+checkpoint/reconnect again, disable the toggle, verify no extra notices, and test
+unload/reconnect during delivery on a disposable CS2 server. Automated tests cover
+commit/replay, settings, transport failures, stale sessions and module ownership.

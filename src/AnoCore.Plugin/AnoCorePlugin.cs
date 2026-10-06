@@ -622,7 +622,8 @@ public sealed class AnoCorePlugin : BasePlugin
                     await ProgressionPersistenceBootstrap.EnsureReadyAsync(database, timeout.Token).ConfigureAwait(false);
                     createdChallenges = new ChallengeModule(challengeConfiguration.Snapshot(), xpConfiguration.Snapshot().Xp,
                         players, new MySqlChallengeRepository(database), created.Commands,
-                        reportError: exception => Logger.LogError(exception, "Challenge checkpoint failed."));
+                        reportError: exception => Logger.LogError(exception, "Challenge checkpoint failed."),
+                        settings: created.Settings, toggles: created.ToggleCatalog, messages: created.Messages);
                 }
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
