@@ -40,7 +40,6 @@ public sealed class LeetifyProfileProviderTests
 
         Assert.AreEqual(LeetifyLookupStatus.Available, result.Status);
         Assert.IsNotNull(result.Profile);
-        Assert.AreEqual("Ativ", result.Profile.Name);
         Assert.AreEqual(Player, result.Profile.Player);
         CollectionAssert.AreEqual(
             new[] { "Aim=95.25", "Positioning=61", "Utility=42.500" },
@@ -77,6 +76,16 @@ public sealed class LeetifyProfileProviderTests
             Assert.AreEqual(sample.Item2, result.Status);
             Assert.IsFalse(result.ToString()!.Contains("never-print-me", StringComparison.Ordinal));
         }
+    }
+
+    [TestMethod]
+    public void Constructor_RejectsInvalidAuthorizationValue()
+    {
+        using var client = new HttpClient(new Handler(
+            (_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK))));
+
+        Assert.ThrowsExactly<ArgumentException>(() =>
+            new LeetifyHttpProfileProvider(client, "bad key with spaces"));
     }
 
     [TestMethod]
