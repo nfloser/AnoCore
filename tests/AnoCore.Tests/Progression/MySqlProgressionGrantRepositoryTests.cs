@@ -236,6 +236,8 @@ public sealed class MySqlProgressionGrantRepositoryTests
             foreach (var statement in new[]
             {
                 "DROP TRIGGER IF EXISTS fail_progression_grant",
+                "DROP TABLE IF EXISTS ano_progression_season_runtime",
+                "DROP TABLE IF EXISTS ano_progression_seasons",
                 "DROP TABLE IF EXISTS ano_progression_grants",
                 "DROP TABLE IF EXISTS ano_progression_accounts",
                 "DROP TABLE IF EXISTS ano_schema_migrations",

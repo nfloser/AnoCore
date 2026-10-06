@@ -10,7 +10,8 @@ public static class ProgressionPersistenceBootstrap
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(database);
-        await new MigrationRunner(database, [new ProgressionSchemaMigration013()])
+        await new MigrationRunner(database,
+            [new ProgressionSchemaMigration013(), new ProgressionSeasonSchemaMigration014()])
             .ApplyPendingAsync(cancellationToken)
             .ConfigureAwait(false);
     }

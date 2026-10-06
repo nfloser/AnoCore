@@ -21,6 +21,28 @@
 - Native CS2 chat/link presentation and one disposable live-key check remain
   real-server acceptance items under #23/#230.
 
+# Season catalog lifecycle checkpoint — 2026-10-06
+
+- #240 / branch `feature/240-season-catalog-lifecycle` adds bounded versioned
+  season definitions, deterministic current/previous/next lookup and non-overlap
+  validation using UTC half-open windows.
+- Migration 014 persists every accepted definition version plus acceptance/closure
+  timestamps. Highest accepted version per stable season ID is effective; older
+  versions remain readable.
+- Definition acceptance is immutable and idempotent. New definitions/revisions must
+  be accepted before their relevant season start; retries of an already accepted
+  snapshot remain idempotent even after start.
+- A singleton persistence lock serializes catalog mutation so concurrent overlapping
+  season accepts cannot both commit.
+- Season closure is end-boundary checked, idempotent and restart-safe; the first
+  closure timestamp remains authoritative and definitions are retained.
+- Automated coverage includes UTC boundaries/gaps, caller isolation, invalid and
+  overlapping catalogs, restart restore, version conflicts/supersession, concurrent
+  overlap, close idempotency and late-first-acceptance regression.
+- Season player XP, challenge/achievement evaluation, historical leaderboard/result
+  snapshots, commands and native CounterStrikeSharp presentation remain follow-ups
+  under #229.
+
 # Lifetime progression persistence checkpoint — 2026-10-06
 
 - #238 / branch `feature/238-lifetime-xp-persistence` builds on merged #236 with
