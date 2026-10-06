@@ -134,6 +134,8 @@ jobs:
           test -s artifacts/plugins/AnoCore/AnoCore.Abstractions.dll
           test -s artifacts/plugins/AnoCore/AnoCore.Modules.Admin.dll
           test -s artifacts/plugins/AnoCore/AnoCore.Modules.Stats.dll
+          test -s artifacts/plugins/AnoCore/AnoCore.Modules.Progression.dll
+          test -s artifacts/plugins/AnoCore/AnoCore.Modules.Progression.Persistence.dll
           test -s artifacts/plugins/AnoCore/AnoCore.Modules.AnoVeto.dll
           test -s artifacts/plugins/AnoCore/AnoCore.Modules.Tournament.dll
           test -s artifacts/plugins/AnoCore/AnoCore.Modules.Tournament.Persistence.dll

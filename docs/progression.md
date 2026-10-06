@@ -273,3 +273,65 @@ pretending persistence already succeeded.
 
 Durable challenge completion/progress state, idempotent reward payout, completion
 events and player-facing presentation remain separate follow-up packages under #229.
+
+## Live permanent achievements
+
+Issue #254 composes permanent achievements into the plugin with the shared
+`IDatabase`, migration bootstrap, statistics repository and command registry.
+The development plugin package includes both progression assemblies.
+
+On first startup, `config/achievements.json` is created with:
+
+- `Enabled: true`, `CheckpointSeconds: 30` (allowed range 10–600);
+- levels 1–5 at cumulative XP 0, 100, 300, 600 and 1000;
+- no scheduled boosts initially;
+- headshots at 10/50/100, round wins at 10/50/100 and bomb plants at 5/25/50;
+- tier rewards of 100/200/300 lifetime XP for each achievement.
+
+The catalog supports 1–32 achievements with unique case-insensitive IDs, printable
+names, positive definition versions and the previously documented bounded tiers.
+Configuration is validated and copied into immutable definition snapshots.
+Changes require a plugin restart; this package does not add live config reload.
+Disable the feature with `Enabled: false` and restart to retain stored progression
+without registering its commands or reconciliation timer.
+
+### Existing players and checkpoint behavior
+
+Achievements deliberately count existing lifetime statistics **retroactively**.
+A player already at 100 recorded headshots receives all three previously unawarded
+headshot tiers at the next reconciliation. Existing rank points are untouched.
+No separate baseline or duplicate kill/objective counter is created.
+
+The module reconciles online human players after successful runtime activation and
+periodically thereafter. Each checkpoint reads existing lifetime gameplay totals
+once per player. Unchanged totals in the same session skip unlock transactions.
+Reconnect/restart causes another check against durable unlock state. A failed
+player does not block later players; failures are not cached and retry on the next
+checkpoint. Overlapping checkpoints are skipped instead of accumulating work.
+Changes normally become visible within the configured checkpoint interval.
+
+Unlock time is the reconciliation instant, not the historical timestamp of the
+first statistic. Explicit achievement-eligible boosts therefore use that instant;
+default gameplay-only boosts do not multiply achievement rewards. Statistics resets
+retain permanent unlocks, as specified by the persistence layer.
+
+Unload kills the timer, cancels in-flight work and unregisters owned commands.
+Invalid configuration or failed progression startup is logged and isolated from
+other AnoCore modules. This path does not perform XP queries inside native gameplay
+callbacks. A disconnect after a durable transaction starts may still commit a valid
+lifetime unlock for that account; stale player sessions do not receive command data.
+
+### Player commands
+
+- `!anolevel`: lifetime XP and configured XP level, independent from rank points.
+- `!anoachievements [page]`: five catalog entries per page, awarded tiers and progress.
+
+Both commands require a connected player. Responses use the existing command bridge
+and are suppressed when the caller reconnects or the module unloads during a read.
+The checkpoint grants rewards; opening a command does not manufacture new counters
+or arbitrary XP grants.
+
+This package makes permanent gameplay-stat achievements usable on the server.
+Generic gameplay XP, combat-only achievement metrics, unlock notifications, richer
+menus, challenge/season presentation and leaderboards remain separate #229 work.
+Native CS2/DatHost behavior has not been verified by the automated build/test gate.
