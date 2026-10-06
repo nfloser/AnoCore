@@ -152,6 +152,7 @@ public sealed class MySqlAchievementRepositoryTests
             foreach (var sql in new[]
             {
                 "DROP TRIGGER IF EXISTS fail_achievement_unlock",
+                "DROP TABLE IF EXISTS ano_progression_challenges",
                 "DROP TABLE IF EXISTS ano_progression_achievements",
                 "DROP TABLE IF EXISTS ano_progression_season_grants",
                 "DROP TABLE IF EXISTS ano_progression_season_accounts",

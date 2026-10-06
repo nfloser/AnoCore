@@ -125,3 +125,9 @@ The plugin now packages both progression assemblies and loads
 `!anolevel`, `!anoachievements`, checkpoint timing and disabling the feature.
 It uses the existing database connection and applies progression migrations
 013–016. No separate achievement credentials or server plugin is required.
+
+Progression migration 017 adds durable per-occurrence challenge completions linked
+to the common XP ledger. Challenge storage reuses `IDatabase` and existing gameplay
+events; no separate connection or credentials are required. Back up progression
+accounts, grants and completions together. Rolling back plugin binaries does not
+require deleting the additive table. Live challenge scheduling is not included yet.

@@ -350,3 +350,33 @@ durable delivery queue: a crash after committing rewards can lose the message,
 but cannot grant rewards twice. Reconnect and unload suppress old-session output.
 Startup retroactive unlocks follow the same preference. Native CS2 chat acceptance
 remains separate from automated tests.
+
+## Durable challenge completion and rewards
+
+Issue #258 adds `IChallengeRepository` and `MySqlChallengeRepository`. Migration
+017 stores a completion keyed by player, stable challenge ID and UTC window start.
+A new week/day uses a new start and can pay again. Changing a definition version or
+reward for an already completed occurrence cannot pay it again; its first committed
+version and XP grant remain authoritative. A completed occurrence cannot change its
+end boundary. Persisted windows require microsecond precision to match DATETIME(6).
+
+Progress is computed from the existing raw durable gameplay event ledger, filtered
+by player, statistic and `[start, end)` plus an upper bound of the evaluation instant.
+Future-dated events cannot complete a challenge early. No lifetime aggregate, new
+counter store or reset-sensitive statistics view is used. Statistics resets preserve
+challenge progress; actual deletion/purge of raw events can remove uncompleted
+progress. Only events accepted by the existing gameplay ingestion policy count.
+
+`ReadAsync` reports observational status; `CompleteAsync` reevaluates under the shared
+per-player progression account lock. Prerequisites require committed completions for
+their configured ID/window occurrence; last week's completion does not satisfy next
+week's prerequisite. Completion and its lifetime XP grant commit in one transaction.
+Concurrent/repeated calls pay once; insert failure, XP overflow and orphan ledger
+collisions fail without leaving partial rewards. Default gameplay boosts do not
+boost challenge rewards; explicit `ChallengeReward` eligibility does.
+
+Completions are permitted only while the window is active. Reaching a target without
+a successful completion call before expiry does not produce a late payout. Stored
+completions remain completed after expiry/restart. This is a storage API, not live
+challenge configuration, a scheduler, commands, notifications or season-XP routing;
+those remain integration work under #229. No competitive rank mutation occurs.
