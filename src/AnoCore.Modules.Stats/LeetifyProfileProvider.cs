@@ -22,7 +22,6 @@ public sealed record LeetifyMetric(string Name, string Value);
 
 public sealed record LeetifyProfileContext(
     PlayerId Player,
-    string Name,
     IReadOnlyList<LeetifyMetric> Metrics,
     Uri ProfileUri);
 
@@ -50,7 +49,7 @@ public sealed class LeetifyHttpProfileProvider : ILeetifyProfileProvider
         new(new HttpClientHandler { AllowAutoRedirect = false });
 
     private readonly HttpClient _client;
-    private readonly string _apiKey;
+    private readonly AuthenticationHeaderValue _authorization;
     private readonly TimeSpan _timeout;
     private readonly int _maxResponseBytes;
     private readonly int _maxRequestsPerMinute;
@@ -72,16 +71,7 @@ public sealed class LeetifyHttpProfileProvider : ILeetifyProfileProvider
         int maxRequestsPerMinute = DefaultMaxRequestsPerMinute)
     {
         _client = client ?? throw new ArgumentNullException(nameof(client));
-        if (string.IsNullOrWhiteSpace(apiKey)
-            || apiKey.Length > 4096
-            || apiKey.Any(character => character is '\r' or '\n'))
-        {
-            throw new ArgumentException(
-                "A bounded Leetify API key is required.",
-                nameof(apiKey));
-        }
-
-        _apiKey = apiKey;
+        _authorization = BuildAuthorization(apiKey);
         _timeout = timeout ?? DefaultTimeout;
         if (_timeout < TimeSpan.FromMilliseconds(10)
             || _timeout > TimeSpan.FromSeconds(15))
@@ -125,8 +115,7 @@ public sealed class LeetifyHttpProfileProvider : ILeetifyProfileProvider
                 "v3/profile?steam64_id="
                 + player.SteamId64.ToString(CultureInfo.InvariantCulture));
             using var request = new HttpRequestMessage(HttpMethod.Get, requestUri);
-            request.Headers.Authorization =
-                new AuthenticationHeaderValue("Bearer", _apiKey);
+            request.Headers.Authorization = _authorization;
             request.Headers.Accept.Add(
                 new MediaTypeWithQualityHeaderValue("application/json"));
 
@@ -181,6 +170,30 @@ public sealed class LeetifyHttpProfileProvider : ILeetifyProfileProvider
         finally
         {
             _gate.Release();
+        }
+    }
+
+    private static AuthenticationHeaderValue BuildAuthorization(string apiKey)
+    {
+        if (string.IsNullOrWhiteSpace(apiKey)
+            || apiKey.Length > 4096
+            || apiKey.Any(character => character is '\r' or '\n'))
+        {
+            throw new ArgumentException(
+                "A bounded Leetify API key is required.",
+                nameof(apiKey));
+        }
+
+        try
+        {
+            return new AuthenticationHeaderValue("Bearer", apiKey);
+        }
+        catch (FormatException exception)
+        {
+            throw new ArgumentException(
+                "Leetify API key is not valid for an authorization header.",
+                nameof(apiKey),
+                exception);
         }
     }
 
@@ -268,10 +281,7 @@ public sealed class LeetifyHttpProfileProvider : ILeetifyProfileProvider
             if (!string.Equals(privacyMode, "public", StringComparison.OrdinalIgnoreCase))
                 return new LeetifyLookupResult(LeetifyLookupStatus.InvalidResponse);
 
-            if (!root.TryGetProperty("name", out var name)
-                || name.ValueKind != JsonValueKind.String
-                || string.IsNullOrWhiteSpace(name.GetString())
-                || !root.TryGetProperty("rating", out var rating)
+            if (!root.TryGetProperty("rating", out var rating)
                 || rating.ValueKind != JsonValueKind.Object)
             {
                 return new LeetifyLookupResult(
@@ -289,7 +299,6 @@ public sealed class LeetifyHttpProfileProvider : ILeetifyProfileProvider
                 LeetifyLookupStatus.Available,
                 new LeetifyProfileContext(
                     player,
-                    name.GetString()!,
                     metrics.AsReadOnly(),
                     new Uri(
                         "https://leetify.com/app/profile/"
