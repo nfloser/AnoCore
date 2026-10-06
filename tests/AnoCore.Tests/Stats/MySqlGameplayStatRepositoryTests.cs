@@ -1,9 +1,9 @@
 using AnoCore.Abstractions.Players;
 using AnoCore.Abstractions.Stats;
+using AnoCore.Modules.Stats;
 using AnoCore.Runtime.Persistence;
 using AnoCore.Runtime.Persistence.Migrations;
 using AnoCore.Runtime.Stats;
-using AnoCore.Modules.Stats;
 
 namespace AnoCore.Tests.Stats;
 
