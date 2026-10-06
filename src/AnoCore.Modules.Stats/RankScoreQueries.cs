@@ -7,7 +7,13 @@ internal static class RankScoreQueries
 {
     public static void ValidateRepository(ICombatRepository repository, RankConfiguration configuration)
     {
-        if ((configuration.StartingPoints != 0
+        if (configuration.ScoringMode == RankScoringMode.EventLedger
+            && repository is not IRankEventScoreRepository)
+            throw new ArgumentException(
+                "Event-ledger rank scoring requires an event score repository.",
+                nameof(repository));
+        if (configuration.ScoringMode == RankScoringMode.Derived
+            && (configuration.StartingPoints != 0
                 || configuration.GameplayPoints.Any(pair => pair.Value != 0))
             && repository is not IGameplayRankScoreRepository)
             throw new ArgumentException(
