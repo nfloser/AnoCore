@@ -59,49 +59,57 @@ public sealed class MySqlProgressionGrantRepository : IProgressionGrantRepositor
         ArgumentNullException.ThrowIfNull(candidate);
         candidate = NormalizeAndValidate(candidate);
 
-        return _database.InTransactionAsync(async (connection, transaction, token) =>
-        {
-            await EnsureAccountAsync(
-                connection, transaction, playerId, token).ConfigureAwait(false);
-            var state = await ReadLifetimeForUpdateAsync(
-                connection, transaction, playerId, token).ConfigureAwait(false);
-
-            var existing = await ReadGrantAsync(
-                connection, transaction, playerId, candidate.GrantId, forUpdate: false, token)
-                .ConfigureAwait(false);
-            if (existing is not null)
-            {
-                if (!MatchesOriginalCandidate(existing, candidate))
-                    throw new ProgressionGrantConflictException(playerId, candidate.GrantId);
-                return new ProgressionGrantCommitResult(false, existing);
-            }
-
-            var lifetimeAfter = checked(state.LifetimeXp + candidate.AwardedXp);
-            var revisionAfter = checked(state.Revision + 1);
-            var grant = new ProgressionGrantRecord(
-                playerId,
-                candidate.GrantId,
-                candidate.Source,
-                candidate.BaseXp,
-                candidate.AwardedXp,
-                candidate.Reason,
-                candidate.OccurredAtUtc,
-                candidate.BoostId,
-                candidate.BoostMultiplier,
-                lifetimeAfter,
-                revisionAfter);
-
-            await InsertGrantAsync(
-                connection, transaction, grant, token).ConfigureAwait(false);
-            await UpdateLifetimeAsync(
-                connection, transaction, playerId, state.Revision,
-                lifetimeAfter, revisionAfter, token).ConfigureAwait(false);
-
-            return new ProgressionGrantCommitResult(true, grant);
-        }, IsolationLevel.ReadCommitted, cancellationToken);
+        return _database.InTransactionAsync(
+            (connection, transaction, token) => ApplyInTransactionAsync(
+                connection, transaction, playerId, candidate, token),
+            IsolationLevel.ReadCommitted, cancellationToken);
     }
 
-    private static async ValueTask EnsureAccountAsync(
+    internal static async ValueTask<ProgressionGrantCommitResult> ApplyInTransactionAsync(
+        DbConnection connection, DbTransaction transaction, PlayerId playerId,
+        ProgressionGrantCandidate candidate, CancellationToken token)
+    {
+        candidate = NormalizeAndValidate(candidate);
+        await EnsureAccountAsync(
+            connection, transaction, playerId, token).ConfigureAwait(false);
+        var state = await ReadLifetimeForUpdateAsync(
+            connection, transaction, playerId, token).ConfigureAwait(false);
+
+        var existing = await ReadGrantAsync(
+            connection, transaction, playerId, candidate.GrantId, forUpdate: false, token)
+            .ConfigureAwait(false);
+        if (existing is not null)
+        {
+            if (!MatchesOriginalCandidate(existing, candidate))
+                throw new ProgressionGrantConflictException(playerId, candidate.GrantId);
+            return new ProgressionGrantCommitResult(false, existing);
+        }
+
+        var lifetimeAfter = checked(state.LifetimeXp + candidate.AwardedXp);
+        var revisionAfter = checked(state.Revision + 1);
+        var grant = new ProgressionGrantRecord(
+            playerId,
+            candidate.GrantId,
+            candidate.Source,
+            candidate.BaseXp,
+            candidate.AwardedXp,
+            candidate.Reason,
+            candidate.OccurredAtUtc,
+            candidate.BoostId,
+            candidate.BoostMultiplier,
+            lifetimeAfter,
+            revisionAfter);
+
+        await InsertGrantAsync(
+            connection, transaction, grant, token).ConfigureAwait(false);
+        await UpdateLifetimeAsync(
+            connection, transaction, playerId, state.Revision,
+            lifetimeAfter, revisionAfter, token).ConfigureAwait(false);
+
+        return new ProgressionGrantCommitResult(true, grant);
+    }
+
+    internal static async ValueTask EnsureAccountAsync(
         DbConnection connection,
         DbTransaction transaction,
         PlayerId playerId,
@@ -120,7 +128,7 @@ public sealed class MySqlProgressionGrantRepository : IProgressionGrantRepositor
         await command.ExecuteNonQueryAsync(token).ConfigureAwait(false);
     }
 
-    private static async ValueTask<ProgressionLifetimeState> ReadLifetimeForUpdateAsync(
+    internal static async ValueTask<ProgressionLifetimeState> ReadLifetimeForUpdateAsync(
         DbConnection connection,
         DbTransaction transaction,
         PlayerId playerId,

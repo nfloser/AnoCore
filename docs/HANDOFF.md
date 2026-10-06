@@ -1,3 +1,14 @@
+# Atomic achievement rewards — 2026-10-06
+
+- #248 commits permanent unlocks and XP ledger rewards in the same transaction,
+  reusing `IDatabase` and the common progression account lock/grant implementation.
+- Migration 016 leaves version 015 reserved for the ongoing season-XP package.
+- Eight MariaDB tests cover replay/restart, concurrent evaluators, stats reset,
+  complete-batch rollback, overflow, boost opt-in, orphan grant collisions and
+  independent player identities. Local SDK remains unavailable; CI is required.
+- No separate DB connection or production credential is added. Catalog loading,
+  native event wiring and player UI remain the next integration boundary.
+
 # Permanent achievement evaluation — 2026-10-06
 
 - #244 adds immutable versioned achievement tiers backed by existing lifetime
