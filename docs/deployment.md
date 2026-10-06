@@ -65,7 +65,8 @@ When the variable is missing, AnoCore does not register the external command and
 makes no Leetify requests. When enabled, lookups occur only when a user explicitly
 runs `!anoleetify`; returned API data is not persisted. The integration is
 bounded to the official HTTPS API endpoint, a three-second timeout, 128 KiB per
-response and two concurrent requests.
+response, two concurrent requests and 30 outbound requests per minute. Saturated
+concurrency fails immediately instead of queueing arbitrary command bursts.
 
 Leetify currently requires attribution/link-back and prohibits storing or
 recalculating its API metrics. Its 2026 privacy policy change also means the
