@@ -1,0 +1,39 @@
+using AnoCore.Abstractions.Stats;
+using AnoCore.Modules.Stats;
+
+namespace AnoCore.Tests.Stats;
+
+[TestClass]
+public sealed class GameplayRankWeightsTests
+{
+    [TestMethod]
+    public void Configuration_RejectsUnknownKindsAndUnboundedWeights()
+    {
+        var configuration = new RankConfiguration
+        {
+            GameplayPoints = new() { [(GameplayStatKind)255] = 1 },
+        };
+        Assert.IsNotEmpty(RankConfiguration.Validate(configuration));
+        configuration.GameplayPoints = new() { [GameplayStatKind.Mvp] = 1001 };
+        Assert.IsNotEmpty(RankConfiguration.Validate(configuration));
+        configuration.GameplayPoints = new() { [GameplayStatKind.HostageKilled] = -1000 };
+        Assert.IsEmpty(RankConfiguration.Validate(configuration));
+    }
+
+    [TestMethod]
+    public void Weights_SnapshotCallerDictionaryAndDiscardZeroWeights()
+    {
+        var source = new Dictionary<GameplayStatKind, int>
+        {
+            [GameplayStatKind.Mvp] = 5,
+            [GameplayStatKind.RoundPlayed] = 0,
+        };
+        var weights = new RankScoreWeights(2, 1, 1, source);
+        source[GameplayStatKind.Mvp] = 999;
+        Assert.AreEqual(5, weights.GameplayPoints[GameplayStatKind.Mvp]);
+        Assert.AreEqual(1, weights.GameplayPoints.Count);
+        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() =>
+            new RankScoreWeights(2, 1, 1,
+                new Dictionary<GameplayStatKind, int> { [GameplayStatKind.Mvp] = -1001 }));
+    }
+}

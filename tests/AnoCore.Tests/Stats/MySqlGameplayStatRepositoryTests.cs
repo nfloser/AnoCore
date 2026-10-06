@@ -41,6 +41,38 @@ public sealed class MySqlGameplayStatRepositoryTests
     }
 
     [TestMethod]
+    public async Task RankWeights_IncludeGameplayOnlyPlayersAndReplayWithoutDuplicatingPoints()
+    {
+        var gameplay = new MySqlGameplayStatRepository(_database);
+        var ranks = new MySqlCombatRepository(_database);
+        var other = new PlayerId(Player.SteamId64 + 1);
+        var weights = new RankScoreWeights(2, 1, 1,
+            new Dictionary<GameplayStatKind, int>
+            {
+                [GameplayStatKind.Mvp] = 5,
+                [GameplayStatKind.HostageKilled] = -3,
+            });
+        var bonus = new GameplayStatEvent(Guid.NewGuid(), Player, Now,
+            "de_dust2", GameplayStatKind.Mvp, 2);
+        await gameplay.RecordAsync(bonus);
+        await gameplay.RecordAsync(bonus);
+        await gameplay.RecordAsync(new GameplayStatEvent(Guid.NewGuid(), other, Now,
+            "de_dust2", GameplayStatKind.Mvp, 2));
+        var top = await ranks.GetTopScoresAsync(weights, 10, 0);
+        Assert.AreEqual(2, top.Count);
+        Assert.AreEqual(Player, top[0].PlayerId);
+        Assert.AreEqual(10L, top[0].Points);
+        Assert.AreEqual(2, (await ranks.GetScorePlacementAsync(other, weights))!.Position);
+        Assert.AreEqual(10L, await ranks.ReadRawScoreAsync(Player, weights));
+        Assert.IsEmpty(await ranks.GetTopScoresAsync(2, 1, 1, 10, 0));
+        await gameplay.RecordAsync(new GameplayStatEvent(Guid.NewGuid(), Player, Now,
+            "de_dust2", GameplayStatKind.HostageKilled, 4));
+        Assert.AreEqual(-2L, await ranks.ReadRawScoreAsync(Player, weights));
+        Assert.AreEqual(0L, (await ranks.GetScorePlacementAsync(Player, weights))!.Points);
+        Assert.AreEqual(other, (await ranks.GetTopScoresAsync(weights, 1, 0))[0].PlayerId);
+    }
+
+    [TestMethod]
     public async Task Replay_IsIdempotentAndConflictingPayloadFailsAfterRestart()
     {
         var repository = new MySqlGameplayStatRepository(_database);
