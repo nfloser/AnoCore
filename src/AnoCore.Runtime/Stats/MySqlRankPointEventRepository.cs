@@ -1,5 +1,4 @@
 using System.Data.Common;
-using System.Globalization;
 using AnoCore.Abstractions.Persistence;
 using AnoCore.Abstractions.Stats;
 using AnoCore.Runtime.Persistence.Migrations;
