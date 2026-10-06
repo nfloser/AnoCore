@@ -43,3 +43,7 @@ Persistence therefore survives reconnects and process restarts whenever the conf
 ## Runtime boundary
 
 CounterStrikeSharp-specific command and menu code lives only in `AnoCore.Plugin`. The contracts and runtime implementations remain independently unit-testable and reusable by later modules such as Admin, Stats, AnoVeto and Tournament.
+
+## Internal rating
+
+`!anorating` lists connected human players in pages of five. `!anorating list <page>` navigates the list; `!anorating <name-or-SteamID64>` shows observed dimensions and sample counts. New/low-sample players are explicitly unscored/provisional. The command supports server-console inspection and does not change teams, rank points or progression. See [AnoRating](ano-rating.md) for the versioned heuristic and confidence boundaries.

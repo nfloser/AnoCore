@@ -20,6 +20,28 @@ public sealed class GameplayStatsModuleTests
         new(2026, 10, 4, 17, 0, 0, TimeSpan.Zero);
 
     [TestMethod]
+    public async Task Composition_OwnsRatingRegistrationAndRollsBackOnCollision()
+    {
+        var players = new PlayerRegistry(new AnoEventBus());
+        var commands = new CommandRegistry(new AllowAll());
+        var module = new GameplayStatsModule(commands, players, new FakeRepository(),
+            combat: new FakeCombatRepository());
+        Assert.IsTrue((await commands.ExecuteAsync("!anorating", null)).Success);
+        module.Dispose();
+        Assert.AreEqual(CommandFailureReason.NotFound,
+            (await commands.ExecuteAsync("!anorating", null)).FailureReason);
+        using var reserved = commands.Register(new AnoCore.Abstractions.Modules.ModuleId("reserved"),
+            new CommandDescriptor("anorating", "Reserved."),
+            _ => ValueTask.FromResult(CommandResult.Ok("reserved")));
+        Assert.ThrowsExactly<InvalidOperationException>(() =>
+            new GameplayStatsModule(commands, players, new FakeRepository(),
+                combat: new FakeCombatRepository()));
+        Assert.AreEqual(CommandFailureReason.NotFound,
+            (await commands.ExecuteAsync("!anogamestats", null)).FailureReason);
+        Assert.AreEqual("reserved", (await commands.ExecuteAsync("!anorating", null)).Message);
+    }
+
+    [TestMethod]
     public async Task Command_ReadsOwnStatsWithOptionalMapAndDisposes()
     {
         var players = new PlayerRegistry(new AnoEventBus());
