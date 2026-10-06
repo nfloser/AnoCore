@@ -41,6 +41,7 @@ public sealed class LeetifyHttpProfileProvider : ILeetifyProfileProvider
 {
     public const int DefaultMaxResponseBytes = 128 * 1024;
     public const int DefaultMaxConcurrency = 2;
+    public const int DefaultMaxRequestsPerMinute = 30;
     public static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(3);
 
     private static readonly Uri DefaultBaseUri =
@@ -52,7 +53,10 @@ public sealed class LeetifyHttpProfileProvider : ILeetifyProfileProvider
     private readonly string _apiKey;
     private readonly TimeSpan _timeout;
     private readonly int _maxResponseBytes;
+    private readonly int _maxRequestsPerMinute;
     private readonly SemaphoreSlim _gate;
+    private readonly object _rateGate = new();
+    private readonly Queue<DateTimeOffset> _requestTimes = new();
 
     public LeetifyHttpProfileProvider(string apiKey)
         : this(SharedClient, apiKey)
@@ -64,7 +68,8 @@ public sealed class LeetifyHttpProfileProvider : ILeetifyProfileProvider
         string apiKey,
         TimeSpan? timeout = null,
         int maxResponseBytes = DefaultMaxResponseBytes,
-        int maxConcurrency = DefaultMaxConcurrency)
+        int maxConcurrency = DefaultMaxConcurrency,
+        int maxRequestsPerMinute = DefaultMaxRequestsPerMinute)
     {
         _client = client ?? throw new ArgumentNullException(nameof(client));
         if (string.IsNullOrWhiteSpace(apiKey)
@@ -90,8 +95,11 @@ public sealed class LeetifyHttpProfileProvider : ILeetifyProfileProvider
             throw new ArgumentOutOfRangeException(nameof(maxResponseBytes));
         if (maxConcurrency is < 1 or > 8)
             throw new ArgumentOutOfRangeException(nameof(maxConcurrency));
+        if (maxRequestsPerMinute is < 1 or > 120)
+            throw new ArgumentOutOfRangeException(nameof(maxRequestsPerMinute));
 
         _maxResponseBytes = maxResponseBytes;
+        _maxRequestsPerMinute = maxRequestsPerMinute;
         _gate = new SemaphoreSlim(maxConcurrency, maxConcurrency);
     }
 
@@ -99,9 +107,15 @@ public sealed class LeetifyHttpProfileProvider : ILeetifyProfileProvider
         PlayerId player,
         CancellationToken cancellationToken = default)
     {
-        await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!await _gate.WaitAsync(0, cancellationToken).ConfigureAwait(false))
+            return new LeetifyLookupResult(LeetifyLookupStatus.RateLimited);
+
         try
         {
+            if (!TryReserveRequest(DateTimeOffset.UtcNow))
+                return new LeetifyLookupResult(LeetifyLookupStatus.RateLimited);
+
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(
                 cancellationToken);
             timeout.CancelAfter(_timeout);
@@ -167,6 +181,22 @@ public sealed class LeetifyHttpProfileProvider : ILeetifyProfileProvider
         finally
         {
             _gate.Release();
+        }
+    }
+
+    private bool TryReserveRequest(DateTimeOffset now)
+    {
+        lock (_rateGate)
+        {
+            var cutoff = now - TimeSpan.FromMinutes(1);
+            while (_requestTimes.TryPeek(out var oldest) && oldest <= cutoff)
+                _requestTimes.Dequeue();
+
+            if (_requestTimes.Count >= _maxRequestsPerMinute)
+                return false;
+
+            _requestTimes.Enqueue(now);
+            return true;
         }
     }
 
