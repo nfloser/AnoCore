@@ -349,6 +349,10 @@ public sealed class MySqlCombatRepositoryTests
         CollectionAssert.AreEqual(new[] { first, second }, page.Select(x => x.PlayerId).ToArray());
         CollectionAssert.AreEqual(new long[] { 100, 100 }, page.Select(x => x.Points).ToArray());
 
+        var lastPage = await repo.GetTopScoresAsync(weights, 2, 2);
+        Assert.AreEqual(third, lastPage.Single().PlayerId);
+        Assert.AreEqual(3, lastPage.Single().Position);
+
         var thirdPlacement = await repo.GetScorePlacementAsync(third, weights);
         Assert.IsNotNull(thirdPlacement);
         Assert.AreEqual(3, thirdPlacement.Position);
