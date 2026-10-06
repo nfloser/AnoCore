@@ -1,3 +1,13 @@
+# Live seasons and historical standings — 2026-10-06
+
+- #270 composes opt-in seasons.json and global reward reconciliation into the plugin.
+- Own/current/history XP, paginated catalog/toplist and permission-gated explicit close
+  commands reuse durable accepted versions and independent season accounts.
+- Nine module tests cover configuration, startup, commands, session identity, closure
+  authorization/window, global isolation, overlap/unload and registration rollback.
+- #266 and #268 are merged with green full CI (795 and 802 tests respectively).
+- Native CS2/DatHost acceptance remains manual; rank policy gaps remain open.
+
 # Season reward routing backend — 2026-10-06
 
 - #268 copies committed earned lifetime grants to accepted independent season accounts.

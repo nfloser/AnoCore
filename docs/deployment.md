@@ -148,3 +148,11 @@ To enable recurring double gameplay XP, set `WeekendMultiplier` to 2 in
 `config/gameplay-xp.json` and restart/reload. Default 1 leaves this disabled.
 The window is Saturday 00:00 to Monday 00:00 UTC and uses original event timestamps.
 Explicit scheduled boosts compete by maximum multiplier; they do not multiply together.
+
+Season tracking is opt-in via `config/seasons.json` (`Enabled: true`). Define future
+non-overlapping UTC windows before their start; see progression.md for an example.
+Accepted definitions/history remain durable when removed from config. Back up the
+season tables and config together. Season checkpoints include offline accounts and
+copy committed earned XP without reboosting. Explicit `anocloseseason` requires
+`ano.progression.season.close`; drain reward backlogs first, since closure freezes
+the season against later grants. No extra DB connection or schema migration is added.
