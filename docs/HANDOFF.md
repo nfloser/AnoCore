@@ -1,3 +1,11 @@
+# Achievement notifications — 2026-10-06
+
+- #256 adds committed-only, session-pinned chat notices with actual awarded XP.
+- Persistent `progression.notifications` is exposed through the shared toggle catalog.
+- Preference/transport failures cannot stop awards; chat delivery is best effort.
+- Tests cover preference, reconnect, unload, tier failure isolation and module wiring.
+- Gameplay XP, challenge persistence, season/history UI and rank gaps remain open.
+
 # Optional Leetify context checkpoint — 2026-10-06
 
 - #242 / branch `feature/242-leetify-live-context` adds a separate

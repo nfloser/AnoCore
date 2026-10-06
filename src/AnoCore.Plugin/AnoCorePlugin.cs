@@ -575,7 +575,8 @@ public sealed class AnoCorePlugin : BasePlugin
                     createdAchievements = new AchievementModule(achievementConfiguration.Snapshot(), players,
                         created.GameplayStats, new MySqlAchievementRepository(database),
                         new MySqlProgressionGrantRepository(database), created.Commands,
-                        exception => Logger.LogError(exception, "Achievement checkpoint failed."));
+                        exception => Logger.LogError(exception, "Achievement checkpoint failed."),
+                        created.Settings, created.ToggleCatalog, created.Messages);
                 }
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

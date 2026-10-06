@@ -332,6 +332,21 @@ The checkpoint grants rewards; opening a command does not manufacture new counte
 or arbitrary XP grants.
 
 This package makes permanent gameplay-stat achievements usable on the server.
-Generic gameplay XP, combat-only achievement metrics, unlock notifications, richer
+Generic gameplay XP, combat-only achievement metrics, richer
 menus, challenge/season presentation and leaderboards remain separate #229 work.
 Native CS2/DatHost behavior has not been verified by the automated build/test gate.
+
+## Permanent achievement notifications
+
+Issue #256 sends session-pinned chat notifications only for newly committed unlock
+records. The displayed XP is the actual awarded ledger amount, including any
+explicitly eligible boost. Empty retry results produce no duplicate messages.
+`progression.notifications` is enabled by default and registered in the existing
+player toggle catalog; its value persists through the shared settings service.
+
+Preference reads and message delivery are best effort: failures are logged without
+interrupting other tiers or achievement evaluations. Notifications are not a
+durable delivery queue: a crash after committing rewards can lose the message,
+but cannot grant rewards twice. Reconnect and unload suppress old-session output.
+Startup retroactive unlocks follow the same preference. Native CS2 chat acceptance
+remains separate from automated tests.

@@ -1,12 +1,15 @@
 using AnoCore.Abstractions.Commands;
+using AnoCore.Abstractions.Messaging;
 using AnoCore.Abstractions.Modules;
 using AnoCore.Abstractions.Permissions;
 using AnoCore.Abstractions.Players;
+using AnoCore.Abstractions.Settings;
 using AnoCore.Abstractions.Stats;
 using AnoCore.Modules.Progression;
 using AnoCore.Runtime.Commands;
 using AnoCore.Runtime.Events;
 using AnoCore.Runtime.Players;
+using AnoCore.Runtime.Settings;
 
 namespace AnoCore.Tests.Progression;
 
@@ -15,6 +18,25 @@ public sealed class AchievementModuleTests
 {
     private static readonly PlayerId Player = new(76561198000254101);
     private static readonly DateTimeOffset Now = new(2026, 10, 6, 16, 0, 0, TimeSpan.Zero);
+
+    [TestMethod]
+    public async Task Checkpoint_NotifiesOnlyCommittedUnlocksAndCleansUpToggle()
+    {
+        var players = new PlayerRegistry(new AnoEventBus());
+        await Connect(players);
+        var toggles = new PlayerToggleCatalog();
+        var messages = new Messages();
+        var unlocks = new Unlocks { AwardFirst = true };
+        using var module = new AchievementModule(new AchievementConfiguration().Snapshot(), players,
+            new Stats(), unlocks, new Grants(), new CommandRegistry(new AllowAll()),
+            settings: new Settings(), toggles: toggles, messages: messages);
+        await module.ReconcileOnlineAsync(Now);
+        await module.ReconcileOnlineAsync(Now);
+        Assert.HasCount(1, messages.Requests);
+        Assert.AreEqual(3, unlocks.Calls);
+        module.Dispose();
+        Assert.IsEmpty(toggles.GetAll());
+    }
 
     [TestMethod]
     public void Configuration_ValidatesCatalogAndSnapshotsMutableLists()
@@ -185,6 +207,7 @@ public sealed class AchievementModuleTests
     {
         public int Calls { get; private set; }
         public bool Fail { get; set; }
+        public bool AwardFirst { get; init; }
         public PlayerId? FailPlayer { get; set; }
         public ValueTask<int> ReadAwardedTierAsync(PlayerId playerId, string achievementId, CancellationToken cancellationToken = default)
             => ValueTask.FromResult(0);
@@ -194,6 +217,10 @@ public sealed class AchievementModuleTests
         {
             Calls++;
             if (Fail || playerId == FailPlayer) throw new InvalidOperationException("test");
+            if (AwardFirst && Calls == 1)
+                return ValueTask.FromResult<IReadOnlyList<AchievementUnlockRecord>>([new(definition.Id, definition.Version, 1,
+                    new ProgressionGrantRecord(playerId, "achievement:headshots:1", ProgressionXpSource.AchievementReward,
+                        100, 100, "achievement.headshots", occurredAt, null, 1, 100, 1))]);
             return ValueTask.FromResult<IReadOnlyList<AchievementUnlockRecord>>([]);
         }
     }
@@ -212,5 +239,25 @@ public sealed class AchievementModuleTests
     {
         public ValueTask<bool> HasPermissionAsync(PlayerId id, PermissionId permission, CancellationToken cancellationToken = default)
             => ValueTask.FromResult(true);
+    }
+
+    private sealed class Settings : IPlayerSettingsService
+    {
+        public ValueTask<T> GetAsync<T>(PlayerId playerId, PlayerSettingKey<T> key, CancellationToken cancellationToken = default)
+            => ValueTask.FromResult(key.DefaultValue);
+        public ValueTask SetAsync<T>(PlayerId playerId, PlayerSettingKey<T> key, T value, CancellationToken cancellationToken = default)
+            => throw new AssertFailedException();
+        public ValueTask<bool> ResetAsync<T>(PlayerId playerId, PlayerSettingKey<T> key, CancellationToken cancellationToken = default)
+            => throw new AssertFailedException();
+    }
+
+    private sealed class Messages : IMessageService
+    {
+        public List<MessageRequest> Requests { get; } = [];
+        public ValueTask<MessageDispatchResult> SendAsync(MessageRequest request, CancellationToken cancellationToken = default)
+        {
+            Requests.Add(request);
+            return ValueTask.FromResult(MessageDispatchResult.DeliveredResult);
+        }
     }
 }
