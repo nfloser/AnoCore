@@ -127,20 +127,6 @@ public sealed class ChallengeCatalogSnapshot
             completedChallengeIds,
             at);
 
-    public IReadOnlyList<ChallengeEvaluation> EvaluateAll(
-        IEnumerable<GameplayStatTotal> windowTotals,
-        IEnumerable<string>? completedChallengeIds,
-        DateTimeOffset at)
-    {
-        var totals = ValidateTotals(windowTotals);
-        var completed = ValidateCompleted(completedChallengeIds);
-        var instant = NormalizeUtc(at);
-        return _challenges
-            .Select(definition => Evaluate(definition, totals, completed, instant))
-            .ToList()
-            .AsReadOnly();
-    }
-
     private ChallengeEvaluation Evaluate(
         ChallengeDefinition definition,
         IEnumerable<GameplayStatTotal> windowTotals,
@@ -238,16 +224,13 @@ public sealed class ChallengeCatalogSnapshot
             throw new ArgumentException(
                 "Challenge prerequisites cannot be null.", nameof(challenge));
 
-        var prerequisites = challenge.PrerequisiteIds
-            .Take(MaxPrerequisites + 1)
-            .ToArray();
-        if (prerequisites.Length > MaxPrerequisites)
+        if (challenge.PrerequisiteIds.Count > MaxPrerequisites)
             throw new ArgumentException(
                 $"A challenge can have at most {MaxPrerequisites} prerequisites.",
                 nameof(challenge));
 
         var seen = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var prerequisite in prerequisites)
+        foreach (var prerequisite in challenge.PrerequisiteIds)
         {
             ValidateId(prerequisite, nameof(challenge));
             if (!seen.Add(prerequisite)
