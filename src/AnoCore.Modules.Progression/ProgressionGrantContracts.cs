@@ -143,7 +143,7 @@ public sealed class ProgressionGrantService
             _definitions.LevelFor(committed.Grant.LifetimeXpAfter));
     }
 
-    public static DateTimeOffset NormalizeUtc(DateTimeOffset value)
+    private static DateTimeOffset NormalizeUtc(DateTimeOffset value)
     {
         var utc = value.ToUniversalTime();
         var ticks = utc.UtcDateTime.Ticks;
@@ -151,10 +151,11 @@ public sealed class ProgressionGrantService
         return new DateTimeOffset(new DateTime(ticks, DateTimeKind.Utc));
     }
 
-    public static void ValidateRequest(ProgressionGrantRequest request)
+    private static void ValidateRequest(ProgressionGrantRequest request)
     {
         ArgumentNullException.ThrowIfNull(request);
         if (!PrintableBounded(request.GrantId, MaxGrantIdLength)
+            || request.GrantId.Any(character => character > 0x7f)
             || !PrintableBounded(request.Reason, MaxReasonLength)
             || request.BaseXp < 0
             || !Enum.IsDefined(request.Source))
@@ -163,7 +164,7 @@ public sealed class ProgressionGrantService
         }
     }
 
-    internal static bool PrintableBounded(string? value, int maximum)
+    private static bool PrintableBounded(string? value, int maximum)
         => !string.IsNullOrWhiteSpace(value)
             && value.Length <= maximum
             && value == value.Trim()
