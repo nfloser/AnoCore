@@ -219,6 +219,7 @@ public sealed class MySqlSeasonProgressionRepositoryTests
             foreach (var statement in new[]
             {
                 "DROP TRIGGER IF EXISTS fail_season_progression_grant",
+                "DROP TABLE IF EXISTS ano_progression_achievement_unlocks",
                 "DROP TABLE IF EXISTS ano_progression_season_grants",
                 "DROP TABLE IF EXISTS ano_progression_season_accounts",
                 "DROP TABLE IF EXISTS ano_progression_season_runtime",
