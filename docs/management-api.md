@@ -135,3 +135,65 @@ wraps this adapter must:
 This boundary lets a Kestrel, reverse-proxy or other HTTPS host reuse the same
 authentication, authorization, audit and capability gateway instead of duplicating
 security policy.
+
+## Local named-pipe bridge
+
+The CounterStrikeSharp plugin can opt into a local named-pipe bridge without hosting
+HTTP or Kestrel in the game-server process. The bridge is disabled by default and is
+configured independently from the database settings in
+`plugins/AnoCore/config/management.json`.
+
+The default file is:
+
+```json
+{
+  "Enabled": false,
+  "PipeName": "anocore-management",
+  "ReadRequestsPerMinute": 120,
+  "PrivilegedRequestsPerMinute": 30,
+  "MaximumTrackedKeys": 1024,
+  "Credentials": []
+}
+```
+
+When `Enabled` is `true`, at least one credential is required. Credential entries
+contain only the public token id, granted scopes, PBKDF2 salt/hash material and
+iteration count:
+
+```json
+{
+  "TokenId": "panel",
+  "Scopes": ["ReadStatus"],
+  "SaltBase64": "<generated salt>",
+  "HashBase64": "<generated hash>",
+  "Iterations": 210000
+}
+```
+
+Do not put a bearer secret into `management.json`. Provision credentials with
+`ManagementTokenHasher.Create` and serialize the result through
+`ManagementCredentialConfiguration.FromCredential`; retain the plaintext secret only
+in the external caller's secret store.
+
+The plugin builds `ManagementTokenAuthenticator` and `ManagementApiGateway` from
+the live runtime services, so pipe traffic uses the same status provider, capability
+registry and per-token rate limiter as the management core. Invalid management
+configuration fails startup rather than silently enabling a weaker bridge.
+
+### Pipe protocol and lifecycle
+
+Each local connection carries exactly one request and one response. Frames use a
+4-byte little-endian length prefix followed by UTF-8 JSON and are capped at 128 KiB.
+The payload is the existing `ManagementHttpRequest`/`ManagementHttpResponse`
+contract, including the token id, correlation id and bearer credential headers.
+
+The server pipe is created with `CurrentUserOnly` and accepts one connection at a
+time. That is a local process boundary, not a network security boundary. Any future
+sidecar that exposes the API off-host still has to terminate TLS and follow the HTTP
+hosting requirements above.
+
+The bridge is created during asynchronous runtime composition but starts only after
+AnoCore has successfully activated its runtime. Unload and hot reload stop the pipe
+before disposing runtime services. A pipe creation failure rolls activation back, and
+malformed client frames are rejected without terminating the next listener cycle.
+
