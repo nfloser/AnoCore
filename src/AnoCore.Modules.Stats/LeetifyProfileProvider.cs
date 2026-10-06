@@ -284,8 +284,17 @@ public sealed class LeetifyHttpProfileProvider : ILeetifyProfileProvider
         }
 
         var raw = value.GetRawText();
-        if (raw.Length is < 1 or > 64)
+        if (raw.Length is < 1 or > 64
+            || !double.TryParse(
+                raw,
+                NumberStyles.Float,
+                CultureInfo.InvariantCulture,
+                out var parsed)
+            || !double.IsFinite(parsed))
+        {
             return;
+        }
+
         destination.Add(new LeetifyMetric(displayName, raw));
     }
 }
