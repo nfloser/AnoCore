@@ -88,7 +88,7 @@ public sealed class ChallengeCatalogTests
     }
 
     [TestMethod]
-    public void EvaluateAll_IsDeterministicAndDoesNotAutoCommitDependencies()
+    public void CatalogOrdering_IsDeterministicAndReadyPrerequisiteIsNotAutoCommitted()
     {
         var catalog = ChallengeCatalogSnapshot.Create(
         [
@@ -96,23 +96,27 @@ public sealed class ChallengeCatalogTests
             Daily("a", GameplayStatKind.HeadshotKill, 1),
         ]);
 
-        var results = catalog.EvaluateAll(
-            [
-                new(GameplayStatKind.Mvp, 1),
-                new(GameplayStatKind.HeadshotKill, 1),
-            ],
+        CollectionAssert.AreEqual(
+            new[] { "a", "b" },
+            catalog.Challenges.Select(value => value.Id).ToArray());
+
+        var prerequisite = catalog.Evaluate(
+            "a",
+            [new(GameplayStatKind.HeadshotKill, 1)],
+            [],
+            Monday.AddHours(1));
+        var dependent = catalog.Evaluate(
+            "b",
+            [new(GameplayStatKind.Mvp, 1)],
             [],
             Monday.AddHours(1));
 
-        CollectionAssert.AreEqual(
-            new[] { "a", "b" },
-            results.Select(value => value.Definition.Id).ToArray());
         Assert.AreEqual(
             ChallengeEvaluationState.ReadyToComplete,
-            results[0].State);
+            prerequisite.State);
         Assert.AreEqual(
             ChallengeEvaluationState.Locked,
-            results[1].State);
+            dependent.State);
     }
 
     [TestMethod]
@@ -240,6 +244,32 @@ public sealed class ChallengeCatalogTests
                 [],
                 ["unknown"],
                 Monday));
+    }
+
+    [TestMethod]
+    public void Catalog_RejectsInputsBeyondConfiguredBounds()
+    {
+        Assert.ThrowsExactly<ArgumentException>(() =>
+            ChallengeCatalogSnapshot.Create(
+                Enumerable.Range(1, ChallengeCatalogSnapshot.MaxChallenges + 1)
+                    .Select(index => Daily(
+                        $"daily.{index}",
+                        GameplayStatKind.Mvp,
+                        1))));
+
+        var prerequisites = Enumerable
+            .Range(1, ChallengeCatalogSnapshot.MaxPrerequisites + 1)
+            .Select(index => $"p{index}")
+            .ToArray();
+        Assert.ThrowsExactly<ArgumentException>(() =>
+            ChallengeCatalogSnapshot.Create(
+            [
+                Daily(
+                    "too-many",
+                    GameplayStatKind.Mvp,
+                    1,
+                    prerequisites),
+            ]));
     }
 
     [TestMethod]
