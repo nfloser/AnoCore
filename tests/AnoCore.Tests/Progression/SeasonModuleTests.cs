@@ -109,8 +109,12 @@ public sealed class SeasonModuleTests
         var rewards = new Rewards { FailId = "s1" };
         using var module = await Create(new PlayerRegistry(new AnoEventBus()), repository, rewards,
             new CommandRegistry(new Permissions()));
-        repository.Accepted.Add(new(Definition with { Id = "s2", StartsAtUtc = Definition.EndsAtUtc,
-            EndsAtUtc = Definition.EndsAtUtc.AddDays(31) }, Start.AddDays(-7), null));
+        repository.Accepted.Add(new(Definition with
+        {
+            Id = "s2",
+            StartsAtUtc = Definition.EndsAtUtc,
+            EndsAtUtc = Definition.EndsAtUtc.AddDays(31),
+        }, Start.AddDays(-7), null));
         await module.ReconcileAsync(Start.AddDays(40));
         CollectionAssert.AreEqual(new[] { "s1", "s2" }, rewards.Reconciled);
     }
