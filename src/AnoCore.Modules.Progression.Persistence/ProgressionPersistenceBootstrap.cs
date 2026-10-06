@@ -11,7 +11,7 @@ public static class ProgressionPersistenceBootstrap
     {
         ArgumentNullException.ThrowIfNull(database);
         await new MigrationRunner(database,
-            [new ProgressionSchemaMigration013(), new ProgressionSeasonSchemaMigration014(), new ProgressionSeasonXpSchemaMigration015(), new ProgressionAchievementSchemaMigration016()])
+            [new ProgressionSchemaMigration013(), new ProgressionSeasonSchemaMigration014(), new ProgressionSeasonXpSchemaMigration015(), new ProgressionAchievementSchemaMigration016(), new ProgressionChallengeSchemaMigration017()])
             .ApplyPendingAsync(cancellationToken)
             .ConfigureAwait(false);
     }

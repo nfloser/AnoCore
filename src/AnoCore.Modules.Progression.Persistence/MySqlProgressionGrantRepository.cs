@@ -153,7 +153,7 @@ public sealed class MySqlProgressionGrantRepository : IProgressionGrantRepositor
             ReadNonnegativeInt64(reader.GetValue(1), "revision"));
     }
 
-    private static async ValueTask<ProgressionGrantRecord?> ReadGrantAsync(
+    internal static async ValueTask<ProgressionGrantRecord?> ReadGrantAsync(
         DbConnection connection,
         DbTransaction? transaction,
         PlayerId playerId,

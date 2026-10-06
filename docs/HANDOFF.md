@@ -1,3 +1,16 @@
+# Durable challenge rewards — 2026-10-06
+
+- #258 adds window-scoped reads from the raw gameplay ledger and migration 017.
+- Stable ID + UTC start identify each occurrence; stored completions retain their
+  original definition version and atomic lifetime-XP grant across retries.
+- Shared account locks serialize completion/prerequisite checks and payouts.
+- Twelve MariaDB tests cover boundaries, future events, player/stat isolation, restart,
+  concurrency, prerequisites, expiry, rollback, overflow, boost eligibility, resets,
+  orphan grants and changed-window rejection.
+- Local .NET remains unavailable; full CI is the executable gate.
+- Live catalogs/scheduling, player UI, challenge notifications and season reward
+  routing remain the next integration package, alongside gameplay XP/rank gaps.
+
 # Achievement notifications — 2026-10-06
 
 - #256 adds committed-only, session-pinned chat notices with actual awarded XP.
