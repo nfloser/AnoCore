@@ -24,6 +24,10 @@ public sealed class GameplayRankWeightsTests
         Assert.IsNotEmpty(RankConfiguration.Validate(configuration));
         configuration.StartingPoints = RankScoreWeights.MaximumStartingPoints;
         Assert.IsEmpty(RankConfiguration.Validate(configuration));
+        configuration.ScoringMode = (RankScoringMode)255;
+        Assert.IsNotEmpty(RankConfiguration.Validate(configuration));
+        configuration.ScoringMode = RankScoringMode.EventLedger;
+        Assert.IsEmpty(RankConfiguration.Validate(configuration));
     }
 
     [TestMethod]
@@ -39,8 +43,11 @@ public sealed class GameplayRankWeightsTests
         Assert.AreEqual(5, weights.GameplayPoints[GameplayStatKind.Mvp]);
         Assert.AreEqual(1, weights.GameplayPoints.Count);
         Assert.AreEqual(0L, weights.StartingPoints);
-        Assert.AreEqual(25L,
-            new RankScoreWeights(2, 1, 1, 25, source).StartingPoints);
+        Assert.AreEqual(RankScoringMode.Derived, weights.ScoringMode);
+        var ledgerWeights = new RankScoreWeights(
+            2, 1, 1, 25, source, RankScoringMode.EventLedger);
+        Assert.AreEqual(25L, ledgerWeights.StartingPoints);
+        Assert.AreEqual(RankScoringMode.EventLedger, ledgerWeights.ScoringMode);
         Assert.ThrowsExactly<ArgumentOutOfRangeException>(() =>
             new RankScoreWeights(2, 1, 1, -1));
         Assert.ThrowsExactly<ArgumentOutOfRangeException>(() =>
@@ -48,5 +55,7 @@ public sealed class GameplayRankWeightsTests
         Assert.ThrowsExactly<ArgumentOutOfRangeException>(() =>
             new RankScoreWeights(2, 1, 1,
                 new Dictionary<GameplayStatKind, int> { [GameplayStatKind.Mvp] = -1001 }));
+        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() =>
+            new RankScoreWeights(2, 1, 1, 0, scoringMode: (RankScoringMode)255));
     }
 }
