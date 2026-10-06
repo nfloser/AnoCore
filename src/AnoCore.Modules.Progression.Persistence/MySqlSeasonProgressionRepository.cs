@@ -149,7 +149,7 @@ public sealed class MySqlSeasonProgressionRepository : ISeasonProgressionReposit
                  WHERE s2.season_id = s.season_id) AS latest_version
             FROM ano_progression_seasons s
             WHERE season_id = @season AND definition_version = @version
-            FOR UPDATE
+            LOCK IN SHARE MODE
             """;
         Add(command, "@season", seasonId);
         Add(command, "@version", seasonVersion);
