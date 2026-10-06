@@ -52,7 +52,6 @@ public sealed class GameplayStatsModuleTests
             LeetifyLookupStatus.Available,
             new LeetifyProfileContext(
                 Player,
-                "Player",
                 [new("Aim", "80"), new("Positioning", "70"), new("Utility", "60")],
                 new Uri($"https://leetify.com/app/profile/{Player.SteamId64}"))));
         var module = new GameplayStatsModule(
