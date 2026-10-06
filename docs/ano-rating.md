@@ -29,12 +29,51 @@ Confidence describes observed sample volume and coverage, not statistical certai
 
 The highest satisfied state wins. New players are never presented with a precise score. Use the detail view and sample counts before making manual team decisions.
 
+## Optional live Leetify context
+
+Issue #242 adds an explicitly requested external view through
+`!anoleetify <name-or-SteamID64>`. It is separate from `!anorating`: Leetify
+data is never fed into `ano-rating-v1`, never changes rank points or progression
+and is never written to the AnoCore database or an in-memory cache.
+
+The provider calls the current Leetify Public CS API `GET /v3/profile` by
+SteamID64 only when this command is used. It is disabled unless
+`ANOCORE_LEETIFY_API_KEY` is present in the process environment. The key is sent
+as a Bearer authorization header, is not copied into generated JSON configuration
+and is not included in user-facing failures.
+
+Live requests are pinned to the official HTTPS API host, do not follow redirects,
+time out after three seconds, accept at most 128 KiB, and permit at most two
+concurrent lookups. Not-found/non-user, private, rate-limited, unauthorized,
+timeout, transport and malformed-response states fail closed while the internal
+`!anorating` command remains available.
+
+Presentation intentionally exposes only the API-provided Aim, Positioning and
+Utility rating values. Their returned numeric text is validated but not renamed,
+rescaled, recalculated or reformatted. The response is labelled
+`Data Provided by Leetify` and includes a `View on Leetify` profile URL.
+The current Leetify developer guidelines prohibit storing API data and require
+attribution/link-back; the public API has returned data only for registered
+Leetify users since the 2026-01-23 privacy change. Recheck the current guidelines
+before every release that enables this integration.
+
+Sources reviewed 2026-10-06:
+
+- https://api-public-docs.cs-prod.leetify.com/
+- https://leetify.com/blog/leetify-api-developer-guidelines/
+- https://leetify.com/blog/privacy-updates-to-our-api-and-profiles/
+
+FACEIT integration and automatic team balancing remain outside the selected
+scope.
+
 ## Selected follow-ups
 
-#230 remains open for optional live Leetify context. That provider is not implemented or enabled by this package. Its original metrics must remain separately attributed and must not enter the internal formula. FACEIT and automatic balancing remain outside the selected scope. Independent lifetime/season progression, achievements and challenges remain tracked under #229.
+#230 remains open for the remaining AnoRating workstream closure and native
+acceptance. Independent lifetime/season progression, achievements and challenges
+remain tracked under #229.
 
 ## Validation
 
-Automated coverage includes fixed formula fixtures, missing dimensions, provisional and confidence boundaries, invalid counts, connected-player ordering, pagination, exact/ambiguous targeting, caller/target reconnect suppression and command disposal. Repository fakes reject event writes and rank-point queries.
+Automated coverage includes fixed formula fixtures, missing dimensions, provisional and confidence boundaries, invalid counts, connected-player ordering, pagination, exact/ambiguous targeting, caller/target reconnect suppression and command disposal. Repository fakes reject event writes and rank-point queries. Leetify coverage additionally checks exact SteamID64/auth requests, original metric text passthrough, status mapping, private/malformed/oversized responses, timeout versus caller cancellation, concurrency bounds, command attribution/linking, reconnect suppression and optional composition rollback.
 
-Disposable-server acceptance: with two human accounts, check list/detail delivery, a new player's unscored provisional marker, populated-stat estimates, pagination, reconnect suppression, statistics reset, and unload/reload command registration. Native display acceptance remains separate from CI.
+Disposable-server acceptance: with two human accounts, check list/detail delivery, a new player's unscored provisional marker, populated-stat estimates, pagination, reconnect suppression, statistics reset, and unload/reload command registration. With a disposable Leetify API key, separately verify `!anoleetify` for one registered public profile and one unavailable/private profile, then remove the key and verify the command is absent while `!anorating` still works. Native display and live-provider acceptance remain separate from CI.
