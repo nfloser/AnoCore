@@ -1,3 +1,20 @@
+# Progression and rating scope — 2026-10-06
+
+- #229 adds the accepted independent progression workstream: lifetime XP/levels,
+  season XP/levels, permanent achievements, daily/weekly/season challenges,
+  predefined season catalogs and scheduled XP modifiers such as double-XP weekends.
+- Progression must never read or write the competitive rank-point score and must
+  reuse existing gameplay/stat signals rather than duplicate event counting.
+- #230 adds confidence-aware `AnoRating` for manual team composition through
+  player-facing rating views. Automatic team balancing and FACEIT are explicitly
+  out of scope.
+- Leetify is the only accepted optional external player-context provider. Its data
+  stays separate from AnoRating, is not persisted in AnoCore, is displayed without
+  renaming/rescaling/recalculation, and requires current attribution/compliance
+  checks before release enablement.
+- These are post-foundation product workstreams and must follow the normal
+  Issue -> branch -> tests -> implementation -> docs -> PR -> CI -> review flow.
+
 # Reference parity follow-up — 2026-10-06
 
 - Reference checked: K4ryuu/K4-Zenith `dev` commit

@@ -21,6 +21,27 @@
 - Toplists
 - Admin tools
 
+## Progression and seasons
+
+- Lifetime XP and account levels independent from competitive rank points
+- Season XP/levels with preserved historical results
+- Permanent and tiered achievements
+- Daily, weekly and season-long challenges backed by existing AnoCore events/stats
+- Predefined challenge catalogs for each season
+- Scheduled XP events such as double-XP weekends
+- Progression menus, notifications and deterministic leaderboards
+- Tracked in #229
+
+## Player rating and scouting
+
+- Internal `AnoRating` derived from existing gameplay statistics, never rank points
+- Explicit provisional/confidence state for new or low-sample players
+- `!anorating` for current-player comparison and manual team composition
+- No automatic team balancing
+- Optional live Leetify context, displayed separately and never folded into AnoRating
+- No FACEIT integration
+- Tracked in #230
+
 ## Maps and voting
 
 - Reusable vote engine
