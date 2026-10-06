@@ -193,7 +193,7 @@ public sealed class MySqlSeasonRepositoryTests
         {
             foreach (var statement in new[]
             {
-                "DROP TABLE IF EXISTS ano_progression_season_runtime",
+                "DROP TABLE IF EXISTS ano_progression_season_grants",\n                "DROP TABLE IF EXISTS ano_progression_season_accounts",\n                "DROP TABLE IF EXISTS ano_progression_season_runtime",
                 "DROP TABLE IF EXISTS ano_progression_seasons",
                 "DROP TABLE IF EXISTS ano_progression_grants",
                 "DROP TABLE IF EXISTS ano_progression_accounts",
