@@ -1,3 +1,18 @@
+# Season XP persistence checkpoint — 2026-10-06
+
+- #243 / branch `feature/243-season-xp-persistence` adds isolated durable season
+  accounts and an idempotent season grant ledger in migration 015.
+- Grants resolve against the accepted effective season catalog, enforce half-open UTC
+  windows, reject new writes after closure and keep committed retries idempotent.
+- Gameplay/reward XP reuses scheduled boost definitions; administrative season
+  adjustments are unboosted and cannot reduce season XP below zero.
+- Season levels are derived from the shared XP curve. Lifetime XP and competitive
+  rank points remain untouched.
+- MariaDB coverage includes retry/restart, boundaries, closure, negative admin
+  adjustment floor, duplicate concurrency, derived levels and lifetime isolation.
+- Challenges, achievements, leaderboard/result snapshots and native presentation
+  remain follow-ups under #229.
+
 # Season catalog lifecycle checkpoint — 2026-10-06
 
 - #240 / branch `feature/240-season-catalog-lifecycle` adds bounded versioned
