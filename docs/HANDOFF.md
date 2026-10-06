@@ -1,3 +1,21 @@
+# Atomic achievement unlock persistence — 2026-10-06
+
+- #248 builds on #244/#246 and persists permanent achievement tier identity,
+  definition version and its matching lifetime XP reward in one transaction.
+- Unlock identity is stable per player, achievement ID and tier. Retries and
+  concurrent evaluators reuse the first committed unlock instead of paying twice.
+- The reward uses the existing lifetime progression account row and XP grant ledger,
+  so achievement rewards serialize correctly with ordinary lifetime XP writes.
+- The original definition version, reward XP and committed boost metadata remain
+  authoritative across later definition or boost changes.
+- Gameplay-only XP boosts do not affect achievement rewards. Explicit
+  AchievementReward boost windows are supported and persisted.
+- Storage failure and lifetime overflow roll back unlock, reward ledger and account
+  mutation together. MariaDB integration coverage exercises restart/replay,
+  concurrency, rollback and boost isolation.
+- Event wiring, notifications/menus and broader achievement prerequisites remain
+  follow-ups under #229.
+
 # Season XP persistence checkpoint — 2026-10-06
 
 - #243 / branch `feature/243-season-xp-persistence-v2` adds isolated durable
