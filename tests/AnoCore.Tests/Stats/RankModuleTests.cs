@@ -302,6 +302,9 @@ public sealed class RankModuleTests
     {
         var policy = RankConfiguration.Default;
         Assert.AreEqual(0, policy.Score(new CombatTotals(0, 100, 0)));
+        var baseline = new RankConfiguration { StartingPoints = 25 };
+        Assert.AreEqual(25, baseline.Score(new CombatTotals(0, 0, 0)));
+        Assert.AreEqual(0, baseline.Score(new CombatTotals(0, 100, 0)));
         Assert.ThrowsExactly<OverflowException>(() =>
             policy.Score(new CombatTotals(long.MaxValue, 0, 0)));
         Assert.AreEqual("Veteran", policy.NextAfter(0)!.Name);

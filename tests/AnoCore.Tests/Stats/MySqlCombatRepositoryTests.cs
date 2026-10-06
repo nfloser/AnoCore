@@ -1,3 +1,4 @@
+using AnoCore.Abstractions.Persistence;
 using AnoCore.Abstractions.Players;
 using AnoCore.Abstractions.Stats;
 using AnoCore.Runtime.Persistence;
@@ -320,6 +321,53 @@ public sealed class MySqlCombatRepositoryTests
         Assert.IsNotNull(adjustedOnlyPlacement);
         Assert.AreEqual(2, adjustedOnlyPlacement.Position);
         Assert.AreEqual(4L, adjustedOnlyPlacement.Points);
+    }
+
+    [TestMethod]
+    public async Task StartingPoints_IncludeRegisteredProfilesAndPreserveZeroDefault()
+    {
+        await new MigrationRunner(_database, [
+            new CoreSchemaMigration001(), new ModerationSchemaMigration002(),
+            new AdminAuditSchemaMigration003(), new WarningSchemaMigration004(),
+            new PlaytimeSchemaMigration005(), new CombatSchemaMigration006(),
+            new RankAdjustmentSchemaMigration007(), new PlaytimeStateSchemaMigration008(),
+            new CombatDetailSchemaMigration009(), new GameplayStatSchemaMigration010(),
+            new StatisticsResetSchemaMigration011()]).ApplyPendingAsync();
+
+        var first = new PlayerId(76561198000012101);
+        var second = new PlayerId(76561198000012102);
+        var third = new PlayerId(76561198000012103);
+        var profiles = new MySqlPlayerRepository(_database);
+        foreach (var player in new[] { first, second, third })
+            await profiles.UpsertAsync(new PlayerProfile(player, $"Player {player.SteamId64}", Now, Now));
+
+        var adjustments = new MySqlRankAdjustmentRepository(_database);
+        await adjustments.SetAsync(third, -150, null, Now);
+
+        var repo = new MySqlCombatRepository(_database);
+        var weights = new RankScoreWeights(2, 1, 1, 100);
+        var page = await repo.GetTopScoresAsync(weights, 2, 0);
+        CollectionAssert.AreEqual(new[] { first, second }, page.Select(x => x.PlayerId).ToArray());
+        CollectionAssert.AreEqual(new long[] { 100, 100 }, page.Select(x => x.Points).ToArray());
+
+        var lastPage = await repo.GetTopScoresAsync(weights, 2, 2);
+        Assert.AreEqual(third, lastPage.Single().PlayerId);
+        Assert.AreEqual(3, lastPage.Single().Position);
+
+        var thirdPlacement = await repo.GetScorePlacementAsync(third, weights);
+        Assert.IsNotNull(thirdPlacement);
+        Assert.AreEqual(3, thirdPlacement.Position);
+        Assert.AreEqual(0L, thirdPlacement.Points);
+        Assert.AreEqual(100L, await repo.ReadRawScoreAsync(first, weights));
+
+        await adjustments.ResetAsync(third);
+        var afterReset = await repo.GetTopScoresAsync(weights, 3, 0);
+        CollectionAssert.AreEqual(new[] { first, second, third },
+            afterReset.Select(x => x.PlayerId).ToArray());
+        CollectionAssert.AreEqual(new long[] { 100, 100, 100 },
+            afterReset.Select(x => x.Points).ToArray());
+
+        Assert.IsEmpty(await repo.GetTopScoresAsync(new RankScoreWeights(2, 1, 1), 5, 0));
     }
 
     private async Task DropAsync()

@@ -7,9 +7,11 @@ internal static class RankScoreQueries
 {
     public static void ValidateRepository(ICombatRepository repository, RankConfiguration configuration)
     {
-        if (configuration.GameplayPoints.Any(pair => pair.Value != 0)
+        if ((configuration.StartingPoints != 0
+                || configuration.GameplayPoints.Any(pair => pair.Value != 0))
             && repository is not IGameplayRankScoreRepository)
-            throw new ArgumentException("Configured gameplay ranks require a gameplay rank score repository.",
+            throw new ArgumentException(
+                "Configured starting/gameplay rank points require a combined rank score repository.",
                 nameof(repository));
     }
 
