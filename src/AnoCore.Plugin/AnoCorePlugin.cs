@@ -1,5 +1,6 @@
 using AnoCore.Abstractions.Configuration;
 using AnoCore.Abstractions.Hud;
+using AnoCore.Abstractions.Management;
 using AnoCore.Abstractions.Persistence;
 using AnoCore.Abstractions.Placeholders;
 using AnoCore.Abstractions.Players;
@@ -22,6 +23,7 @@ using AnoCore.Plugin.Tournament;
 using AnoCore.Runtime.Composition;
 using AnoCore.Runtime.Configuration;
 using AnoCore.Runtime.Events;
+using AnoCore.Runtime.Management;
 using AnoCore.Runtime.Persistence;
 using AnoCore.Runtime.Players;
 using AnoCore.Runtime.Settings;
@@ -44,6 +46,7 @@ public sealed class AnoCorePlugin : BasePlugin
     private bool _lifecycleHooksRegistered;
     private CancellationTokenSource? _startup;
     private RuntimeServices? _pendingRuntime;
+    private ManagementPipeServer? _pendingManagementPipe;
     private AnoVetoModuleRuntime? _pendingAnoVeto;
     private PlaytimeModule? _pendingPlaytime;
     private RankModule? _pendingRank;
@@ -53,6 +56,7 @@ public sealed class AnoCorePlugin : BasePlugin
     private SelectableChatTagModule? _pendingChatTags;
     private ProtectedServerControlPolicy? _pendingProtectedServerControlPolicy;
     private RuntimeServices? _runtime;
+    private ManagementPipeServer? _managementPipe;
     private AnoVetoModuleRuntime? _anoVeto;
     private PlaytimeModule? _playtime;
     private RankModule? _rank;
@@ -134,6 +138,11 @@ public sealed class AnoCorePlugin : BasePlugin
             _startup?.Cancel();
             _startup?.Dispose();
             _startup = null;
+
+            _managementPipe?.Dispose();
+            _managementPipe = null;
+            _pendingManagementPipe?.Dispose();
+            _pendingManagementPipe = null;
 
             _anoVetoExpiryTimer?.Kill();
             _anoVetoExpiryTimer = null;
@@ -263,6 +272,7 @@ public sealed class AnoCorePlugin : BasePlugin
         CancellationToken cancellationToken)
     {
         RuntimeServices? created = null;
+        ManagementPipeServer? createdManagementPipe = null;
         AnoVetoModuleRuntime? createdAnoVeto = null;
         PlaytimeModule? createdPlaytime = null;
         RankModule? createdRank = null;
@@ -279,6 +289,13 @@ public sealed class AnoCorePlugin : BasePlugin
                 cancellationToken: cancellationToken).ConfigureAwait(false);
             var protectedServerControlPolicy = BuildProtectedServerControlPolicy(
                 settings.ProtectedServerControls);
+            var managementConfiguration = await configuration.LoadAsync(
+                "management",
+                () => new ManagementBridgeConfiguration(),
+                ManagementBridgeConfiguration.Validate,
+                cancellationToken).ConfigureAwait(false);
+            var managementRateLimiter = new ManagementRateLimiter(
+                managementConfiguration.RateLimits());
             var connectionString = Environment.GetEnvironmentVariable("ANOCORE_MYSQL");
             if (string.IsNullOrWhiteSpace(connectionString))
             {
@@ -304,7 +321,25 @@ public sealed class AnoCorePlugin : BasePlugin
                 configuration,
                 events,
                 players,
-                timeout.Token).ConfigureAwait(false);
+                cancellationToken: timeout.Token,
+                managementRateLimiter: managementRateLimiter).ConfigureAwait(false);
+
+            if (managementConfiguration.Enabled)
+            {
+                var authenticator = new ManagementTokenAuthenticator(
+                    managementConfiguration.BuildCredentials());
+                var gateway = new ManagementApiGateway(
+                    authenticator,
+                    created.ManagementCapabilities,
+                    created.ManagementStatus,
+                    created.ManagementRateLimiter);
+                createdManagementPipe = new ManagementPipeServer(
+                    managementConfiguration.PipeName,
+                    new ManagementHttpAdapter(gateway),
+                    exception => Logger.LogError(
+                        exception,
+                        "AnoCore management pipe request failed."));
+            }
 
             try
             {
@@ -476,6 +511,7 @@ public sealed class AnoCorePlugin : BasePlugin
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 _pendingRuntime = created;
+                _pendingManagementPipe = createdManagementPipe;
                 _pendingAnoVeto = createdAnoVeto;
                 _pendingPlaytime = createdPlaytime;
                 _pendingRank = createdRank;
@@ -485,6 +521,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 _pendingChatTags = createdChatTags;
                 _pendingProtectedServerControlPolicy = protectedServerControlPolicy;
                 created = null;
+                createdManagementPipe = null;
                 createdAnoVeto = null;
                 createdPlaytime = null;
                 createdRank = null;
@@ -497,6 +534,7 @@ public sealed class AnoCorePlugin : BasePlugin
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
+            createdManagementPipe?.Dispose();
             createdAnoVeto?.Dispose();
             createdPlaytime?.Dispose();
             createdRank?.Dispose();
@@ -506,6 +544,7 @@ public sealed class AnoCorePlugin : BasePlugin
         }
         catch (Exception exception)
         {
+            createdManagementPipe?.Dispose();
             createdAnoVeto?.Dispose();
             createdPlaytime?.Dispose();
             createdRank?.Dispose();
@@ -528,6 +567,8 @@ public sealed class AnoCorePlugin : BasePlugin
                     _pendingChatTags = null;
                     _pendingAnoVeto?.Dispose();
                     _pendingAnoVeto = null;
+                    _pendingManagementPipe?.Dispose();
+                    _pendingManagementPipe = null;
                     _pendingProtectedServerControlPolicy = null;
                     _pendingRuntime?.Dispose();
                     _pendingRuntime = null;
@@ -550,6 +591,7 @@ public sealed class AnoCorePlugin : BasePlugin
             }
 
             var runtime = _pendingRuntime;
+            var managementPipe = _pendingManagementPipe;
             var anoVeto = _pendingAnoVeto;
             var playtime = _pendingPlaytime;
             var rank = _pendingRank;
@@ -558,6 +600,7 @@ public sealed class AnoCorePlugin : BasePlugin
             var chatFormatter = _pendingChatFormatter;
             var chatTags = _pendingChatTags;
             _pendingRuntime = null;
+            _pendingManagementPipe = null;
             _pendingAnoVeto = null;
             _pendingPlaytime = null;
             _pendingRank = null;
@@ -848,6 +891,8 @@ public sealed class AnoCorePlugin : BasePlugin
                         TimerFlags.REPEAT);
                 }
 
+                managementPipe?.Start();
+
                 MenuPresenter = presenter;
                 _adminCommands = adminCommands;
                 _rankAdminCommands = rankAdminCommands;
@@ -872,6 +917,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 _messageTransportRegistration = messageTransportRegistration;
                 messageTransportRegistration = null;
                 _runtime = runtime;
+                _managementPipe = managementPipe;
                 _anoVeto = anoVeto;
                 _playtime = playtime;
                 _rank = rank;
@@ -895,8 +941,9 @@ public sealed class AnoCorePlugin : BasePlugin
                 }
 
                 Logger.LogInformation(
-                    "AnoCore shared services ready; database/authorization initialized; AnoVeto {AnoVetoState}.",
-                    anoVeto is null ? "disabled" : "active");
+                    "AnoCore shared services ready; database/authorization initialized; AnoVeto {AnoVetoState}; management pipe {ManagementState}.",
+                    anoVeto is null ? "disabled" : "active",
+                    managementPipe is null ? "disabled" : "active");
             }
             catch (Exception exception)
             {
@@ -933,6 +980,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 kickCommands?.Dispose();
                 connectBan?.Dispose();
                 messageTransportRegistration?.Dispose();
+                managementPipe?.Dispose();
                 runtime.Dispose();
                 MenuPresenter = null;
                 _runtimeStatus = "activation failed";
