@@ -62,10 +62,10 @@ award rather than partially committing progression state.
 
 ## Current boundary
 
-The definition layer remains engine-independent. Durable lifetime XP is added by
-the separate persistence package described below; seasons, challenge/achievement
-evaluation, player commands and native CS2 composition remain separate packages
-under #229.
+The definition layer remains engine-independent. Durable lifetime XP and the
+versioned season catalog/lifecycle are added by separate persistence packages
+described below; season XP, challenge/achievement evaluation, player commands and
+native CS2 composition remain separate packages under #229.
 
 
 ## Durable lifetime XP grants
@@ -118,6 +118,41 @@ Migration 013 creates `ano_progression_accounts` and
 into the CounterStrikeSharp plugin yet. Gameplay-event wiring, player-facing
 commands, administration, season XP, challenges and achievements remain separate
 packages under #229.
+
+
+## Durable season catalog and lifecycle
+
+Issue #240 adds the deterministic season-definition and lifecycle layer without
+adding season player XP yet.
+
+A season definition has a stable ASCII ID, positive definition version, bounded
+display name and a UTC-only half-open window `[start, end)`. Effective definitions
+are ordered by start time and cannot overlap, so resolving current, previous and
+next season at any instant is deterministic, including exact boundary timestamps
+and gaps between seasons.
+
+Accepted definitions are immutable snapshots. Re-accepting the same ID/version
+with identical content is idempotent; changing an already accepted ID/version is a
+conflict. A higher version may supersede the effective definition only before both
+the previously accepted window and the replacement window have started. A brand-new
+definition must also be accepted before its configured start. This still allows a
+retry of an already accepted definition after start to return the stored snapshot
+without rewriting history.
+
+Migration 014 stores every accepted version plus acceptance and optional closure
+timestamps. A singleton season-runtime row serializes catalog mutation so concurrent
+overlapping accepts cannot both commit. The effective catalog uses the highest
+accepted version of each stable season ID, while older versions remain readable for
+history and audit.
+
+Closing a season is explicit and idempotent. Closure cannot occur before the
+configured end; the first committed closure timestamp remains authoritative across
+retry and restart. Definitions are never deleted by closure, preserving the basis
+for later historical leaderboard/result snapshots.
+
+This package still does not add per-player season XP, season grants, challenge
+evaluation, leaderboards or CounterStrikeSharp presentation. Those remain separate
+reviewable packages under #229.
 
 ## Permanent achievement tier evaluation
 
