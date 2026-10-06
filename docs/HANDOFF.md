@@ -1,3 +1,15 @@
+# Live permanent achievements — 2026-10-06
+
+- #254 loads validated `config/achievements.json` and composes permanent
+  achievements through the existing database/statistics/command services.
+- Default lifetime catalogs grant retroactive headshot, round-win and bomb-plant
+  tiers; no competitive rank changes. Startup/repeating checkpoints reuse stats,
+  skip unchanged session totals, isolate player failures and retry failed checks.
+- `!anolevel` and paginated `!anoachievements` use session-checked command output.
+- Pending/active composition ownership, timer cleanup, cancellation and packaged
+  progression DLLs are integrated into the native plugin lifecycle.
+- Gameplay XP and challenge/season presentation remain open. See progression.md.
+
 # Atomic achievement rewards — 2026-10-06
 
 - #248 commits permanent unlocks and XP ledger rewards in the same transaction,
