@@ -14,6 +14,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AnoCore.Modules.Admin", "sr
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AnoCore.Modules.Stats", "src\AnoCore.Modules.Stats\AnoCore.Modules.Stats.csproj", "{F94B8517-1207-4B91-895C-030107215E24}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AnoCore.Modules.Progression", "src\AnoCore.Modules.Progression\AnoCore.Modules.Progression.csproj", "{C2F1A0B6-ED46-45C0-9A61-2E741A1C6A70}"
+EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AnoCore.Modules.Tournament", "src\AnoCore.Modules.Tournament\AnoCore.Modules.Tournament.csproj", "{6F7B734D-2A0D-4D7D-9C21-630FC0E973E8}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AnoCore.Modules.Tournament.Persistence", "src\AnoCore.Modules.Tournament.Persistence\AnoCore.Modules.Tournament.Persistence.csproj", "{B42F6F7D-1E7B-4D40-9D42-A2B0E4B4E8A1}"
