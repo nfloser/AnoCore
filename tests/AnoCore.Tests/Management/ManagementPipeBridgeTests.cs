@@ -152,6 +152,55 @@ public sealed class ManagementPipeBridgeTests
                 Headers())));
     }
 
+    [TestMethod]
+    public async Task PipeClient_TimesOutWhenConnectedPeerNeverResponds()
+    {
+        var pipeName = $"anocore-silent-{Guid.NewGuid():N}";
+        await using var peer = new NamedPipeServerStream(
+            pipeName, PipeDirection.InOut, 1, PipeTransmissionMode.Byte,
+            PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
+        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        var connected = peer.WaitForConnectionAsync(deadline.Token);
+        var client = new ManagementPipeClient(
+            pipeName, TimeSpan.FromSeconds(2), TimeSpan.FromMilliseconds(100));
+
+        var request = client.SendAsync(new ManagementHttpRequest(
+            "GET", "/api/v1/status/health", Headers()), deadline.Token).AsTask();
+        await connected;
+
+        await Assert.ThrowsAsync<TimeoutException>(async () => await request);
+    }
+
+    [TestMethod]
+    public async Task PipeClient_PreservesCallerCancellationAfterConnect()
+    {
+        var pipeName = $"anocore-cancel-{Guid.NewGuid():N}";
+        await using var peer = new NamedPipeServerStream(
+            pipeName, PipeDirection.InOut, 1, PipeTransmissionMode.Byte,
+            PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
+        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        using var caller = new CancellationTokenSource();
+        var connected = peer.WaitForConnectionAsync(deadline.Token);
+        var client = new ManagementPipeClient(
+            pipeName, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(5));
+        var request = client.SendAsync(new ManagementHttpRequest(
+            "GET", "/api/v1/status/health", Headers()), caller.Token).AsTask();
+        await connected;
+        caller.Cancel();
+
+        await Assert.ThrowsAsync<OperationCanceledException>(async () =>
+            await request.WaitAsync(deadline.Token));
+    }
+
+    [TestMethod]
+    public void PipeClient_RejectsUnboundedExchangeTimeout()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new ManagementPipeClient("anocore-test", exchangeTimeout: TimeSpan.Zero));
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new ManagementPipeClient("anocore-test", exchangeTimeout: TimeSpan.FromMinutes(2)));
+    }
+
     private static ManagementPipeServer Server(
         string pipeName,
         Action<Exception>? onError = null)
