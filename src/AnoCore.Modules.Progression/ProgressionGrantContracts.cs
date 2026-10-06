@@ -7,6 +7,12 @@ public sealed record ProgressionLifetimeState(
     long LifetimeXp,
     long Revision);
 
+public sealed record ProgressionLifetimeResult(
+    PlayerId PlayerId,
+    long LifetimeXp,
+    long Revision,
+    XpLevelThreshold Level);
+
 public sealed record ProgressionGrantRequest(
     string GrantId,
     ProgressionXpSource Source,
@@ -93,12 +99,18 @@ public sealed class ProgressionGrantService
         _definitions = definitions ?? throw new ArgumentNullException(nameof(definitions));
     }
 
-    public ValueTask<ProgressionLifetimeState> ReadLifetimeAsync(
+    public async ValueTask<ProgressionLifetimeResult> ReadLifetimeAsync(
         PlayerId playerId,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(playerId);
-        return _repository.ReadLifetimeAsync(playerId, cancellationToken);
+        var state = await _repository.ReadLifetimeAsync(
+            playerId, cancellationToken).ConfigureAwait(false);
+        return new ProgressionLifetimeResult(
+            state.PlayerId,
+            state.LifetimeXp,
+            state.Revision,
+            _definitions.LevelFor(state.LifetimeXp));
     }
 
     public async ValueTask<ProgressionGrantResult> GrantAsync(
