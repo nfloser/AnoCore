@@ -13,27 +13,31 @@ public sealed class PlaytimeModule : IDisposable
     private readonly IPlaytimeRepository _repository;
     private readonly IPlaytimeStateRepository? _stateRepository;
     private readonly TimeProvider _clock;
+    private readonly PlaytimeNotificationService? _notifications;
     private readonly List<IDisposable> _subscriptions = [];
     private int _disposed;
 
-    private PlaytimeModule(IPlayerRegistry players, IPlaytimeRepository repository, TimeProvider clock)
+    private PlaytimeModule(IPlayerRegistry players, IPlaytimeRepository repository, TimeProvider clock,
+        PlaytimeNotificationService? notifications)
     {
         _players = players;
         _repository = repository;
         _stateRepository = repository as IPlaytimeStateRepository;
         _clock = clock;
+        _notifications = notifications;
     }
 
     public static async Task<PlaytimeModule> CreateAsync(IAnoEventBus events,
         IPlayerRegistry players, IPlaytimeRepository repository,
         IAnoCommandRegistry commands, TimeProvider? clock = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        PlaytimeNotificationService? notifications = null)
     {
         ArgumentNullException.ThrowIfNull(events);
         ArgumentNullException.ThrowIfNull(players);
         ArgumentNullException.ThrowIfNull(repository);
         ArgumentNullException.ThrowIfNull(commands);
-        var module = new PlaytimeModule(players, repository, clock ?? TimeProvider.System);
+        var module = new PlaytimeModule(players, repository, clock ?? TimeProvider.System, notifications);
         try
         {
             module._subscriptions.Add(events.Subscribe<PlayerConnectedEvent>(
@@ -78,6 +82,8 @@ public sealed class PlaytimeModule : IDisposable
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, this);
         foreach (var player in _players.OnlinePlayers)
             await RecordAsync(player, atUtc, false, cancellationToken).ConfigureAwait(false);
+        if (_notifications is not null)
+            await _notifications.TickAsync(atUtc, cancellationToken).ConfigureAwait(false);
     }
 
     private async ValueTask<CommandResult> OwnPlaytimeAsync(PlayerId? caller,
@@ -188,6 +194,7 @@ public sealed class PlaytimeModule : IDisposable
     public void Dispose()
     {
         if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
+        _notifications?.Dispose();
         for (var i = _subscriptions.Count - 1; i >= 0; i--)
             _subscriptions[i].Dispose();
         _subscriptions.Clear();

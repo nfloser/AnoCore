@@ -367,9 +367,36 @@ public sealed class AnoCorePlugin : BasePlugin
 
             try
             {
-                createdPlaytime = await PlaytimeModule.CreateAsync(
-                    events, players, created.Playtime, created.Commands,
-                    cancellationToken: timeout.Token).ConfigureAwait(false);
+                PlaytimeNotificationService? playtimeNotifications = null;
+                try
+                {
+                    playtimeNotifications = await PlaytimeNotificationService.CreateAsync(
+                        configuration, players, created.Playtime, created.Settings,
+                        created.ToggleCatalog, created.Messages,
+                        exception => Logger.LogError(exception, "Playtime notification failed."),
+                        timeout.Token).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException) when (timeout.IsCancellationRequested)
+                {
+                    throw;
+                }
+                catch (Exception exception)
+                {
+                    Logger.LogError(exception,
+                        "Playtime notification composition failed; durable tracking remains active.");
+                }
+                try
+                {
+                    createdPlaytime = await PlaytimeModule.CreateAsync(
+                        events, players, created.Playtime, created.Commands,
+                        cancellationToken: timeout.Token,
+                        notifications: playtimeNotifications).ConfigureAwait(false);
+                }
+                catch
+                {
+                    playtimeNotifications?.Dispose();
+                    throw;
+                }
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
