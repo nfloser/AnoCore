@@ -153,3 +153,24 @@ for later historical leaderboard/result snapshots.
 This package still does not add per-player season XP, season grants, challenge
 evaluation, leaderboards or CounterStrikeSharp presentation. Those remain separate
 reviewable packages under #229.
+
+
+## Durable season XP
+
+Issue #243 adds isolated per-player season XP on top of the accepted season
+catalog. Season state is keyed by SteamID64 plus stable season ID and records the
+accepted definition version used for grants. Season XP never reads or writes
+lifetime XP or competitive rank points.
+
+Migration 015 adds season accounts and an idempotent grant ledger. Grants are
+accepted only for the effective accepted season whose half-open UTC window contains
+the event timestamp. New grants are rejected after explicit season closure, while
+retries of an already committed grant remain idempotent. Gameplay/reward grants use
+the shared scheduled boost resolver; administrative adjustments are never boosted
+and may reduce season XP, but never below zero.
+
+Season levels are derived from the existing immutable XP threshold definition rather
+than persisted as mutable state. Historical season state remains addressable by
+season ID/version, while current-season reads resolve against the accepted effective
+catalog. Challenge/achievement evaluation, season leaderboards/result snapshots and
+CounterStrikeSharp presentation remain separate follow-up packages under #229.
