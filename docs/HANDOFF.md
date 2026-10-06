@@ -6,7 +6,8 @@
 - The provider uses the current public `GET /v3/profile` SteamID64 path, reads its
   API key only from `ANOCORE_LEETIFY_API_KEY`, pins the official HTTPS host and
   does not follow redirects.
-- Requests are bounded to 3 seconds, 128 KiB and two concurrent lookups. Provider
+- Requests are bounded to 3 seconds, 128 KiB, two concurrent lookups and 30 outbound
+  requests per minute; saturated concurrency fails fast. Provider
   failures, non-users/private profiles and rate limits fail closed without
   degrading internal rating.
 - Only Aim, Positioning and Utility are shown. API numeric text is validated but
