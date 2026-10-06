@@ -25,13 +25,17 @@ public sealed class RuntimeManagementCompositionTests
             "ano-management-composition-" + Guid.NewGuid().ToString("N"));
         var events = new AnoEventBus();
         var players = new PlayerRegistry(events);
+        var rateLimiter = new ManagementRateLimiter(
+            new ManagementRateLimitOptions(9, 3, 32));
 
         using var runtime = await RuntimeServices.CreateAsync(
             new MySqlDatabase(connection!),
             new JsonConfigStore(configPath),
             events,
-            players);
+            players,
+            managementRateLimiter: rateLimiter);
 
+        Assert.AreSame(rateLimiter, runtime.ManagementRateLimiter);
         Assert.AreSame(
             runtime.ManagementStatus,
             runtime.GetService(typeof(IManagementStatusProvider)));

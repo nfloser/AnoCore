@@ -34,6 +34,7 @@ The integration candidate includes the shared runtime plus the currently code-co
 - self-service player toggle commands/menu;
 - persisted tournament match recovery plus session-safe roster team assignment enforcement;
 - AnoVeto using the Panorama CustomHud path plus live veto/map configuration reloads;
+- an opt-in authenticated local management pipe that reuses the management HTTP contract without adding a web server to the plugin;
 - the prerelease `AnoCore.Abstractions` module SDK under `sdk/`.
 
 The plugin initializes migrations, module data, player profiles, authorization, command/menu services, settings, placeholders and voting only after successful database startup. These features are assembled for disposable-server verification; CI proves the automated gates, not native CS2/DatHost behavior. Use `full-system-test.md` for the exact real-server acceptance pass before treating the candidate as production-ready.
@@ -52,6 +53,18 @@ Example structure, with values supplied by the operator:
 
 Use a dedicated database; startup applies the existing AnoCore schema migrations. Startup has a 30-second cancellation deadline. Missing configuration or a database/authorization failure leaves only lifecycle tracking and status available; privileged services are not activated. Correct configuration and restart to retry.
 
+## Local management bridge
+
+AnoCore also creates `plugins/AnoCore/config/management.json`. It is disabled by
+default and is intentionally separate from `core.json`. Leave it disabled unless a
+trusted local management client or the future HTTPS sidecar is being tested.
+
+If enabled, configure only hashed management credential material in this file; never
+store the bearer secret there. The bridge is a same-user local named pipe and does not
+open a TCP/HTTP listener. See `docs/management-api.md` for credential provisioning,
+the pipe frame contract, scopes, rate limits and the requirements for any network
+sidecar.
+
 `css_anocommands` lists registered logical commands. `css_anoreloadauth` reloads persisted role assignments. `css_anoconfigs` lists module configurations that have adopted the reload registry, and `css_anoreloadconfig <name>` reloads one such configuration. The server console is allowed; players require `ano.core.reload` for every reload/configuration-inspection command. No player receives this permission by default. See `docs/authorization.md` for the persisted authorization model and `docs/configuration-reload.md` for reload guarantees.
 
 Connected/reconnected/disconnected profiles and name changes are stored through the real player repository; player settings use storage-safe keys and survive restart. Unit tests alone are supplemented by MariaDB composition tests. No legacy database is automatically imported.
@@ -66,6 +79,7 @@ Record the commit from `BUILD-COMMIT.txt`, installed host version and observed r
 - Hot reload: no duplicate registrations; status still works.
 - Team changes, spawn and death: no errors or stale-state exceptions.
 - Unload: status command and event handlers are removed.
+- Management bridge when enabled: authenticated health succeeds, a wrong secret is rejected, unload closes the pipe and hot reload can bind the same pipe name again.
 - Reload twice: no repeated callbacks or plugin errors.
 
 See the repository's `docs/runtime-verification.md` for the broader acceptance checklist. CI does not run a native CS2 server.
