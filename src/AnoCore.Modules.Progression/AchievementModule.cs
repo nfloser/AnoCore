@@ -1,6 +1,8 @@
 using AnoCore.Abstractions.Commands;
+using AnoCore.Abstractions.Messaging;
 using AnoCore.Abstractions.Modules;
 using AnoCore.Abstractions.Players;
+using AnoCore.Abstractions.Settings;
 using AnoCore.Abstractions.Stats;
 
 namespace AnoCore.Modules.Progression;
@@ -14,6 +16,7 @@ public sealed class AchievementModule : IDisposable
     private readonly IAchievementRepository _achievements;
     private readonly ProgressionGrantService _grants;
     private readonly Action<Exception>? _reportError;
+    private readonly AchievementNotificationService? _notifications;
     private readonly List<IDisposable> _registrations = [];
     private readonly Dictionary<PlayerId, (PlayerSessionId Session, GameplayStatTotal[] Totals)> _checked = [];
     private readonly SemaphoreSlim _checkpointGate = new(1, 1);
@@ -22,7 +25,8 @@ public sealed class AchievementModule : IDisposable
 
     public AchievementModule(AchievementCatalogSnapshot catalog, IPlayerRegistry players,
         IGameplayStatRepository statistics, IAchievementRepository achievements,
-        IProgressionGrantRepository grants, IAnoCommandRegistry commands, Action<Exception>? reportError = null)
+        IProgressionGrantRepository grants, IAnoCommandRegistry commands, Action<Exception>? reportError = null,
+        IPlayerSettingsService? settings = null, IPlayerToggleCatalog? toggles = null, IMessageService? messages = null)
     {
         ArgumentNullException.ThrowIfNull(catalog);
         if (catalog.Xp is null || catalog.Achievements is null)
@@ -44,8 +48,13 @@ public sealed class AchievementModule : IDisposable
         _grants = new ProgressionGrantService(grants, _catalog.Xp);
         _reportError = reportError;
         ArgumentNullException.ThrowIfNull(commands);
+        if ((settings is not null || toggles is not null || messages is not null)
+            && (settings is null || toggles is null || messages is null))
+            throw new ArgumentException("Achievement notifications require settings, toggles and messages together.");
         try
         {
+            if (settings is not null && toggles is not null && messages is not null)
+                _notifications = new AchievementNotificationService(players, settings, toggles, messages, reportError);
             var owner = new ModuleId("ano.progression");
             _registrations.Add(commands.Register(owner,
                 new CommandDescriptor("anolevel", "Show your independent lifetime XP and level."), LevelAsync));
@@ -84,7 +93,11 @@ public sealed class AchievementModule : IDisposable
                     if (_checked.TryGetValue(player.Id, out var previous)
                         && previous.Session == player.SessionId && previous.Totals.SequenceEqual(totals)) continue;
                     foreach (var entry in _catalog.Achievements)
-                        await _achievements.UnlockAsync(player.Id, entry.Definition, totals, at, _catalog.Xp, token).ConfigureAwait(false);
+                    {
+                        var unlocked = await _achievements.UnlockAsync(player.Id, entry.Definition, totals, at, _catalog.Xp, token).ConfigureAwait(false);
+                        if (_notifications is not null)
+                            await _notifications.NotifyAsync(player, entry.Name, unlocked, token).ConfigureAwait(false);
+                    }
                     if (Current(player)) _checked[player.Id] = (player.SessionId, totals);
                 }
                 catch (OperationCanceledException) when (token.IsCancellationRequested)
@@ -147,6 +160,7 @@ public sealed class AchievementModule : IDisposable
     {
         if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
         _lifetime.Cancel();
+        _notifications?.Dispose();
         foreach (var registration in _registrations) registration.Dispose();
     }
 
