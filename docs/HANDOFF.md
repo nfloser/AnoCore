@@ -1,3 +1,14 @@
+# Atomic achievement rewards — 2026-10-06
+
+- #248 commits permanent unlocks and XP ledger rewards in the same transaction,
+  reusing `IDatabase` and the common progression account lock/grant implementation.
+- Migration 016 follows the now integrated season-XP migration 015.
+- Eight MariaDB tests cover replay/restart, concurrent evaluators, stats reset,
+  complete-batch rollback, overflow, boost opt-in, orphan grant collisions and
+  independent player identities. Local SDK remains unavailable; CI is required.
+- No separate DB connection or production credential is added. Catalog loading,
+  native event wiring and player UI remain the next integration boundary.
+
 # Season XP persistence checkpoint — 2026-10-06
 
 - #243 / branch `feature/243-season-xp-persistence-v2` adds isolated durable

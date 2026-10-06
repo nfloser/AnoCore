@@ -211,3 +211,38 @@ season ID/version, while current-season reads resolve against the accepted effec
 catalog. Challenge evaluation, durable achievement unlock/reward persistence,
 season leaderboards/result snapshots and CounterStrikeSharp presentation remain
 separate follow-up packages under #229.
+
+## Atomic permanent achievement rewards
+
+Issue #248 adds `IAchievementRepository` and `MySqlAchievementRepository`.
+Migration 016 creates `ano_progression_achievements` after the integrated
+season-XP migration 015. Unlock identity is case-sensitive and uses
+`(SteamID64, achievement ID, tier)`. Each row retains its definition version and
+references the matching XP ledger grant. The shared progression bootstrap applies
+the achievement migration idempotently.
+
+`UnlockAsync` snapshots/validates existing statistic totals, locks the existing
+progression account, reads committed permanent tiers and reevaluates candidates.
+It commits every newly reached tier, its `AchievementReward` ledger record and
+lifetime XP update in **one transaction**. It reuses the existing grant transaction
+implementation rather than introducing another XP store. Concurrent calls serialize
+on the same player-account lock. No grant or unlock notification should be emitted
+until the returned transaction has committed.
+
+Retries, including after restart or changes to reward/boost definitions, skip
+already unlocked tiers. Stored rewards are not reinterpreted or awarded again.
+Statistics resets preserve unlocked tiers. Orphan ledger collisions and malformed
+stored tier sequences fail closed. Any insert failure, cancellation or overflow
+rolls back the entire batch, including earlier tiers in that call.
+
+Achievement rewards remain excluded from gameplay-only double-XP windows.
+Explicit achievement-eligible boosts are supported and recorded in the common
+ledger. `achievement:<ID>:<tier>` is reserved for unlock grants; ordinary gameplay
+or administrative integrations must not manufacture IDs in that namespace.
+
+The repository accepts the existing `IDatabase`. Live startup already selects
+`ANOCORE_MYSQL`, falling back to `config/core.json` `ConnectionString`; achievement
+storage requires no separate credentials or connection. This package does not yet
+compose progression into the live plugin. Validated achievement catalogs, post-commit
+statistic wiring, player commands and notifications remain under #229. Development
+CI tests use their own disposable MariaDB database, never production credentials.
