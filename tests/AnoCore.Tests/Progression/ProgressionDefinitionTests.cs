@@ -68,7 +68,7 @@ public sealed class ProgressionDefinitionTests
         Assert.AreEqual(1m,
             snapshot.ResolveBoost(Friday.AddDays(2), ProgressionXpSource.Gameplay).Multiplier);
         Assert.AreEqual(2m,
-            snapshot.ResolveBoost(Friday.AddHours(2).ToOffset(TimeSpan.FromHours(2)),
+            snapshot.ResolveBoost(Friday.ToOffset(TimeSpan.FromHours(2)),
                 ProgressionXpSource.Gameplay).Multiplier);
     }
 
