@@ -153,3 +153,34 @@ for later historical leaderboard/result snapshots.
 This package still does not add per-player season XP, season grants, challenge
 evaluation, leaderboards or CounterStrikeSharp presentation. Those remain separate
 reviewable packages under #229.
+
+## Permanent achievement tier evaluation
+
+Issue #244 adds `AchievementDefinition`, an immutable, versioned definition for
+one permanent achievement backed by an existing `GameplayStatKind` aggregate.
+For example, `HeadshotKill` with targets 10, 50 and 100 can award 100, 200 and
+300 XP respectively. A one-time achievement uses just one tier.
+
+IDs contain 1–64 ASCII letters, digits, dots, dashes or underscores. Versions are
+positive. Definitions contain 1–100 consecutive tiers with strictly increasing
+positive targets and nonnegative reward XP. Definitions snapshot the tier list
+and expose read-only collections. Enumeration is bounded during validation.
+
+Evaluation consumes the existing lifetime gameplay totals and the highest tier
+already durably awarded. Missing kinds count as zero; duplicate kinds, unknown
+kinds, null entries and negative counts are rejected. Unrelated valid totals are
+ignored. Crossing multiple targets returns every unawarded tier in order. Passing
+the committed awarded tier on retry returns no duplicate unlock candidates.
+Previously awarded tiers remain unlocked even after a statistics reset.
+
+This evaluator does not persist unlocks, award XP or send notifications. Its output
+is a set of **candidates**, not proof that rewards were committed. The future
+integration must lock player achievement state and atomically persist each unlock
+with its XP grant, using a stable identity such as `(player, achievement ID, tier)`.
+Store the definition version with that unlock. Definition changes must preserve
+already awarded tier identity and require an explicit migration policy when
+removing/reordering tiers. Concurrent evaluators alone do not guarantee idempotency.
+
+Prerequisites, combat totals such as kills/assists, daily/weekly challenge windows,
+menus and plugin composition remain separate #229 packages. This package creates
+no duplicate statistic counter and does not access competitive rank points.
