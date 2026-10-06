@@ -19,6 +19,7 @@ public sealed class SeasonConfiguration
         if (configuration is null) return ["Season configuration is required."];
         try { _ = configuration.Snapshot(); return []; }
         catch (ArgumentException exception) { return [exception.Message]; }
+        catch (SeasonOverlapException exception) { return [exception.Message]; }
     }
 }
 
