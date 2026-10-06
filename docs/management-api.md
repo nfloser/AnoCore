@@ -204,3 +204,22 @@ peer therefore cannot keep a caller waiting indefinitely. Caller cancellation is
 preserved as cancellation; an internal deadline produces `TimeoutException`.
 A response timeout or cancellation after dispatch does not prove a mutation did
 not execute. Do not automatically retry privileged operations after either result.
+
+
+## HTTPS sidecar process
+
+`AnoCore.Management.Host` is the optional network host for the local management pipe. It is a separate ASP.NET Core executable and is not copied into the CounterStrikeSharp plugin package. The host forwards only the documented `/api/v1/status/*` and `/api/v1/operations/*` contract to `ManagementPipeClient`.
+
+The sidecar rejects every non-HTTPS request with `426`, rejects query strings and unsupported routes before opening the pipe, forwards only `Authorization`, `X-AnoCore-Token` and `X-Correlation-ID`, and derives remote identity only from the direct TCP peer. Forwarded-header middleware is intentionally not enabled. Request-line/header/body limits, per-peer rate limiting, and both pipe connection and exchange deadlines are bounded. Bearer values and request bodies are not written by application logging.
+
+Publish it independently:
+
+```bash
+dotnet publish src/AnoCore.Management.Host/AnoCore.Management.Host.csproj -c Release -o artifacts/management/AnoCore.Management.Host
+```
+
+The host fails closed for insecure traffic: an HTTP listener can only return `426`. For direct Kestrel exposure, configure an HTTPS URL and certificate through standard ASP.NET Core configuration, for example `ASPNETCORE_URLS=https://127.0.0.1:7443` together with `ASPNETCORE_Kestrel__Certificates__Default__Path` and `ASPNETCORE_Kestrel__Certificates__Default__Password`. Keep certificate passwords in the process secret store/environment, never in AnoCore configuration or source control.
+
+For a reverse proxy, keep the sidecar on a private/loopback boundary and use HTTPS on the proxy-to-sidecar hop. Do not trust `X-Forwarded-For`, `Forwarded` or similar values for identity; AnoCore deliberately ignores them. Restrict the proxy to the documented route families, preserve only the required credential/correlation headers, disable sensitive-header logging, and apply connection/rate limits at the proxy as well.
+
+Sidecar settings are in the `Management` section and support normal environment overrides such as `Management__PipeName`, `Management__ConnectTimeoutMilliseconds`, `Management__ExchangeTimeoutMilliseconds`, `Management__MaximumRequestBodyBytes` and `Management__RequestsPerMinutePerClient`. The plugin's local bridge is enabled separately and must use the same pipe name.
