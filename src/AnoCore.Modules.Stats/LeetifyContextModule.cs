@@ -96,11 +96,8 @@ public sealed class LeetifyContextModule : IDisposable
             return ProviderFailure(result.Status);
         }
 
-        if (result.Profile.Player != target.Id
-            || result.Profile.Metrics.Count == 0)
-        {
+        if (!ValidProfile(result.Profile, target.Id))
             return ProviderFailure(LeetifyLookupStatus.InvalidResponse);
-        }
 
         return CommandResult.Ok(
             $"[ANO] Data Provided by Leetify — {SafeName(target)}: "
@@ -109,6 +106,49 @@ public sealed class LeetifyContextModule : IDisposable
                 result.Profile.Metrics.Select(metric =>
                     $"{metric.Name}={metric.Value}"))
             + $". View on Leetify: {result.Profile.ProfileUri.AbsoluteUri}");
+    }
+
+    private static bool ValidProfile(
+        LeetifyProfileContext profile,
+        PlayerId player)
+    {
+        if (profile.Player != player
+            || profile.Metrics.Count != 3
+            || !string.Equals(
+                profile.ProfileUri.Scheme,
+                Uri.UriSchemeHttps,
+                StringComparison.OrdinalIgnoreCase)
+            || !string.Equals(
+                profile.ProfileUri.Host,
+                "leetify.com",
+                StringComparison.OrdinalIgnoreCase)
+            || !string.Equals(
+                profile.ProfileUri.AbsolutePath.TrimEnd('/'),
+                $"/app/profile/{player.SteamId64}",
+                StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        var expected = new[] { "Aim", "Positioning", "Utility" };
+        for (var index = 0; index < expected.Length; index++)
+        {
+            var metric = profile.Metrics[index];
+            if (!string.Equals(metric.Name, expected[index], StringComparison.Ordinal)
+                || metric.Value.Length is < 1 or > 64
+                || metric.Value.Any(char.IsControl)
+                || !double.TryParse(
+                    metric.Value,
+                    NumberStyles.Float,
+                    CultureInfo.InvariantCulture,
+                    out var value)
+                || !double.IsFinite(value))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private static PlayerSnapshot[] Resolve(
