@@ -4,6 +4,15 @@ The target is the complete reference framework and official-module feature set, 
 
 The source inventory was checked on 2026-09-17 against the reference recorded in NOTICE.md: its core API and official custom-tags, extended-commands, ranks, statistics, time-stats, toplists and administration modules. Provenance remains in NOTICE.md and Git history.
 
+The 2026-10-06 follow-up checked reference commit
+`94cd8fb34ffa2121d07ec7846dbcb9c1ac37935e`. It identified actual code gaps,
+including periodic playtime notifications (#226) and broader rank scoring (#228).
+Recording a statistic does not imply that its corresponding rank reward exists.
+Per the current user scope, native Steam group clan-tag selection introduced by CS2
+on 2026-09-22 is preserved; the legacy plugin-driven clan-tag override proposal
+#225 was withdrawn. Native user-selected tags and server-assigned rank/admin tags
+are distinct capabilities.
+
 | Area | Required behavior | Current acceptance state / owner |
 | --- | --- | --- |
 | Core lifecycle | Module registration, startup ordering, rollback, unload, public service contracts | Runtime services and lifecycle exist; host-owned LIFO registration cleanup is #140; external module discovery/API integration remains #22 |
@@ -17,7 +26,7 @@ The source inventory was checked on 2026-09-17 against the reference recorded in
 | Chat and tags | Chat processing, clan/name tags, name/chat colors, ownership priority, permission-based choices and removal | The consolidated main stack includes warmed native chat routing, validated colors, prioritized/selectable permission-gated tags and rank-tag integration plus chat/voice moderation. Real CS2 color/tag/chat behavior remains #23 acceptance. |
 | Statistics | Global/map/weapon stats; kills/deaths/assists, shots/hits/hitgroups, grenades, objectives, MVP, rounds/matches; warmup/bot/min-player/FFA policies; reset and menus | Death-based K/D/A and toplists are in the #157 candidate; #182 adds persisted weapon-fire/player-hurt detail, map/weapon filtering and hitgroup/damage queries. #184 adds persisted grenade/objective/MVP/round/match and special-kill counters plus warmup/min-player/FFA ingestion policy and a map-filtered own-stat command. #187 adds the session-safe combined statistics menu over the same repositories. #190 adds an audited non-destructive per-player reset cutoff across combat/detail/gameplay aggregates. Native delivery/timing, reset dispatch and menu rendering remain #157/#23. |
 | Playtime | Total/today, team/alive-state breakdown, notification settings, reconnect/day rollover and restart persistence | Persistent playtime, state checkpoints, commands and toplists are in the consolidated main stack. #226 adds periodic session-pinned chat notifications and the persisted player toggle. Remaining gaps are native timing/interaction acceptance and any policy differences found by #23. |
-| Ranks | Configurable thresholds/points and scoring rules; rank menus; give/take/set/reset; rank/tag display and notifications | Configurable combat-derived ranks, deterministic placement/toplists, audited adjustments, notifications, menu, tags and the player notification toggle are consolidated on main. Native presentation and combat-event acceptance remain #23. |
+| Ranks | Configurable thresholds/points and scoring rules; rank menus; give/take/set/reset; rank/tag display and notifications | Configurable K/D/A-derived ranks, deterministic placement/toplists, audited adjustments, notifications, menu, chat tags and the player notification toggle are consolidated on main. Actual code gaps remain in #228: broader event rewards, dynamic/VIP multipliers, streak/distance/time bonuses, independent scoring policy and scoreboard presentation. Native verification remains #23 separately. |
 | Toplists | Rank/time/stat queries, deterministic ordering, menu navigation and placement tags | Rank, playtime and combat/stat toplists use persisted deterministic queries with bounded pagination; rank placement/menu integration is on main. Native menu presentation remains #23 acceptance. |
 | Moderation | Kick/silent kick; ban/unban; mute/gag/silence and reversal; warnings; duration/expiry; reasons; offline/server-scoped data; admin menus/audit | Durable sanctions/audit, permissioned commands, connect-ban enforcement, kick/silent-kick, warnings, warmed chat/voice restrictions and extended administration are consolidated on main. Native disconnect/chat/voice behavior and any remaining admin-UI expectations are #23/#17 acceptance. |
 | Admin integration | Permission/group administration, immunity, connection information, webhook notifications, compatibility policy | Shared target/immunity is #37/PR #38, durable moderation is #41/PR #42, commands are #43/PR #44, connect-ban policy is #45/PR #46 and its native adapter is #47/PR #48; plugin composition, role-management UI, connection info and webhooks remain #17/#22 |
