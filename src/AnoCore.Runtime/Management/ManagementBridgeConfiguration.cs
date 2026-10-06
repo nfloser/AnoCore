@@ -94,7 +94,7 @@ public sealed class ManagementBridgeConfiguration
     }
 
     public ManagementRateLimitOptions RateLimits()
-        => new(
+        => new ManagementRateLimitOptions(
             ReadRequestsPerMinute,
             PrivilegedRequestsPerMinute,
             MaximumTrackedKeys).Validate();

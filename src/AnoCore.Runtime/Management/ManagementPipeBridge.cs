@@ -39,7 +39,19 @@ public sealed class ManagementPipeServer : IDisposable
             throw new InvalidOperationException("Management pipe server is already started.");
         }
 
-        _runTask = RunAsync(_lifetime.Token);
+        NamedPipeServerStream? first = null;
+        try
+        {
+            first = CreateServer();
+            _runTask = RunAsync(first, _lifetime.Token);
+            first = null;
+        }
+        catch
+        {
+            first?.Dispose();
+            Interlocked.Exchange(ref _started, 0);
+            throw;
+        }
     }
 
     public void Dispose()
@@ -63,36 +75,69 @@ public sealed class ManagementPipeServer : IDisposable
         }
     }
 
-    private async Task RunAsync(CancellationToken cancellationToken)
+    private NamedPipeServerStream CreateServer()
+        => new(
+            _pipeName,
+            PipeDirection.InOut,
+            maxNumberOfServerInstances: 1,
+            PipeTransmissionMode.Byte,
+            PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
+
+    private async Task RunAsync(
+        NamedPipeServerStream pipe,
+        CancellationToken cancellationToken)
     {
         while (!cancellationToken.IsCancellationRequested)
         {
-            await using var pipe = new NamedPipeServerStream(
-                _pipeName,
-                PipeDirection.InOut,
-                maxNumberOfServerInstances: 1,
-                PipeTransmissionMode.Byte,
-                PipeOptions.Asynchronous);
-
-            try
+            await using (pipe)
             {
-                await pipe.WaitForConnectionAsync(cancellationToken).ConfigureAwait(false);
-                var request = await ManagementPipeProtocol.ReadAsync<ManagementHttpRequest>(
-                    pipe, cancellationToken).ConfigureAwait(false);
-                var response = await _adapter.HandleAsync(
-                    request, cancellationToken).ConfigureAwait(false);
-                await ManagementPipeProtocol.WriteAsync(
-                    pipe, response, cancellationToken).ConfigureAwait(false);
-                await pipe.FlushAsync(cancellationToken).ConfigureAwait(false);
+                try
+                {
+                    await pipe.WaitForConnectionAsync(cancellationToken).ConfigureAwait(false);
+                    var request = await ManagementPipeProtocol.ReadAsync<ManagementHttpRequest>(
+                        pipe, cancellationToken).ConfigureAwait(false);
+                    var response = await _adapter.HandleAsync(
+                        request, cancellationToken).ConfigureAwait(false);
+                    await ManagementPipeProtocol.WriteAsync(
+                        pipe, response, cancellationToken).ConfigureAwait(false);
+                    await pipe.FlushAsync(cancellationToken).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    return;
+                }
+                catch (Exception exception)
+                {
+                    ReportError(exception);
+                }
             }
-            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+
+            if (cancellationToken.IsCancellationRequested)
             {
                 return;
             }
+
+            try
+            {
+                pipe = CreateServer();
+            }
             catch (Exception exception)
             {
-                _onError?.Invoke(exception);
+                ReportError(exception);
+                return;
             }
+        }
+    }
+
+    private void ReportError(Exception exception)
+    {
+        try
+        {
+            _onError?.Invoke(exception);
+        }
+        catch
+        {
+            // Error reporting must never take down the local bridge loop.
         }
     }
 }

@@ -84,7 +84,7 @@ public sealed class ManagementPipeBridgeTests
             Headers()));
 
         Assert.AreEqual(200, response.StatusCode);
-        Assert.IsTrue(response.Body.Contains(""ready":true", StringComparison.Ordinal));
+        Assert.IsTrue(response.Body.Contains("\"ready\":true", StringComparison.Ordinal));
     }
 
     [TestMethod]
@@ -114,6 +114,28 @@ public sealed class ManagementPipeBridgeTests
 
         Assert.AreEqual(200, response.StatusCode);
         Assert.IsInstanceOfType<InvalidDataException>(failures[0]);
+    }
+
+    [TestMethod]
+    public async Task PipeServer_DisposeCancelsBlockedRead()
+    {
+        var pipeName = $"anocore-test-{Guid.NewGuid():N}";
+        var server = Server(pipeName);
+        server.Start();
+
+        try
+        {
+            await using var raw = new NamedPipeClientStream(
+                ".", pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+            await raw.ConnectAsync(timeout.Token);
+
+            await Task.Run(server.Dispose).WaitAsync(TimeSpan.FromSeconds(2));
+        }
+        finally
+        {
+            server.Dispose();
+        }
     }
 
     [TestMethod]
