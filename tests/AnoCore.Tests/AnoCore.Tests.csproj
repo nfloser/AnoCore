@@ -9,6 +9,7 @@
     <ProjectReference Include="..\..\src\AnoCore.Modules.AnoVeto\AnoCore.Modules.AnoVeto.csproj" />
     <ProjectReference Include="..\..\src\AnoCore.Modules.Admin\AnoCore.Modules.Admin.csproj" />
     <ProjectReference Include="..\..\src\AnoCore.Modules.Stats\AnoCore.Modules.Stats.csproj" />
+    <ProjectReference Include="..\..\src\AnoCore.Modules.Progression\AnoCore.Modules.Progression.csproj" />
     <ProjectReference Include="..\..\src\AnoCore.Modules.Tournament\AnoCore.Modules.Tournament.csproj" />
     <ProjectReference Include="..\..\src\AnoCore.Modules.Tournament.Persistence\AnoCore.Modules.Tournament.Persistence.csproj" />
   </ItemGroup>
