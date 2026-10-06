@@ -45,11 +45,11 @@ public sealed class LeetifyHttpProfileProvider : ILeetifyProfileProvider
 
     private static readonly Uri DefaultBaseUri =
         new("https://api-public.cs-prod.leetify.com/");
-    private static readonly HttpClient SharedClient = new();
+    private static readonly HttpClient SharedClient =
+        new(new HttpClientHandler { AllowAutoRedirect = false });
 
     private readonly HttpClient _client;
     private readonly string _apiKey;
-    private readonly Uri _baseUri;
     private readonly TimeSpan _timeout;
     private readonly int _maxResponseBytes;
     private readonly SemaphoreSlim _gate;
@@ -62,7 +62,6 @@ public sealed class LeetifyHttpProfileProvider : ILeetifyProfileProvider
     public LeetifyHttpProfileProvider(
         HttpClient client,
         string apiKey,
-        Uri? baseUri = null,
         TimeSpan? timeout = null,
         int maxResponseBytes = DefaultMaxResponseBytes,
         int maxConcurrency = DefaultMaxConcurrency)
@@ -78,15 +77,6 @@ public sealed class LeetifyHttpProfileProvider : ILeetifyProfileProvider
         }
 
         _apiKey = apiKey;
-        _baseUri = baseUri ?? DefaultBaseUri;
-        if (!_baseUri.IsAbsoluteUri
-            || !string.Equals(_baseUri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
-        {
-            throw new ArgumentException(
-                "Leetify API base URI must be absolute HTTPS.",
-                nameof(baseUri));
-        }
-
         _timeout = timeout ?? DefaultTimeout;
         if (_timeout < TimeSpan.FromMilliseconds(10)
             || _timeout > TimeSpan.FromSeconds(15))
@@ -117,7 +107,7 @@ public sealed class LeetifyHttpProfileProvider : ILeetifyProfileProvider
             timeout.CancelAfter(_timeout);
 
             var requestUri = new Uri(
-                _baseUri,
+                DefaultBaseUri,
                 "v3/profile?steam64_id="
                 + player.SteamId64.ToString(CultureInfo.InvariantCulture));
             using var request = new HttpRequestMessage(HttpMethod.Get, requestUri);
