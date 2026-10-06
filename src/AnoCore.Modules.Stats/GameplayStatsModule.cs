@@ -27,6 +27,7 @@ public sealed class GameplayStatsModule : IDisposable
     private readonly IDisposable _command;
     private readonly IDisposable? _menuCommand;
     private readonly AnoRatingModule? _rating;
+    private readonly LeetifyContextModule? _leetifyContext;
     private GameplayRankTransitionMonitor? _rankTracking;
     private int _generation;
     private int _disposed;
@@ -38,7 +39,8 @@ public sealed class GameplayStatsModule : IDisposable
         GameplayStatsConfiguration? configuration = null,
         ICombatRepository? combat = null,
         IMenuService? menus = null,
-        IAnoEventBus? events = null)
+        IAnoEventBus? events = null,
+        ILeetifyProfileProvider? leetify = null)
     {
         ArgumentNullException.ThrowIfNull(commands);
         _players = players ?? throw new ArgumentNullException(nameof(players));
@@ -53,6 +55,8 @@ public sealed class GameplayStatsModule : IDisposable
 
         var commandsRegistered = new List<IDisposable>();
         var subscriptions = new List<IDisposable>();
+        AnoRatingModule? rating = null;
+        LeetifyContextModule? leetifyContext = null;
         try
         {
             _command = commands.Register(
@@ -97,12 +101,19 @@ public sealed class GameplayStatsModule : IDisposable
                     }));
             }
 
-            _rating = combat is null ? null
+            rating = combat is null ? null
                 : new AnoRatingModule(commands, players, combat, repository);
+            leetifyContext = leetify is null
+                ? null
+                : new LeetifyContextModule(commands, players, leetify);
+            _rating = rating;
+            _leetifyContext = leetifyContext;
             _subscriptions = subscriptions.ToArray();
         }
         catch
         {
+            leetifyContext?.Dispose();
+            rating?.Dispose();
             foreach (var subscription in subscriptions)
                 subscription.Dispose();
             foreach (var registration in commandsRegistered)
@@ -134,7 +145,8 @@ public sealed class GameplayStatsModule : IDisposable
         ICombatRepository combat,
         IMenuService menus,
         IAnoEventBus events,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        ILeetifyProfileProvider? leetify = null)
     {
         ArgumentNullException.ThrowIfNull(configuration);
         ArgumentNullException.ThrowIfNull(combat);
@@ -143,7 +155,7 @@ public sealed class GameplayStatsModule : IDisposable
         var settings = await LoadConfigurationAsync(configuration, cancellationToken)
             .ConfigureAwait(false);
         return new GameplayStatsModule(
-            commands, players, repository, settings, combat, menus, events);
+            commands, players, repository, settings, combat, menus, events, leetify);
     }
 
     private static async Task<GameplayStatsConfiguration> LoadConfigurationAsync(
@@ -441,6 +453,7 @@ public sealed class GameplayStatsModule : IDisposable
             _playerMenus.Clear();
         }
 
+        _leetifyContext?.Dispose();
         _rating?.Dispose();
         _rankTracking?.Dispose();
         _menuCommand?.Dispose();

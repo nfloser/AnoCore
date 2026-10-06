@@ -424,6 +424,23 @@ public sealed class AnoCorePlugin : BasePlugin
 
             try
             {
+                ILeetifyProfileProvider? leetify = null;
+                var leetifyApiKey =
+                    Environment.GetEnvironmentVariable("ANOCORE_LEETIFY_API_KEY");
+                if (!string.IsNullOrWhiteSpace(leetifyApiKey))
+                {
+                    try
+                    {
+                        leetify = new LeetifyHttpProfileProvider(leetifyApiKey);
+                    }
+                    catch (ArgumentException)
+                    {
+                        Logger.LogWarning(
+                            "Leetify integration configuration is invalid; "
+                            + "internal AnoRating remains available.");
+                    }
+                }
+
                 createdGameplayStats = await GameplayStatsModule.CreateAsync(
                     configuration,
                     created.Commands,
@@ -432,7 +449,8 @@ public sealed class AnoCorePlugin : BasePlugin
                     created.Combat,
                     created.Menus,
                     events,
-                    timeout.Token).ConfigureAwait(false);
+                    timeout.Token,
+                    leetify).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {

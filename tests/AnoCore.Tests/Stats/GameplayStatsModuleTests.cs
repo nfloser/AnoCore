@@ -42,6 +42,59 @@ public sealed class GameplayStatsModuleTests
     }
 
     [TestMethod]
+    public async Task Composition_LeetifyIsOptionalOwnedAndRollsBackOnCommandCollision()
+    {
+        var players = new PlayerRegistry(new AnoEventBus());
+        await players.ConnectAsync(new PlayerConnection(
+            Player, "Player", PlayerTeam.Terrorist, true, Now));
+        var commands = new CommandRegistry(new AllowAll());
+        var provider = new FakeLeetifyProvider(new LeetifyLookupResult(
+            LeetifyLookupStatus.Available,
+            new LeetifyProfileContext(
+                Player,
+                [new("Aim", "80"), new("Positioning", "70"), new("Utility", "60")],
+                new Uri($"https://leetify.com/app/profile/{Player.SteamId64}"))));
+        var module = new GameplayStatsModule(
+            commands,
+            players,
+            new FakeRepository(),
+            combat: new FakeCombatRepository(),
+            leetify: provider);
+
+        Assert.IsTrue((await commands.ExecuteAsync("!anorating", null)).Success);
+        Assert.IsTrue((await commands.ExecuteAsync("!anoleetify Player", null)).Success);
+
+        module.Dispose();
+        Assert.AreEqual(
+            CommandFailureReason.NotFound,
+            (await commands.ExecuteAsync("!anorating", null)).FailureReason);
+        Assert.AreEqual(
+            CommandFailureReason.NotFound,
+            (await commands.ExecuteAsync("!anoleetify Player", null)).FailureReason);
+
+        using var reserved = commands.Register(
+            new AnoCore.Abstractions.Modules.ModuleId("reserved"),
+            new CommandDescriptor("anoleetify", "Reserved."),
+            _ => ValueTask.FromResult(CommandResult.Ok("reserved")));
+        Assert.ThrowsExactly<InvalidOperationException>(() =>
+            new GameplayStatsModule(
+                commands,
+                players,
+                new FakeRepository(),
+                combat: new FakeCombatRepository(),
+                leetify: provider));
+        Assert.AreEqual(
+            CommandFailureReason.NotFound,
+            (await commands.ExecuteAsync("!anogamestats", Player)).FailureReason);
+        Assert.AreEqual(
+            CommandFailureReason.NotFound,
+            (await commands.ExecuteAsync("!anorating", null)).FailureReason);
+        Assert.AreEqual(
+            "reserved",
+            (await commands.ExecuteAsync("!anoleetify Player", null)).Message);
+    }
+
+    [TestMethod]
     public async Task Command_ReadsOwnStatsWithOptionalMapAndDisposes()
     {
         var players = new PlayerRegistry(new AnoEventBus());
@@ -307,6 +360,18 @@ public sealed class GameplayStatsModuleTests
         {
             LastDetailFilter = filter;
             return ValueTask.FromResult(Hitgroups);
+        }
+    }
+
+    private sealed class FakeLeetifyProvider(LeetifyLookupResult result)
+        : ILeetifyProfileProvider
+    {
+        public ValueTask<LeetifyLookupResult> ReadAsync(
+            PlayerId player,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return ValueTask.FromResult(result);
         }
     }
 

@@ -53,6 +53,27 @@ Example structure, with values supplied by the operator:
 
 Use a dedicated database; startup applies the existing AnoCore schema migrations. Startup has a 30-second cancellation deadline. Missing configuration or a database/authorization failure leaves only lifecycle tracking and status available; privileged services are not activated. Correct configuration and restart to retry.
 
+## Optional Leetify context
+
+Internal `!anorating` requires no external service. To additionally enable the
+separate live `!anoleetify <player>` command, create a Leetify developer API key
+and expose it to the server process as `ANOCORE_LEETIFY_API_KEY`. Do not add the
+key to `core.json`, source control, startup arguments that are visible to other
+users, or log output.
+
+When the variable is missing, AnoCore does not register the external command and
+makes no Leetify requests. When enabled, lookups occur only when a user explicitly
+runs `!anoleetify`; returned API data is not persisted. The integration is
+bounded to the official HTTPS API endpoint, a three-second timeout, 128 KiB per
+response, two concurrent requests and 30 outbound requests per minute. Saturated
+concurrency fails immediately instead of queueing arbitrary command bursts.
+
+Leetify currently requires attribution/link-back and prohibits storing or
+recalculating its API metrics. Its 2026 privacy policy change also means the
+Public API may return no profile for players who are not registered with Leetify.
+Review the current Leetify Public API and Developer Guidelines before enabling
+this optional integration in a release.
+
 ## Local management bridge
 
 AnoCore also creates `plugins/AnoCore/config/management.json`. It is disabled by
