@@ -62,7 +62,59 @@ award rather than partially committing progression state.
 
 ## Current boundary
 
-This package contains definitions and deterministic calculation only. It does not
-yet persist player XP, grant rewards, define seasons/challenges/achievements, add
-player commands or compose native CS2 behavior. Those are separate reviewable
+The definition layer remains engine-independent. Durable lifetime XP is added by
+the separate persistence package described below; seasons, challenge/achievement
+evaluation, player commands and native CS2 composition remain separate packages
+under #229.
+
+
+## Durable lifetime XP grants
+
+Issue #238 adds the first persistent progression state. It deliberately stores only
+lifetime XP and the immutable facts of each accepted grant; season state remains a
+separate follow-up.
+
+Each player has one progression account row with cumulative lifetime XP and a
+monotonic revision. Every award also writes a ledger row keyed by
+`(SteamID64, grant ID)`. The grant ID must be stable for the source event so a
+retry, reconnect or process restart can identify the same logical award.
+
+A grant records:
+
+- source and original base XP;
+- final awarded XP;
+- bounded reason identifier;
+- normalized UTC event timestamp;
+- selected boost ID and multiplier;
+- lifetime XP and account revision after the award.
+
+The ledger insert and account update occur in one MariaDB transaction while the
+player account row is locked. Concurrent grants for the same player therefore
+serialize, while unrelated players do not share that lock. Arithmetic is checked;
+a failed insert, overflow or other transaction failure cannot leave a partially
+updated lifetime total.
+
+### Retry semantics
+
+The service checks an existing grant before resolving current boost definitions.
+If the original source, base XP, reason and normalized event timestamp match, the
+persisted result is returned without recalculating the old award. This is important
+when a server restarts after configuration has changed: a retry must not silently
+turn an earlier 2x award into a later 3x award.
+
+If the same grant ID is reused with a different original payload, the operation
+fails with `ProgressionGrantConflictException`. A second in-flight writer is also
+checked inside the locked transaction, so the pre-read is an optimization rather
+than the idempotency guarantee.
+
+Lifetime level is derived from the currently accepted immutable level definition
+snapshot and is not stored as a second mutable score. Competitive rank points are
+neither read nor written by this path.
+
+### Persistence boundary
+
+Migration 013 creates `ano_progression_accounts` and
+`ano_progression_grants`. The persistence assembly is intentionally not composed
+into the CounterStrikeSharp plugin yet. Gameplay-event wiring, player-facing
+commands, administration, season XP, challenges and achievements remain separate
 packages under #229.
