@@ -99,6 +99,7 @@ public sealed class ProgressionGrantServiceTests
 
         Assert.AreEqual(249L, state.LifetimeXp);
         Assert.AreEqual(4L, state.Revision);
+        Assert.AreEqual(2, state.Level.Level);
     }
 
     private static ProgressionDefinitionSnapshot Definitions()
