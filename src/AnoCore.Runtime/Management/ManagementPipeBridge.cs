@@ -146,10 +146,12 @@ public sealed class ManagementPipeClient
 {
     private readonly string _pipeName;
     private readonly TimeSpan _connectTimeout;
+    private readonly TimeSpan _exchangeTimeout;
 
     public ManagementPipeClient(
         string pipeName,
-        TimeSpan? connectTimeout = null)
+        TimeSpan? connectTimeout = null,
+        TimeSpan? exchangeTimeout = null)
     {
         if (!ManagementBridgeConfiguration.ValidPipeName(pipeName))
         {
@@ -161,6 +163,12 @@ public sealed class ManagementPipeClient
         if (_connectTimeout <= TimeSpan.Zero || _connectTimeout > TimeSpan.FromMinutes(1))
         {
             throw new ArgumentOutOfRangeException(nameof(connectTimeout));
+        }
+
+        _exchangeTimeout = exchangeTimeout ?? TimeSpan.FromSeconds(30);
+        if (_exchangeTimeout <= TimeSpan.Zero || _exchangeTimeout > TimeSpan.FromMinutes(1))
+        {
+            throw new ArgumentOutOfRangeException(nameof(exchangeTimeout));
         }
     }
 
@@ -190,11 +198,22 @@ public sealed class ManagementPipeClient
             throw new TimeoutException("AnoCore management pipe connection timed out.");
         }
 
-        await ManagementPipeProtocol.WriteAsync(
-            pipe, request, cancellationToken).ConfigureAwait(false);
-        await pipe.FlushAsync(cancellationToken).ConfigureAwait(false);
-        return await ManagementPipeProtocol.ReadAsync<ManagementHttpResponse>(
-            pipe, cancellationToken).ConfigureAwait(false);
+        using var exchange = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        exchange.CancelAfter(_exchangeTimeout);
+        try
+        {
+            await ManagementPipeProtocol.WriteAsync(
+                pipe, request, exchange.Token).ConfigureAwait(false);
+            await pipe.FlushAsync(exchange.Token).ConfigureAwait(false);
+            return await ManagementPipeProtocol.ReadAsync<ManagementHttpResponse>(
+                pipe, exchange.Token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (
+            !cancellationToken.IsCancellationRequested
+            && exchange.IsCancellationRequested)
+        {
+            throw new TimeoutException("AnoCore management pipe response timed out.");
+        }
     }
 }
 

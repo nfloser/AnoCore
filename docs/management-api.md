@@ -197,3 +197,10 @@ AnoCore has successfully activated its runtime. Unload and hot reload stop the p
 before disposing runtime services. A pipe creation failure rolls activation back, and
 malformed client frames are rejected without terminating the next listener cycle.
 
+`ManagementPipeClient` separately bounds connection establishment (5 seconds by
+default) and the entire write/read exchange after connecting (30 seconds by
+default). Both deadlines can be configured up to one minute. A silent connected
+peer therefore cannot keep a caller waiting indefinitely. Caller cancellation is
+preserved as cancellation; an internal deadline produces `TimeoutException`.
+A response timeout or cancellation after dispatch does not prove a mutation did
+not execute. Do not automatically retry privileged operations after either result.
