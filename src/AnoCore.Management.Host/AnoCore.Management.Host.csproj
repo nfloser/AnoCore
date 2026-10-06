@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <AssemblyName>AnoCore.Management.Host</AssemblyName>
+    <RootNamespace>AnoCore.Management.Host</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\AnoCore.Abstractions\AnoCore.Abstractions.csproj" />
+    <ProjectReference Include="..\AnoCore.Runtime\AnoCore.Runtime.csproj" />
+  </ItemGroup>
+</Project>
