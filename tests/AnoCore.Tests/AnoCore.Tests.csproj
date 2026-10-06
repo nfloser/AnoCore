@@ -6,6 +6,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\AnoCore.Abstractions\AnoCore.Abstractions.csproj" />
     <ProjectReference Include="..\..\src\AnoCore.Runtime\AnoCore.Runtime.csproj" />
+    <ProjectReference Include="..\..\src\AnoCore.Management.Host\AnoCore.Management.Host.csproj" />
     <ProjectReference Include="..\..\src\AnoCore.Modules.AnoVeto\AnoCore.Modules.AnoVeto.csproj" />
     <ProjectReference Include="..\..\src\AnoCore.Modules.Admin\AnoCore.Modules.Admin.csproj" />
     <ProjectReference Include="..\..\src\AnoCore.Modules.Stats\AnoCore.Modules.Stats.csproj" />
@@ -18,5 +19,8 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="MSTest.TestAdapter" />
     <PackageReference Include="MSTest.TestFramework" />
+  </ItemGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 </Project>
