@@ -211,3 +211,28 @@ season ID/version, while current-season reads resolve against the accepted effec
 catalog. Challenge evaluation, durable achievement unlock/reward persistence,
 season leaderboards/result snapshots and CounterStrikeSharp presentation remain
 separate follow-up packages under #229.
+
+
+## Atomic permanent achievement unlocks
+
+Issue #248 turns the achievement evaluator's tier candidates into durable permanent
+unlocks. Each unlock is identified by player, achievement ID and tier and stores the
+definition version that produced the first successful award. A deterministic
+`achievement:<id>:tier:<n>` grant ID links it to the existing lifetime progression
+ledger.
+
+The unlock row, matching `AchievementReward` grant and lifetime-XP account update
+commit in one MariaDB transaction while holding the same per-player progression
+account lock used by normal lifetime grants. Parallel evaluators can therefore race
+safely: only one transaction creates the tier and pays XP, while later contenders
+return the first committed unlock and reward.
+
+Retries intentionally preserve the first committed definition version, reward and
+boost metadata. A later configuration revision cannot retroactively rewrite or
+re-award a permanent achievement. Normal gameplay-only boost windows stay isolated
+from achievement rewards; a boost affects them only when its eligible-source mask
+explicitly includes `AchievementReward`.
+
+A failed unlock insert, failed ledger write or lifetime-XP overflow rolls the whole
+tier award back. The evaluator and persistence package still do not perform native
+CounterStrikeSharp event wiring, UI notifications or real-world reward fulfillment.
