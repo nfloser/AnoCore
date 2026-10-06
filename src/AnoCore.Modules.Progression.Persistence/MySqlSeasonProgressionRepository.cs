@@ -387,8 +387,16 @@ public sealed class MySqlSeasonProgressionRepository : ISeasonProgressionReposit
 
     private static void ValidateSeasonId(string? seasonId)
     {
-        if (!SeasonCatalogSnapshot.ValidIdentifier(seasonId))
+        if (string.IsNullOrWhiteSpace(seasonId)
+            || seasonId.Length > SeasonCatalogSnapshot.MaxSeasonIdLength
+            || seasonId != seasonId.Trim()
+            || seasonId.Any(character =>
+                character > 0x7f
+                || !(char.IsLetterOrDigit(character)
+                    || character is '.' or '_' or '-')))
+        {
             throw new ArgumentException("Season ID is invalid.", nameof(seasonId));
+        }
     }
 
     private static void ValidateGrantId(string? grantId)
