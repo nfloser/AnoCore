@@ -130,6 +130,66 @@ public sealed class MySqlSeasonProgressionRepositoryTests
     }
 
     [TestMethod]
+    public async Task ConflictingRetry_DoesNotMutateSeasonState()
+    {
+        var service = Service();
+        await service.GrantAsync(Player,
+            new("event", ProgressionXpSource.Gameplay, 10, "gameplay.kill", Start));
+
+        await Assert.ThrowsExactlyAsync<SeasonXpGrantConflictException>(async () =>
+            await service.GrantAsync(Player,
+                new("event", ProgressionXpSource.Gameplay, 11, "gameplay.kill", Start)));
+
+        var state = await service.ReadAsync(Player, "s1", 1);
+        Assert.AreEqual(20L, state.SeasonXp);
+        Assert.AreEqual(1L, state.Revision);
+    }
+
+    [TestMethod]
+    public async Task FailedGrantInsert_RollsBackSeasonAccountMutation()
+    {
+        await _database.WithConnectionAsync(async (connection, token) =>
+        {
+            await using var command = connection.CreateCommand();
+            command.CommandText = """
+                CREATE TRIGGER fail_season_progression_grant
+                BEFORE INSERT ON ano_progression_season_grants
+                FOR EACH ROW
+                SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'forced season progression failure'
+                """;
+            await command.ExecuteNonQueryAsync(token);
+            return true;
+        });
+
+        var service = Service();
+        await Assert.ThrowsExactlyAsync<MySqlConnector.MySqlException>(async () =>
+            await service.GrantAsync(Player,
+                new("broken", ProgressionXpSource.Gameplay, 10, "gameplay.round", Start)));
+
+        var state = await service.ReadAsync(Player, "s1", 1);
+        Assert.AreEqual(0L, state.SeasonXp);
+        Assert.AreEqual(0L, state.Revision);
+
+        var stored = await new MySqlSeasonProgressionRepository(_database)
+            .ReadGrantAsync(Player, "s1", "broken");
+        Assert.IsNull(stored);
+    }
+
+    [TestMethod]
+    public async Task HistoricalSeasonState_RemainsReadableAfterClosure()
+    {
+        var service = Service();
+        await service.GrantAsync(Player,
+            new("historical", ProgressionXpSource.Gameplay, 60, "gameplay.round", Start));
+
+        await new MySqlSeasonRepository(_database).CloseAsync("s1", 1, End);
+
+        var historical = await service.ReadAsync(Player, "s1", 1);
+        Assert.AreEqual(120L, historical.SeasonXp);
+        Assert.AreEqual(2, historical.Level.Level);
+    }
+
+    [TestMethod]
     public async Task ReadCurrent_ReturnsDerivedLevelWithoutCreatingLifetimeState()
     {
         var service = Service();
@@ -158,6 +218,7 @@ public sealed class MySqlSeasonProgressionRepositoryTests
         {
             foreach (var statement in new[]
             {
+                "DROP TRIGGER IF EXISTS fail_season_progression_grant",
                 "DROP TABLE IF EXISTS ano_progression_season_grants",
                 "DROP TABLE IF EXISTS ano_progression_season_accounts",
                 "DROP TABLE IF EXISTS ano_progression_season_runtime",
