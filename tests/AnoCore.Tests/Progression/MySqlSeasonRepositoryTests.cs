@@ -106,6 +106,26 @@ public sealed class MySqlSeasonRepositoryTests
     }
 
     [TestMethod]
+    public async Task FirstAcceptanceAtOrAfterStart_IsRejectedButStoredRetryRemainsIdempotent()
+    {
+        var repository = new MySqlSeasonRepository(_database);
+        var definition = new SeasonDefinition(
+            "s1", 1, "Season One", January, February);
+
+        await Assert.ThrowsExactlyAsync<SeasonDefinitionConflictException>(async () =>
+            await repository.AcceptAsync(definition, January));
+
+        var first = await repository.AcceptAsync(
+            definition, January.AddHours(-1));
+        var retry = await repository.AcceptAsync(
+            definition, January.AddHours(1));
+
+        Assert.IsTrue(first.Inserted);
+        Assert.IsFalse(retry.Inserted);
+        Assert.AreEqual(first.Season, retry.Season);
+    }
+
+    [TestMethod]
     public async Task OverlappingEffectiveSeasons_AreRejected()
     {
         var repository = new MySqlSeasonRepository(_database);
