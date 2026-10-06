@@ -84,8 +84,11 @@ public sealed class LeetifyProfileProviderTests
         using var client = new HttpClient(new Handler(
             (_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK))));
 
-        Assert.ThrowsExactly<ArgumentException>(() =>
-            new LeetifyHttpProfileProvider(client, "bad key with spaces"));
+        foreach (var key in new[] { "bad key with spaces", "key\tvalue", "key\r\nvalue", "key\u007f", "keyé" })
+        {
+            Assert.ThrowsExactly<ArgumentException>(() =>
+                new LeetifyHttpProfileProvider(client, key));
+        }
     }
 
     [TestMethod]

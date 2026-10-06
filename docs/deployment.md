@@ -116,3 +116,12 @@ Stop the server, replace only the AnoCore plugin directory with its backup, then
 3. Register each native command once; ensure engine operations run on the server thread after asynchronous database work.
 4. Exercise permissions, UI, disconnect/reconnect, timeout and map transition with real clients.
 5. Record server evidence before marking the feature or release production-ready.
+
+## Permanent achievements
+
+The plugin now packages both progression assemblies and loads
+`config/achievements.json` through the shared configuration service. See
+[progression.md](progression.md) for default catalogs, retroactive lifetime awards,
+`!anolevel`, `!anoachievements`, checkpoint timing and disabling the feature.
+It uses the existing database connection and applies progression migrations
+013–016. No separate achievement credentials or server plugin is required.

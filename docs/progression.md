@@ -184,3 +184,127 @@ removing/reordering tiers. Concurrent evaluators alone do not guarantee idempote
 Prerequisites, combat totals such as kills/assists, daily/weekly challenge windows,
 menus and plugin composition remain separate #229 packages. This package creates
 no duplicate statistic counter and does not access competitive rank points.
+
+
+## Durable season XP
+
+Issue #243 adds isolated per-player season XP on top of the accepted season
+catalog. Season state is keyed by SteamID64 plus stable season ID and records the
+accepted definition version used for grants. Season XP never reads or writes
+lifetime XP or competitive rank points.
+
+Migration 015 adds season accounts and an idempotent grant ledger. Grants are
+accepted only for the effective accepted season whose half-open UTC window contains
+the event timestamp. New grants are rejected after explicit season closure, while
+retries of an already committed grant remain idempotent. Gameplay/reward grants use
+the shared scheduled boost resolver; administrative adjustments are never boosted
+and may reduce season XP, but never below zero.
+
+Season definition rows are held with a shared lock during a commit. That keeps
+ordinary grants concurrent while ensuring explicit season closure cannot overtake a
+grant that is being committed. Per-player account rows still serialize competing
+writes for one player's season total.
+
+Season levels are derived from the existing immutable XP threshold definition rather
+than persisted as mutable state. Historical season state remains addressable by
+season ID/version, while current-season reads resolve against the accepted effective
+catalog. Challenge evaluation, durable achievement unlock/reward persistence,
+season leaderboards/result snapshots and CounterStrikeSharp presentation remain
+separate follow-up packages under #229.
+
+## Atomic permanent achievement rewards
+
+Issue #248 adds `IAchievementRepository` and `MySqlAchievementRepository`.
+Migration 016 creates `ano_progression_achievements` after the integrated
+season-XP migration 015. Unlock identity is case-sensitive and uses
+`(SteamID64, achievement ID, tier)`. Each row retains its definition version and
+references the matching XP ledger grant. The shared progression bootstrap applies
+the achievement migration idempotently.
+
+`UnlockAsync` snapshots/validates existing statistic totals, locks the existing
+progression account, reads committed permanent tiers and reevaluates candidates.
+It commits every newly reached tier, its `AchievementReward` ledger record and
+lifetime XP update in **one transaction**. It reuses the existing grant transaction
+implementation rather than introducing another XP store. Concurrent calls serialize
+on the same player-account lock. No grant or unlock notification should be emitted
+until the returned transaction has committed.
+
+Retries, including after restart or changes to reward/boost definitions, skip
+already unlocked tiers. Stored rewards are not reinterpreted or awarded again.
+Statistics resets preserve unlocked tiers. Orphan ledger collisions and malformed
+stored tier sequences fail closed. Any insert failure, cancellation or overflow
+rolls back the entire batch, including earlier tiers in that call.
+
+Achievement rewards remain excluded from gameplay-only double-XP windows.
+Explicit achievement-eligible boosts are supported and recorded in the common
+ledger. `achievement:<ID>:<tier>` is reserved for unlock grants; ordinary gameplay
+or administrative integrations must not manufacture IDs in that namespace.
+
+The repository accepts the existing `IDatabase`. Live startup already selects
+`ANOCORE_MYSQL`, falling back to `config/core.json` `ConnectionString`; achievement
+storage requires no separate credentials or connection. This package does not yet
+compose progression into the live plugin. Validated achievement catalogs, post-commit
+statistic wiring, player commands and notifications remain under #229. Development
+CI tests use their own disposable MariaDB database, never production credentials.
+
+## Live permanent achievements
+
+Issue #254 composes permanent achievements into the plugin with the shared
+`IDatabase`, migration bootstrap, statistics repository and command registry.
+The development plugin package includes both progression assemblies.
+
+On first startup, `config/achievements.json` is created with:
+
+- `Enabled: true`, `CheckpointSeconds: 30` (allowed range 10–600);
+- levels 1–5 at cumulative XP 0, 100, 300, 600 and 1000;
+- no scheduled boosts initially;
+- headshots at 10/50/100, round wins at 10/50/100 and bomb plants at 5/25/50;
+- tier rewards of 100/200/300 lifetime XP for each achievement.
+
+The catalog supports 1–32 achievements with unique case-insensitive IDs, printable
+names, positive definition versions and the previously documented bounded tiers.
+Configuration is validated and copied into immutable definition snapshots.
+Changes require a plugin restart; this package does not add live config reload.
+Disable the feature with `Enabled: false` and restart to retain stored progression
+without registering its commands or reconciliation timer.
+
+### Existing players and checkpoint behavior
+
+Achievements deliberately count existing lifetime statistics **retroactively**.
+A player already at 100 recorded headshots receives all three previously unawarded
+headshot tiers at the next reconciliation. Existing rank points are untouched.
+No separate baseline or duplicate kill/objective counter is created.
+
+The module reconciles online human players after successful runtime activation and
+periodically thereafter. Each checkpoint reads existing lifetime gameplay totals
+once per player. Unchanged totals in the same session skip unlock transactions.
+Reconnect/restart causes another check against durable unlock state. A failed
+player does not block later players; failures are not cached and retry on the next
+checkpoint. Overlapping checkpoints are skipped instead of accumulating work.
+Changes normally become visible within the configured checkpoint interval.
+
+Unlock time is the reconciliation instant, not the historical timestamp of the
+first statistic. Explicit achievement-eligible boosts therefore use that instant;
+default gameplay-only boosts do not multiply achievement rewards. Statistics resets
+retain permanent unlocks, as specified by the persistence layer.
+
+Unload kills the timer, cancels in-flight work and unregisters owned commands.
+Invalid configuration or failed progression startup is logged and isolated from
+other AnoCore modules. This path does not perform XP queries inside native gameplay
+callbacks. A disconnect after a durable transaction starts may still commit a valid
+lifetime unlock for that account; stale player sessions do not receive command data.
+
+### Player commands
+
+- `!anolevel`: lifetime XP and configured XP level, independent from rank points.
+- `!anoachievements [page]`: five catalog entries per page, awarded tiers and progress.
+
+Both commands require a connected player. Responses use the existing command bridge
+and are suppressed when the caller reconnects or the module unloads during a read.
+The checkpoint grants rewards; opening a command does not manufacture new counters
+or arbitrary XP grants.
+
+This package makes permanent gameplay-stat achievements usable on the server.
+Generic gameplay XP, combat-only achievement metrics, unlock notifications, richer
+menus, challenge/season presentation and leaderboards remain separate #229 work.
+Native CS2/DatHost behavior has not been verified by the automated build/test gate.

@@ -177,7 +177,7 @@ public sealed class LeetifyHttpProfileProvider : ILeetifyProfileProvider
     {
         if (string.IsNullOrWhiteSpace(apiKey)
             || apiKey.Length > 4096
-            || apiKey.Any(character => character is '\r' or '\n'))
+            || apiKey.Any(character => character < '!' || character > '~'))
         {
             throw new ArgumentException(
                 "A bounded Leetify API key is required.",

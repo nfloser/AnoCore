@@ -22,6 +22,46 @@
 - Native CS2 chat/link presentation and one disposable live-key check remain
   real-server acceptance items under #23/#230.
 
+# Live permanent achievements — 2026-10-06
+
+- #254 loads validated `config/achievements.json` and composes permanent
+  achievements through the existing database/statistics/command services.
+- Default lifetime catalogs grant retroactive headshot, round-win and bomb-plant
+  tiers; no competitive rank changes. Startup/repeating checkpoints reuse stats,
+  skip unchanged session totals, isolate player failures and retry failed checks.
+- `!anolevel` and paginated `!anoachievements` use session-checked command output.
+- Pending/active composition ownership, timer cleanup, cancellation and packaged
+  progression DLLs are integrated into the native plugin lifecycle.
+- Gameplay XP and challenge/season presentation remain open. See progression.md.
+
+# Atomic achievement rewards — 2026-10-06
+
+- #248 commits permanent unlocks and XP ledger rewards in the same transaction,
+  reusing `IDatabase` and the common progression account lock/grant implementation.
+- Migration 016 follows the now integrated season-XP migration 015.
+- Eight MariaDB tests cover replay/restart, concurrent evaluators, stats reset,
+  complete-batch rollback, overflow, boost opt-in, orphan grant collisions and
+  independent player identities. Local SDK remains unavailable; CI is required.
+- No separate DB connection or production credential is added. Catalog loading,
+  native event wiring and player UI remain the next integration boundary.
+
+# Season XP persistence checkpoint — 2026-10-06
+
+- #243 / branch `feature/243-season-xp-persistence-v2` adds isolated durable
+  season accounts and an idempotent season grant ledger in migration 015.
+- Grants resolve against the accepted effective season catalog, enforce half-open UTC
+  windows, reject new writes after closure and keep committed retries idempotent.
+- Gameplay/reward XP reuses scheduled boost definitions; administrative season
+  adjustments are unboosted and cannot reduce season XP below zero.
+- Season levels are derived from the shared XP curve. Lifetime XP and competitive
+  rank points remain untouched.
+- Shared definition locks allow concurrent grants while preventing closure races.
+- MariaDB coverage includes retry/restart, boundaries, closure, negative admin
+  adjustment floor, duplicate concurrency, conflicting retry, rollback, historical
+  reads, derived levels and lifetime isolation.
+- Challenges, durable achievement unlocks, leaderboard/result snapshots and native
+  presentation remain follow-ups under #229.
+
 # Permanent achievement evaluation — 2026-10-06
 
 - #244 adds immutable versioned achievement tiers backed by existing lifetime
