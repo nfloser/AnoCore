@@ -22,6 +22,20 @@
 - Native CS2 chat/link presentation and one disposable live-key check remain
   real-server acceptance items under #23/#230.
 
+# Challenge catalog/evaluation checkpoint — 2026-10-06
+
+- #252 adds immutable versioned daily, weekly and season challenge definitions.
+- Daily windows are exactly 24 hours, weekly windows exactly seven days and season
+  windows are arbitrary non-empty UTC ranges; all use [start, end) semantics.
+- Predicates reuse existing `GameplayStatKind` values. The evaluator accepts
+  window-scoped totals supplied by the caller and creates no duplicate stat counters.
+- Stable prerequisites are validated as a bounded acyclic graph. A ready prerequisite
+  does not unlock dependents until its completion is actually committed.
+- Evaluation distinguishes future, locked, active, ready-to-complete, completed and
+  expired states, with deterministic catalog ordering and bounded inputs.
+- Durable challenge completion/progress baselines, XP payout, events and native UI
+  remain the next #229 packages.
+
 # Live permanent achievements — 2026-10-06
 
 - #254 loads validated `config/achievements.json` and composes permanent
