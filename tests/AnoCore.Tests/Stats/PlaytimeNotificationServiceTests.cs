@@ -1,8 +1,11 @@
+using AnoCore.Abstractions.Commands;
 using AnoCore.Abstractions.Messaging;
+using AnoCore.Abstractions.Permissions;
 using AnoCore.Abstractions.Players;
 using AnoCore.Abstractions.Settings;
 using AnoCore.Abstractions.Stats;
 using AnoCore.Modules.Stats;
+using AnoCore.Runtime.Commands;
 using AnoCore.Runtime.Configuration;
 using AnoCore.Runtime.Events;
 using AnoCore.Runtime.Players;
@@ -25,6 +28,54 @@ public sealed class PlaytimeNotificationServiceTests
     public void Cleanup()
     {
         if (Directory.Exists(_root)) Directory.Delete(_root, recursive: true);
+    }
+
+    [TestMethod]
+    public async Task ModuleCheckpointsBeforeNotificationReadAndOwnsCleanup()
+    {
+        using var test = await CreateAsync();
+        var commands = new CommandRegistry(new AllowAll());
+        using var module = await PlaytimeModule.CreateAsync(new AnoEventBus(),
+            test.Players, test.Repository, commands, notifications: test.Service);
+
+        await module.CheckpointOnlineAsync(Start.AddMinutes(5));
+
+        CollectionAssert.AreEqual(new[] { "advance", "read" }, test.Repository.Operations.ToArray());
+        Assert.AreEqual(1, test.Messages.Sent.Count);
+        module.Dispose();
+        Assert.IsFalse(test.Catalog.TryGet(PlaytimeNotificationService.Preference.Name, out _));
+    }
+
+    [TestMethod]
+    public async Task StorageAndTransportFailuresDoNotStopOtherPlayers()
+    {
+        using var test = await CreateAsync();
+        var other = new PlayerId(76561198000022602);
+        await test.Players.ConnectAsync(new PlayerConnection(
+            other, "Other", PlayerTeam.Terrorist, true, Start));
+        test.Repository.FailingPlayer = Player;
+        await test.Service.TickAsync(Start.AddMinutes(5));
+        Assert.AreEqual(other, test.Messages.Sent.Single().Target.PlayerId);
+        Assert.AreEqual(1, test.Failures.Count);
+
+        test.Repository.FailingPlayer = null;
+        test.Messages.FailingPlayer = Player;
+        await test.Service.TickAsync(Start.AddMinutes(10));
+        Assert.AreEqual(2, test.Messages.Sent.Count);
+        Assert.AreEqual(2, test.Failures.Count);
+    }
+
+    [TestMethod]
+    public async Task ClockRollbackAndDisconnectedPlayersCannotGenerateExtraMessages()
+    {
+        using var test = await CreateAsync();
+        await test.Service.TickAsync(Start.AddMinutes(5));
+        await test.Service.TickAsync(Start.AddMinutes(4));
+        await test.Service.TickAsync(Start.AddMinutes(5));
+        Assert.AreEqual(1, test.Messages.Sent.Count);
+        await test.Players.DisconnectAsync(Player, test.Session, Start.AddMinutes(6));
+        await test.Service.TickAsync(Start.AddMinutes(10));
+        Assert.AreEqual(1, test.Messages.Sent.Count);
     }
 
     [TestMethod]
@@ -204,10 +255,13 @@ public sealed class PlaytimeNotificationServiceTests
     private sealed class Messages : IMessageService
     {
         public List<MessageRequest> Sent { get; } = [];
+        public PlayerId? FailingPlayer { get; set; }
         public ValueTask<MessageDispatchResult> SendAsync(MessageRequest request,
             CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            if (request.Target.PlayerId == FailingPlayer)
+                throw new InvalidOperationException("transport unavailable");
             Sent.Add(request);
             return ValueTask.FromResult(MessageDispatchResult.DeliveredResult);
         }
@@ -216,18 +270,33 @@ public sealed class PlaytimeNotificationServiceTests
     private sealed class Repository : IPlaytimeRepository
     {
         public int Reads { get; private set; }
+        public List<string> Operations { get; } = [];
+        public PlayerId? FailingPlayer { get; set; }
         public ValueTask OpenAsync(PlayerId playerId, PlayerSessionId sessionId, DateTimeOffset startedAtUtc,
             CancellationToken cancellationToken = default) => ValueTask.CompletedTask;
         public ValueTask AdvanceAsync(PlayerId playerId, PlayerSessionId sessionId, DateTimeOffset atUtc,
-            bool close = false, CancellationToken cancellationToken = default) => ValueTask.CompletedTask;
+            bool close = false, CancellationToken cancellationToken = default)
+        {
+            Operations.Add("advance");
+            return ValueTask.CompletedTask;
+        }
         public ValueTask<PlaytimeTotals> ReadAsync(PlayerId playerId, DateOnly utcDay,
             CancellationToken cancellationToken = default)
         {
             Reads++;
+            Operations.Add("read");
+            if (playerId == FailingPlayer)
+                throw new InvalidOperationException("storage unavailable");
             return ValueTask.FromResult(new PlaytimeTotals(TimeSpan.FromHours(2), TimeSpan.FromMinutes(5)));
         }
         public ValueTask<IReadOnlyList<PlaytimeRankEntry>> GetTopAsync(int limit, int offset,
             CancellationToken cancellationToken = default)
             => ValueTask.FromResult<IReadOnlyList<PlaytimeRankEntry>>([]);
+    }
+
+    private sealed class AllowAll : IPermissionEvaluator
+    {
+        public ValueTask<bool> HasPermissionAsync(PlayerId playerId, PermissionId permission,
+            CancellationToken cancellationToken = default) => ValueTask.FromResult(true);
     }
 }
