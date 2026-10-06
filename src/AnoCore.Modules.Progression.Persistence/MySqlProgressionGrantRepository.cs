@@ -71,7 +71,7 @@ public sealed class MySqlProgressionGrantRepository : IProgressionGrantRepositor
                 .ConfigureAwait(false);
             if (existing is not null)
             {
-                if (!MatchesCandidate(existing, candidate))
+                if (!MatchesOriginalCandidate(existing, candidate))
                     throw new ProgressionGrantConflictException(playerId, candidate.GrantId);
                 return new ProgressionGrantCommitResult(false, existing);
             }
@@ -303,16 +303,13 @@ public sealed class MySqlProgressionGrantRepository : IProgressionGrantRepositor
             && value == value.Trim()
             && value.All(character => !char.IsControl(character));
 
-    private static bool MatchesCandidate(
+    private static bool MatchesOriginalCandidate(
         ProgressionGrantRecord existing,
         ProgressionGrantCandidate candidate)
         => existing.Source == candidate.Source
             && existing.BaseXp == candidate.BaseXp
-            && existing.AwardedXp == candidate.AwardedXp
             && string.Equals(existing.Reason, candidate.Reason, StringComparison.Ordinal)
-            && existing.OccurredAtUtc == candidate.OccurredAtUtc
-            && string.Equals(existing.BoostId, candidate.BoostId, StringComparison.Ordinal)
-            && existing.BoostMultiplier == candidate.BoostMultiplier;
+            && existing.OccurredAtUtc == candidate.OccurredAtUtc;
 
     private static DateTimeOffset Utc(DateTime value)
         => new(DateTime.SpecifyKind(value, DateTimeKind.Utc));
