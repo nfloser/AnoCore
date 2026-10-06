@@ -1,3 +1,26 @@
+# Optional Leetify context checkpoint — 2026-10-06
+
+- #242 / branch `feature/242-leetify-live-context` adds a separate
+  `!anoleetify <player>` command; internal `!anorating` remains offline-only and
+  its formula is unchanged.
+- The provider uses the current public `GET /v3/profile` SteamID64 path, reads its
+  API key only from `ANOCORE_LEETIFY_API_KEY`, pins the official HTTPS host and
+  does not follow redirects.
+- Requests are bounded to 3 seconds, 128 KiB and two concurrent lookups. Provider
+  failures, non-users/private profiles and rate limits fail closed without
+  degrading internal rating.
+- Only Aim, Positioning and Utility are shown. API numeric text is validated but
+  not renamed/rescaled/recalculated; output includes `Data Provided by Leetify`
+  and a `View on Leetify` profile link.
+- No Leetify response is persisted or cached. Current API/guideline/privacy sources
+  were rechecked on 2026-10-06 and must be rechecked before release.
+- Automated tests cover request/auth shape, response bounds, status/error handling,
+  timeout/cancellation, concurrency, session safety, attribution and composition
+  rollback. Local test execution is unavailable in the current tool container
+  because it cannot resolve GitHub; PR CI is the executable gate.
+- Native CS2 chat/link presentation and one disposable live-key check remain
+  real-server acceptance items under #23/#230.
+
 # Lifetime progression persistence checkpoint — 2026-10-06
 
 - #238 / branch `feature/238-lifetime-xp-persistence` builds on merged #236 with
