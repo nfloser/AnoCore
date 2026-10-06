@@ -47,9 +47,9 @@ public sealed class MySqlGameplayXpRepository : IGameplayXpRepository
                     _ => "gameplay." + ((GameplayStatKind)item.Kind).ToString(),
                 };
                 var baseXp = checked((long)weight * item.Amount);
-                var boost = definitions.ResolveBoost(item.At, ProgressionXpSource.Gameplay);
+                var boost = policy.ResolveGameplayBoost(definitions, item.At);
                 var candidate = new ProgressionGrantCandidate(item.GrantId, ProgressionXpSource.Gameplay, baseXp,
-                    definitions.ApplyBoost(baseXp, item.At, ProgressionXpSource.Gameplay), reason, item.At,
+                    checked((long)decimal.Truncate(baseXp * boost.Multiplier)), reason, item.At,
                     boost.BoostId, boost.Multiplier);
                 var result = await MySqlProgressionGrantRepository.ApplyInTransactionAsync(
                     connection, transaction, playerId, candidate, token).ConfigureAwait(false);

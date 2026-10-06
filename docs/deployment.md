@@ -143,3 +143,8 @@ when upgrading/restarting. It reads existing combat/gameplay tables and writes t
 shared progression ledger, without a new connection or schema migration. Back up the
 configuration together with progression data. Changes require restart/reload.
 `!anoxp` reads lifetime levels through the same XP curve as `!anolevel`.
+
+To enable recurring double gameplay XP, set `WeekendMultiplier` to 2 in
+`config/gameplay-xp.json` and restart/reload. Default 1 leaves this disabled.
+The window is Saturday 00:00 to Monday 00:00 UTC and uses original event timestamps.
+Explicit scheduled boosts compete by maximum multiplier; they do not multiply together.
