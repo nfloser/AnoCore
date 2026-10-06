@@ -247,6 +247,33 @@ compose progression into the live plugin. Validated achievement catalogs, post-c
 statistic wiring, player commands and notifications remain under #229. Development
 CI tests use their own disposable MariaDB database, never production credentials.
 
+
+## Challenge catalog and deterministic evaluation
+
+Issue #252 adds the engine-independent challenge catalog used by future daily,
+weekly and season progression. Challenge definitions have stable ASCII IDs,
+positive versions, names, an existing `GameplayStatKind` predicate, positive target,
+nonnegative reward XP, a UTC half-open window and an optional prerequisite list.
+Daily definitions span exactly 24 hours, weekly definitions exactly seven days and
+season definitions may span any non-empty UTC range.
+
+Catalog construction snapshots definitions, bounds catalog and prerequisite sizes,
+rejects missing dependencies and dependency cycles, and orders definitions
+deterministically by start time, window kind and ID. No CounterStrikeSharp type is
+required.
+
+Evaluation consumes **window-scoped** `GameplayStatTotal` values. This package does
+not create another gameplay counter: the persistence/integration layer is
+responsible for supplying totals or baselines scoped to the challenge window from
+existing durable signals. Evaluation reports future, locked, active,
+ready-to-complete, completed or expired. Reaching a target only produces a
+completion candidate; prerequisites become satisfied only after their challenge IDs
+are present in the committed-completion set. That prevents one evaluation pass from
+pretending persistence already succeeded.
+
+Durable challenge completion/progress state, idempotent reward payout, completion
+events and player-facing presentation remain separate follow-up packages under #229.
+
 ## Live permanent achievements
 
 Issue #254 composes permanent achievements into the plugin with the shared
