@@ -1,3 +1,15 @@
+# Permanent achievement evaluation — 2026-10-06
+
+- #244 adds immutable versioned achievement tiers backed by existing lifetime
+  gameplay aggregates. It returns unawarded tier candidates and preserves prior
+  permanent unlocks across statistic resets.
+- No unlock or XP mutation is performed by the evaluator. Transactional unlock
+  persistence/XP grants, prerequisites, combat metrics and live composition remain
+  under #229. Candidate evaluation alone is not a concurrency/idempotency guarantee.
+- Eight tests cover boundaries, tier jumps, awarded-state suppression, statistic
+  reset, immutable snapshots and malformed inputs. Local .NET SDK is unavailable;
+  executable verification remains pending.
+
 # Season catalog lifecycle checkpoint — 2026-10-06
 
 - #240 / branch `feature/240-season-catalog-lifecycle` adds bounded versioned
