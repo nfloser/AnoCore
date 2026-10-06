@@ -54,6 +54,26 @@ public sealed class MySqlProgressionGrantRepositoryTests
     }
 
     [TestMethod]
+    public async Task SameOriginalGrant_FirstCommittedBoostWinsAcrossDefinitionChanges()
+    {
+        var repository = new MySqlProgressionGrantRepository(_database);
+        var occurred = Friday;
+        var first = await repository.ApplyAsync(Player,
+            new ProgressionGrantCandidate(
+                "race", ProgressionXpSource.Gameplay, 10, 20,
+                "gameplay.round", occurred, "double", 2m));
+        var retry = await repository.ApplyAsync(Player,
+            new ProgressionGrantCandidate(
+                "race", ProgressionXpSource.Gameplay, 10, 30,
+                "gameplay.round", occurred, "triple", 3m));
+
+        Assert.IsTrue(first.Applied);
+        Assert.IsFalse(retry.Applied);
+        Assert.AreEqual(first.Grant, retry.Grant);
+        Assert.AreEqual(20L, (await repository.ReadLifetimeAsync(Player)).LifetimeXp);
+    }
+
+    [TestMethod]
     public async Task ConflictingDuplicate_DoesNotChangeLifetime()
     {
         var service = Service(new MySqlProgressionGrantRepository(_database));
