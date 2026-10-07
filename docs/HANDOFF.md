@@ -1,3 +1,15 @@
+# Committed rank point presentation — 2026-10-07
+
+- #282 adds opt-in NotifyPointChanges and RoundPointSummaries, disabled by default.
+- Persisted player toggles independently control individual notices and summaries.
+- Effective visible score changes drive messages; zero deltas are silent.
+- Session checks span preference reads and delivery; post-commit failures are isolated.
+- Completion waits for queued scoring writes, runs after native same-tick hooks and
+  emits once; late events retain individual notices without reopening summaries.
+- Bounded ephemeral round state, registration rollback and unload cleanup are covered.
+- Original LiveRankScoringService constructor remains compatible.
+- Exact-head CI is required before merge; real native timing remains unverified.
+
 # Independent live rank scoring — 2026-10-07
 
 - #279 is merged after full CI #691 passed 834 tests and package checks.
@@ -10,8 +22,9 @@
 - Native composition, lifecycle cleanup and independent round/match/objective
   hooks are integrated. Rank points never mix with progression XP.
 - Automated policy/service/preference regressions accompany docs/rank-event-scoring.md.
-- Playtime awards, per-event point notices, round summaries and scoreboard
-  presentation remain #228. Exact-head CI and manual native acceptance remain gates.
+- #281 merged after CI #696 passed 846 tests and all package checks.
+- #282 implements committed point notices and ordered round summaries; playtime,
+  scoreboard and further objective parity remain #228. Native acceptance remains #23.
 
 # Durable rank event foundation — 2026-10-07
 
