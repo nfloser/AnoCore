@@ -183,7 +183,9 @@ public sealed class LiveRankPolicy
     }
 
     public static bool IsKillSpecial(GameplayStatKind kind)
-        => kind is >= GameplayStatKind.FirstBlood and <= GameplayStatKind.RevengeKill;
+        => kind is GameplayStatKind.FirstBlood or GameplayStatKind.HeadshotKill or GameplayStatKind.NoScopeKill
+            or GameplayStatKind.PenetratedKill or GameplayStatKind.ThroughSmokeKill or GameplayStatKind.FlashedKill
+            or GameplayStatKind.DominatedKill or GameplayStatKind.RevengeKill;
 
     private decimal Dynamic(long numerator, long denominator) => !_dynamic ? 1m
         : Math.Clamp((decimal)Math.Max(1, numerator) / Math.Max(1, denominator), _minimumDynamic, _maximumDynamic);

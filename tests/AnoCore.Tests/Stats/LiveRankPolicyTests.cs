@@ -93,6 +93,16 @@ public sealed class LiveRankPolicyTests
     }
 
     [TestMethod]
+    public void ConfigurationJson_PreservesLegacyDefaultAndAcceptsExplicitNamedSource()
+    {
+        var old = System.Text.Json.JsonSerializer.Deserialize<RankConfiguration>("{}");
+        Assert.AreEqual(RankScoreSource.DerivedStatistics, old!.Source);
+        var live = System.Text.Json.JsonSerializer.Deserialize<RankConfiguration>("{\"Source\":\"EventLedger\"}");
+        Assert.AreEqual(RankScoreSource.EventLedger, live!.ScoreWeights.Source);
+        Assert.IsEmpty(RankConfiguration.Validate(live));
+    }
+
+    [TestMethod]
     public void Objective_UsesSignedWeightsAndFfaSuppressesTeamWinLoss()
     {
         var policy = new LiveRankPolicy(new RankConfiguration

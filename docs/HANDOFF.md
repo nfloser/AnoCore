@@ -1,3 +1,18 @@
+# Independent live rank scoring — 2026-10-07
+
+- #279 is merged after full CI #691 passed 834 tests and package checks.
+- #280 adds explicit opt-in Source=EventLedger while preserving derived defaults.
+- Rank-native hooks independently gate warmup/min-human/bot/FFA policy, combine
+  kill/death/assist/special/weapon/distance bonuses, dynamic ratios, positive VIP
+  rewards and timed session/round-scoped streaks into atomic event batches.
+- Replay checks precede recalculation; failed writes leave streak/first-blood state
+  untouched. Committed awards drive session-pinned preference-aware notices.
+- Native composition, lifecycle cleanup and independent round/match/objective
+  hooks are integrated. Rank points never mix with progression XP.
+- Automated policy/service/preference regressions accompany docs/rank-event-scoring.md.
+- Playtime awards, per-event point notices, round summaries and scoreboard
+  presentation remain #228. Exact-head CI and manual native acceptance remain gates.
+
 # Durable rank event foundation — 2026-10-07
 
 - #278 adds bounded atomic replay-safe rank batches and migration 018.
