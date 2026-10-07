@@ -17,6 +17,7 @@ public sealed class LiveRankScoringService : IDisposable
     private readonly IRankScoreChangeSink? _scoreChanges;
     private readonly Action<Exception>? _reportError;
     private readonly IRankPointEventSink? _pointPresentation;
+    private readonly RankPlaytimeService _playtime;
     private readonly SemaphoreSlim _gate = new(1, 1);
     private readonly CancellationTokenSource _lifetime = new();
     private readonly Dictionary<PlayerId, Streak> _streaks = [];
@@ -55,9 +56,18 @@ public sealed class LiveRankScoringService : IDisposable
         _scoreChanges = scoreChanges;
         _reportError = reportError;
         _pointPresentation = pointPresentation;
+        _playtime = new RankPlaytimeService(_policy, AwardPlaytimeAsync, reportError);
     }
 
     public LiveRankPolicy Policy => _policy;
+
+    public ValueTask TickPlaytimeAsync(IReadOnlyList<PlayerSnapshot> players, RankLiveContext context,
+        CancellationToken cancellationToken = default)
+        => _playtime.TickAsync(players, context, cancellationToken);
+
+    private ValueTask AwardPlaytimeAsync(PlayerSnapshot player, RankLiveContext context, CancellationToken token)
+        => RecordGameplayAsync(new GameplayStatEvent(context.EventId, player.Id, context.OccurredAtUtc,
+            "rank_playtime", GameplayStatKind.PlaytimeInterval), context, player, token);
 
     public async ValueTask RecordDeathAsync(RankDeathInput input, CancellationToken cancellationToken = default)
     {
@@ -250,6 +260,7 @@ public sealed class LiveRankScoringService : IDisposable
     {
         if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
         _lifetime.Cancel();
+        _playtime.Dispose();
         if (_notifications is IDisposable disposable) disposable.Dispose();
         if (_pointPresentation is IDisposable presentation) presentation.Dispose();
     }

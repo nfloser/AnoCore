@@ -128,3 +128,26 @@ Automated tests cover deduplication, positive/negative/zero changes, settings an
 server flags, reconnect, failure isolation, registration rollback, ordered completion,
 late notices and ledger replay. Real CS2 chat delivery and round timing remain native
 acceptance under #23.
+
+
+## Live playtime intervals
+
+`LivePolicy.PlaytimeIntervalSeconds` defaults to 0 (disabled); an enabled interval
+must be 10–86400 seconds. `GameplayPoints.PlaytimeInterval` sets the signed award
+(default 0, bounded ±1000). Positive awards reuse VIP multiplication; dynamic
+attacker/victim ratios do not apply. Only EventLedger composition runs this timer.
+
+A five-second native timer samples connected T/CT humans. Time accrues only between
+consecutive eligible samples using the independent warmup/min-player policy. A
+late checkpoint contributes at most five seconds; spectator transitions, disconnects
+and clock reversal do not create catch-up awards. Sampling begins at activation,
+not at historical playtime totals. Partial intervals reset on reconnect/reload;
+eligibility pauses preserve the current session's accumulated eligible time.
+
+Each completed interval freezes its event identity, captured player/session, time
+and eligibility context until the ledger accepts it. Failures retry that same event;
+one pending award and bounded time backlog prevent outage catch-up storms. A pending
+interval already earned can commit after a same-session team/eligibility change.
+Replay detection precedes award calculation. Notices use the existing committed
+presentation path. No combat, playtime totals or progression XP are mutated. Native
+sampling and round-boundary timing require #23 acceptance.

@@ -106,6 +106,7 @@ public sealed class AnoCorePlugin : BasePlugin
     private CounterStrikeCustomHudService? _customHud;
     private CounterStrikeSharp.API.Modules.Timers.Timer? _anoVetoExpiryTimer;
     private CounterStrikeSharp.API.Modules.Timers.Timer? _voiceModerationTimer;
+    private CounterStrikeSharp.API.Modules.Timers.Timer? _rankPlaytimeTimer;
     private CounterStrikeSharp.API.Modules.Timers.Timer? _playtimeTimer;
     private CounterStrikeSharp.API.Modules.Timers.Timer? _achievementTimer;
     private CounterStrikeSharp.API.Modules.Timers.Timer? _challengeTimer;
@@ -164,6 +165,8 @@ public sealed class AnoCorePlugin : BasePlugin
             _anoVetoExpiryTimer = null;
             _voiceModerationTimer?.Kill();
             _voiceModerationTimer = null;
+            _rankPlaytimeTimer?.Kill();
+            _rankPlaytimeTimer = null;
             _playtimeTimer?.Kill();
             _playtimeTimer = null;
             _achievementTimer?.Kill();
@@ -892,6 +895,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 });
             CounterStrikeSharp.API.Modules.Timers.Timer? expiryTimer = null;
             CounterStrikeSharp.API.Modules.Timers.Timer? voiceTimer = null;
+            CounterStrikeSharp.API.Modules.Timers.Timer? rankPlaytimeTimer = null;
             CounterStrikeSharp.API.Modules.Timers.Timer? playtimeTimer = null;
             CounterStrikeSharp.API.Modules.Timers.Timer? achievementTimer = null;
             CounterStrikeSharp.API.Modules.Timers.Timer? challengeTimer = null;
@@ -1136,6 +1140,17 @@ public sealed class AnoCorePlugin : BasePlugin
                     () => ReconcileVoiceModeration(activeVoiceModeration),
                     TimerFlags.REPEAT);
 
+                if (liveRankScoring is not null && liveRankScoring.Policy.PlaytimeInterval > TimeSpan.Zero)
+                {
+                    var activeRankScoring = liveRankScoring;
+                    rankPlaytimeTimer = AddTimer(5.0f, () =>
+                    {
+                        var at = DateTimeOffset.UtcNow;
+                        Observe(activeRankScoring.TickPlaytimeAsync(runtime.Players.OnlinePlayers.ToArray(),
+                            LiveRankContext(Guid.NewGuid(), at)).AsTask(), "rank_playtime");
+                    }, TimerFlags.REPEAT);
+                }
+
                 if (playtime is not null)
                     playtimeTimer = AddTimer(5.0f,
                         () => Observe(playtime.CheckpointOnlineAsync(DateTimeOffset.UtcNow).AsTask(),
@@ -1229,6 +1244,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 _combat = combat;
                 _anoVetoExpiryTimer = expiryTimer;
                 _voiceModerationTimer = voiceTimer;
+                _rankPlaytimeTimer = rankPlaytimeTimer;
                 _playtimeTimer = playtimeTimer;
                 _achievementTimer = achievementTimer;
                 _challengeTimer = challengeTimer;
@@ -1257,6 +1273,7 @@ public sealed class AnoCorePlugin : BasePlugin
             {
                 expiryTimer?.Kill();
                 voiceTimer?.Kill();
+                rankPlaytimeTimer?.Kill();
                 playtimeTimer?.Kill();
                 achievementTimer?.Kill();
                 challengeTimer?.Kill();
