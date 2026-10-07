@@ -1,3 +1,16 @@
+# Opt-in challenge progress notices — 2026-10-07
+
+- #299 adds default-off `progression.challenge-progress-notifications`, independent
+  from completion notices. Existing checkpoints/evaluation results supply progress.
+- Silent per-session/occurrence/version baselines and high-water observations avoid
+  history/reconnect/reload catch-up, repeated counts and decrease/recovery spam.
+- Positive active-task changes produce bounded session-pinned notices; completed,
+  locked, expired and ready-to-complete tasks remain silent here.
+- Old windows/offline sessions are pruned each checkpoint; observations are bounded,
+  and registration rollback/unload cleans toggles and ephemeral state.
+- Tests cover opt-in/baselines/repeats, rollover/version/reconnect, stale preferences,
+  delivery failure and partial registration rollback. Exact-head CI remains required.
+
 # Combat-backed challenge predicates — 2026-10-07
 
 - #297 adds explicit counter sources for ordinary kills, assists and enemy utility

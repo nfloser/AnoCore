@@ -800,3 +800,29 @@ identity and replay behavior are reused. Raw ledgers preserve progress across st
 resets. Existing core death/damage migrations provide these facts; this change requires
 no new schema migration. Native acceptance must still verify that the current CS2 host
 supplies the expected weapon names and eligible combat events.
+
+
+## Opt-in challenge progress notices
+
+Issue #299 adds the independent persisted toggle
+`progression.challenge-progress-notifications`, disabled by default. Completion
+notices keep their existing separate toggle and behavior. Enable progress notices
+through the shared settings commands/menu if intermediate updates are desired.
+
+The existing checkpoint's evaluation supplies counts; there are no new database
+queries or per-game-event notices. The first observation of each session, challenge
+occurrence and definition version is a silent baseline. Only later positive increases
+for active incomplete tasks can produce a bounded session-pinned chat notice.
+High-water counts suppress repeated/decreased/recovered values. Completed, locked,
+expired and ready-to-complete tasks do not produce intermediate notices.
+
+Observed state advances before preference reads or delivery, so enabling a preference,
+recovering a failed transport or reloading the plugin does not replay historical
+progress. Reconnect, new windows and changed versions start another silent baseline.
+The service prunes offline/old-session/expired observations at every checkpoint,
+bounds retained observations and clears them on unload. Settings/transport/diagnostic
+failures remain isolated from durable progress and rewards.
+
+Native acceptance: opt in, establish a baseline, increase progress before completion
+and check the count; repeat a checkpoint, reconnect and disable/re-enable the toggle.
+Verify no catch-up or duplicate intermediate notice and unchanged completion rewards.
