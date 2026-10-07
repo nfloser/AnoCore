@@ -16,6 +16,7 @@ public sealed class LiveRankScoringService : IDisposable
     private readonly IRankTransitionNotificationSink _notifications;
     private readonly IRankScoreChangeSink? _scoreChanges;
     private readonly Action<Exception>? _reportError;
+    private readonly IRankPointEventSink? _pointPresentation;
     private readonly SemaphoreSlim _gate = new(1, 1);
     private readonly CancellationTokenSource _lifetime = new();
     private readonly Dictionary<PlayerId, Streak> _streaks = [];
@@ -25,7 +26,7 @@ public sealed class LiveRankScoringService : IDisposable
     public LiveRankScoringService(RankConfiguration configuration, IRankPointEventRepository events,
         IGameplayRankScoreRepository scores, IPlayerRegistry players, IPermissionEvaluator permissions,
         IRankTransitionNotificationSink notifications, IRankScoreChangeSink? scoreChanges = null,
-        Action<Exception>? reportError = null)
+        Action<Exception>? reportError = null, IRankPointEventSink? pointPresentation = null)
     {
         _policy = new LiveRankPolicy(configuration);
         if (configuration.Source != RankScoreSource.EventLedger)
@@ -45,6 +46,7 @@ public sealed class LiveRankScoringService : IDisposable
         _notifications = notifications ?? throw new ArgumentNullException(nameof(notifications));
         _scoreChanges = scoreChanges;
         _reportError = reportError;
+        _pointPresentation = pointPresentation;
     }
 
     public LiveRankPolicy Policy => _policy;
@@ -96,7 +98,7 @@ public sealed class LiveRankScoringService : IDisposable
                 if (captured.Attacker?.Player is { } alive)
                     _streaks[alive.Id] = new(alive.SessionId, captured.Context.RoundKey, captured.Context.OccurredAtUtc, streakCount);
             }
-            await PresentAsync(result.Batch, participants, previous).ConfigureAwait(false);
+            await PresentAsync(result.Batch, participants, previous, captured.Context.RoundKey).ConfigureAwait(false);
         }
         finally { _gate.Release(); }
     }
@@ -126,7 +128,22 @@ public sealed class LiveRankScoringService : IDisposable
             if (points == 0) return;
             var result = await _events.ApplyAsync(RankPointEventBatch.Create(statistic.EventId,
                 "gameplay." + statistic.Kind, statistic.OccurredAtUtc, [new(player.Id, points)]), token).ConfigureAwait(false);
-            if (result.Applied) await PresentAsync(result.Batch, participants, previous).ConfigureAwait(false);
+            if (result.Applied) await PresentAsync(result.Batch, participants, previous, context.RoundKey).ConfigureAwait(false);
+        }
+        finally { _gate.Release(); }
+    }
+
+    public async ValueTask CompleteRoundAsync(string roundKey, CancellationToken cancellationToken = default)
+    {
+        using var linked = Link(cancellationToken);
+        await _gate.WaitAsync(linked.Token).ConfigureAwait(false);
+        try
+        {
+            if (_pointPresentation is not null)
+            {
+                try { await _pointPresentation.CompleteRoundAsync(roundKey, linked.Token).ConfigureAwait(false); }
+                catch (Exception exception) { Report(exception); }
+            }
         }
         finally { _gate.Release(); }
     }
@@ -164,7 +181,7 @@ public sealed class LiveRankScoringService : IDisposable
     }
 
     private async ValueTask PresentAsync(RankPointEventBatch batch, IReadOnlyList<PlayerSnapshot> participants,
-        IReadOnlyDictionary<PlayerId, long> previous)
+        IReadOnlyDictionary<PlayerId, long> previous, string roundKey)
     {
         foreach (var award in batch.Awards)
         {
@@ -175,11 +192,21 @@ public sealed class LiveRankScoringService : IDisposable
                 try { await _scoreChanges.ScoreChangedAsync(player.Id, CancellationToken.None).ConfigureAwait(false); }
                 catch (Exception exception) { Report(exception); }
             }
-            if (!_configuration.NotifyRankChanges || !Current(player)) continue;
+            if ((!_configuration.NotifyRankChanges && _pointPresentation is null) || !Current(player)) continue;
             try
             {
                 var current = (await _scores.GetScorePlacementAsync(player.Id, _weights, CancellationToken.None).ConfigureAwait(false))?.Points ?? 0;
-                var transition = RankTransitionEvaluator.Evaluate(_configuration, previous[player.Id], current);
+                if (_pointPresentation is not null && Current(player))
+                {
+                    try
+                    {
+                        await _pointPresentation.CommittedAsync(new RankPointChange(batch.EventId, batch.Source,
+                            player, roundKey, previous[player.Id], current), CancellationToken.None).ConfigureAwait(false);
+                    }
+                    catch (Exception exception) { Report(exception); }
+                }
+                var transition = _configuration.NotifyRankChanges
+                    ? RankTransitionEvaluator.Evaluate(_configuration, previous[player.Id], current) : null;
                 if (transition is not null && Current(player))
                 {
                     if (_notifications is ISessionRankTransitionNotificationSink pinned)
@@ -216,6 +243,7 @@ public sealed class LiveRankScoringService : IDisposable
         if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
         _lifetime.Cancel();
         if (_notifications is IDisposable disposable) disposable.Dispose();
+        if (_pointPresentation is IDisposable presentation) presentation.Dispose();
     }
 
     private sealed record Streak(PlayerSessionId Session, string RoundKey, DateTimeOffset At, int Count);

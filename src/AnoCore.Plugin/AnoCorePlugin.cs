@@ -848,6 +848,7 @@ public sealed class AnoCorePlugin : BasePlugin
             StatisticsResetCommandController? statisticsResetCommands = null;
             RankTransitionMonitor? transitionMonitor = null;
             LiveRankScoringService? liveRankScoring = null;
+            RankPointPresentationService? rankPointPresentation = null;
             CombatModule? combat = null;
             KickCommandController? kickCommands = null;
             ConnectBanEnforcement? connectBan = null;
@@ -1003,13 +1004,20 @@ public sealed class AnoCorePlugin : BasePlugin
                         rankScoreChanges,
                         exception => Logger.LogError(exception, "Gameplay rank presentation failed."));
                 if (rank is not null && rank.Configuration.Source == RankScoreSource.EventLedger)
+                {
+                    rankPointPresentation = new RankPointPresentationService(rank.Configuration.NotifyPointChanges,
+                        rank.Configuration.RoundPointSummaries, runtime.Players, runtime.Settings,
+                        runtime.ToggleCatalog, runtime.Messages,
+                        exception => Logger.LogError(exception, "Rank point presentation failed."));
                     liveRankScoring = new LiveRankScoringService(rank.Configuration,
                         runtime.RankPointEvents, runtime.Combat, runtime.Players, runtime.Authorization,
                         new RankNotificationPreferenceSink(runtime.Settings,
                             new CounterStrikeRankTransitionNotifier(runtime.Players),
                             exception => Logger.LogError(exception, "Live rank notification preference failed.")),
                         rankScoreChanges,
-                        exception => Logger.LogError(exception, "Live rank presentation failed."));
+                        exception => Logger.LogError(exception, "Live rank presentation failed."), rankPointPresentation);
+                    rankPointPresentation = null;
+                }
                 combat = new CombatModule(
                     runtime.Commands, runtime.Players, runtime.Combat, transitionMonitor);
                 transitionMonitor = null;
@@ -1255,6 +1263,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 gameplayXpTimer?.Kill();
                 seasonTimer?.Kill();
                 playtime?.Dispose();
+                rankPointPresentation?.Dispose();
                 liveRankScoring?.Dispose();
                 if (ReferenceEquals(_liveRankScoring, liveRankScoring)) _liveRankScoring = null;
                 rank?.Dispose();
@@ -1944,6 +1953,8 @@ public sealed class AnoCorePlugin : BasePlugin
                 var player = snapshots.First(value => value.Id == statistic.PlayerId);
                 Observe(scoring.RecordGameplayAsync(statistic, LiveRankContext(statistic.EventId, at), player).AsTask(), "rank_round");
             }
+            var roundKey = LiveRankContext(Guid.NewGuid(), at).RoundKey;
+            Observe(scoring.CompleteRoundAsync(roundKey).AsTask(), "rank_round_summary");
         }
         catch (Exception exception) { Logger.LogError(exception, "Could not record live rank round."); }
     }
