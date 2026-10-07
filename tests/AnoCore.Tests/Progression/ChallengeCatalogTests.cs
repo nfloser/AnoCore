@@ -10,6 +10,26 @@ public sealed class ChallengeCatalogTests
         new(2027, 1, 4, 0, 0, 0, TimeSpan.Zero);
 
     [TestMethod]
+    public void CounterSourcesAreValidatedAndPreservedAcrossRecurringAndJsonSnapshots()
+    {
+        var template = new RecurringChallengeTemplate("weekly.kills", 1, "Weekly kills", ChallengeWindowKind.Weekly,
+            AnoCore.Abstractions.Stats.GameplayStatKind.HeadshotKill, 20, 100, [])
+        { CounterSource = ChallengeCounterSource.CombatKills };
+        var configuration = new ChallengeConfiguration { Recurring = [template] };
+        var snapshot = configuration.Snapshot();
+        configuration.Recurring.Clear();
+        var occurrence = snapshot.ResolveAt(new DateTimeOffset(2026, 10, 7, 12, 0, 0, TimeSpan.Zero)).Challenges.Single();
+        Assert.AreEqual(ChallengeCounterSource.CombatKills, occurrence.CounterSource);
+        var json = System.Text.Json.JsonSerializer.Serialize(occurrence);
+        Assert.AreEqual(occurrence.CounterSource,
+            System.Text.Json.JsonSerializer.Deserialize<ChallengeDefinition>(json)!.CounterSource);
+        Assert.IsNotEmpty(ChallengeConfiguration.Validate(new() { Recurring = [template with { CounterSource = (ChallengeCounterSource)255 }] }));
+        Assert.ThrowsExactly<ArgumentException>(() => ChallengeCatalogSnapshot.Create([occurrence with { CounterSource = (ChallengeCounterSource)255 }]));
+        Assert.AreEqual(ChallengeCounterSource.GameplayStat, new ChallengeConfiguration().Snapshot()
+            .ResolveAt(new DateTimeOffset(2026, 10, 7, 12, 0, 0, TimeSpan.Zero)).Challenges[0].CounterSource);
+    }
+
+    [TestMethod]
     public void Evaluation_UsesHalfOpenUtcWindowAndExactTarget()
     {
         var catalog = ChallengeCatalogSnapshot.Create(
