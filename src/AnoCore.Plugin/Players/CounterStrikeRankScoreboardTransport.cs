@@ -27,7 +27,7 @@ public sealed class CounterStrikeRankScoreboardTransport(IPlayerRegistry players
                     _owned.Remove(id);
                 if (!_owned.TryGetValue(player.Id, out var ownership) || ownership.Session != player.SessionId)
                     _owned[player.Id] = ownership = new(player.SessionId);
-                if (projection.Score is { } score && ownership.Score.TryApply(controller.Score, score))
+                if (projection.Score is { } score && ownership.Score.TryApply(controller.Score, score, replaceExternal: true))
                 {
                     controller.Score = score;
                     Utilities.SetStateChanged(controller, "CCSPlayerController", "m_iScore");

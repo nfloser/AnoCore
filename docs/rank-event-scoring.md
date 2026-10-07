@@ -151,3 +151,28 @@ interval already earned can commit after a same-session team/eligibility change.
 Replay detection precedes award calculation. Notices use the existing committed
 presentation path. No combat, playtime totals or progression XP are mutated. Native
 sampling and round-boundary timing require #23 acceptance.
+
+
+## Optional native scoreboard presentation
+
+`Scoreboard.SyncScore` defaults false. `Scoreboard.RankMode` defaults "Disabled";
+explicit modes are "Premier", "Competitive", "Wingman" and "DangerZone". Rank
+mode opt-in overrides native competitive rank fields for custom-server presentation.
+Steam group clan tags remain untouched. Scoreboard queries use the selected source,
+starting points and audited adjustments, including in legacy derived mode.
+
+A bounded five-second refresh reads scores asynchronously, then queues native writes
+with captured-session checks. Native integer scores clamp at int.MaxValue. Premier
+shows points (rank type 11); Competitive and Wingman map the one-based configured
+threshold ordinal to at most 18 badges (types 12 and 7); DangerZone clamps at 15
+(type 10). Overrides set competitive wins to 10 for badge visibility. These mappings
+follow the referenced K4-Zenith adapter and pinned CSS native schema; real client
+rendering remains #23 acceptance. Custom threshold names are not native badge names.
+
+Score sync deliberately reapplies after native engine score changes. It remembers
+the latest observed external score for cleanup. Badge ownership relinquishes for
+the current session if another writer changes any badge field. On unload, fields
+restore only if they still equal AnoCore's last written values; later external changes
+are preserved. Queued updates stop after disposal; reconnect never inherits ownership.
+Do not enable multiple score-sync writers on the same server. Native halftime/map
+reset interactions and cleanup require acceptance before production enablement.

@@ -43,14 +43,18 @@ public sealed class OwnedRankScoreboardValue<T>
     private bool _released;
     private T? _original;
     private T? _last;
-    public bool TryApply(T current, T desired)
+    public bool TryApply(T current, T desired, bool replaceExternal = false)
     {
         if (_released) return false;
         if (_owned && !EqualityComparer<T>.Default.Equals(current, _last))
         {
-            _owned = false;
-            _released = true;
-            return false;
+            if (replaceExternal) _original = current;
+            else
+            {
+                _owned = false;
+                _released = true;
+                return false;
+            }
         }
         if (!_owned) _original = current;
         _last = desired;

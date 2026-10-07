@@ -1,3 +1,14 @@
+# Optional rank scoreboard — 2026-10-07
+
+- #286 adds default-disabled Scoreboard.SyncScore and explicit RankMode overrides.
+- Selected score source and bounded threshold/point projection drive native writes.
+- Captured sessions protect asynchronous refresh and world-update delivery.
+- Score sync reapplies after engine changes; badge conflicts relinquish ownership.
+- Unload restores only still-owned fields; queued updates stop and reconnect resets ownership.
+- Steam group clan tags remain untouched. Native client rendering/halftime acceptance remains #23.
+- #285 merged after CI #700 passed 858 tests and all checks.
+- Remaining rank implementation scope: further objective/teamkill-assist parity.
+
 # Eligible live rank playtime — 2026-10-07
 
 - #284 adds disabled-by-default PlaytimeIntervalSeconds and GameplayPoints.PlaytimeInterval.

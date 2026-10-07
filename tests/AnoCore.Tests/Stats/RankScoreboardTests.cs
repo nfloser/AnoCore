@@ -40,6 +40,11 @@ public sealed class RankScoreboardTests
         Assert.IsFalse(changed.TryApply(99, 20));
         Assert.IsFalse(changed.TryRestore(99, out _));
         Assert.IsFalse(changed.TryApply(99, 30));
+        var score = new OwnedRankScoreboardValue<int>();
+        Assert.IsTrue(score.TryApply(7, 10, replaceExternal: true));
+        Assert.IsTrue(score.TryApply(11, 20, replaceExternal: true));
+        Assert.IsTrue(score.TryRestore(20, out var latestExternal));
+        Assert.AreEqual(11, latestExternal);
     }
 
     [TestMethod]
