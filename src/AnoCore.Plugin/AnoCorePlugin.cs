@@ -66,6 +66,7 @@ public sealed class AnoCorePlugin : BasePlugin
     private AnoVetoModuleRuntime? _anoVeto;
     private PlaytimeModule? _playtime;
     private RankModule? _rank;
+    private RankScoreboardService? _rankScoreboard;
     private LiveRankScoringService? _liveRankScoring;
     private long _rankRoundGeneration;
     private GameplayStatsModule? _gameplayStats;
@@ -106,6 +107,7 @@ public sealed class AnoCorePlugin : BasePlugin
     private CounterStrikeCustomHudService? _customHud;
     private CounterStrikeSharp.API.Modules.Timers.Timer? _anoVetoExpiryTimer;
     private CounterStrikeSharp.API.Modules.Timers.Timer? _voiceModerationTimer;
+    private CounterStrikeSharp.API.Modules.Timers.Timer? _rankScoreboardTimer;
     private CounterStrikeSharp.API.Modules.Timers.Timer? _rankPlaytimeTimer;
     private CounterStrikeSharp.API.Modules.Timers.Timer? _playtimeTimer;
     private CounterStrikeSharp.API.Modules.Timers.Timer? _achievementTimer;
@@ -165,6 +167,8 @@ public sealed class AnoCorePlugin : BasePlugin
             _anoVetoExpiryTimer = null;
             _voiceModerationTimer?.Kill();
             _voiceModerationTimer = null;
+            _rankScoreboardTimer?.Kill();
+            _rankScoreboardTimer = null;
             _rankPlaytimeTimer?.Kill();
             _rankPlaytimeTimer = null;
             _playtimeTimer?.Kill();
@@ -193,6 +197,8 @@ public sealed class AnoCorePlugin : BasePlugin
             _chatFormatSnapshots = null;
             _chatTags?.Dispose();
             _chatTags = null;
+            _rankScoreboard?.Dispose();
+            _rankScoreboard = null;
             _liveRankScoring?.Dispose();
             _liveRankScoring = null;
             _rank?.Dispose();
@@ -850,6 +856,7 @@ public sealed class AnoCorePlugin : BasePlugin
             RankAdjustmentNotificationService? rankAdminNotifications = null;
             StatisticsResetCommandController? statisticsResetCommands = null;
             RankTransitionMonitor? transitionMonitor = null;
+            RankScoreboardService? rankScoreboard = null;
             LiveRankScoringService? liveRankScoring = null;
             RankPointPresentationService? rankPointPresentation = null;
             CombatModule? combat = null;
@@ -895,6 +902,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 });
             CounterStrikeSharp.API.Modules.Timers.Timer? expiryTimer = null;
             CounterStrikeSharp.API.Modules.Timers.Timer? voiceTimer = null;
+            CounterStrikeSharp.API.Modules.Timers.Timer? rankScoreboardTimer = null;
             CounterStrikeSharp.API.Modules.Timers.Timer? rankPlaytimeTimer = null;
             CounterStrikeSharp.API.Modules.Timers.Timer? playtimeTimer = null;
             CounterStrikeSharp.API.Modules.Timers.Timer? achievementTimer = null;
@@ -1140,6 +1148,18 @@ public sealed class AnoCorePlugin : BasePlugin
                     () => ReconcileVoiceModeration(activeVoiceModeration),
                     TimerFlags.REPEAT);
 
+                if (rank is not null && rank.Configuration.Scoreboard.Enabled)
+                {
+                    rankScoreboard = new RankScoreboardService(rank.Configuration, runtime.Players, runtime.Combat,
+                        new CounterStrikeRankScoreboardTransport(runtime.Players,
+                            exception => Logger.LogError(exception, "Could not update native rank scoreboard.")),
+                        exception => Logger.LogError(exception, "Could not refresh rank scoreboard."));
+                    var activeRankScoreboard = rankScoreboard;
+                    rankScoreboardTimer = AddTimer(5.0f,
+                        () => Observe(activeRankScoreboard.RefreshAsync().AsTask(), "rank_scoreboard"), TimerFlags.REPEAT);
+                    Observe(activeRankScoreboard.RefreshAsync().AsTask(), "rank_scoreboard_bootstrap");
+                }
+
                 if (liveRankScoring is not null && liveRankScoring.Policy.PlaytimeInterval > TimeSpan.Zero)
                 {
                     var activeRankScoring = liveRankScoring;
@@ -1227,6 +1247,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 _anoVeto = anoVeto;
                 _playtime = playtime;
                 _rank = rank;
+                _rankScoreboard = rankScoreboard;
                 _liveRankScoring = liveRankScoring;
                 _gameplayStats = gameplayStats;
                 _achievements = achievements;
@@ -1244,6 +1265,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 _combat = combat;
                 _anoVetoExpiryTimer = expiryTimer;
                 _voiceModerationTimer = voiceTimer;
+                _rankScoreboardTimer = rankScoreboardTimer;
                 _rankPlaytimeTimer = rankPlaytimeTimer;
                 _playtimeTimer = playtimeTimer;
                 _achievementTimer = achievementTimer;
@@ -1273,6 +1295,7 @@ public sealed class AnoCorePlugin : BasePlugin
             {
                 expiryTimer?.Kill();
                 voiceTimer?.Kill();
+                rankScoreboardTimer?.Kill();
                 rankPlaytimeTimer?.Kill();
                 playtimeTimer?.Kill();
                 achievementTimer?.Kill();
@@ -1280,6 +1303,8 @@ public sealed class AnoCorePlugin : BasePlugin
                 gameplayXpTimer?.Kill();
                 seasonTimer?.Kill();
                 playtime?.Dispose();
+                rankScoreboard?.Dispose();
+                if (ReferenceEquals(_rankScoreboard, rankScoreboard)) _rankScoreboard = null;
                 rankPointPresentation?.Dispose();
                 liveRankScoring?.Dispose();
                 if (ReferenceEquals(_liveRankScoring, liveRankScoring)) _liveRankScoring = null;
