@@ -21,6 +21,7 @@ public sealed class LiveRankConfiguration
     public decimal MaximumDynamicMultiplier { get; set; } = 4m;
     public decimal VipMultiplier { get; set; } = 1m;
     public string VipPermission { get; set; } = "ano.ranks.vip";
+    public int PlaytimeIntervalSeconds { get; set; }
     public int StreakWindowSeconds { get; set; } = 30;
     public Dictionary<int, int> StreakPoints { get; set; } = [];
 
@@ -28,7 +29,8 @@ public sealed class LiveRankConfiguration
     {
         if (value is null) return ["Live rank policy is required."];
         var errors = new List<string>();
-        if (value.MinimumPlayers is < 1 or > 64 || value.TeamKillPenalty is < 0 or > 1000
+        if (value.PlaytimeIntervalSeconds is < 0 or > 86400 || value.PlaytimeIntervalSeconds is > 0 and < 10
+            || value.MinimumPlayers is < 1 or > 64 || value.TeamKillPenalty is < 0 or > 1000
             || value.SuicidePenalty is < 0 or > 1000 || value.DistanceBonus is < 0 or > 1000
             || value.DistanceThresholdMeters is < 0 or > 10000 || value.StreakWindowSeconds is < 1 or > 600
             || value.VipMultiplier is < 1 or > 10 || value.MinimumDynamicMultiplier is <= 0 or > 4
@@ -80,6 +82,7 @@ public sealed class LiveRankPolicy
         MinimumPlayers = live.MinimumPlayers;
         IncludeBots = live.IncludeBots;
         FreeForAll = live.FreeForAll;
+        PlaytimeInterval = TimeSpan.FromSeconds(live.PlaytimeIntervalSeconds);
         StreakWindow = TimeSpan.FromSeconds(live.StreakWindowSeconds);
         StreakPoints = live.StreakPoints.ToFrozenDictionary();
         VipPermission = new PermissionId(live.VipPermission);
@@ -98,6 +101,7 @@ public sealed class LiveRankPolicy
     public int MinimumPlayers { get; }
     public bool IncludeBots { get; }
     public bool FreeForAll { get; }
+    public TimeSpan PlaytimeInterval { get; }
     public TimeSpan StreakWindow { get; }
     public IReadOnlyDictionary<int, int> StreakPoints { get; }
     public PermissionId VipPermission { get; }

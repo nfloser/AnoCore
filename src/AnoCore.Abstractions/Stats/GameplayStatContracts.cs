@@ -26,6 +26,7 @@ public enum GameplayStatKind : byte
     DominatedKill = 20,
     RevengeKill = 21,
     FlashAssist = 22,
+    PlaytimeInterval = 23,
 }
 
 public sealed record GameplayStatEvent
