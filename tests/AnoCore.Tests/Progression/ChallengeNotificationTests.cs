@@ -180,8 +180,11 @@ public sealed class ChallengeNotificationTests
         service.Prune(Now);
         await service.ObserveProgressAsync(player, Progress(5));
         var next = Progress(5);
-        next = next with { Evaluation = next.Evaluation with
-            { Definition = next.Evaluation.Definition with { StartsAtUtc = Now.AddDays(7), EndsAtUtc = Now.AddDays(14) } } };
+        next = next with
+        {
+            Evaluation = next.Evaluation with
+            { Definition = next.Evaluation.Definition with { StartsAtUtc = Now.AddDays(7), EndsAtUtc = Now.AddDays(14) } }
+        };
         service.Prune(Now.AddDays(7));
         await service.ObserveProgressAsync(player, next);
         var version = next with { Evaluation = next.Evaluation with { Definition = next.Evaluation.Definition with { Version = 2 } } };
