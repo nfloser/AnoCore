@@ -32,8 +32,12 @@ public sealed class AchievementDefinition
     public IReadOnlyList<AchievementPrerequisite> Prerequisites { get; }
 
     public static AchievementDefinition Create(string id, int version,
+        GameplayStatKind statistic, IEnumerable<AchievementTier> tiers)
+        => Create(id, version, statistic, tiers, []);
+
+    public static AchievementDefinition Create(string id, int version,
         GameplayStatKind statistic, IEnumerable<AchievementTier> tiers,
-        IEnumerable<AchievementPrerequisite>? prerequisites = null)
+        IEnumerable<AchievementPrerequisite>? prerequisites)
     {
         if (string.IsNullOrWhiteSpace(id) || id.Length > 64
             || id.Any(character => !char.IsAsciiLetterOrDigit(character)
