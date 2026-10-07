@@ -1,10 +1,12 @@
 using System.Text.Json;
 using AnoCore.Abstractions.Commands;
+using AnoCore.Abstractions.Configuration;
 using AnoCore.Abstractions.Permissions;
 using AnoCore.Abstractions.Players;
 using AnoCore.Abstractions.Stats;
 using AnoCore.Modules.Progression;
 using AnoCore.Runtime.Commands;
+using AnoCore.Runtime.Configuration;
 using AnoCore.Runtime.Events;
 using AnoCore.Runtime.Players;
 
@@ -163,18 +165,128 @@ public sealed class GameplayXpModuleTests
         StringAssert.Contains(status.Message!, "1x (none)");
     }
 
+    [TestMethod]
+    public async Task ReloadChangesCheckpointWeightsAndCurrentBoostWithoutReplacingOwnedCommands()
+    {
+        var players = new PlayerRegistry(new AnoEventBus());
+        await Connect(players);
+        var commands = new CommandRegistry(new AllowAll());
+        var reloads = new ConfigReloadRegistry();
+        var store = new Configuration();
+        var repository = new Repository();
+        using var module = new GameplayXpModule(store.Value.Snapshot(), Xp, players, repository, new Grants(), commands,
+            clock: () => new DateTimeOffset(2026, 10, 10, 12, 0, 0, TimeSpan.Zero), reloads: reloads, configuration: store);
+        store.Value.KillXp = 42;
+        store.Value.WeekendMultiplier = 3m;
+        await reloads.ReloadAsync("gameplay-xp");
+        await module.ReconcileOnlineAsync(Now);
+        Assert.AreEqual(42, repository.Policies.Single().KillXp);
+        StringAssert.Contains((await commands.ExecuteAsync("!anoxp", Player)).Message!, "3x (gameplay.weekend.");
+        Assert.HasCount(1, reloads.Configurations);
+        module.Dispose();
+        Assert.IsEmpty(reloads.Configurations);
+        Assert.AreEqual(CommandFailureReason.NotFound, (await commands.ExecuteAsync("!anoxp", Player)).FailureReason);
+    }
+
+    [TestMethod]
+    public async Task ReloadDuringCheckpointPinsOneSnapshotAcrossAllPlayers()
+    {
+        var players = new PlayerRegistry(new AnoEventBus());
+        await Connect(players);
+        await players.ConnectAsync(new(new(Player.SteamId64 + 1), "Other", PlayerTeam.CounterTerrorist, true, Now));
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var repository = new Repository { BeforeRead = async () => { started.TrySetResult(); await release.Task; } };
+        var reloads = new ConfigReloadRegistry();
+        var store = new Configuration();
+        using var module = new GameplayXpModule(store.Value.Snapshot(), Xp, players, repository, new Grants(),
+            new CommandRegistry(new AllowAll()), reloads: reloads, configuration: store);
+        var checkpoint = module.ReconcileOnlineAsync(Now).AsTask();
+        await started.Task;
+        store.Value.KillXp = 42;
+        await reloads.ReloadAsync("gameplay-xp");
+        release.SetResult();
+        await checkpoint;
+        CollectionAssert.AreEqual(new[] { 10, 10 }, repository.Policies.Select(item => item.KillXp).ToArray());
+        await module.ReconcileOnlineAsync(Now);
+        CollectionAssert.AreEqual(new[] { 10, 10, 42, 42 }, repository.Policies.Select(item => item.KillXp).ToArray());
+    }
+
+    [TestMethod]
+    [DataRow("disabled")]
+    [DataRow("interval")]
+    [DataRow("start")]
+    [DataRow("invalid")]
+    public async Task InvalidOrRestartOnlyChangesPreserveActivePolicy(string change)
+    {
+        var players = new PlayerRegistry(new AnoEventBus());
+        await Connect(players);
+        var reloads = new ConfigReloadRegistry();
+        var store = new Configuration();
+        var repository = new Repository();
+        using var module = new GameplayXpModule(store.Value.Snapshot(), Xp, players, repository, new Grants(),
+            new CommandRegistry(new AllowAll()), reloads: reloads, configuration: store);
+        store.Value.KillXp = 42;
+        switch (change)
+        {
+            case "disabled": store.Value.Enabled = false; break;
+            case "interval": store.Value.CheckpointSeconds = 60; break;
+            case "start": store.Value.EarnFromUtc = Now.AddDays(-1); break;
+            case "invalid": store.Value.KillXp = -1; break;
+        }
+        await Assert.ThrowsExactlyAsync<ConfigValidationException>(async () => await reloads.ReloadAsync("gameplay-xp"));
+        await module.ReconcileOnlineAsync(Now);
+        Assert.AreEqual(10, repository.Policies.Single().KillXp);
+        Assert.AreEqual(30, module.CheckpointSeconds);
+    }
+
+    [TestMethod]
+    public async Task CommandCollisionRollsBackReloadRegistrationAndPartialServicesAreRejected()
+    {
+        var players = new PlayerRegistry(new AnoEventBus());
+        await Connect(players);
+        var commands = new CommandRegistry(new AllowAll());
+        var reloads = new ConfigReloadRegistry();
+        var store = new Configuration();
+        using var first = new GameplayXpModule(store.Value.Snapshot(), Xp, players, new Repository(), new Grants(), commands);
+        Assert.ThrowsExactly<InvalidOperationException>(() => new GameplayXpModule(store.Value.Snapshot(), Xp, players,
+            new Repository(), new Grants(), commands, reloads: reloads, configuration: store));
+        Assert.IsEmpty(reloads.Configurations);
+        Assert.ThrowsExactly<ArgumentException>(() => new GameplayXpModule(store.Value.Snapshot(), Xp, players,
+            new Repository(), new Grants(), commands, reloads: reloads));
+        Assert.IsTrue((await commands.ExecuteAsync("!anoxp", Player)).Success);
+    }
+
+    private sealed class Configuration : IConfigStore
+    {
+        public GameplayXpConfiguration Value { get; } = new() { Enabled = true, EarnFromUtc = Now };
+        public ValueTask<T> LoadAsync<T>(string name, Func<T> createDefault,
+            Func<T, IReadOnlyCollection<string>>? validate = null, CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var value = (T)(object)Value;
+            var errors = validate?.Invoke(value) ?? [];
+            if (errors.Count > 0) throw new ConfigValidationException(name, errors);
+            return ValueTask.FromResult(value);
+        }
+        public ValueTask SaveAsync<T>(string name, T value, Func<T, IReadOnlyCollection<string>>? validate = null,
+            CancellationToken cancellationToken = default) => throw new AssertFailedException();
+    }
+
     private static async Task Connect(PlayerRegistry players)
         => _ = await players.ConnectAsync(new(Player, "Player", PlayerTeam.Terrorist, true, Now));
 
     private sealed class Repository : IGameplayXpRepository
     {
         public int Calls { get; private set; }
+        public List<GameplayXpPolicy> Policies { get; } = [];
         public PlayerId? FailPlayer { get; set; }
         public Func<Task>? BeforeRead { get; init; }
         public async ValueTask<IReadOnlyList<ProgressionGrantRecord>> ReconcileAsync(PlayerId playerId, GameplayXpPolicy policy,
             ProgressionDefinitionSnapshot definitions, DateTimeOffset at, CancellationToken cancellationToken = default)
         {
             Calls++;
+            Policies.Add(policy);
             if (BeforeRead is not null) await BeforeRead();
             if (playerId == FailPlayer) throw new InvalidOperationException("test failure");
             return [];
