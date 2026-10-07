@@ -12,6 +12,8 @@ public sealed class LiveRankConfiguration
     public bool IncludeBots { get; set; }
     public bool FreeForAll { get; set; }
     public int TeamKillPenalty { get; set; } = 2;
+    public int TeamKillAssistPenalty { get; set; }
+    public int TeamKillFlashAssistPenalty { get; set; }
     public int SuicidePenalty { get; set; } = 1;
     public Dictionary<string, int> WeaponPoints { get; set; } = [];
     public decimal DistanceThresholdMeters { get; set; }
@@ -31,6 +33,7 @@ public sealed class LiveRankConfiguration
         var errors = new List<string>();
         if (value.PlaytimeIntervalSeconds is < 0 or > 86400 || value.PlaytimeIntervalSeconds is > 0 and < 10
             || value.MinimumPlayers is < 1 or > 64 || value.TeamKillPenalty is < 0 or > 1000
+            || value.TeamKillAssistPenalty is < 0 or > 1000 || value.TeamKillFlashAssistPenalty is < 0 or > 1000
             || value.SuicidePenalty is < 0 or > 1000 || value.DistanceBonus is < 0 or > 1000
             || value.DistanceThresholdMeters is < 0 or > 10000 || value.StreakWindowSeconds is < 1 or > 600
             || value.VipMultiplier is < 1 or > 10 || value.MinimumDynamicMultiplier is <= 0 or > 4
@@ -57,7 +60,10 @@ public sealed record RankParticipant(PlayerSnapshot? Player, PlayerTeam Team, bo
 
 public sealed record RankDeathInput(RankLiveContext Context, RankParticipant Victim,
     RankParticipant? Attacker, PlayerSnapshot? Assister, string Weapon,
-    IReadOnlyList<GameplayStatKind> Specials, bool FlashAssist, decimal DistanceMeters);
+    IReadOnlyList<GameplayStatKind> Specials, bool FlashAssist, decimal DistanceMeters)
+{
+    public int Penetrations { get; init; } = 1;
+}
 
 public sealed class LiveRankPolicy
 {
@@ -65,6 +71,8 @@ public sealed class LiveRankPolicy
     private readonly FrozenDictionary<string, int> _weapons;
     private readonly int _teamKillPenalty;
     private readonly int _suicidePenalty;
+    private readonly int _teamKillAssistPenalty;
+    private readonly int _teamKillFlashAssistPenalty;
     private readonly decimal _distanceThreshold;
     private readonly int _distanceBonus;
     private readonly bool _dynamic;
@@ -90,6 +98,8 @@ public sealed class LiveRankPolicy
         _weapons = live.WeaponPoints.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
         _teamKillPenalty = live.TeamKillPenalty;
         _suicidePenalty = live.SuicidePenalty;
+        _teamKillAssistPenalty = live.TeamKillAssistPenalty;
+        _teamKillFlashAssistPenalty = live.TeamKillFlashAssistPenalty;
         _distanceThreshold = live.DistanceThresholdMeters;
         _distanceBonus = live.DistanceBonus;
         _dynamic = live.DynamicMultipliers;
@@ -129,6 +139,7 @@ public sealed class LiveRankPolicy
         ArgumentNullException.ThrowIfNull(input.Victim);
         ArgumentNullException.ThrowIfNull(vipPlayers);
         if (victimScore < 0 || attackerScore < 0 || streakCount is < 1 or > 65
+            || input.Penetrations is < 0 or > 32
             || input.DistanceMeters is < 0 or > 10000 || string.IsNullOrWhiteSpace(input.Weapon)
             || input.Weapon.Length > 64 || input.Weapon.Any(char.IsControl)
             || input.Specials is null || input.Specials.Count > 8
@@ -160,17 +171,29 @@ public sealed class LiveRankPolicy
             else
             {
                 long points = _weights.KillPoints + _weapons.GetValueOrDefault(input.Weapon);
-                foreach (var kind in input.Specials) points = checked(points + _weights.GameplayPoints.GetValueOrDefault(kind));
+                foreach (var kind in input.Specials)
+                    points = checked(points + (long)_weights.GameplayPoints.GetValueOrDefault(kind)
+                        * (kind == GameplayStatKind.PenetratedKill ? input.Penetrations : 1));
+                if (WeaponFamily(input.Weapon) is { } family)
+                    points = checked(points + _weights.GameplayPoints.GetValueOrDefault(family));
                 if (_distanceThreshold > 0 && input.DistanceMeters >= _distanceThreshold) points += _distanceBonus;
                 points += StreakPoints.GetValueOrDefault(streakCount);
                 awards[attacker] = Scale(points, Dynamic(victimScore, attackerScore), vips.Contains(attacker));
             }
         }
-        if (!teamkill && input.Assister is { } assister && assister.Id != victim && assister.Id != attacker
+        if (input.Assister is { } assister && assister.Id != victim && assister.Id != attacker
             && Playing(assister.Team) && (FreeForAll || assister.Team == input.Attacker!.Team))
         {
-            var points = _weights.AssistPoints + (input.FlashAssist ? _weights.GameplayPoints.GetValueOrDefault(GameplayStatKind.FlashAssist) : 0);
-            awards[assister.Id] = Scale(points, 1m, vips.Contains(assister.Id));
+            if (teamkill)
+            {
+                var penalty = _teamKillAssistPenalty + (input.FlashAssist ? _teamKillFlashAssistPenalty : 0);
+                if (penalty != 0) awards[assister.Id] = -penalty;
+            }
+            else
+            {
+                var points = _weights.AssistPoints + (input.FlashAssist ? _weights.GameplayPoints.GetValueOrDefault(GameplayStatKind.FlashAssist) : 0);
+                awards[assister.Id] = Scale(points, 1m, vips.Contains(assister.Id));
+            }
         }
         return Results();
 
@@ -182,8 +205,24 @@ public sealed class LiveRankPolicy
     {
         if (!Enum.IsDefined(kind)) throw new ArgumentOutOfRangeException(nameof(kind));
         if (IsKillSpecial(kind) || kind == GameplayStatKind.FlashAssist
-            || FreeForAll && kind is GameplayStatKind.RoundWon or GameplayStatKind.RoundLost) return 0;
+            || FreeForAll && (kind is GameplayStatKind.RoundWon or GameplayStatKind.RoundLost || IsTeamObjective(kind))) return 0;
         return Scale(_weights.GameplayPoints.GetValueOrDefault(kind), 1m, vip);
+    }
+
+    public static bool IsTeamObjective(GameplayStatKind kind)
+        => kind is GameplayStatKind.BombExploded or GameplayStatKind.BombDefusedOthers or GameplayStatKind.HostagesRescuedAll;
+
+    public static GameplayStatKind? WeaponFamily(string weapon)
+    {
+        ArgumentNullException.ThrowIfNull(weapon);
+        if (weapon.Contains("hegrenade", StringComparison.OrdinalIgnoreCase)) return GameplayStatKind.GrenadeKill;
+        if (weapon.Contains("inferno", StringComparison.OrdinalIgnoreCase)) return GameplayStatKind.InfernoKill;
+        if (weapon.Contains("grenade", StringComparison.OrdinalIgnoreCase) || weapon.Contains("molotov", StringComparison.OrdinalIgnoreCase)
+            || weapon.Contains("flashbang", StringComparison.OrdinalIgnoreCase) || weapon.Contains("bumpmine", StringComparison.OrdinalIgnoreCase))
+            return GameplayStatKind.ImpactKill;
+        if (weapon.Contains("knife", StringComparison.OrdinalIgnoreCase) || weapon.Contains("bayonet", StringComparison.OrdinalIgnoreCase))
+            return GameplayStatKind.KnifeKill;
+        return weapon.Equals("taser", StringComparison.OrdinalIgnoreCase) ? GameplayStatKind.TaserKill : null;
     }
 
     public static bool IsKillSpecial(GameplayStatKind kind)

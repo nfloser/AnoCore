@@ -151,6 +151,33 @@ public sealed class LiveRankScoringService : IDisposable
         finally { _gate.Release(); }
     }
 
+    public async ValueTask RecordTeamObjectiveAsync(GameplayStatKind kind, RankLiveContext context,
+        IReadOnlyList<PlayerSnapshot> players, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(players);
+        if (!LiveRankPolicy.IsTeamObjective(kind) || players.Count is < 1 or > 64
+            || players.Any(player => player is null || !player.IsConnected
+                || player.Team is not (PlayerTeam.Terrorist or PlayerTeam.CounterTerrorist))
+            || players.Select(player => player.Id).Distinct().Count() != players.Count
+            || players.Select(player => player.Team).Distinct().Count() != 1)
+            throw new ArgumentException("A team objective requires one bounded unique active-team snapshot.", nameof(players));
+        var captured = players.ToArray();
+        if (!_policy.Allowed(context) || _policy.Gameplay(kind, false) == 0) return;
+        using var linked = Link(cancellationToken);
+        await _gate.WaitAsync(linked.Token).ConfigureAwait(false);
+        try
+        {
+            if (await _events.ReadAsync(context.EventId, linked.Token).ConfigureAwait(false) is not null) return;
+            var previous = await ReadPointsAsync(captured, linked.Token).ConfigureAwait(false);
+            var vips = await ReadVipsAsync(captured, linked.Token).ConfigureAwait(false);
+            var awards = captured.Select(player => new RankPointAward(player.Id, _policy.Gameplay(kind, vips.Contains(player.Id))));
+            var result = await _events.ApplyAsync(RankPointEventBatch.Create(context.EventId,
+                "gameplay.Team." + kind, context.OccurredAtUtc, awards), linked.Token).ConfigureAwait(false);
+            if (result.Applied) await PresentAsync(result.Batch, captured, previous, context.RoundKey).ConfigureAwait(false);
+        }
+        finally { _gate.Release(); }
+    }
+
     public async ValueTask CompleteRoundAsync(string roundKey, CancellationToken cancellationToken = default)
     {
         using var linked = Link(cancellationToken);
