@@ -85,7 +85,8 @@ public sealed class ChallengeScheduleSnapshot
             var start = item.WindowKind == ChallengeWindowKind.Daily ? day : monday;
             var end = start.AddDays(item.WindowKind == ChallengeWindowKind.Daily ? 1 : 7);
             definitions.Add(new(item.Id, item.Version, item.Name, item.WindowKind, item.Statistic,
-                item.Target, item.RewardXp, start, end, item.PrerequisiteIds) { CounterSource = item.CounterSource });
+                item.Target, item.RewardXp, start, end, item.PrerequisiteIds)
+            { CounterSource = item.CounterSource });
         }
         return ChallengeCatalogSnapshot.Create(definitions);
     }
