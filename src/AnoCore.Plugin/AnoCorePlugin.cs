@@ -96,6 +96,7 @@ public sealed class AnoCorePlugin : BasePlugin
     private TournamentSpectatorEnforcement? _tournamentSpectatorEnforcement;
     private TournamentCommandController? _tournamentCommands;
     private TournamentMapSelectionCommandController? _tournamentMapSelectionCommands;
+    private CounterStrikeSharp.API.Modules.Timers.Timer? _chatPolicyTimer;
     private ChatMessageFormatter? _chatFormatter;
     private SelectableChatTagModule? _chatTags;
     private ChatFormatSnapshotLifecycle? _chatFormatSnapshots;
@@ -254,6 +255,9 @@ public sealed class AnoCorePlugin : BasePlugin
             _tournamentTeamEnforcement?.Dispose();
             _tournamentTeamEnforcement = null;
             _tournamentMatch = null;
+            _chatPolicyTimer?.Kill();
+            _chatPolicyTimer = null;
+            _chatFormatter?.Dispose();
             _chatFormatter = null;
             _combat?.Dispose();
             _combat = null;
@@ -272,6 +276,7 @@ public sealed class AnoCorePlugin : BasePlugin
             _pendingGameplayXp = null;
             _pendingSeasons = null;
             _pendingTournamentMatch = null;
+            _pendingChatFormatter?.Dispose();
             _pendingChatFormatter = null;
             _pendingChatTags?.Dispose();
             _pendingChatTags = null;
@@ -476,7 +481,7 @@ public sealed class AnoCorePlugin : BasePlugin
                         configuration, players, created.Playtime, created.Settings,
                         created.ToggleCatalog, created.Messages,
                         exception => Logger.LogError(exception, "Playtime notification failed."),
-                        timeout.Token).ConfigureAwait(false);
+                        timeout.Token, created.ConfigReloads).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException) when (timeout.IsCancellationRequested)
                 {
@@ -584,7 +589,7 @@ public sealed class AnoCorePlugin : BasePlugin
                     ?? throw new InvalidOperationException(
                         "AnoCore runtime did not provide the shared placeholder registry.");
                 createdChatFormatter = await ChatMessageFormatter.CreateAsync(
-                    configuration, placeholders, timeout.Token).ConfigureAwait(false);
+                    configuration, placeholders, timeout.Token, created.ConfigReloads).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
@@ -613,7 +618,7 @@ public sealed class AnoCorePlugin : BasePlugin
                     events,
                     exception => Logger.LogError(
                         exception, "Chat tag snapshot refresh failed."),
-                    timeout.Token).ConfigureAwait(false);
+                    timeout.Token, created.ConfigReloads).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
@@ -824,6 +829,7 @@ public sealed class AnoCorePlugin : BasePlugin
             createdGameplayXp?.Dispose();
             createdSeasons?.Dispose();
             createdChatTags?.Dispose();
+            createdChatFormatter?.Dispose();
             created?.Dispose();
         }
         catch (Exception exception)
@@ -838,6 +844,7 @@ public sealed class AnoCorePlugin : BasePlugin
             createdGameplayXp?.Dispose();
             createdSeasons?.Dispose();
             createdChatTags?.Dispose();
+            createdChatFormatter?.Dispose();
             created?.Dispose();
             lock (_startupGate)
             {
@@ -859,6 +866,7 @@ public sealed class AnoCorePlugin : BasePlugin
                     _pendingSeasons = null;
                     _pendingXpAdministration = null;
                     _pendingTournamentMatch = null;
+                    _pendingChatFormatter?.Dispose();
                     _pendingChatFormatter = null;
                     _pendingChatTags?.Dispose();
                     _pendingChatTags = null;
@@ -1211,6 +1219,8 @@ public sealed class AnoCorePlugin : BasePlugin
 
                 if (chatFormatter is not null)
                 {
+                    chatFormatter.TagPolicyIdentity = () => chatTags?.PolicyIdentity;
+                    chatFormatter.ObserveReload();
                     chatFormatSnapshots = new ChatFormatSnapshotLifecycle(
                         events,
                         chatFormatter,
@@ -1220,6 +1230,13 @@ public sealed class AnoCorePlugin : BasePlugin
                         chatFormatSnapshots.WarmExistingAsync(
                             runtime.Players.OnlinePlayers.ToArray()).AsTask(),
                         "chat_format_snapshot_bootstrap");
+                    var activeChatSnapshots = chatFormatSnapshots;
+                    _chatPolicyTimer = AddTimer(1.0f, () =>
+                    {
+                        if (chatFormatter.ObserveReload())
+                            Observe(activeChatSnapshots.WarmExistingAsync(runtime.Players.OnlinePlayers.ToArray()).AsTask(),
+                                "chat_policy_reload");
+                    }, TimerFlags.REPEAT);
                 }
 
                 connectBan = new ConnectBanEnforcement(
@@ -1451,7 +1468,10 @@ public sealed class AnoCorePlugin : BasePlugin
                 combat?.Dispose();
                 transitionMonitor?.Dispose();
                 voiceModeration?.Dispose();
+                _chatPolicyTimer?.Kill();
+                _chatPolicyTimer = null;
                 chatFormatSnapshots?.Dispose();
+                chatFormatter?.Dispose();
                 chatModeration?.Dispose();
                 communicationModeration?.Dispose();
                 anoVeto?.Dispose();

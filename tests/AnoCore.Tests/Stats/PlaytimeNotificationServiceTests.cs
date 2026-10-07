@@ -31,6 +31,26 @@ public sealed class PlaytimeNotificationServiceTests
     }
 
     [TestMethod]
+    public async Task ReloadChangesIntervalAndDisablesDeliveryWithoutResettingTotals()
+    {
+        var reloads = new ConfigReloadRegistry();
+        using var test = await CreateAsync(reloads: reloads);
+        var store = new JsonConfigStore(_root);
+        await test.Service.TickAsync(Start.AddSeconds(60));
+        Assert.AreEqual(0, test.Messages.Sent.Count);
+        await store.SaveAsync("playtime-notifications", new PlaytimeNotificationConfiguration { IntervalSeconds = 30 });
+        await reloads.ReloadAsync("playtime-notifications");
+        await test.Service.TickAsync(Start.AddSeconds(60));
+        Assert.AreEqual(1, test.Messages.Sent.Count);
+        await store.SaveAsync("playtime-notifications", new PlaytimeNotificationConfiguration { Enabled = false });
+        await reloads.ReloadAsync("playtime-notifications");
+        await test.Service.TickAsync(Start.AddMinutes(10));
+        Assert.AreEqual(1, test.Messages.Sent.Count);
+        test.Service.Dispose();
+        Assert.AreEqual(0, reloads.Configurations.Count);
+    }
+
+    [TestMethod]
     public async Task ModuleCheckpointsBeforeNotificationReadAndOwnsCleanup()
     {
         using var test = await CreateAsync();
@@ -208,7 +228,7 @@ public sealed class PlaytimeNotificationServiceTests
         Assert.IsTrue(PlaytimeNotificationConfiguration.Validate(new() { IntervalSeconds = 86401 }).Count > 0);
     }
 
-    private async Task<Harness> CreateAsync(bool enabled = true)
+    private async Task<Harness> CreateAsync(bool enabled = true, ConfigReloadRegistry? reloads = null)
     {
         var configuration = new JsonConfigStore(_root);
         await configuration.SaveAsync("playtime-notifications",
@@ -222,7 +242,7 @@ public sealed class PlaytimeNotificationServiceTests
         var messages = new Messages();
         var failures = new List<Exception>();
         var service = await PlaytimeNotificationService.CreateAsync(
-            configuration, players, repository, settings, catalog, messages, failures.Add);
+            configuration, players, repository, settings, catalog, messages, failures.Add, reloads: reloads);
         return new Harness(service, players, player.SessionId, repository, settings, catalog, messages, failures);
     }
 

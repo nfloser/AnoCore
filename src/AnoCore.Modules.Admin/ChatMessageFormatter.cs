@@ -1,5 +1,6 @@
 using System.Globalization;
 using AnoCore.Abstractions.Configuration;
+using AnoCore.Abstractions.Modules;
 using AnoCore.Abstractions.Placeholders;
 using AnoCore.Abstractions.Players;
 
@@ -88,8 +89,13 @@ public sealed class PreparedChatFormat
     private readonly string _publicTemplate;
     private readonly string _teamTemplate;
 
-    internal PreparedChatFormat(string publicTemplate, string teamTemplate)
+    internal object? Policy { get; }
+    internal object? TagPolicy { get; }
+
+    internal PreparedChatFormat(string publicTemplate, string teamTemplate, object? policy = null, object? tagPolicy = null)
     {
+        Policy = policy;
+        TagPolicy = tagPolicy;
         _publicTemplate = publicTemplate;
         _teamTemplate = teamTemplate;
     }
@@ -103,12 +109,29 @@ public sealed class PreparedChatFormat
     }
 }
 
-public sealed class ChatMessageFormatter
+public sealed class ChatMessageFormatter : IDisposable
 {
     internal const int MaximumMessageLength = 256;
     private const int MaximumNameLength = 48;
     private readonly ChatFormatConfiguration _configuration;
     private readonly IPlaceholderRegistry _placeholders;
+    private IConfigReloadRegistration<ChatFormatConfiguration>? _reload;
+    private object? _observedPolicy;
+    private object? _observedTagPolicy;
+    public Func<object?>? TagPolicyIdentity { get; set; }
+    private ChatFormatConfiguration Current => _reload?.Current ?? _configuration;
+    public bool IsCurrent(PreparedChatFormat prepared)
+        => ReferenceEquals(prepared.Policy, Current) && ReferenceEquals(prepared.TagPolicy, TagPolicyIdentity?.Invoke());
+    public bool ObserveReload()
+    {
+        var policy = Current;
+        var tags = TagPolicyIdentity?.Invoke();
+        var changed = !ReferenceEquals(policy, _observedPolicy) || !ReferenceEquals(tags, _observedTagPolicy);
+        _observedPolicy = policy;
+        _observedTagPolicy = tags;
+        return changed;
+    }
+    public void Dispose() => _reload?.Dispose();
 
     private ChatMessageFormatter(
         ChatFormatConfiguration configuration,
@@ -121,7 +144,8 @@ public sealed class ChatMessageFormatter
     public static async Task<ChatMessageFormatter> CreateAsync(
         IConfigStore configuration,
         IPlaceholderRegistry placeholders,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        IConfigReloadRegistry? reloads = null)
     {
         ArgumentNullException.ThrowIfNull(configuration);
         ArgumentNullException.ThrowIfNull(placeholders);
@@ -131,7 +155,11 @@ public sealed class ChatMessageFormatter
             ChatFormatConfiguration.Validate,
             cancellationToken).ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
-        return new ChatMessageFormatter(settings, placeholders);
+        var formatter = new ChatMessageFormatter(settings, placeholders);
+        formatter._reload = reloads?.Register(new ModuleId("ano.chat.format"), "chat-format", settings,
+            token => configuration.LoadAsync("chat-format", () => ChatFormatConfiguration.Default,
+                ChatFormatConfiguration.Validate, token), ChatFormatConfiguration.Validate);
+        return formatter;
     }
 
     public async ValueTask<PreparedChatFormat> PrepareAsync(
@@ -140,6 +168,8 @@ public sealed class ChatMessageFormatter
     {
         ArgumentNullException.ThrowIfNull(player);
         cancellationToken.ThrowIfCancellationRequested();
+        var policy = Current;
+        var tagPolicy = TagPolicyIdentity?.Invoke();
         var context = new PlaceholderContext(
             new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase)
             {
@@ -147,12 +177,12 @@ public sealed class ChatMessageFormatter
                 ["session"] = player.SessionId,
             });
         var publicTemplate = await PrepareTemplateAsync(
-            _configuration.PublicTemplate, player, context, cancellationToken)
+            policy.PublicTemplate, policy, player, context, cancellationToken)
             .ConfigureAwait(false);
         var teamTemplate = await PrepareTemplateAsync(
-            _configuration.TeamTemplate, player, context, cancellationToken)
+            policy.TeamTemplate, policy, player, context, cancellationToken)
             .ConfigureAwait(false);
-        return new PreparedChatFormat(publicTemplate, teamTemplate);
+        return new PreparedChatFormat(publicTemplate, teamTemplate, policy, tagPolicy);
     }
 
     public async ValueTask<string> FormatAsync(
@@ -177,12 +207,13 @@ public sealed class ChatMessageFormatter
 
     private async ValueTask<string> PrepareTemplateAsync(
         string template,
+        ChatFormatConfiguration policy,
         PlayerSnapshot player,
         PlaceholderContext context,
         CancellationToken cancellationToken)
     {
         var rankColor = ChatColorPalette.Resolve(
-            _configuration.RankColor, player.Team);
+            policy.RankColor, player.Team);
         var effectiveTemplate = _placeholders.Contains("chat.tag")
             ? template.Replace(
                 "{rank.tag}", "{chat.tag}", StringComparison.OrdinalIgnoreCase)
@@ -190,8 +221,8 @@ public sealed class ChatMessageFormatter
         var decorated = Decorate(
             effectiveTemplate,
             rankColor,
-            ChatColorPalette.Resolve(_configuration.NameColor, player.Team),
-            ChatColorPalette.Resolve(_configuration.MessageColor, player.Team));
+            ChatColorPalette.Resolve(policy.NameColor, player.Team),
+            ChatColorPalette.Resolve(policy.MessageColor, player.Team));
         var resolved = await _placeholders.ResolveAsync(
             decorated, context, cancellationToken).ConfigureAwait(false);
         if (rankColor is not null)
