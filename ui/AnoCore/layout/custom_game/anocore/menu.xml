@@ -17,11 +17,11 @@
                 <Button id="ano_menu_row_5" class="ano-menu-row" hittest="true" hittestchildren="false"><Label id="ano_menu_row_5_text" text="{s:text}" html="false" /></Button>
             </Panel>
             <Panel class="ano-menu-footer" hittest="true" hittestchildren="true">
-                <Button id="ano_menu_home" class="ano-menu-control"><Label text="Home" /></Button>
-                <Button id="ano_menu_previous" class="ano-menu-control"><Label text="Previous" /></Button>
+                <Button id="ano_menu_home" class="ano-menu-control" hittest="true" hittestchildren="false"><Label text="Home" /></Button>
+                <Button id="ano_menu_previous" class="ano-menu-control" hittest="true" hittestchildren="false"><Label text="Previous" /></Button>
                 <Label id="ano_menu_page" class="ano-menu-page" text="{s:text}" />
-                <Button id="ano_menu_next" class="ano-menu-control"><Label text="Next" /></Button>
-                <Button id="ano_menu_close" class="ano-menu-control ano-menu-close"><Label text="Close" /></Button>
+                <Button id="ano_menu_next" class="ano-menu-control" hittest="true" hittestchildren="false"><Label text="Next" /></Button>
+                <Button id="ano_menu_close" class="ano-menu-control ano-menu-close" hittest="true" hittestchildren="false"><Label text="Close" /></Button>
             </Panel>
         </Panel>
     </Panel>

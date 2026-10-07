@@ -9,6 +9,8 @@
 - One dependency-free presenter projects existing menu definitions into per-player
   title, six rows, paging, Home and Close. No new gameplay or persistence semantics.
 - Source XML/CSS, Workshop Tools build script and CI source validation cover both layouts.
+- Review added exact-definition logical-menu closure on disconnect and a Home →
+  feature → Home integration test. Footer button hit testing targets button IDs.
 - Tests cover page isolation, stale logical definitions, pending close/reconnect reads,
   authorized navigation and cleanup. Build/test/format and CI status recorded in PR.
 - No compiled Valve resource or Workshop ID is supplied. Native addon distribution,

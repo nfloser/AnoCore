@@ -203,6 +203,34 @@ public sealed class PanoramaMenuTests
         Assert.IsEmpty(commands.GetCommands());
     }
 
+    [TestMethod]
+    public async Task FeatureMenusAndHomeUseTheSameHudAndDisconnectClosesLogicalState()
+    {
+        var events = new AnoEventBus();
+        var players = new PlayerRegistry(events);
+        var player = await players.ConnectAsync(new(Player, "Player", PlayerTeam.Terrorist, true, Now));
+        var commands = new CommandRegistry(new Permissions());
+        var menus = new MenuService();
+        var hud = new TestCustomHudService();
+        var feature = new MenuDefinition(new("ano.test.stats"), "Statistics", [new("kills", "Kills: 12", _ => ValueTask.CompletedTask, keepOpen: true)]);
+        using var registration = menus.Register(new("test"), feature);
+        using var command = commands.Register(new("test"), new("anostatsmenu", "Stats"), _ =>
+        { menus.Open(Player, feature.Id); return ValueTask.FromResult(CommandResult.Ok()); });
+        using var home = new AnoHomeMenuModule(commands, players, menus, new Permissions(), events);
+        using var presenter = new PanoramaMenuPresenter(hud, menus, players, commands, events);
+        await commands.ExecuteAsync("!anomenu", Player);
+        presenter.Open(Player);
+        await hud.ClickAsync(Player, PanoramaMenuPresenter.HudId, "ano_menu_row_0");
+        Assert.AreEqual("Statistics", hud.Text(Player, PanoramaMenuPresenter.HudId, "ano_menu_title"));
+        await hud.ClickAsync(Player, PanoramaMenuPresenter.HudId, "ano_menu_home");
+        Assert.AreEqual("AnoCore", hud.Text(Player, PanoramaMenuPresenter.HudId, "ano_menu_title"));
+        menus.Open(Player, feature.Id);
+        presenter.Open(Player);
+        await players.DisconnectAsync(Player, player.SessionId, Now.AddSeconds(1));
+        Assert.IsEmpty(hud.VisiblePlayers(PanoramaMenuPresenter.HudId));
+        Assert.IsFalse(menus.TryGetOpenMenu(Player, out _));
+    }
+
     private sealed class RejectEvents : IAnoEventBus
     {
         public IDisposable Subscribe<TEvent>(Func<TEvent, CancellationToken, ValueTask> handler) where TEvent : IAnoEvent

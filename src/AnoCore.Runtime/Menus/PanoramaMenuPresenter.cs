@@ -201,7 +201,12 @@ public sealed class PanoramaMenuPresenter : IDisposable
     private void RemoveSession(PlayerSnapshot player)
     {
         lock (_gate)
-            if (_open.TryGetValue(player.Id, out var state) && state.Player.SessionId == player.SessionId) Remove(player.Id);
+            if (_open.TryGetValue(player.Id, out var state) && state.Player.SessionId == player.SessionId)
+            {
+                if (_menus.TryGetOpenMenu(player.Id, out var menu) && ReferenceEquals(menu, state.Menu))
+                    _menus.Close(player.Id);
+                Remove(player.Id);
+            }
     }
     private void Remove(PlayerId id)
     {
