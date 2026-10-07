@@ -1,3 +1,4 @@
+using System.Globalization;
 using AnoCore.Abstractions.Commands;
 using AnoCore.Abstractions.Events;
 using AnoCore.Abstractions.Modules;
@@ -8,6 +9,7 @@ namespace AnoCore.Modules.Progression;
 public sealed class GameplayXpModule : IDisposable
 {
     private readonly GameplayXpPolicy _policy;
+    private readonly Func<DateTimeOffset> _clock;
     private readonly ProgressionDefinitionSnapshot _definitions;
     private readonly IPlayerRegistry _players;
     private readonly IGameplayXpRepository _repository;
@@ -21,8 +23,9 @@ public sealed class GameplayXpModule : IDisposable
 
     public GameplayXpModule(GameplayXpPolicy policy, ProgressionDefinitionSnapshot definitions,
         IPlayerRegistry players, IGameplayXpRepository repository, IProgressionGrantRepository grants,
-        IAnoCommandRegistry commands, Action<Exception>? reportError = null, IAnoEventBus? events = null)
+        IAnoCommandRegistry commands, Action<Exception>? reportError = null, IAnoEventBus? events = null, Func<DateTimeOffset>? clock = null)
     {
+        _clock = clock ?? (() => DateTimeOffset.UtcNow);
         _policy = policy ?? throw new ArgumentNullException(nameof(policy));
         _definitions = definitions ?? throw new ArgumentNullException(nameof(definitions));
         _players = players ?? throw new ArgumentNullException(nameof(players));
@@ -72,7 +75,13 @@ public sealed class GameplayXpModule : IDisposable
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken, _lifetime.Token);
         var state = await _grants.ReadLifetimeAsync(player.Id, linked.Token).ConfigureAwait(false);
         if (!Current(player)) return CommandResult.Fail(CommandFailureReason.Forbidden);
-        return CommandResult.Ok($"Level {state.Level.Level} | Lifetime XP: {state.LifetimeXp}. Independent from rank points.");
+        var at = _clock().ToUniversalTime();
+        var boost = _policy.ResolveGameplayBoost(_definitions, at);
+        var next = _definitions.Levels.FirstOrDefault(item => item.MinimumXp > state.LifetimeXp);
+        var progress = next is null ? "Highest configured level reached" : string.Create(CultureInfo.InvariantCulture,
+            $"{next.MinimumXp - state.LifetimeXp} XP to level {next.Level}");
+        return CommandResult.Ok(string.Create(CultureInfo.InvariantCulture,
+            $"Level {state.Level.Level} | Lifetime XP: {state.LifetimeXp} | {progress} | Gameplay XP boost: {boost.Multiplier:0.####}x ({boost.BoostId ?? "none"}) at {at:yyyy-MM-dd HH:mm} UTC. Independent from rank points."));
     }
 
     private bool Current(PlayerSnapshot player)
