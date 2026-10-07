@@ -1,3 +1,4 @@
+using AnoCore.Abstractions.Events;
 using AnoCore.Abstractions.Players;
 
 namespace AnoCore.Modules.Admin;
@@ -26,15 +27,24 @@ public sealed class NativeChatRouter
     private readonly Func<PlayerId, ChatInterceptionDecision> _moderation;
     private readonly IPlayerRegistry _players;
     private readonly ChatSnapshotFormatter? _formatter;
+    private readonly IAnoEventBus? _events;
+    private readonly Func<DateTimeOffset> _clock;
+    private readonly Action<Exception>? _reportError;
 
     public NativeChatRouter(
         Func<PlayerId, ChatInterceptionDecision> moderation,
         IPlayerRegistry players,
-        ChatSnapshotFormatter? formatter)
+        ChatSnapshotFormatter? formatter,
+        IAnoEventBus? events = null,
+        Func<DateTimeOffset>? clock = null,
+        Action<Exception>? reportError = null)
     {
         _moderation = moderation ?? throw new ArgumentNullException(nameof(moderation));
         _players = players ?? throw new ArgumentNullException(nameof(players));
         _formatter = formatter;
+        _events = events;
+        _clock = clock ?? (() => DateTimeOffset.UtcNow);
+        _reportError = reportError;
     }
 
     public NativeChatRoute Route(
@@ -55,7 +65,11 @@ public sealed class NativeChatRouter
             return NativeChatRoute.Suppress;
 
         if (_formatter is null)
+        {
+            if (_players.TryGet(senderId, out var nativeSender) && nativeSender is { IsConnected: true })
+                Notify(nativeSender, message!, isTeamMessage);
             return NativeChatRoute.PassThrough;
+        }
 
         if (!_players.TryGet(senderId, out var sender)
             || sender is null
@@ -78,6 +92,28 @@ public sealed class NativeChatRouter
             .Distinct()
             .ToArray();
 
-        return new NativeChatRoute(true, formatted, recipients);
+        var route = new NativeChatRoute(true, formatted, recipients);
+        Notify(sender, message!, isTeamMessage);
+        return route;
+    }
+
+    private void Notify(PlayerSnapshot sender, string message, bool isTeamMessage)
+    {
+        if (_events is null) return;
+        _ = PublishAsync(sender, message.Length <= 1024 ? message : message[..1024], isTeamMessage);
+    }
+
+    private async Task PublishAsync(PlayerSnapshot sender, string message, bool isTeamMessage)
+    {
+        try
+        {
+            await _events!.PublishAsync(new PlayerChatAcceptedEvent(sender, message, isTeamMessage,
+                _clock().ToUniversalTime())).ConfigureAwait(false);
+        }
+        catch (Exception exception)
+        {
+            try { _reportError?.Invoke(exception); }
+            catch { }
+        }
     }
 }

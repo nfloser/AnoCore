@@ -18,5 +18,5 @@ public static class AnoCoreApi
     /// <summary>
     /// Newest module API level exposed by this runtime generation.
     /// </summary>
-    public const int CurrentLevel = BaselineLevel;
+    public const int CurrentLevel = 2;
 }
