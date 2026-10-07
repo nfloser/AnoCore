@@ -66,6 +66,8 @@ public sealed class AnoCorePlugin : BasePlugin
     private AnoVetoModuleRuntime? _anoVeto;
     private PlaytimeModule? _playtime;
     private RankModule? _rank;
+    private LiveRankScoringService? _liveRankScoring;
+    private long _rankRoundGeneration;
     private GameplayStatsModule? _gameplayStats;
     private AchievementModule? _achievements;
     private ChallengeModule? _challenges;
@@ -188,6 +190,8 @@ public sealed class AnoCorePlugin : BasePlugin
             _chatFormatSnapshots = null;
             _chatTags?.Dispose();
             _chatTags = null;
+            _liveRankScoring?.Dispose();
+            _liveRankScoring = null;
             _rank?.Dispose();
             _rank = null;
             _gameplayStats?.Dispose();
@@ -843,6 +847,7 @@ public sealed class AnoCorePlugin : BasePlugin
             RankAdjustmentNotificationService? rankAdminNotifications = null;
             StatisticsResetCommandController? statisticsResetCommands = null;
             RankTransitionMonitor? transitionMonitor = null;
+            LiveRankScoringService? liveRankScoring = null;
             CombatModule? combat = null;
             KickCommandController? kickCommands = null;
             ConnectBanEnforcement? connectBan = null;
@@ -974,7 +979,7 @@ public sealed class AnoCorePlugin : BasePlugin
                         runtime.AdminAudit,
                         new CounterStrikeProtectedServerControlTransport(runtime.Players)));
 
-                transitionMonitor = rank is null
+                transitionMonitor = rank is null || rank.Configuration.Source == RankScoreSource.EventLedger
                     ? null
                     : new RankTransitionMonitor(
                         rank.Configuration,
@@ -985,7 +990,8 @@ public sealed class AnoCorePlugin : BasePlugin
                             exception => Logger.LogError(
                                 exception, "Rank notification preference read failed.")),
                         rankScoreChanges);
-                if (rank is not null && gameplayStats is not null)
+                if (rank is not null && gameplayStats is not null
+                    && rank.Configuration.Source == RankScoreSource.DerivedStatistics)
                     gameplayStats.EnableRankTracking(
                         rank.Configuration,
                         runtime.Combat,
@@ -996,6 +1002,14 @@ public sealed class AnoCorePlugin : BasePlugin
                                 exception, "Rank notification preference read failed.")),
                         rankScoreChanges,
                         exception => Logger.LogError(exception, "Gameplay rank presentation failed."));
+                if (rank is not null && rank.Configuration.Source == RankScoreSource.EventLedger)
+                    liveRankScoring = new LiveRankScoringService(rank.Configuration,
+                        runtime.RankPointEvents, runtime.Combat, runtime.Players, runtime.Authorization,
+                        new RankNotificationPreferenceSink(runtime.Settings,
+                            new CounterStrikeRankTransitionNotifier(runtime.Players),
+                            exception => Logger.LogError(exception, "Live rank notification preference failed.")),
+                        rankScoreChanges,
+                        exception => Logger.LogError(exception, "Live rank presentation failed."));
                 combat = new CombatModule(
                     runtime.Commands, runtime.Players, runtime.Combat, transitionMonitor);
                 transitionMonitor = null;
@@ -1190,6 +1204,8 @@ public sealed class AnoCorePlugin : BasePlugin
                 _anoVeto = anoVeto;
                 _playtime = playtime;
                 _rank = rank;
+                _liveRankScoring = liveRankScoring;
+                liveRankScoring = null;
                 _gameplayStats = gameplayStats;
                 _achievements = achievements;
                 _challenges = challenges;
@@ -1240,6 +1256,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 gameplayXpTimer?.Kill();
                 seasonTimer?.Kill();
                 playtime?.Dispose();
+                liveRankScoring?.Dispose();
                 rank?.Dispose();
                 gameplayStats?.Dispose();
                 achievements?.Dispose();
@@ -1599,6 +1616,7 @@ public sealed class AnoCorePlugin : BasePlugin
 
     private HookResult OnPlayerDeath(EventPlayerDeath @event, GameEventInfo _)
     {
+        RecordLiveRankDeath(@event);
         RecordCombatDeath(@event);
         ReleaseExtendedStateForController(@event.Userid, "extended_admin_player_death");
         RefreshNextFrame(@event.Userid, "player_death");
@@ -1675,6 +1693,7 @@ public sealed class AnoCorePlugin : BasePlugin
 
     private HookResult OnRoundStart(EventRoundStart @event, GameEventInfo _)
     {
+        Interlocked.Increment(ref _rankRoundGeneration);
         _roundFirstBloodRecorded = false;
         return HookResult.Continue;
     }
@@ -1717,6 +1736,7 @@ public sealed class AnoCorePlugin : BasePlugin
 
     private HookResult OnRoundEnd(EventRoundEnd @event, GameEventInfo _)
     {
+        RecordLiveRankRound(@event.Winner);
         var gameplay = _gameplayStats;
         var players = _players;
         if (gameplay is null || players is null || !GameplayStatsAllowed())
@@ -1749,6 +1769,7 @@ public sealed class AnoCorePlugin : BasePlugin
 
     private HookResult OnMatchEnd(EventCsWinPanelMatch @event, GameEventInfo _)
     {
+        RecordLiveRankMatch();
         var gameplay = _gameplayStats;
         if (gameplay is null || !GameplayStatsAllowed())
             return HookResult.Continue;
@@ -1805,6 +1826,7 @@ public sealed class AnoCorePlugin : BasePlugin
         GameplayStatKind kind,
         string signature)
     {
+        RecordLiveRankGameplay(controller, kind, signature);
         var gameplay = _gameplayStats;
         if (gameplay is null || !GameplayStatsAllowed()) return;
 
@@ -1822,6 +1844,134 @@ public sealed class AnoCorePlugin : BasePlugin
         {
             Logger.LogError(exception, "Could not record gameplay statistic {Statistic}.", kind);
         }
+    }
+
+    private RankLiveContext LiveRankContext(Guid eventId, DateTimeOffset at)
+    {
+        var warmup = true;
+        try
+        {
+            warmup = Utilities.FindAllEntitiesByDesignerName<CCSGameRulesProxy>("cs_gamerules")
+                .FirstOrDefault()?.GameRules?.WarmupPeriod ?? true;
+        }
+        catch (Exception exception) { Logger.LogDebug(exception, "Could not inspect warmup state for ranks."); }
+        var humans = _players?.OnlinePlayers.Count(player => player.IsConnected
+            && player.Team is PlayerTeam.Terrorist or PlayerTeam.CounterTerrorist) ?? 0;
+        return new(eventId, at, warmup, humans,
+            FormattableString.Invariant($"{Server.MapName}|{CombatMapEpoch()}|{Interlocked.Read(ref _rankRoundGeneration)}"));
+    }
+
+    private RankParticipant? LiveRankParticipant(CCSPlayerController? controller)
+    {
+        if (controller is not { IsValid: true, IsHLTV: false }) return null;
+        if (!controller.IsBot)
+        {
+            var player = CombatPlayer(controller);
+            return player is null ? null : new(player, player.Team, false);
+        }
+        var team = controller.TeamNum switch
+        {
+            2 => PlayerTeam.Terrorist,
+            3 => PlayerTeam.CounterTerrorist,
+            _ => PlayerTeam.Unknown,
+        };
+        return new(null, team, true);
+    }
+
+    private void RecordLiveRankDeath(EventPlayerDeath value)
+    {
+        var scoring = _liveRankScoring;
+        if (scoring is null) return;
+        try
+        {
+            var victim = LiveRankParticipant(value.Userid);
+            var attacker = LiveRankParticipant(value.Attacker);
+            if (victim is null || value.Attacker is not null && attacker is null) return;
+            var identityPlayer = victim.Player?.Id ?? attacker?.Player?.Id;
+            if (identityPlayer is null) return;
+            var eventId = CombatEventIdentity.CreateDetail(_combatServerInstance, Server.MapName,
+                CombatMapEpoch(), Server.TickCount, "rank_death", identityPlayer,
+                attacker?.Player?.Id, FormattableString.Invariant($"victim:{value.Userid?.Slot ?? -1}"));
+            var specials = new List<GameplayStatKind>();
+            if (value.Headshot) specials.Add(GameplayStatKind.HeadshotKill);
+            if (value.Noscope) specials.Add(GameplayStatKind.NoScopeKill);
+            if (value.Penetrated > 0) specials.Add(GameplayStatKind.PenetratedKill);
+            if (value.Thrusmoke) specials.Add(GameplayStatKind.ThroughSmokeKill);
+            if (value.Attackerblind) specials.Add(GameplayStatKind.FlashedKill);
+            if (value.Dominated > 0) specials.Add(GameplayStatKind.DominatedKill);
+            if (value.Revenge > 0) specials.Add(GameplayStatKind.RevengeKill);
+            var at = DateTimeOffset.UtcNow;
+            var distance = float.IsFinite(value.Distance) ? Math.Clamp((decimal)value.Distance, 0m, 10000m) : 0m;
+            var input = new RankDeathInput(LiveRankContext(eventId, at), victim, attacker,
+                CombatPlayer(value.Assister), CombatDetailKey(value.Weapon, "world", 64),
+                specials.AsReadOnly(), value.Assistedflash, distance);
+            Observe(scoring.RecordDeathAsync(input).AsTask(), "rank_death");
+        }
+        catch (Exception exception) { Logger.LogError(exception, "Could not record live rank death."); }
+    }
+
+    private void RecordLiveRankGameplay(CCSPlayerController? controller, GameplayStatKind kind, string signature)
+    {
+        var scoring = _liveRankScoring;
+        if (scoring is null || LiveRankPolicy.IsKillSpecial(kind) || kind == GameplayStatKind.FlashAssist) return;
+        try
+        {
+            var player = CombatPlayer(controller);
+            if (player is null) return;
+            var at = DateTimeOffset.UtcNow;
+            var statistic = GameplayStatEventFactory.Player(_combatServerInstance,
+                CombatDetailKey(Server.MapName, "unknown_map", 128), CombatMapEpoch(), Server.TickCount,
+                at, player.Id, kind, signature);
+            Observe(scoring.RecordGameplayAsync(statistic, LiveRankContext(statistic.EventId, at), player).AsTask(), "rank_gameplay");
+        }
+        catch (Exception exception) { Logger.LogError(exception, "Could not record live rank gameplay event."); }
+    }
+
+    private void RecordLiveRankRound(int winningTeam)
+    {
+        var scoring = _liveRankScoring;
+        var players = _players;
+        if (scoring is null || players is null) return;
+        try
+        {
+            var winner = winningTeam == 2 ? PlayerTeam.Terrorist
+                : winningTeam == 3 ? PlayerTeam.CounterTerrorist : PlayerTeam.Unknown;
+            var snapshots = players.OnlinePlayers.ToArray();
+            var at = DateTimeOffset.UtcNow;
+            foreach (var statistic in GameplayStatEventFactory.Round(_combatServerInstance,
+                CombatDetailKey(Server.MapName, "unknown_map", 128), CombatMapEpoch(), Server.TickCount, at, snapshots, winner))
+            {
+                var player = snapshots.First(value => value.Id == statistic.PlayerId);
+                Observe(scoring.RecordGameplayAsync(statistic, LiveRankContext(statistic.EventId, at), player).AsTask(), "rank_round");
+            }
+        }
+        catch (Exception exception) { Logger.LogError(exception, "Could not record live rank round."); }
+    }
+
+    private void RecordLiveRankMatch()
+    {
+        var scoring = _liveRankScoring;
+        if (scoring is null) return;
+        try
+        {
+            var snapshots = Utilities.GetPlayers().Select(controller => (Controller: controller, Player: CombatPlayer(controller)))
+                .Where(value => value.Player is not null).ToArray();
+            var participants = snapshots.Select(value => new GameplayMatchParticipant(value.Player!.Id,
+                value.Player.Team, value.Controller.Score)).ToArray();
+            var teams = Utilities.FindAllEntitiesByDesignerName<CCSTeam>("cs_team_manager").ToArray();
+            var ct = teams.FirstOrDefault(team => team.Teamname == "CT")?.Score ?? 0;
+            var t = teams.FirstOrDefault(team => team.Teamname == "TERRORIST")?.Score ?? 0;
+            var winner = ct > t ? PlayerTeam.CounterTerrorist : t > ct ? PlayerTeam.Terrorist : PlayerTeam.Unknown;
+            var at = DateTimeOffset.UtcNow;
+            foreach (var statistic in GameplayStatEventFactory.Match(_combatServerInstance,
+                CombatDetailKey(Server.MapName, "unknown_map", 128), CombatMapEpoch(), Server.TickCount,
+                at, participants, scoring.Policy.FreeForAll, winner))
+            {
+                var player = snapshots.First(value => value.Player!.Id == statistic.PlayerId).Player!;
+                Observe(scoring.RecordGameplayAsync(statistic, LiveRankContext(statistic.EventId, at), player).AsTask(), "rank_match");
+            }
+        }
+        catch (Exception exception) { Logger.LogError(exception, "Could not record live rank match."); }
     }
 
     private bool GameplayStatsAllowed()
