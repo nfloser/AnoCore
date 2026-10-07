@@ -16,21 +16,35 @@ public sealed class CounterStrikeMenuPresenter : IDisposable
     private readonly BasePlugin _plugin;
     private readonly IMenuService _menus;
     private readonly ILogger _logger;
+    private readonly PanoramaMenuPresenter? _panorama;
     private readonly Dictionary<PlayerId, RenderedMenu> _renderedMenus = [];
     private bool _disposed;
 
-    public CounterStrikeMenuPresenter(BasePlugin plugin, IMenuService menus, ILogger logger)
+    public CounterStrikeMenuPresenter(BasePlugin plugin, IMenuService menus, ILogger logger, PanoramaMenuPresenter? panorama = null)
     {
         _plugin = plugin ?? throw new ArgumentNullException(nameof(plugin));
         _menus = menus ?? throw new ArgumentNullException(nameof(menus));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _plugin.RegisterListener<Listeners.OnTick>(OnTick);
+        _panorama = panorama;
+        try
+        {
+            _plugin.RegisterListener<Listeners.OnMapEnd>(OnMapEnd);
+            _plugin.RegisterListener<Listeners.OnTick>(OnTick);
+        }
+        catch
+        {
+            _plugin.RemoveListener<Listeners.OnMapEnd>(OnMapEnd);
+            _panorama?.Dispose();
+            throw;
+        }
     }
 
     public bool Open(CCSPlayerController? player)
     {
         if (_disposed || !TryGetPlayerId(player, out var playerId) || player is null)
             return false;
+
+        if (_panorama is not null) return _panorama.Open(playerId);
 
         if (!_menus.TryGetOpenMenu(playerId, out var definition) || definition is null)
             return false;
@@ -71,6 +85,7 @@ public sealed class CounterStrikeMenuPresenter : IDisposable
 
     public void Reconcile()
     {
+        _panorama?.Reconcile();
         if (_disposed)
             return;
 
@@ -98,6 +113,8 @@ public sealed class CounterStrikeMenuPresenter : IDisposable
 
         _disposed = true;
         _plugin.RemoveListener<Listeners.OnTick>(OnTick);
+        _plugin.RemoveListener<Listeners.OnMapEnd>(OnMapEnd);
+        _panorama?.Dispose();
 
         KeyValuePair<PlayerId, RenderedMenu>[] rendered;
         lock (_gate)
@@ -116,8 +133,15 @@ public sealed class CounterStrikeMenuPresenter : IDisposable
         }
     }
 
+    private void OnMapEnd() => _panorama?.CloseAll();
+
     private void OnTick()
     {
+        if (_panorama is not null)
+        {
+            _panorama.Reconcile();
+            return;
+        }
         if (_disposed)
             return;
 

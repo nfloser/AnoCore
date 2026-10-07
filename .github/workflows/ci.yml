@@ -105,6 +105,12 @@ jobs:
               if not path.is_file() or path.stat().st_size == 0:
                   raise SystemExit(f"missing Panorama source asset: {path}")
 
+          for hud_layout in (layout, pathlib.Path("ui/AnoCore/layout/custom_game/anocore/menu.xml")):
+              document = ET.parse(hud_layout).getroot()
+              panels = [element for element in document if element.tag == "Panel"]
+              if len(panels) != 1 or "id" in panels[0].attrib:
+                  raise SystemExit(f"Panorama requires one anonymous outermost Panel: {hud_layout}")
+
           root = ET.parse(layout).getroot()
           ids = {element.attrib["id"] for element in root.iter() if "id" in element.attrib}
           required = {"ano_veto_root", "ano_veto_close", "ano_veto_title", "ano_veto_status"}
@@ -122,6 +128,19 @@ jobs:
           build_text = build.read_text(encoding="utf-8")
           if "InstallLocalClient" not in build_text:
               raise SystemExit("AnoCore HUD build script must retain the local-client smoke-test installation option")
+          menu = pathlib.Path("ui/AnoCore/layout/custom_game/anocore/menu.xml")
+          menu_style = pathlib.Path("ui/AnoCore/styles/custom_game/anocore/menu.css")
+          menu_root = ET.parse(menu).getroot()
+          menu_ids = [element.attrib["id"] for element in menu_root.iter() if "id" in element.attrib]
+          if len(menu_ids) != len(set(menu_ids)):
+              raise SystemExit("Duplicate menu panel IDs")
+          menu_required = {"ano_menu_root", "ano_menu_title", "ano_menu_status", "ano_menu_page", "ano_menu_home", "ano_menu_close", "ano_menu_previous", "ano_menu_next"}
+          menu_required.update({f"ano_menu_row_{index}" for index in range(6)})
+          menu_required.update({f"ano_menu_row_{index}_text" for index in range(6)})
+          if menu_required - set(menu_ids):
+              raise SystemExit("Shared Panorama menu is missing server-facing panels")
+          if "menu.vcss_c" not in menu.read_text() or ".ano-menu-overlay.shown" not in menu_style.read_text():
+              raise SystemExit("Shared Panorama menu lacks styles/visibility contract")
           PY
 
       - name: Publish development plugin

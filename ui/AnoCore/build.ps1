@@ -42,38 +42,30 @@ $layoutDir = Join-Path $contentRoot "panorama\layout\custom_game\anocore"
 $styleDir = Join-Path $contentRoot "panorama\styles\custom_game\anocore"
 New-Item -ItemType Directory -Force -Path $layoutDir, $styleDir | Out-Null
 
-$layoutSource = Join-Path $src "layout\custom_game\anocore\ano_veto.xml"
-$styleSource = Join-Path $src "styles\custom_game\anocore\ano_veto.css"
-$layoutTarget = Join-Path $layoutDir "ano_veto.xml"
-$styleTarget = Join-Path $styleDir "ano_veto.css"
+foreach ($name in @("ano_veto", "menu")) {
+    $layoutTarget = Join-Path $layoutDir "$name.xml"
+    $styleTarget = Join-Path $styleDir "$name.css"
+    Copy-Item (Join-Path $src "layout\custom_game\anocore\$name.xml") $layoutTarget -Force
+    Copy-Item (Join-Path $src "styles\custom_game\anocore\$name.css") $styleTarget -Force
 
-Copy-Item $layoutSource $layoutTarget -Force
-Copy-Item $styleSource $styleTarget -Force
+    & $compiler -i $styleTarget -r
+    if ($LASTEXITCODE -ne 0) { throw "Failed to compile $name.css" }
+    & $compiler -i $layoutTarget -r
+    if ($LASTEXITCODE -ne 0) { throw "Failed to compile $name.xml" }
 
-& $compiler -i $styleTarget -r
-if ($LASTEXITCODE -ne 0) { throw "Failed to compile ano_veto.css" }
-
-& $compiler -i $layoutTarget -r
-if ($LASTEXITCODE -ne 0) { throw "Failed to compile ano_veto.xml" }
-
-$gameRoot = Join-Path $Cs2 "game\csgo_addons\$Addon\panorama"
-$outLayout = Join-Path $gameRoot "layout\custom_game\anocore\ano_veto.vxml_c"
-$outStyle = Join-Path $gameRoot "styles\custom_game\anocore\ano_veto.vcss_c"
-
-foreach ($required in @($outLayout, $outStyle)) {
-    if (-not (Test-Path $required)) {
-        throw "Expected compiled resource missing: $required"
+    $gameRoot = Join-Path $Cs2 "game\csgo_addons\$Addon\panorama"
+    $outLayout = Join-Path $gameRoot "layout\custom_game\anocore\$name.vxml_c"
+    $outStyle = Join-Path $gameRoot "styles\custom_game\anocore\$name.vcss_c"
+    foreach ($required in @($outLayout, $outStyle)) {
+        if (-not (Test-Path $required)) { throw "Expected compiled resource missing: $required" }
     }
-}
-
-if ($InstallLocalClient) {
-    $clientLayoutDir = Join-Path $Cs2 "game\csgo\panorama\layout\custom_game\anocore"
-    $clientStyleDir = Join-Path $Cs2 "game\csgo\panorama\styles\custom_game\anocore"
-    New-Item -ItemType Directory -Force -Path $clientLayoutDir, $clientStyleDir | Out-Null
-    Copy-Item $outLayout (Join-Path $clientLayoutDir "ano_veto.vxml_c") -Force
-    Copy-Item $outStyle (Join-Path $clientStyleDir "ano_veto.vcss_c") -Force
-    Write-Output "Installed compiled AnoVeto resources into the local CS2 client panorama tree."
-    Write-Output "Restart CS2 before testing because Panorama caches resources for the session."
+    if ($InstallLocalClient) {
+        $clientLayoutDir = Join-Path $Cs2 "game\csgo\panorama\layout\custom_game\anocore"
+        $clientStyleDir = Join-Path $Cs2 "game\csgo\panorama\styles\custom_game\anocore"
+        New-Item -ItemType Directory -Force -Path $clientLayoutDir, $clientStyleDir | Out-Null
+        Copy-Item $outLayout (Join-Path $clientLayoutDir "$name.vxml_c") -Force
+        Copy-Item $outStyle (Join-Path $clientStyleDir "$name.vcss_c") -Force
+    }
 }
 
 Write-Output "AnoCore Panorama HUD compiled successfully."

@@ -1,3 +1,33 @@
+# Panorama root-panel compile regression — 2026-10-07
+
+- The real Windows Workshop Tools compiler rejected `ano_veto.xml`: an outermost
+  layout Panel cannot declare an `id`. The shared menu had the same source error.
+- Both layouts now have an anonymous full-screen, non-hit-testing host Panel.
+  Existing named visibility panels remain nested with all server-facing IDs intact.
+- CI rejects named/multiple outermost panels for both resources. The check fails
+  against the old sources and passes after the wrapper fix; XML/ID/style gates pass.
+- No C# or plugin binaries change. The user's extracted ZIP needs both XML files
+  patched/replaced before rerunning the same `build.ps1` command. Valve resource
+  compilation remains a real Workshop Tools gate, not a capability of CI.
+
+# Shared Panorama player menu — 2026-10-07
+
+- #312 / `feature/312-panorama-player-menu` builds on the stock-client fallback in #311.
+- `!anomenu` navigates registered feature menus and read commands; permission checks
+  apply at opening and execution. Administration is an authorized command reference,
+  not a completed mutation-form UI.
+- `PanoramaMenusEnabled` in `config/core.json` is restart-only/default false. Enable
+  after compiling/publishing/mounting the shared addon through automatic distribution.
+- One dependency-free presenter projects existing menu definitions into per-player
+  title, six rows, paging, Home and Close. No new gameplay or persistence semantics.
+- Source XML/CSS, Workshop Tools build script and CI source validation cover both layouts.
+- Review added exact-definition logical-menu closure on disconnect and a Home →
+  feature → Home integration test. Footer button hit testing targets button IDs.
+- Tests cover page isolation, stale logical definitions, pending close/reconnect reads,
+  authorized navigation and cleanup. Build/test/format and CI status recorded in PR.
+- No compiled Valve resource or Workshop ID is supplied. Native addon distribution,
+  rendering/click delivery and two-human acceptance remain required.
+
 # Cold-start player bootstrap — 2026-10-07
 
 - #308 reproduces a native DatHost startup failure on CounterStrikeSharp 1.0.376:

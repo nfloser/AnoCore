@@ -42,3 +42,45 @@ After a successful ballot the HUD closes for that player. Completion, cancellati
 The plugin can create and update the server entity, but the Panorama XML/CSS must be compiled with CS2 Workshop Tools and delivered to clients. Source assets live under `ui/AnoCore`; `ui/AnoCore/build.ps1` compiles the current AnoVeto layout into the `anomeme_ui` addon by default.
 
 CI validates IDs and source structure. A real CS2 client remains the acceptance gate for rendering, click delivery and cursor behavior.
+
+## Shared player menu
+
+`!anomenu` opens a home page over the enabled Statistics, Ranks, Progression,
+Challenges, Achievements, AnoRating, Settings, Chat tags and Tournament status
+commands. The same logical menu definitions drive both presenters. Existing direct
+menu commands therefore continue to work; no second statistics/settings store exists.
+Only registered destinations appear. Protected destinations are filtered at opening,
+and execution goes through the command registry to recheck current permissions.
+Administration currently exposes an authorized **command reference**, not mutation
+forms: targeted moderation and server actions still use their documented commands.
+
+The shared `menu.xml` / `menu.css` displays six clickable rows per page, Home,
+Previous, Next and Close. Each player's page, labels and cursor capture are independent.
+Information rows remain read-only. Dynamic labels use plain text (`html="false"`)
+and are bounded; existing HTML-escaped menu labels are decoded for Panorama.
+Selection uses the exact logical definition and captured player session; pending
+selections cannot reopen a closed/reconnected presentation. Disconnect, map end,
+registration rollback and unload clean up owned state and input capture.
+
+### Enable after automatic addon delivery is configured
+
+1. Build **both** layouts with `ui/AnoCore/build.ps1` on a Windows CS2 Workshop
+   Tools installation. CI only validates source structure; it does not compile Valve resources.
+2. Publish the compiled `anomeme_ui` addon using Workshop Tools. The published
+   item must contain `panorama/layout/custom_game/anocore/menu.vxml_c` and
+   `panorama/styles/custom_game/anocore/menu.vcss_c`, in addition to AnoVeto resources.
+3. Configure the server's addon distribution (for example MultiAddonManager) with
+   the **actual published Workshop ID**. Verify that a clean client automatically
+   downloads and mounts it on join. Do not require manual client file copies.
+4. Add `"PanoramaMenusEnabled": true` to the existing `config/core.json`, preserving
+   the database connection and all other properties, then restart the server.
+5. Test `!anomenu`, all five direct menu commands, paging, changes, Home and Close.
+   Repeat with two humans showing different pages; disconnect/rejoin and change
+   map while a menu is open. Verify that cursor capture is released after each exit.
+
+The flag defaults to false, keeping CenterHTML usable until resources are distributed.
+The server entity API cannot prove that a particular client mounted the XML/CSS;
+there is no reliable automatic missing-resource fallback. If the addon is missing,
+set the flag back to false and restart. No Workshop ID is fabricated or configured
+by this source change. `-InstallLocalClient` remains a developer-only smoke-test
+option, not the deployment path for players.

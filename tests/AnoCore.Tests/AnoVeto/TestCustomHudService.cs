@@ -18,6 +18,12 @@ internal sealed class TestCustomHudService : ICustomHudService
             ? registration.Definition
             : null;
 
+    public string? Text(PlayerId player, CustomHudId hudId, string panel)
+        => _registrations[hudId].Text.GetValueOrDefault((player, panel, "text"));
+
+    public bool Class(PlayerId player, CustomHudId hudId, string panel, string name)
+        => _registrations[hudId].Classes.GetValueOrDefault((player, panel, name));
+
     public IDisposable Register(
         ModuleId owner,
         CustomHudDefinition definition,

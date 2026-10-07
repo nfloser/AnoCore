@@ -42,3 +42,14 @@ Use a disposable/non-production CS2 server with the pinned CounterStrikeSharp AP
 ## Release gate
 
 This checklist is a verification procedure, not a claim that native-server testing has already happened. The first distributable release remains blocked until the end-to-end acceptance issue records a passing real-server run.
+
+## Shared Panorama menu acceptance (#312)
+
+After deploying the compiled shared UI addon with automatic download and setting
+`PanoramaMenusEnabled: true`, use an unmodified client to verify `!anomenu` and all
+direct menu commands. Check six-row paging, plain-text names, per-player settings
+updates, Home/Close, and permission revocation before a click. With two humans show
+Stats and Challenges simultaneously. Close/reconnect/map change during a pending
+read must not reopen old UI or retain cursor capture. Verify fallback by disabling
+the flag and restarting. Workshop publication/mounting and visual click behavior are
+manual native gates; source validation and C# tests do not satisfy them.
