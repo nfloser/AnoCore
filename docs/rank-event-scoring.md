@@ -82,6 +82,8 @@ Death batches combine attacker/victim/valid assister rewards atomically. Support
 special bonuses reuse GameplayPoints for first blood, headshot, no-scope,
 penetration, smoke, blind, domination, revenge and flash assist. First blood is
 owned by the independent rank checkpoint, rather than the statistics policy.
+After reload in an unobserved round, native FirstBlood is suppressed until the
+plugin observes a round start; this avoids minting another bonus mid-round.
 Round, match, grenade, bomb, hostage and MVP hooks use the same independent rank
 eligibility and selected score source. No duplicate statistics counters are created.
 
@@ -127,7 +129,7 @@ round caches protect presentation only; the durable ledger remains the replay ga
 Automated tests cover deduplication, positive/negative/zero changes, settings and
 server flags, reconnect, failure isolation, registration rollback, ordered completion,
 late notices and ledger replay. Real CS2 chat delivery and round timing remain native
-acceptance under #23.
+acceptance under #290.
 
 
 ## Live playtime intervals
@@ -150,7 +152,7 @@ one pending award and bounded time backlog prevent outage catch-up storms. A pen
 interval already earned can commit after a same-session team/eligibility change.
 Replay detection precedes award calculation. Notices use the existing committed
 presentation path. No combat, playtime totals or progression XP are mutated. Native
-sampling and round-boundary timing require #23 acceptance.
+sampling and round-boundary timing require #290 acceptance.
 
 
 ## Optional native scoreboard presentation
@@ -167,7 +169,7 @@ shows points (rank type 11); Competitive and Wingman map the one-based configure
 threshold ordinal to at most 18 badges (types 12 and 7); DangerZone clamps at 15
 (type 10). Overrides set competitive wins to 10 for badge visibility. These mappings
 follow the referenced K4-Zenith adapter and pinned CSS native schema; real client
-rendering remains #23 acceptance. Custom threshold names are not native badge names.
+rendering remains #290 acceptance. Custom threshold names are not native badge names.
 
 Score sync deliberately reapplies after native engine score changes. It remembers
 the latest observed external score for cleanup. Badge ownership relinquishes for
@@ -176,3 +178,31 @@ restore only if they still equal AnoCore's last written values; later external c
 are preserved. Queued updates stop after disposal; reconnect never inherits ownership.
 Do not enable multiple score-sync writers on the same server. Native halftime/map
 reset interactions and cleanup require acceptance before production enablement.
+
+
+## Objective and special-kill coverage
+
+Optional GameplayPoints keys also include BombDropped, BombPickedUp, HostageHurt,
+BombExploded, BombDefusedOthers and HostagesRescuedAll. New weights default zero.
+Explosion rewards target connected T humans; all-hostage rescue rewards target CT
+humans. DefusedOthers targets connected CT humans excluding the captured defuser.
+Each team objective is one atomic ledger batch. Identity uses server/map epoch/tick,
+kind/team/defuser, independently of the recipient list; replay cannot award a newly
+joined recipient. FFA suppresses these team objectives. Native handlers retain the
+independent warmup/min-player gate and do not add statistics counters.
+
+GameplayPoints also accepts GrenadeKill, InfernoKill, ImpactKill, KnifeKill and
+TaserKill family bonuses. Precedence is HE grenade, inferno, other grenade/molotov/
+flashbang/bumpmine impacts, knife/bayonet, then exact taser. A family bonus stacks
+with an exact WeaponPoints token. PenetratedKill scales with the bounded native
+penetration count (0–32); combined scaled awards clamp to the ledger contract
+limit of ±1,000,000 points per participant; the existing public death input defaults to one count.
+TeamKillAssistPenalty and TeamKillFlashAssistPenalty in LivePolicy default zero
+and are each bounded 0–1000. A distinct same-team teamkill assister receives the
+combined negative penalty; ordinary assist/flash rewards and VIP do not apply.
+FFA retains the ordinary assist path. Score events remain separate from XP.
+
+Native acceptance: exercise every added objective, defuser exclusion, bots, FFA,
+multiple same-tick hostage/weapon events, team membership changes, penalties,
+penetration counts, reconnect/reload and failed database writes before enabling
+these optional awards on a production server. #290 tracks this unperformed pass.

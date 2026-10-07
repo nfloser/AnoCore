@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using AnoCore.Abstractions.Players;
+using AnoCore.Abstractions.Stats;
 
 namespace AnoCore.Modules.Stats;
 
@@ -32,6 +33,17 @@ public static class CombatEventIdentity
 
         return Hash(FormattableString.Invariant(
             $"{serverInstance}|{mapName}|{mapEpoch}|{tick}|{eventType}|{primaryId.SteamId64}|{secondaryId?.SteamId64 ?? 0UL}|{signature}"));
+    }
+
+    public static Guid CreateTeam(string serverInstance, string mapName, long mapEpoch,
+        int tick, GameplayStatKind kind, PlayerTeam team, PlayerId? excluded = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(serverInstance);
+        ArgumentException.ThrowIfNullOrWhiteSpace(mapName);
+        if (!LiveRankPolicy.IsTeamObjective(kind) || team is not (PlayerTeam.Terrorist or PlayerTeam.CounterTerrorist))
+            throw new ArgumentException("A team rank identity requires a known objective and active team.");
+        return Hash(FormattableString.Invariant(
+            $"{serverInstance}|{mapName}|{mapEpoch}|{tick}|rank_team_{(byte)kind}|{(byte)team}|{excluded?.SteamId64 ?? 0UL}"));
     }
 
     private static Guid Hash(string input)

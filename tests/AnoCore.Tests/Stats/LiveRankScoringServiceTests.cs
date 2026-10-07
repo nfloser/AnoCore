@@ -148,6 +148,48 @@ public sealed class LiveRankScoringServiceTests
         Assert.HasCount(1, setup.Sinks.Changes);
     }
 
+    [TestMethod]
+    public async Task TeamObjectives_CommitOneBatchRetryAtomicallyAndReplayBeforeMembershipChanges()
+    {
+        var setup = await Setup();
+        var otherId = new PlayerId(76561198000288103);
+        await setup.Players.ConnectAsync(new PlayerConnection(otherId, "Other", PlayerTeam.Terrorist, true, Now));
+        setup.Players.TryGet(Attacker, out var player);
+        setup.Players.TryGet(otherId, out var other);
+        using var service = Service(setup, vip: 2);
+        var context = new RankLiveContext(Guid.NewGuid(), Now, false, 4, "round-1");
+        setup.Events.Fail = true;
+        await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () =>
+            await service.RecordTeamObjectiveAsync(GameplayStatKind.BombExploded, context, [player!, other!]));
+        Assert.IsEmpty(setup.Events.Batches);
+        setup.Events.Fail = false;
+        await service.RecordTeamObjectiveAsync(GameplayStatKind.BombExploded, context, [other!, player!]);
+        Assert.HasCount(1, setup.Events.Batches);
+        Assert.HasCount(2, setup.Events.Batches.Values.Single().Awards);
+        Assert.AreEqual(10L, setup.Events.Points(Attacker));
+        Assert.AreEqual(10L, setup.Events.Points(otherId));
+        await service.RecordTeamObjectiveAsync(GameplayStatKind.BombExploded, context, [player!]);
+        Assert.HasCount(1, setup.Events.Batches);
+        Assert.HasCount(2, setup.Sinks.Changes);
+        await Assert.ThrowsExactlyAsync<ArgumentException>(async () =>
+            await service.RecordTeamObjectiveAsync(GameplayStatKind.BombExploded, context, [player!, player!]));
+    }
+
+    [TestMethod]
+    public async Task UnknownRoundAfterReload_DoesNotMintFirstBloodUntilObservedRoundStart()
+    {
+        var setup = await Setup();
+        using var service = Service(setup, firstBlood: 3);
+        var death = Death(setup.Players);
+        await service.RecordDeathAsync(death with { Context = death.Context with { FirstBloodAvailable = false } });
+        var second = Death(setup.Players, Now.AddSeconds(1));
+        await service.RecordDeathAsync(second with { Context = second.Context with { FirstBloodAvailable = false } });
+        Assert.AreEqual(9L, setup.Events.Points(Attacker));
+        var next = Death(setup.Players, Now.AddSeconds(2));
+        await service.RecordDeathAsync(next with { Context = next.Context with { RoundKey = "observed-round" } });
+        Assert.AreEqual(14L, setup.Events.Points(Attacker));
+    }
+
     private sealed class PointSink : IRankPointEventSink, IDisposable
     {
         public List<RankPointChange> Changes { get; } = [];
@@ -167,12 +209,12 @@ public sealed class LiveRankScoringServiceTests
         public void Dispose() => Disposed = true;
     }
 
-    private static LiveRankScoringService Service(SetupResult setup, decimal vip = 1, IRankPointEventSink? presentation = null, int playtime = 0) => new(
+    private static LiveRankScoringService Service(SetupResult setup, decimal vip = 1, IRankPointEventSink? presentation = null, int playtime = 0, int firstBlood = 0) => new(
         new RankConfiguration
         {
             Source = RankScoreSource.EventLedger,
             Thresholds = [new("Recruit", 0), new("Promoted", 1)],
-            GameplayPoints = new() { [GameplayStatKind.BombPlanted] = 5, [GameplayStatKind.PlaytimeInterval] = 3 },
+            GameplayPoints = new() { [GameplayStatKind.BombPlanted] = 5, [GameplayStatKind.PlaytimeInterval] = 3, [GameplayStatKind.BombExploded] = 5, [GameplayStatKind.FirstBlood] = firstBlood },
             LivePolicy = new() { StreakPoints = new() { [2] = 5 }, VipMultiplier = vip, PlaytimeIntervalSeconds = playtime },
         }, setup.Events, new Scores(setup.Events), setup.Players, setup.Permissions, setup.Sinks, setup.Sinks, setup.Errors.Add, presentation);
 

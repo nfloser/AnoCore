@@ -119,4 +119,85 @@ public sealed class LiveRankPolicyTests
         Assert.AreEqual(0L, policy.Gameplay(GameplayStatKind.RoundWon, false));
         Assert.AreEqual(0L, policy.Gameplay(GameplayStatKind.Mvp, false));
     }
+    [TestMethod]
+    public void AdditionalObjectivesAndWeaponFamilies_RespectSignedVipAndFfaPolicy()
+    {
+        var config = new RankConfiguration
+        {
+            GameplayPoints = new()
+            {
+                [GameplayStatKind.KnifeKill] = 3,
+                [GameplayStatKind.PenetratedKill] = 2,
+                [GameplayStatKind.HostageHurt] = -5,
+                [GameplayStatKind.BombExploded] = 5,
+                [GameplayStatKind.HostagesRescuedAll] = 6,
+            },
+            LivePolicy = new() { VipMultiplier = 2, TeamKillAssistPenalty = 3, TeamKillFlashAssistPenalty = 2 },
+        };
+        var policy = new LiveRankPolicy(config);
+        var death = Death() with { Weapon = "knife_karambit", Specials = [GameplayStatKind.PenetratedKill], Penetrations = 3 };
+        Assert.AreEqual(22L, policy.Death(death, 0, 0, [Attacker.Id], 1).Single(award => award.PlayerId == Attacker.Id).Points);
+        Assert.AreEqual(-5L, policy.Gameplay(GameplayStatKind.HostageHurt, true));
+        Assert.AreEqual(10L, policy.Gameplay(GameplayStatKind.BombExploded, true));
+        config.LivePolicy.FreeForAll = true;
+        Assert.AreEqual(0L, new LiveRankPolicy(config).Gameplay(GameplayStatKind.BombExploded, true));
+        Assert.AreEqual(0L, new LiveRankPolicy(config).Gameplay(GameplayStatKind.HostagesRescuedAll, true));
+        foreach (var weapon in new[] { "hegrenade", "inferno", "flashbang", "bayonet", "taser" })
+            Assert.IsNotNull(LiveRankPolicy.WeaponFamily(weapon));
+        Assert.IsNull(LiveRankPolicy.WeaponFamily("ak47"));
+        Assert.ThrowsExactly<ArgumentException>(() => policy.Death(death with { Penetrations = 33 }, 0, 0, [], 1));
+    }
+
+    [TestMethod]
+    public void TeamkillAssists_PenalizeValidSameTeamAssisterWithoutVipOrNormalAssistBonus()
+    {
+        var victim = Player(76561198000280104, PlayerTeam.Terrorist);
+        var input = Death() with { Victim = new(victim, victim.Team, false) };
+        var policy = new LiveRankPolicy(new RankConfiguration
+        {
+            LivePolicy = new() { VipMultiplier = 10, TeamKillAssistPenalty = 3, TeamKillFlashAssistPenalty = 2 },
+        });
+        Assert.AreEqual(-5L, policy.Death(input, 0, 0, [Assister.Id], 1).Single(award => award.PlayerId == Assister.Id).Points);
+        Assert.IsFalse(policy.Death(input with { Assister = victim }, 0, 0, [], 1).Any(award => award.PlayerId == Assister.Id));
+    }
+
+    [TestMethod]
+    public void TeamEventIdentity_IsStableAndSeparatesServerMapTickKindTeamAndDefuser()
+    {
+        var id = CombatEventIdentity.CreateTeam("server", "de_test", 1, 100, GameplayStatKind.BombExploded, PlayerTeam.Terrorist);
+        Assert.AreEqual(id, CombatEventIdentity.CreateTeam("server", "de_test", 1, 100, GameplayStatKind.BombExploded, PlayerTeam.Terrorist));
+        Assert.AreNotEqual(id, CombatEventIdentity.CreateTeam("other", "de_test", 1, 100, GameplayStatKind.BombExploded, PlayerTeam.Terrorist));
+        Assert.AreNotEqual(id, CombatEventIdentity.CreateTeam("server", "de_test", 2, 100, GameplayStatKind.BombExploded, PlayerTeam.Terrorist));
+        Assert.AreNotEqual(id, CombatEventIdentity.CreateTeam("server", "de_test", 1, 101, GameplayStatKind.BombExploded, PlayerTeam.Terrorist));
+        Assert.AreNotEqual(id, CombatEventIdentity.CreateTeam("server", "de_test", 1, 100, GameplayStatKind.HostagesRescuedAll, PlayerTeam.Terrorist));
+        Assert.AreNotEqual(id, CombatEventIdentity.CreateTeam("server", "de_test", 1, 100, GameplayStatKind.BombExploded, PlayerTeam.CounterTerrorist));
+        Assert.AreNotEqual(id, CombatEventIdentity.CreateTeam("server", "de_test", 1, 100, GameplayStatKind.BombExploded, PlayerTeam.Terrorist, Attacker.Id));
+        Assert.ThrowsExactly<ArgumentException>(() => CombatEventIdentity.CreateTeam("server", "de_test", 1, 100, GameplayStatKind.Mvp, PlayerTeam.Terrorist));
+    }
+
+    [TestMethod]
+    public void MaximumCombinedBonuses_StayWithinDurableAwardContract()
+    {
+        var policy = new LiveRankPolicy(new RankConfiguration
+        {
+            KillPoints = 1000,
+            GameplayPoints = new() { [GameplayStatKind.PenetratedKill] = 1000, [GameplayStatKind.KnifeKill] = 1000 },
+            LivePolicy = new()
+            {
+                DynamicMultipliers = true,
+                MinimumDynamicMultiplier = 4,
+                MaximumDynamicMultiplier = 4,
+                VipMultiplier = 10,
+                WeaponPoints = new() { ["knife"] = 1000 },
+                DistanceThresholdMeters = 1,
+                DistanceBonus = 1000,
+                StreakPoints = new() { [2] = 1000 },
+            },
+        });
+        var input = Death() with { Weapon = "knife", Specials = [GameplayStatKind.PenetratedKill], Penetrations = 32 };
+        var awards = policy.Death(input, 100, 1, [Attacker.Id], 2);
+        Assert.AreEqual(RankPointEventBatch.MaximumAbsolutePoints, awards.Single(award => award.PlayerId == Attacker.Id).Points);
+        _ = RankPointEventBatch.Create(input.Context.EventId, "combat.death", Now, awards);
+    }
+
 }

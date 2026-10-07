@@ -1463,6 +1463,11 @@ public sealed class AnoCorePlugin : BasePlugin
         RegisterEventHandler<EventPlayerDeath>(OnPlayerDeath);
         RegisterEventHandler<EventRoundStart>(OnRoundStart);
         RegisterEventHandler<EventGrenadeThrown>(OnGrenadeThrown);
+        RegisterEventHandler<EventBombPickup>(OnRankBombPickup);
+        RegisterEventHandler<EventBombDropped>(OnRankBombDropped);
+        RegisterEventHandler<EventBombExploded>(OnRankBombExploded);
+        RegisterEventHandler<EventHostageHurt>(OnRankHostageHurt);
+        RegisterEventHandler<EventHostageRescuedAll>(OnRankHostagesRescuedAll);
         RegisterEventHandler<EventBombPlanted>(OnBombPlanted);
         RegisterEventHandler<EventBombDefused>(OnBombDefused);
         RegisterEventHandler<EventHostageRescued>(OnHostageRescued);
@@ -1491,6 +1496,11 @@ public sealed class AnoCorePlugin : BasePlugin
         DeregisterEventHandler<EventPlayerDeath>(OnPlayerDeath);
         DeregisterEventHandler<EventRoundStart>(OnRoundStart);
         DeregisterEventHandler<EventGrenadeThrown>(OnGrenadeThrown);
+        DeregisterEventHandler<EventBombPickup>(OnRankBombPickup);
+        DeregisterEventHandler<EventBombDropped>(OnRankBombDropped);
+        DeregisterEventHandler<EventBombExploded>(OnRankBombExploded);
+        DeregisterEventHandler<EventHostageHurt>(OnRankHostageHurt);
+        DeregisterEventHandler<EventHostageRescuedAll>(OnRankHostagesRescuedAll);
         DeregisterEventHandler<EventBombPlanted>(OnBombPlanted);
         DeregisterEventHandler<EventBombDefused>(OnBombDefused);
         DeregisterEventHandler<EventHostageRescued>(OnHostageRescued);
@@ -1755,6 +1765,54 @@ public sealed class AnoCorePlugin : BasePlugin
         return HookResult.Continue;
     }
 
+    private HookResult OnRankBombPickup(EventBombPickup value, GameEventInfo _)
+    {
+        RecordLiveRankGameplay(value.Userid, GameplayStatKind.BombPickedUp, "bomb_pickup");
+        return HookResult.Continue;
+    }
+
+    private HookResult OnRankBombDropped(EventBombDropped value, GameEventInfo _)
+    {
+        RecordLiveRankGameplay(value.Userid, GameplayStatKind.BombDropped, "bomb_dropped");
+        return HookResult.Continue;
+    }
+
+    private HookResult OnRankHostageHurt(EventHostageHurt value, GameEventInfo _)
+    {
+        RecordLiveRankGameplay(value.Userid, GameplayStatKind.HostageHurt,
+            FormattableString.Invariant($"hostage:{value.Hostage}"));
+        return HookResult.Continue;
+    }
+
+    private HookResult OnRankBombExploded(EventBombExploded value, GameEventInfo _)
+    {
+        RecordLiveRankTeamObjective(GameplayStatKind.BombExploded, PlayerTeam.Terrorist);
+        return HookResult.Continue;
+    }
+
+    private HookResult OnRankHostagesRescuedAll(EventHostageRescuedAll value, GameEventInfo _)
+    {
+        RecordLiveRankTeamObjective(GameplayStatKind.HostagesRescuedAll, PlayerTeam.CounterTerrorist);
+        return HookResult.Continue;
+    }
+
+    private void RecordLiveRankTeamObjective(GameplayStatKind kind, PlayerTeam team, PlayerId? excluded = null)
+    {
+        var scoring = _liveRankScoring;
+        if (scoring is null) return;
+        try
+        {
+            var players = _players?.OnlinePlayers.Where(player => player.IsConnected && player.Team == team
+                && player.Id != excluded).OrderBy(player => player.Id.SteamId64).ToArray() ?? [];
+            if (players.Length == 0) return;
+            var at = DateTimeOffset.UtcNow;
+            var eventId = CombatEventIdentity.CreateTeam(_combatServerInstance, Server.MapName,
+                CombatMapEpoch(), Server.TickCount, kind, team, excluded);
+            Observe(scoring.RecordTeamObjectiveAsync(kind, LiveRankContext(eventId, at), players).AsTask(), "rank_team_objective");
+        }
+        catch (Exception exception) { Logger.LogError(exception, "Could not record native rank team objective."); }
+    }
+
     private HookResult OnBombPlanted(EventBombPlanted @event, GameEventInfo _)
     {
         RecordGameplayStat(@event.Userid, GameplayStatKind.BombPlanted, "bomb_planted");
@@ -1764,6 +1822,9 @@ public sealed class AnoCorePlugin : BasePlugin
     private HookResult OnBombDefused(EventBombDefused @event, GameEventInfo _)
     {
         RecordGameplayStat(@event.Userid, GameplayStatKind.BombDefused, "bomb_defused");
+        var defuser = @event.Userid;
+        RecordLiveRankTeamObjective(GameplayStatKind.BombDefusedOthers, PlayerTeam.CounterTerrorist,
+            defuser is { IsValid: true, IsBot: false, IsHLTV: false, SteamID: > 0 } ? new PlayerId(defuser.SteamID) : null);
         return HookResult.Continue;
     }
 
@@ -1909,7 +1970,8 @@ public sealed class AnoCorePlugin : BasePlugin
         var humans = _players?.OnlinePlayers.Count(player => player.IsConnected
             && player.Team is PlayerTeam.Terrorist or PlayerTeam.CounterTerrorist) ?? 0;
         return new(eventId, at, warmup, humans,
-            FormattableString.Invariant($"{Server.MapName}|{CombatMapEpoch()}|{Interlocked.Read(ref _rankRoundGeneration)}"));
+            FormattableString.Invariant($"{Server.MapName}|{CombatMapEpoch()}|{Interlocked.Read(ref _rankRoundGeneration)}"))
+        { FirstBloodAvailable = Interlocked.Read(ref _rankRoundGeneration) > 0 };
     }
 
     private RankParticipant? LiveRankParticipant(CCSPlayerController? controller)
@@ -1955,7 +2017,8 @@ public sealed class AnoCorePlugin : BasePlugin
             var distance = float.IsFinite(value.Distance) ? (decimal)Math.Clamp(value.Distance, 0f, 10000f) : 0m;
             var input = new RankDeathInput(LiveRankContext(eventId, at), victim, attacker,
                 CombatPlayer(value.Assister), CombatDetailKey(value.Weapon, "world", 64),
-                specials.AsReadOnly(), value.Assistedflash, distance);
+                specials.AsReadOnly(), value.Assistedflash, distance)
+            { Penetrations = Math.Clamp(value.Penetrated, 0, 32) };
             Observe(scoring.RecordDeathAsync(input).AsTask(), "rank_death");
         }
         catch (Exception exception) { Logger.LogError(exception, "Could not record live rank death."); }
@@ -2079,6 +2142,7 @@ public sealed class AnoCorePlugin : BasePlugin
 
     private void OnMapEnd()
     {
+        Interlocked.Exchange(ref _rankRoundGeneration, 0);
         var state = _extendedPlayerState;
         if (state is not null)
         {

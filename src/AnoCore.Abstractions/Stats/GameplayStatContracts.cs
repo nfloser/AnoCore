@@ -27,6 +27,17 @@ public enum GameplayStatKind : byte
     RevengeKill = 21,
     FlashAssist = 22,
     PlaytimeInterval = 23,
+    BombDropped = 24,
+    BombPickedUp = 25,
+    BombExploded = 26,
+    BombDefusedOthers = 27,
+    HostageHurt = 28,
+    HostagesRescuedAll = 29,
+    GrenadeKill = 30,
+    InfernoKill = 31,
+    ImpactKill = 32,
+    KnifeKill = 33,
+    TaserKill = 34,
 }
 
 public sealed record GameplayStatEvent
