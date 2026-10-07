@@ -29,7 +29,7 @@ public sealed class MySqlChallengeRepositoryTests
         if (string.IsNullOrWhiteSpace(connection)) Assert.Inconclusive("ANOCORE_TEST_MYSQL is not configured.");
         _database = new MySqlDatabase(connection!);
         await DropAsync();
-        await new MigrationRunner(_database, [new GameplayStatSchemaMigration010()]).ApplyPendingAsync();
+        await new MigrationRunner(_database, [new CombatSchemaMigration006(), new CombatDetailSchemaMigration009(), new GameplayStatSchemaMigration010()]).ApplyPendingAsync();
         await ProgressionPersistenceBootstrap.EnsureReadyAsync(_database);
     }
 
@@ -229,6 +229,79 @@ public sealed class MySqlChallengeRepositoryTests
         Assert.IsNull(result.Completion.Grant.BoostId);
     }
 
+    [TestMethod]
+    public async Task CombatKillChallengeUsesRawEligibleWindowedDeathsAndRewardReplay()
+    {
+        var definition = Daily("kills", target: 2) with { CounterSource = ChallengeCounterSource.CombatKills };
+        var catalog = ChallengeCatalogSnapshot.Create([definition]);
+        var combat = new MySqlCombatRepository(_database);
+        var victim = new PlayerId(Player.SteamId64 + 1);
+        foreach (var at in new[] { Start.AddTicks(-10), Start, Start.AddMinutes(30), Start.AddHours(1), Start.AddDays(1) })
+            await combat.RecordAsync(new(Guid.NewGuid(), victim, Player, null, at));
+        await combat.RecordAsync(new(Guid.NewGuid(), victim, Player, null, Start, isTeamKill: true));
+        await combat.RecordAsync(new(Guid.NewGuid(), Player, Player, null, Start));
+        await combat.RecordAsync(new(Guid.NewGuid(), victim, null, null, Start));
+        await combat.RecordAsync(new(Guid.NewGuid(), Player, victim, null, Start));
+        Assert.AreEqual(1L, (await Repository.ReadAsync(Player, catalog, "kills", Start)).Progress);
+        await Sql("""
+            CREATE TABLE IF NOT EXISTS ano_statistics_resets
+                (player_steam_id BIGINT UNSIGNED PRIMARY KEY, reset_at_utc DATETIME(6) NOT NULL,
+                 updated_by_steam_id BIGINT UNSIGNED NULL);
+            DELETE FROM ano_statistics_resets;
+            INSERT INTO ano_statistics_resets (player_steam_id, reset_at_utc)
+            VALUES (76561198000258101, '2026-10-09 01:00:00');
+            """);
+        var result = await Repository.CompleteAsync(Player, catalog, "kills", Start.AddMinutes(30), Xp);
+        Assert.IsTrue(result.Applied);
+        Assert.AreEqual(2L, result.Evaluation.Progress);
+        Assert.IsFalse((await Repository.CompleteAsync(Player, catalog, "kills", Start.AddMinutes(30), Xp)).Applied);
+        Assert.AreEqual(100L, (await new MySqlProgressionGrantRepository(_database).ReadLifetimeAsync(Player)).LifetimeXp);
+    }
+
+    [TestMethod]
+    public async Task AssistChallengeExcludesInvalidSelfTeamAndOutsideWindowAssists()
+    {
+        var definition = Daily("assists", target: 2) with { CounterSource = ChallengeCounterSource.CombatAssists };
+        var catalog = ChallengeCatalogSnapshot.Create([definition]);
+        var combat = new MySqlCombatRepository(_database);
+        var victim = new PlayerId(Player.SteamId64 + 1);
+        var attacker = new PlayerId(Player.SteamId64 + 2);
+        foreach (var at in new[] { Start.AddTicks(-10), Start, Start.AddMinutes(30), Start.AddHours(1), Start.AddDays(1) })
+            await combat.RecordAsync(new(Guid.NewGuid(), victim, attacker, Player, at));
+        await combat.RecordAsync(new(Guid.NewGuid(), victim, attacker, Player, Start, isTeamKill: true));
+        await combat.RecordAsync(new(Guid.NewGuid(), Player, attacker, Player, Start));
+        await combat.RecordAsync(new(Guid.NewGuid(), victim, Player, Player, Start));
+        await combat.RecordAsync(new(Guid.NewGuid(), victim, null, Player, Start));
+        await combat.RecordAsync(new(Guid.NewGuid(), victim, victim, Player, Start));
+        Assert.AreEqual(2L, (await Repository.ReadAsync(Player, catalog, "assists", Start.AddMinutes(30))).Progress);
+        Assert.IsTrue((await Repository.CompleteAsync(Player, catalog, "assists", Start.AddMinutes(30), Xp)).Applied);
+    }
+
+    [TestMethod]
+    public async Task UtilityChallengeUsesOnlyEnemyUtilityHealthDamageAndWindowBounds()
+    {
+        var definition = Daily("utility", target: 50) with { CounterSource = ChallengeCounterSource.UtilityDamage };
+        var catalog = ChallengeCatalogSnapshot.Create([definition]);
+        var combat = new MySqlCombatRepository(_database);
+        var victim = new PlayerId(Player.SteamId64 + 1);
+        async Task Damage(DateTimeOffset at, string weapon, int amount, PlayerId? attacker = null, bool team = false, PlayerId? target = null)
+            => await combat.RecordDamageAsync(new(Guid.NewGuid(), target ?? victim, attacker ?? Player,
+                at, "de_dust2", weapon, 0, amount, 99, team));
+        await Damage(Start, "hegrenade", 20);
+        await Damage(Start.AddMinutes(30), "inferno", 30);
+        await Damage(Start.AddHours(1), "molotov", 40);
+        await Damage(Start.AddTicks(-10), "incgrenade", 100);
+        await Damage(Start.AddDays(1), "hegrenade", 100);
+        await Damage(Start, "ak47", 100);
+        await Damage(Start, "hegrenade", 100, team: true);
+        await Damage(Start, "inferno", 100, target: Player);
+        await Damage(Start, "hegrenade", 100, attacker: victim, target: new(Player.SteamId64 + 2));
+        Assert.AreEqual(20L, (await Repository.ReadAsync(Player, catalog, "utility", Start)).Progress);
+        var completed = await Repository.CompleteAsync(Player, catalog, "utility", Start.AddMinutes(30), Xp);
+        Assert.IsTrue(completed.Applied);
+        Assert.AreEqual(50L, completed.Evaluation.Progress);
+    }
+
     private async Task Record(DateTimeOffset at, int amount, PlayerId? player = null,
         GameplayStatKind kind = GameplayStatKind.HeadshotKill)
         => await new MySqlGameplayStatRepository(_database).RecordAsync(new(Guid.NewGuid(), player ?? Player,
@@ -256,6 +329,9 @@ public sealed class MySqlChallengeRepositoryTests
             "DROP TABLE IF EXISTS ano_progression_grants",
             "DROP TABLE IF EXISTS ano_progression_accounts",
             "DROP TABLE IF EXISTS ano_gameplay_stats",
+            "DROP TABLE IF EXISTS ano_combat_damage",
+            "DROP TABLE IF EXISTS ano_combat_weapon_fire",
+            "DROP TABLE IF EXISTS ano_combat_deaths",
             "DROP TABLE IF EXISTS ano_schema_migrations",
         }) await Sql(sql);
     }

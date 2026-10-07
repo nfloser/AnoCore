@@ -765,3 +765,38 @@ Native acceptance: open the menu with combinations of enabled sources, navigate
 all views and pages, refresh after earning XP, inspect current/historical seasons,
 then reconnect/reload while a view loads. Verify navigation and text in the client,
 and check active scheduled/weekend boost boundaries with the server UTC clock.
+
+
+## Combat-backed challenge counters
+
+Issue #297 adds `CounterSource` to recurring and predefined challenge definitions.
+Omitted/zero preserves existing gameplay-stat challenges. The default JSON store
+serializes enums numerically:
+
+| CounterSource | Numeric value | Counted facts |
+| --- | --- | --- |
+| GameplayStat | 0 | Existing `Statistic` gameplay counter |
+| CombatKills | 1 | Enemy kills from raw death records |
+| CombatAssists | 2 | Valid assists on enemy kills from raw death records |
+| UtilityDamage | 3 | Enemy health damage from HE grenades/fire |
+
+For example, set `CounterSource: 1`, `Target: 25` on a recurring weekly challenge
+for ordinary kills, or `CounterSource: 3`, `Target: 500` for 500 utility health damage.
+`Statistic` remains a required valid gameplay-stat value for compatibility with the
+existing definition/evaluation API, but it does not select the count when a nonzero
+source is configured. The explicit source selects the raw ledger query. Give new
+semantics a new stable challenge ID; changing a source/version must never reset or
+repay an already committed occurrence.
+
+All sources share the UTC half-open window and exclude observations later than the
+checkpoint time. CombatKills excludes suicides/world kills/teamkills. CombatAssists
+also requires a real attacker and excludes victim/attacker self-assists. UtilityDamage
+counts `damage_health` for `hegrenade`, `inferno`, `molotov` and `incgrenade`, excluding
+team/self damage, other players' damage, gun damage and armor damage. Weapon matching
+uses stored normalized names. No second counter or native event hook is introduced.
+
+The existing atomic completion/reward transaction, prerequisite logic, occurrence
+identity and replay behavior are reused. Raw ledgers preserve progress across statistics
+resets. Existing core death/damage migrations provide these facts; this change requires
+no new schema migration. Native acceptance must still verify that the current CS2 host
+supplies the expected weapon names and eligible combat events.

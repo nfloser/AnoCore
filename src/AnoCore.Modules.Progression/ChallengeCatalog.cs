@@ -2,6 +2,14 @@ using AnoCore.Abstractions.Stats;
 
 namespace AnoCore.Modules.Progression;
 
+public enum ChallengeCounterSource
+{
+    GameplayStat,
+    CombatKills,
+    CombatAssists,
+    UtilityDamage,
+}
+
 public enum ChallengeWindowKind
 {
     Daily,
@@ -29,7 +37,10 @@ public sealed record ChallengeDefinition(
     long RewardXp,
     DateTimeOffset StartsAtUtc,
     DateTimeOffset EndsAtUtc,
-    IReadOnlyList<string> PrerequisiteIds);
+    IReadOnlyList<string> PrerequisiteIds)
+{
+    public ChallengeCounterSource CounterSource { get; init; }
+}
 
 public sealed record ChallengeEvaluation(
     ChallengeDefinition Definition,
@@ -192,7 +203,7 @@ public sealed class ChallengeCatalogSnapshot
                 "Challenge names must contain 1-128 printable characters.",
                 nameof(challenge));
         if (!Enum.IsDefined(challenge.WindowKind)
-            || !Enum.IsDefined(challenge.Statistic)
+            || !Enum.IsDefined(challenge.Statistic) || !Enum.IsDefined(challenge.CounterSource)
             || challenge.Target < 1
             || challenge.RewardXp < 0)
         {
