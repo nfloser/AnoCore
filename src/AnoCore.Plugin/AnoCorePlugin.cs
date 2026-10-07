@@ -57,6 +57,7 @@ public sealed class AnoCorePlugin : BasePlugin
     private ChallengeModule? _pendingChallenges;
     private GameplayXpModule? _pendingGameplayXp;
     private SeasonModule? _pendingSeasons;
+    private IProgressionAdministrationService? _pendingXpAdministration;
     private TournamentMatchRuntime? _pendingTournamentMatch;
     private ChatMessageFormatter? _pendingChatFormatter;
     private SelectableChatTagModule? _pendingChatTags;
@@ -75,6 +76,7 @@ public sealed class AnoCorePlugin : BasePlugin
     private GameplayXpModule? _gameplayXp;
     private SeasonModule? _seasons;
     private LevelNotificationService? _levelNotifications;
+    private ProgressionAdminCommandController? _xpAdminCommands;
     private TournamentMatchRuntime? _tournamentMatch;
     private TournamentTeamEnforcement? _tournamentTeamEnforcement;
     private TournamentSpectatorPolicySource? _tournamentSpectatorPolicies;
@@ -182,6 +184,9 @@ public sealed class AnoCorePlugin : BasePlugin
             _seasonTimer?.Kill();
             _gameplayXpTimer = null;
             _seasonTimer = null;
+            _xpAdminCommands?.Dispose();
+            _xpAdminCommands = null;
+            _pendingXpAdministration = null;
             _levelNotifications?.Dispose();
             _levelNotifications = null;
             _gameplayXp?.Dispose();
@@ -335,6 +340,7 @@ public sealed class AnoCorePlugin : BasePlugin
         ChallengeModule? createdChallenges = null;
         GameplayXpModule? createdGameplayXp = null;
         SeasonModule? createdSeasons = null;
+        IProgressionAdministrationService? createdXpAdministration = null;
         TournamentMatchRuntime? createdTournamentMatch = null;
         ChatMessageFormatter? createdChatFormatter = null;
         SelectableChatTagModule? createdChatTags = null;
@@ -717,6 +723,21 @@ public sealed class AnoCorePlugin : BasePlugin
                 Logger.LogError(exception, "Season composition failed; other AnoCore modules continue.");
             }
 
+            if (createdAchievements is not null || createdChallenges is not null || createdGameplayXp is not null)
+            {
+                try
+                {
+                    var database = (IDatabase)created.GetService(typeof(IDatabase))!;
+                    await MySqlProgressionAdministrationService.EnsureReadyAsync(database, timeout.Token).ConfigureAwait(false);
+                    createdXpAdministration = new MySqlProgressionAdministrationService(database);
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
+                catch (Exception exception)
+                {
+                    Logger.LogError(exception, "XP administration composition failed; earned progression remains active.");
+                }
+            }
+
             lock (_startupGate)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -730,6 +751,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 _pendingChallenges = createdChallenges;
                 _pendingGameplayXp = createdGameplayXp;
                 _pendingSeasons = createdSeasons;
+                _pendingXpAdministration = createdXpAdministration;
                 _pendingTournamentMatch = createdTournamentMatch;
                 _pendingChatFormatter = createdChatFormatter;
                 _pendingChatTags = createdChatTags;
@@ -795,6 +817,7 @@ public sealed class AnoCorePlugin : BasePlugin
                     _pendingChallenges = null;
                     _pendingGameplayXp = null;
                     _pendingSeasons = null;
+                    _pendingXpAdministration = null;
                     _pendingTournamentMatch = null;
                     _pendingChatFormatter = null;
                     _pendingChatTags?.Dispose();
@@ -834,6 +857,8 @@ public sealed class AnoCorePlugin : BasePlugin
             var challenges = _pendingChallenges;
             var gameplayXp = _pendingGameplayXp;
             var seasons = _pendingSeasons;
+            var xpAdministration = _pendingXpAdministration;
+            _pendingXpAdministration = null;
             var tournamentMatch = _pendingTournamentMatch;
             var chatFormatter = _pendingChatFormatter;
             var chatTags = _pendingChatTags;
@@ -883,6 +908,7 @@ public sealed class AnoCorePlugin : BasePlugin
             TournamentMapSelectionCommandController? tournamentMapSelectionCommands = null;
             IDisposable? messageTransportRegistration = null;
             LevelNotificationService? levelNotifications = null;
+            ProgressionAdminCommandController? xpAdminCommands = null;
             var presenter = new CounterStrikeMenuPresenter(this, runtime.Menus, Logger);
             var bridge = new CounterStrikeCommandBridge(
                 this,
@@ -930,6 +956,8 @@ public sealed class AnoCorePlugin : BasePlugin
                     runtime.TargetResolver,
                     runtime.TargetAuthorization,
                     runtime.Authorization);
+                if (xpAdministration is not null)
+                    xpAdminCommands = new ProgressionAdminCommandController(runtime.Commands, targetGateway, xpAdministration);
                 adminCommands = new ModerationCommandController(
                     runtime.Commands,
                     new ModerationCommandExecutor(targetGateway, runtime.Moderation));
@@ -1262,6 +1290,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 _challenges = challenges;
                 _gameplayXp = gameplayXp;
                 _levelNotifications = levelNotifications;
+                _xpAdminCommands = xpAdminCommands;
                 _seasons = seasons;
                 _tournamentMatch = tournamentMatch;
                 _tournamentTeamEnforcement = tournamentTeamEnforcement;
@@ -1319,6 +1348,8 @@ public sealed class AnoCorePlugin : BasePlugin
                 if (ReferenceEquals(_liveRankScoring, liveRankScoring)) _liveRankScoring = null;
                 rank?.Dispose();
                 gameplayStats?.Dispose();
+                xpAdminCommands?.Dispose();
+                if (ReferenceEquals(_xpAdminCommands, xpAdminCommands)) _xpAdminCommands = null;
                 levelNotifications?.Dispose();
                 if (ReferenceEquals(_levelNotifications, levelNotifications)) _levelNotifications = null;
                 achievements?.Dispose();
