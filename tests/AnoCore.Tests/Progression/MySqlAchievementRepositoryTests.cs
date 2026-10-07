@@ -145,6 +145,29 @@ public sealed class MySqlAchievementRepositoryTests
         Assert.AreEqual(100L, (await new MySqlProgressionGrantRepository(_database).ReadLifetimeAsync(other)).LifetimeXp);
     }
 
+    [TestMethod]
+    public async Task Prerequisites_RequireCommittedPlayerSpecificTierAndKeepRetriesIdempotent()
+    {
+        var repository = new MySqlAchievementRepository(_database);
+        var child = AchievementDefinition.Create("child", 1, GameplayStatKind.Mvp,
+            [new(1, 1, 50)], [new("headshots", 2)]);
+        GameplayStatTotal[] totals = [new(GameplayStatKind.Mvp, 1)];
+        Assert.IsEmpty(await repository.UnlockAsync(Player, child, totals, Friday, Xp));
+        await repository.UnlockAsync(new PlayerId(Player.SteamId64 + 1), Achievement(),
+            [new(GameplayStatKind.HeadshotKill, 50)], Friday, Xp);
+        Assert.IsEmpty(await repository.UnlockAsync(Player, child, totals, Friday, Xp));
+        await repository.UnlockAsync(Player, Achievement(), [new(GameplayStatKind.HeadshotKill, 10)], Friday, Xp);
+        Assert.IsEmpty(await repository.UnlockAsync(Player, child, totals, Friday, Xp));
+        Assert.AreEqual(100L, (await new MySqlProgressionGrantRepository(_database).ReadLifetimeAsync(Player)).LifetimeXp);
+        await repository.UnlockAsync(Player, Achievement(), [new(GameplayStatKind.HeadshotKill, 50)], Friday, Xp);
+        var results = await Task.WhenAll(Enumerable.Range(0, 8).Select(_ =>
+            new MySqlAchievementRepository(_database).UnlockAsync(Player, child, totals, Friday, Xp).AsTask()));
+        Assert.AreEqual(1, results.Sum(result => result.Count));
+        Assert.AreEqual(350L, (await new MySqlProgressionGrantRepository(_database).ReadLifetimeAsync(Player)).LifetimeXp);
+        Assert.IsEmpty(await repository.UnlockAsync(Player, child, [], Friday, Xp));
+        Assert.AreEqual(1, await repository.ReadAwardedTierAsync(Player, "child"));
+    }
+
     private async Task DropAsync()
     {
         await _database.WithConnectionAsync(async (connection, token) =>
