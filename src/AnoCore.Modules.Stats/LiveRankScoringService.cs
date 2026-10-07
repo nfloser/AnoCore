@@ -108,7 +108,8 @@ public sealed class LiveRankScoringService : IDisposable
         if (statistic.PlayerId != player.Id || statistic.EventId != context.EventId || statistic.Amount != 1)
             throw new ArgumentException("Live rank gameplay events require one captured player/event occurrence.", nameof(statistic));
         if (!_policy.Allowed(context) || player.Team is not (PlayerTeam.Terrorist or PlayerTeam.CounterTerrorist)
-            || LiveRankPolicy.IsKillSpecial(statistic.Kind) || statistic.Kind == GameplayStatKind.FlashAssist) return;
+            || LiveRankPolicy.IsKillSpecial(statistic.Kind) || statistic.Kind == GameplayStatKind.FlashAssist
+            || _policy.Gameplay(statistic.Kind, false) == 0) return;
         using var linked = Link(cancellationToken);
         var token = linked.Token;
         await _gate.WaitAsync(token).ConfigureAwait(false);
