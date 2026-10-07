@@ -35,14 +35,25 @@ public sealed class CounterStrikeMenuPresenter : IDisposable
         if (!_menus.TryGetOpenMenu(playerId, out var definition) || definition is null)
             return false;
 
+        float? originalVelocityModifier;
+        lock (_gate)
+        {
+            originalVelocityModifier = _renderedMenus.TryGetValue(playerId, out var previous)
+                ? previous.OriginalVelocityModifier
+                : ReadVelocityModifier(player);
+        }
+
         var rendered = new RenderedMenu(
+            player,
             definition,
             new ScrollMenuCursor(definition.Options.Count, VisibleRows),
-            player.Buttons);
+            player.Buttons,
+            originalVelocityModifier);
 
         lock (_gate)
             _renderedMenus[playerId] = rendered;
 
+        BlockMovement(player);
         Render(player, rendered);
         return true;
     }
@@ -56,19 +67,15 @@ public sealed class CounterStrikeMenuPresenter : IDisposable
         lock (_gate)
             rendered = _renderedMenus.ToArray();
 
-        var controllers = Utilities.GetPlayers()
-            .Where(player => player.IsValid && player.SteamID != 0)
-            .GroupBy(player => player.SteamID)
-            .ToDictionary(group => group.Key, group => group.First());
-
         foreach (var pair in rendered)
         {
-            if (!controllers.TryGetValue(pair.Key.SteamId64, out var player)
+            var player = pair.Value.Player;
+            if (!IsSamePlayer(player, pair.Key)
                 || !_menus.TryGetOpenMenu(pair.Key, out var logicalMenu)
                 || logicalMenu is null
                 || logicalMenu.Id != pair.Value.Definition.Id)
             {
-                ClosePresentation(pair.Key, pair.Value, player: controllers.GetValueOrDefault(pair.Key.SteamId64));
+                ClosePresentation(pair.Key, pair.Value, IsSamePlayer(player, pair.Key) ? player : null);
             }
         }
     }
@@ -88,15 +95,13 @@ public sealed class CounterStrikeMenuPresenter : IDisposable
             _renderedMenus.Clear();
         }
 
-        var controllers = Utilities.GetPlayers()
-            .Where(player => player.IsValid && player.SteamID != 0)
-            .GroupBy(player => player.SteamID)
-            .ToDictionary(group => group.Key, group => group.First());
-
         foreach (var pair in rendered)
         {
-            if (controllers.TryGetValue(pair.Key.SteamId64, out var player))
-                player.PrintToCenterHtml(" ");
+            if (!IsSamePlayer(pair.Value.Player, pair.Key))
+                continue;
+
+            RestoreMovement(pair.Value.Player, pair.Value.OriginalVelocityModifier);
+            pair.Value.Player.PrintToCenterHtml(" ");
         }
     }
 
@@ -109,17 +114,10 @@ public sealed class CounterStrikeMenuPresenter : IDisposable
         lock (_gate)
             rendered = _renderedMenus.ToArray();
 
-        if (rendered.Length == 0)
-            return;
-
-        var controllers = Utilities.GetPlayers()
-            .Where(player => player.IsValid && player.SteamID != 0)
-            .GroupBy(player => player.SteamID)
-            .ToDictionary(group => group.Key, group => group.First());
-
         foreach (var pair in rendered)
         {
-            if (!controllers.TryGetValue(pair.Key.SteamId64, out var player))
+            var player = pair.Value.Player;
+            if (!IsSamePlayer(player, pair.Key))
             {
                 ClosePresentation(pair.Key, pair.Value, null);
                 continue;
@@ -132,6 +130,8 @@ public sealed class CounterStrikeMenuPresenter : IDisposable
                 ClosePresentation(pair.Key, pair.Value, player);
                 continue;
             }
+
+            BlockMovement(player);
 
             var buttons = player.Buttons;
             var pressed = buttons & ~pair.Value.PreviousButtons;
@@ -147,8 +147,12 @@ public sealed class CounterStrikeMenuPresenter : IDisposable
             var changed = false;
             if ((pressed & PlayerButtons.Forward) != 0)
                 changed |= pair.Value.Cursor.MovePrevious();
-            if ((pressed & PlayerButtons.Back) != 0)
+            else if ((pressed & PlayerButtons.Back) != 0)
                 changed |= pair.Value.Cursor.MoveNext();
+            else if ((pressed & PlayerButtons.Moveleft) != 0)
+                changed |= pair.Value.Cursor.MovePrevious(VisibleRows);
+            else if ((pressed & PlayerButtons.Moveright) != 0)
+                changed |= pair.Value.Cursor.MoveNext(VisibleRows);
 
             if ((pressed & PlayerButtons.Use) != 0 && !pair.Value.Busy)
             {
@@ -181,7 +185,7 @@ public sealed class CounterStrikeMenuPresenter : IDisposable
 
             Server.NextWorldUpdate(() =>
             {
-                if (!IsCurrent(playerId, rendered) || !player.IsValid || player.SteamID != playerId.SteamId64)
+                if (!IsCurrent(playerId, rendered) || !IsSamePlayer(player, playerId))
                     return;
 
                 rendered.Busy = false;
@@ -214,31 +218,40 @@ public sealed class CounterStrikeMenuPresenter : IDisposable
         }
     }
 
-    private void Render(CCSPlayerController player, RenderedMenu rendered)
+    private static void Render(CCSPlayerController player, RenderedMenu rendered)
     {
-        if (_disposed || !player.IsValid)
+        if (!player.IsValid)
             return;
 
-        var title = WebUtility.HtmlEncode(rendered.Definition.Title);
+        var title = SafeText(rendered.Definition.Title);
         var builder = new System.Text.StringBuilder()
-            .Append("<b><font color='yellow'>")
+            .Append("<font class='mono-spaced-font'>")
             .Append(title)
-            .Append("</font></b><br>");
+            .Append("</font><font class='fontSize-sm stratum-font'>");
 
         for (var index = rendered.Cursor.StartIndex; index < rendered.Cursor.EndIndexExclusive; index++)
         {
-            var selected = index == rendered.Cursor.SelectedIndex;
-            var label = WebUtility.HtmlEncode(rendered.Definition.Options[index].Label);
-            builder.Append(selected
-                ? "<font color='yellow'>► </font><font color='green'>"
-                : "<font color='white'>  ");
-            builder.Append(label).Append("</font><br>");
+            var label = SafeText(rendered.Definition.Options[index].Label);
+            builder.Append("<br>");
+            if (index == rendered.Cursor.SelectedIndex)
+            {
+                builder.Append("<font color='#d6ff5f'>▶ ")
+                    .Append(label)
+                    .Append("</font>");
+            }
+            else
+            {
+                builder.Append(label);
+            }
         }
 
         if (rendered.Definition.Options.Count == 0)
-            builder.Append("<font color='grey'>No options available.</font><br>");
+            builder.Append("<br><font color='#aaaaaa'>No options available.</font>");
 
-        builder.Append("<br><font color='grey'>W/S navigate · E select · R close</font>");
+        builder.Append("</font><br><font class='fontSize-s'>")
+            .Append("W/S navigate · A/D page · E select · R close")
+            .Append("</font>");
+
         player.PrintToCenterHtml(builder.ToString());
     }
 
@@ -259,8 +272,65 @@ public sealed class CounterStrikeMenuPresenter : IDisposable
             _renderedMenus.Remove(playerId);
         }
 
-        if (player is { IsValid: true })
+        if (player is not null && IsSamePlayer(player, playerId))
+        {
+            RestoreMovement(player, expected.OriginalVelocityModifier);
             player.PrintToCenterHtml(" ");
+        }
+    }
+
+    private static bool IsSamePlayer(CCSPlayerController? player, PlayerId playerId)
+        => player is { IsValid: true } && player.SteamID == playerId.SteamId64;
+
+    private static float? ReadVelocityModifier(CCSPlayerController player)
+    {
+        try
+        {
+            var pawn = player.PlayerPawn.Value;
+            return pawn is { IsValid: true } ? pawn.VelocityModifier : null;
+        }
+        catch (InvalidOperationException)
+        {
+            return null;
+        }
+    }
+
+    private static void BlockMovement(CCSPlayerController player)
+    {
+        try
+        {
+            var pawn = player.PlayerPawn.Value;
+            if (pawn is { IsValid: true })
+                pawn.VelocityModifier = 0.0f;
+        }
+        catch (InvalidOperationException)
+        {
+            // Pawn can disappear during death/team transitions; the menu remains usable.
+        }
+    }
+
+    private static void RestoreMovement(CCSPlayerController player, float? velocityModifier)
+    {
+        if (velocityModifier is null)
+            return;
+
+        try
+        {
+            var pawn = player.PlayerPawn.Value;
+            if (pawn is { IsValid: true })
+                pawn.VelocityModifier = velocityModifier.Value;
+        }
+        catch (InvalidOperationException)
+        {
+            // A replacement pawn will receive normal movement state from the game.
+        }
+    }
+
+    private static string SafeText(string text)
+    {
+        var decoded = WebUtility.HtmlDecode(text ?? string.Empty);
+        var printable = new string(decoded.Where(character => !char.IsControl(character)).Take(180).ToArray());
+        return WebUtility.HtmlEncode(printable);
     }
 
     private static bool TryGetPlayerId(CCSPlayerController? player, out PlayerId playerId)
@@ -284,13 +354,17 @@ public sealed class CounterStrikeMenuPresenter : IDisposable
     }
 
     private sealed class RenderedMenu(
+        CCSPlayerController player,
         MenuDefinition definition,
         ScrollMenuCursor cursor,
-        PlayerButtons previousButtons)
+        PlayerButtons previousButtons,
+        float? originalVelocityModifier)
     {
+        public CCSPlayerController Player { get; } = player;
         public MenuDefinition Definition { get; } = definition;
         public ScrollMenuCursor Cursor { get; } = cursor;
         public PlayerButtons PreviousButtons { get; set; } = previousButtons;
+        public float? OriginalVelocityModifier { get; } = originalVelocityModifier;
         public bool Busy { get; set; }
     }
 }
