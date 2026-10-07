@@ -174,6 +174,60 @@ public sealed class ModuleHostTests
         Assert.IsFalse(unloaded);
     }
 
+    [TestMethod]
+    public async Task ShutdownImmediatelyReleasesOwnedResourcesAndStopsModulesInReverseOrder()
+    {
+        var order = new List<string>();
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var host = new ModuleHost(new TestModuleContext());
+        var first = new FakeModule("ano.first") { Lifecycle = order, OwnedResourceNames = ["first"] };
+        var second = new FakeModule("ano.second") { Lifecycle = order, OwnedResourceNames = ["second"], ShutdownBarrier = release.Task };
+        await host.LoadAsync(first);
+        await host.LoadAsync(second);
+        var shutdown = host.ShutdownAsync();
+        CollectionAssert.AreEqual(new[] { "dispose:second", "dispose:first", "shutdown" }, order);
+        Assert.IsFalse(shutdown.IsCompleted);
+        Assert.AreSame(shutdown, host.ShutdownAsync());
+        await Assert.ThrowsExactlyAsync<ObjectDisposedException>(() => host.LoadAsync(new FakeModule("ano.late")));
+        release.SetResult();
+        await shutdown;
+        Assert.AreEqual(1, first.ShutdownCalls);
+        Assert.AreEqual(1, second.ShutdownCalls);
+        Assert.AreEqual(ModuleState.Unloaded, host.GetState(first.Descriptor.Id));
+    }
+
+    [TestMethod]
+    public async Task ShutdownCancelsPendingInitializationAndRollsBackOnce()
+    {
+        var order = new List<string>();
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var host = new ModuleHost(new TestModuleContext());
+        var module = new FakeModule("ano.pending") { Lifecycle = order, OwnedResourceNames = ["pending"], InitializeBarrier = release.Task };
+        var load = host.LoadAsync(module);
+        var shutdown = host.ShutdownAsync();
+        await Assert.ThrowsAsync<OperationCanceledException>(() => load);
+        await shutdown;
+        Assert.AreEqual(1, module.ShutdownCalls);
+        Assert.AreEqual(1, order.Count(item => item == "dispose:pending"));
+    }
+
+    [TestMethod]
+    public async Task ShutdownIsolatesBrokenCleanupAndStillShutsDownOtherModules()
+    {
+        var host = new ModuleHost(new TestModuleContext());
+        var first = new FakeModule("ano.good");
+        var second = new FakeModule("ano.bad")
+        {
+            OwnedResourceNames = ["broken"], CleanupException = new InvalidOperationException("cleanup"),
+            ShutdownException = new InvalidOperationException("shutdown"),
+        };
+        await host.LoadAsync(first);
+        await host.LoadAsync(second);
+        await Assert.ThrowsExactlyAsync<AggregateException>(() => host.ShutdownAsync());
+        Assert.AreEqual(1, first.ShutdownCalls);
+        Assert.AreEqual(1, second.ShutdownCalls);
+    }
+
     private sealed class FakeModule(
         string id,
         int minimumApiLevel = AnoCoreApi.MinimumSupportedLevel) : IAnoModule
@@ -198,8 +252,10 @@ public sealed class ModuleHostTests
         public string[] OwnedResourceNames { get; init; } = [];
 
         public Exception? CleanupException { get; init; }
+        public Task? InitializeBarrier { get; init; }
+        public Task? ShutdownBarrier { get; init; }
 
-        public Task InitializeAsync(IAnoModuleContext context, CancellationToken cancellationToken = default)
+        public async Task InitializeAsync(IAnoModuleContext context, CancellationToken cancellationToken = default)
         {
             InitializeCalls++;
             foreach (var name in OwnedResourceNames)
@@ -210,10 +266,10 @@ public sealed class ModuleHostTests
                 throw InitializeException;
             }
 
-            return Task.CompletedTask;
+            if (InitializeBarrier is not null) await InitializeBarrier.WaitAsync(cancellationToken);
         }
 
-        public Task ShutdownAsync(CancellationToken cancellationToken = default)
+        public async Task ShutdownAsync(CancellationToken cancellationToken = default)
         {
             ShutdownCalls++;
             Lifecycle?.Add("shutdown");
@@ -223,7 +279,7 @@ public sealed class ModuleHostTests
                 throw ShutdownException;
             }
 
-            return Task.CompletedTask;
+            if (ShutdownBarrier is not null) await ShutdownBarrier.WaitAsync(cancellationToken);
         }
     }
 
