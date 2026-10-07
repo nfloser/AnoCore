@@ -9,8 +9,10 @@
 - Runtime verification now requires a true process cold start and an explicit
   `css_plugins list` LOADED check before database/configuration acceptance.
 - This is a native-host regression and is not meaningfully reproducible in the
-  engine-independent unit suite; exact-head CI plus the DatHost cold-start retest
-  remain the acceptance evidence before merge.
+  engine-independent unit suite. Exact-head CI #729 passed; a clean DatHost cold
+  start on CounterStrikeSharp 1.0.376 then reported AnoCore `LOADED`, and
+  `css_anostatus` responded with zero tracked humans and `services: not configured`.
+  That closes the startup regression; database/runtime feature acceptance continues separately.
 
 # Owned live gameplay XP reload — 2026-10-07
 
