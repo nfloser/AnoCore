@@ -114,7 +114,7 @@ public sealed class PlayerToggleCommandModuleTests
     }
 
     [TestMethod]
-    public async Task Menu_NavigatesAndTogglesOrResetsRegisteredChoices()
+    public async Task Menu_NavigatesAndTogglesRegisteredChoicesWithoutDuplicateDefaults()
     {
         var players = await ConnectedAsync();
         var catalog = new PlayerToggleCatalog();
@@ -139,15 +139,17 @@ public sealed class PlayerToggleCommandModuleTests
             new PlayerSettingKey<bool>("test.option1", false)));
         Assert.IsTrue(menus.TryGetOpenMenu(Player, out var updated));
         Assert.IsFalse((await menus.SelectAsync(Player, firstToggle.Id)).Accepted);
-        var reset = updated!.Options.Single(option =>
-            option.Label == "Default: Option 1");
-        Assert.IsTrue((await menus.SelectAsync(Player, reset.Id)).Accepted);
+        Assert.IsFalse(updated!.Options.Any(option =>
+            option.Label.StartsWith("Default:", StringComparison.Ordinal)));
+        var refreshedToggle = updated.Options.Single(option =>
+            option.Label.StartsWith("Option 1", StringComparison.Ordinal));
+        Assert.IsTrue((await menus.SelectAsync(Player, refreshedToggle.Id)).Accepted);
         Assert.IsFalse(await settings.GetAsync(Player,
             new PlayerSettingKey<bool>("test.option1", false)));
-        Assert.AreEqual(1, settings.ResetCount);
+        Assert.AreEqual(0, settings.ResetCount);
 
-        Assert.IsTrue(menus.TryGetOpenMenu(Player, out var afterReset));
-        var next = afterReset!.Options.Single(option => option.Label == "Next page");
+        Assert.IsTrue(menus.TryGetOpenMenu(Player, out var afterToggle));
+        var next = afterToggle!.Options.Single(option => option.Label == "Next page");
         await menus.SelectAsync(Player, next.Id);
         Assert.IsTrue(menus.TryGetOpenMenu(Player, out var second));
         StringAssert.Contains(second!.Title, "page 2");
