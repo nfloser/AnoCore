@@ -148,6 +148,33 @@ public sealed class LiveRankScoringServiceTests
         Assert.HasCount(1, setup.Sinks.Changes);
     }
 
+    [TestMethod]
+    public async Task TeamObjectives_CommitOneBatchRetryAtomicallyAndReplayBeforeMembershipChanges()
+    {
+        var setup = await Setup();
+        var otherId = new PlayerId(76561198000288103);
+        await setup.Players.ConnectAsync(new PlayerConnection(otherId, "Other", PlayerTeam.Terrorist, true, Now));
+        setup.Players.TryGet(Attacker, out var player);
+        setup.Players.TryGet(otherId, out var other);
+        using var service = Service(setup, vip: 2);
+        var context = new RankLiveContext(Guid.NewGuid(), Now, false, 4, "round-1");
+        setup.Events.Fail = true;
+        await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () =>
+            await service.RecordTeamObjectiveAsync(GameplayStatKind.BombExploded, context, [player!, other!]));
+        Assert.IsEmpty(setup.Events.Batches);
+        setup.Events.Fail = false;
+        await service.RecordTeamObjectiveAsync(GameplayStatKind.BombExploded, context, [other!, player!]);
+        Assert.HasCount(1, setup.Events.Batches);
+        Assert.HasCount(2, setup.Events.Batches.Values.Single().Awards);
+        Assert.AreEqual(10L, setup.Events.Points(Attacker));
+        Assert.AreEqual(10L, setup.Events.Points(otherId));
+        await service.RecordTeamObjectiveAsync(GameplayStatKind.BombExploded, context, [player!]);
+        Assert.HasCount(1, setup.Events.Batches);
+        Assert.HasCount(2, setup.Sinks.Changes);
+        await Assert.ThrowsExactlyAsync<ArgumentException>(async () =>
+            await service.RecordTeamObjectiveAsync(GameplayStatKind.BombExploded, context, [player!, player!]));
+    }
+
     private sealed class PointSink : IRankPointEventSink, IDisposable
     {
         public List<RankPointChange> Changes { get; } = [];
@@ -172,7 +199,7 @@ public sealed class LiveRankScoringServiceTests
         {
             Source = RankScoreSource.EventLedger,
             Thresholds = [new("Recruit", 0), new("Promoted", 1)],
-            GameplayPoints = new() { [GameplayStatKind.BombPlanted] = 5, [GameplayStatKind.PlaytimeInterval] = 3 },
+            GameplayPoints = new() { [GameplayStatKind.BombPlanted] = 5, [GameplayStatKind.PlaytimeInterval] = 3, [GameplayStatKind.BombExploded] = 5 },
             LivePolicy = new() { StreakPoints = new() { [2] = 5 }, VipMultiplier = vip, PlaytimeIntervalSeconds = playtime },
         }, setup.Events, new Scores(setup.Events), setup.Players, setup.Permissions, setup.Sinks, setup.Sinks, setup.Errors.Add, presentation);
 

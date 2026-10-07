@@ -161,4 +161,18 @@ public sealed class LiveRankPolicyTests
         Assert.IsFalse(policy.Death(input with { Assister = victim }, 0, 0, [], 1).Any(award => award.PlayerId == Assister.Id));
     }
 
+    [TestMethod]
+    public void TeamEventIdentity_IsStableAndSeparatesServerMapTickKindTeamAndDefuser()
+    {
+        var id = CombatEventIdentity.CreateTeam("server", "de_test", 1, 100, GameplayStatKind.BombExploded, PlayerTeam.Terrorist);
+        Assert.AreEqual(id, CombatEventIdentity.CreateTeam("server", "de_test", 1, 100, GameplayStatKind.BombExploded, PlayerTeam.Terrorist));
+        Assert.AreNotEqual(id, CombatEventIdentity.CreateTeam("other", "de_test", 1, 100, GameplayStatKind.BombExploded, PlayerTeam.Terrorist));
+        Assert.AreNotEqual(id, CombatEventIdentity.CreateTeam("server", "de_test", 2, 100, GameplayStatKind.BombExploded, PlayerTeam.Terrorist));
+        Assert.AreNotEqual(id, CombatEventIdentity.CreateTeam("server", "de_test", 1, 101, GameplayStatKind.BombExploded, PlayerTeam.Terrorist));
+        Assert.AreNotEqual(id, CombatEventIdentity.CreateTeam("server", "de_test", 1, 100, GameplayStatKind.HostagesRescuedAll, PlayerTeam.Terrorist));
+        Assert.AreNotEqual(id, CombatEventIdentity.CreateTeam("server", "de_test", 1, 100, GameplayStatKind.BombExploded, PlayerTeam.CounterTerrorist));
+        Assert.AreNotEqual(id, CombatEventIdentity.CreateTeam("server", "de_test", 1, 100, GameplayStatKind.BombExploded, PlayerTeam.Terrorist, Attacker.Id));
+        Assert.ThrowsExactly<ArgumentException>(() => CombatEventIdentity.CreateTeam("server", "de_test", 1, 100, GameplayStatKind.Mvp, PlayerTeam.Terrorist));
+    }
+
 }

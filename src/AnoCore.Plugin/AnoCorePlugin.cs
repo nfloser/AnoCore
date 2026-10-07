@@ -1806,8 +1806,8 @@ public sealed class AnoCorePlugin : BasePlugin
                 && player.Id != excluded).OrderBy(player => player.Id.SteamId64).ToArray() ?? [];
             if (players.Length == 0) return;
             var at = DateTimeOffset.UtcNow;
-            var eventId = CombatEventIdentity.CreateDetail(_combatServerInstance, Server.MapName,
-                CombatMapEpoch(), Server.TickCount, "rank_team_" + (byte)kind, players[0].Id, excluded, ((byte)team).ToString());
+            var eventId = CombatEventIdentity.CreateTeam(_combatServerInstance, Server.MapName,
+                CombatMapEpoch(), Server.TickCount, kind, team, excluded);
             Observe(scoring.RecordTeamObjectiveAsync(kind, LiveRankContext(eventId, at), players).AsTask(), "rank_team_objective");
         }
         catch (Exception exception) { Logger.LogError(exception, "Could not record native rank team objective."); }

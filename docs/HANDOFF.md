@@ -1,3 +1,13 @@
+# Objective and special-kill rank coverage — 2026-10-07
+
+- #288 adds bomb pickup/drop, hostage hurt, atomic team explosion/defused-others/all-rescue awards.
+- Stable team identities exclude recipient membership; replay cannot reward later joins.
+- FFA suppresses team objectives; optional teamkill assist/flash penalties, weapon-family
+  bonuses and bounded penetration-count scaling complete the reference policy controls.
+- New weights/penalties default zero; native hooks reuse independent rank eligibility.
+- Policy, identity and atomic service retry/replay regressions accompany documentation.
+- #287 scoreboard exact-head CI remains pending. Native acceptance remains #23.
+
 # Optional rank scoreboard — 2026-10-07
 
 - #286 adds default-disabled Scoreboard.SyncScore and explicit RankMode overrides.

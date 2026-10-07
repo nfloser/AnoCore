@@ -176,3 +176,30 @@ restore only if they still equal AnoCore's last written values; later external c
 are preserved. Queued updates stop after disposal; reconnect never inherits ownership.
 Do not enable multiple score-sync writers on the same server. Native halftime/map
 reset interactions and cleanup require acceptance before production enablement.
+
+
+## Objective and special-kill coverage
+
+Optional GameplayPoints keys also include BombDropped, BombPickedUp, HostageHurt,
+BombExploded, BombDefusedOthers and HostagesRescuedAll. New weights default zero.
+Explosion rewards target connected T humans; all-hostage rescue rewards target CT
+humans. DefusedOthers targets connected CT humans excluding the captured defuser.
+Each team objective is one atomic ledger batch. Identity uses server/map epoch/tick,
+kind/team/defuser, independently of the recipient list; replay cannot award a newly
+joined recipient. FFA suppresses these team objectives. Native handlers retain the
+independent warmup/min-player gate and do not add statistics counters.
+
+GameplayPoints also accepts GrenadeKill, InfernoKill, ImpactKill, KnifeKill and
+TaserKill family bonuses. Precedence is HE grenade, inferno, other grenade/molotov/
+flashbang/bumpmine impacts, knife/bayonet, then exact taser. A family bonus stacks
+with an exact WeaponPoints token. PenetratedKill scales with the bounded native
+penetration count (0–32); the existing public death input defaults to one count.
+TeamKillAssistPenalty and TeamKillFlashAssistPenalty in LivePolicy default zero
+and are each bounded 0–1000. A distinct same-team teamkill assister receives the
+combined negative penalty; ordinary assist/flash rewards and VIP do not apply.
+FFA retains the ordinary assist path. Score events remain separate from XP.
+
+Native acceptance: exercise every added objective, defuser exclusion, bots, FFA,
+multiple same-tick hostage/weapon events, team membership changes, penalties,
+penetration counts, reconnect/reload and failed database writes before enabling
+these optional awards on a production server. #23 tracks this unperformed pass.
