@@ -36,17 +36,28 @@ public sealed class CounterStrikeMenuPresenter : IDisposable
             return false;
 
         float? originalVelocityModifier;
+        var selectedIndex = 0;
         lock (_gate)
         {
-            originalVelocityModifier = _renderedMenus.TryGetValue(playerId, out var previous)
-                ? previous.OriginalVelocityModifier
-                : ReadVelocityModifier(player);
+            if (_renderedMenus.TryGetValue(playerId, out var previous))
+            {
+                originalVelocityModifier = previous.OriginalVelocityModifier;
+                if (previous.Definition.Id == definition.Id
+                    && string.Equals(previous.Definition.Title, definition.Title, StringComparison.Ordinal))
+                {
+                    selectedIndex = previous.Cursor.SelectedIndex;
+                }
+            }
+            else
+            {
+                originalVelocityModifier = ReadVelocityModifier(player);
+            }
         }
 
         var rendered = new RenderedMenu(
             player,
             definition,
-            new ScrollMenuCursor(definition.Options.Count, VisibleRows),
+            new ScrollMenuCursor(definition.Options.Count, VisibleRows, selectedIndex),
             player.Buttons,
             originalVelocityModifier);
 
@@ -252,7 +263,7 @@ public sealed class CounterStrikeMenuPresenter : IDisposable
             .Append("W/S navigate · A/D page · E select · R close")
             .Append("</font>");
 
-        player.PrintToCenterHtml(builder.ToString());
+        player.PrintToCenterHtml(builder.ToString(), 1);
     }
 
     private bool IsCurrent(PlayerId playerId, RenderedMenu expected)
