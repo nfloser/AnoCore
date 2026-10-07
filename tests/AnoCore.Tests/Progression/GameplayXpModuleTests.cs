@@ -141,6 +141,28 @@ public sealed class GameplayXpModuleTests
         }
     }
 
+    [TestMethod]
+    public async Task StatusShowsStrongestCurrentBoostAndRemainingLevelXp()
+    {
+        var players = new PlayerRegistry(new AnoEventBus());
+        await Connect(players);
+        var commands = new CommandRegistry(new AllowAll());
+        var at = new DateTimeOffset(2026, 10, 10, 12, 0, 0, TimeSpan.Zero);
+        var definitions = ProgressionDefinitionSnapshot.Create([new(1, 0), new(2, 100), new(3, 300)],
+            [new("scheduled", at.AddHours(-1), at.AddHours(1), 3m)]);
+        using var module = new GameplayXpModule(new GameplayXpConfiguration { WeekendMultiplier = 2m }.Snapshot(),
+            definitions, players, new Repository(), new Grants(), commands, clock: () => at);
+        var status = await commands.ExecuteAsync("!anoxp", Player);
+        StringAssert.Contains(status.Message!, "200 XP to level 3");
+        StringAssert.Contains(status.Message!, "3x (scheduled)");
+        at = at.AddHours(1);
+        status = await commands.ExecuteAsync("!anoxp", Player);
+        StringAssert.Contains(status.Message!, "2x (gameplay.weekend.20261010)");
+        at = at.AddDays(2);
+        status = await commands.ExecuteAsync("!anoxp", Player);
+        StringAssert.Contains(status.Message!, "1x (none)");
+    }
+
     private static async Task Connect(PlayerRegistry players)
         => _ = await players.ConnectAsync(new(Player, "Player", PlayerTeam.Terrorist, true, Now));
 

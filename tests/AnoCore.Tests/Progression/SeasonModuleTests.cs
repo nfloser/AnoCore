@@ -37,7 +37,7 @@ public sealed class SeasonModuleTests
         var commands = new CommandRegistry(new Permissions());
         using var module = await Create(new PlayerRegistry(new AnoEventBus()), repository, new Rewards(), commands);
         Assert.HasCount(1, repository.Accepted);
-        Assert.HasCount(4, commands.GetCommands());
+        Assert.HasCount(5, commands.GetCommands());
         module.Dispose();
         Assert.IsEmpty(commands.GetCommands());
     }
@@ -56,6 +56,7 @@ public sealed class SeasonModuleTests
         Assert.IsTrue((await commands.ExecuteAsync("!anoseason s1", Player)).Success);
         StringAssert.Contains((await commands.ExecuteAsync("!anoseasons", Player)).Message!, "s1");
         StringAssert.Contains((await commands.ExecuteAsync("!anoseasontop s1 2", Player)).Message!, "#6");
+        StringAssert.Contains((await commands.ExecuteAsync("!anoseasontopcurrent 2", Player)).Message!, "#6");
         Assert.AreEqual(CommandFailureReason.Forbidden, (await commands.ExecuteAsync("!anoseason", null)).FailureReason);
         Assert.AreEqual(CommandFailureReason.InvalidInput, (await commands.ExecuteAsync("!anoseason missing", Player)).FailureReason);
         Assert.AreEqual(CommandFailureReason.InvalidInput, (await commands.ExecuteAsync("!anoseasons 0", Player)).FailureReason);
