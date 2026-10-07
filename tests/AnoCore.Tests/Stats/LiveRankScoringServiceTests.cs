@@ -175,6 +175,21 @@ public sealed class LiveRankScoringServiceTests
             await service.RecordTeamObjectiveAsync(GameplayStatKind.BombExploded, context, [player!, player!]));
     }
 
+    [TestMethod]
+    public async Task UnknownRoundAfterReload_DoesNotMintFirstBloodUntilObservedRoundStart()
+    {
+        var setup = await Setup();
+        using var service = Service(setup, firstBlood: 3);
+        var death = Death(setup.Players);
+        await service.RecordDeathAsync(death with { Context = death.Context with { FirstBloodAvailable = false } });
+        var second = Death(setup.Players, Now.AddSeconds(1));
+        await service.RecordDeathAsync(second with { Context = second.Context with { FirstBloodAvailable = false } });
+        Assert.AreEqual(9L, setup.Events.Points(Attacker));
+        var next = Death(setup.Players, Now.AddSeconds(2));
+        await service.RecordDeathAsync(next with { Context = next.Context with { RoundKey = "observed-round" } });
+        Assert.AreEqual(14L, setup.Events.Points(Attacker));
+    }
+
     private sealed class PointSink : IRankPointEventSink, IDisposable
     {
         public List<RankPointChange> Changes { get; } = [];
@@ -194,12 +209,12 @@ public sealed class LiveRankScoringServiceTests
         public void Dispose() => Disposed = true;
     }
 
-    private static LiveRankScoringService Service(SetupResult setup, decimal vip = 1, IRankPointEventSink? presentation = null, int playtime = 0) => new(
+    private static LiveRankScoringService Service(SetupResult setup, decimal vip = 1, IRankPointEventSink? presentation = null, int playtime = 0, int firstBlood = 0) => new(
         new RankConfiguration
         {
             Source = RankScoreSource.EventLedger,
             Thresholds = [new("Recruit", 0), new("Promoted", 1)],
-            GameplayPoints = new() { [GameplayStatKind.BombPlanted] = 5, [GameplayStatKind.PlaytimeInterval] = 3, [GameplayStatKind.BombExploded] = 5 },
+            GameplayPoints = new() { [GameplayStatKind.BombPlanted] = 5, [GameplayStatKind.PlaytimeInterval] = 3, [GameplayStatKind.BombExploded] = 5, [GameplayStatKind.FirstBlood] = firstBlood },
             LivePolicy = new() { StreakPoints = new() { [2] = 5 }, VipMultiplier = vip, PlaytimeIntervalSeconds = playtime },
         }, setup.Events, new Scores(setup.Events), setup.Players, setup.Permissions, setup.Sinks, setup.Sinks, setup.Errors.Add, presentation);
 
