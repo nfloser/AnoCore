@@ -22,17 +22,25 @@ public sealed class AchievementModuleTests
     [TestMethod]
     public async Task Checkpoint_NotifiesOnlyCommittedUnlocksAndCleansUpToggle()
     {
-        var players = new PlayerRegistry(new AnoEventBus());
+        var events = new AnoEventBus();
+        var players = new PlayerRegistry(events);
+        var committed = 0;
+        using var subscription = events.Subscribe<AchievementUnlockedEvent>((_, _) =>
+        {
+            committed++;
+            return ValueTask.CompletedTask;
+        });
         await Connect(players);
         var toggles = new PlayerToggleCatalog();
         var messages = new Messages();
         var unlocks = new Unlocks { AwardFirst = true };
         using var module = new AchievementModule(new AchievementConfiguration().Snapshot(), players,
             new Stats(), unlocks, new Grants(), new CommandRegistry(new AllowAll()),
-            settings: new Settings(), toggles: toggles, messages: messages);
+            settings: new Settings(), toggles: toggles, messages: messages, events: events);
         await module.ReconcileOnlineAsync(Now);
         await module.ReconcileOnlineAsync(Now);
         Assert.HasCount(1, messages.Requests);
+        Assert.AreEqual(1, committed);
         Assert.AreEqual(3, unlocks.Calls);
         module.Dispose();
         Assert.IsEmpty(toggles.GetAll());

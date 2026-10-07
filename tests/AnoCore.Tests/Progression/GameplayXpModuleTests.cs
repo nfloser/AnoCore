@@ -108,6 +108,39 @@ public sealed class GameplayXpModuleTests
         Assert.IsNull(result.Message);
     }
 
+    [TestMethod]
+    public async Task Checkpoint_PublishesOnlyNewCommittedGrantsInRevisionOrder()
+    {
+        var events = new AnoEventBus();
+        var players = new PlayerRegistry(events);
+        await Connect(players);
+        var seen = new List<long>();
+        using var subscription = events.Subscribe<ProgressionXpGrantedEvent>((value, _) =>
+        {
+            seen.Add(value.Grant.AccountRevisionAfter);
+            return ValueTask.CompletedTask;
+        });
+        using var module = new GameplayXpModule(new GameplayXpConfiguration().Snapshot(), Xp, players,
+            new CommittedRepository(), new Grants(), new CommandRegistry(new AllowAll()), events: events);
+        await module.ReconcileOnlineAsync(Now);
+        await module.ReconcileOnlineAsync(Now);
+        CollectionAssert.AreEqual(new long[] { 1, 2 }, seen);
+    }
+
+    private sealed class CommittedRepository : IGameplayXpRepository
+    {
+        private bool _committed;
+        public ValueTask<IReadOnlyList<ProgressionGrantRecord>> ReconcileAsync(PlayerId playerId, GameplayXpPolicy policy,
+            ProgressionDefinitionSnapshot definitions, DateTimeOffset at, CancellationToken cancellationToken = default)
+        {
+            if (_committed) return ValueTask.FromResult<IReadOnlyList<ProgressionGrantRecord>>([]);
+            _committed = true;
+            return ValueTask.FromResult<IReadOnlyList<ProgressionGrantRecord>>(
+                [new(Player, "second", ProgressionXpSource.Gameplay, 100, 100, "test", Now, null, 1m, 200, 2),
+                 new(Player, "first", ProgressionXpSource.Gameplay, 100, 100, "test", Now, null, 1m, 100, 1)]);
+        }
+    }
+
     private static async Task Connect(PlayerRegistry players)
         => _ = await players.ConnectAsync(new(Player, "Player", PlayerTeam.Terrorist, true, Now));
 
