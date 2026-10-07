@@ -648,3 +648,46 @@ The repository checks prerequisites under the same player-account transaction lo
 as XP and unlock writes; evaluation candidates never satisfy a gate. No schema
 migration or competitive rank mutation is required. `!anoachievements` lists missing
 prerequisite tiers as locked. Native chat presentation still requires CS2 acceptance.
+
+## Committed reward events and lifetime level notices
+
+Issue #291 connects all three live reward sources to the shared event bus:
+
+- `ProgressionXpGrantedEvent`: each newly committed gameplay, achievement or challenge grant;
+- `ProgressionLevelUpEvent`: the lifetime level crossed by that grant, including multi-level jumps;
+- `AchievementUnlockedEvent`: each newly committed permanent tier;
+- `ChallengeCompletedEvent`: each newly committed challenge occurrence.
+
+These public contracts live in `AnoCore.Modules.Progression` and use the existing
+engine-independent `IAnoEventBus`. Consumers reference the progression assembly
+alongside Abstractions. Events retain the immutable committed ledger record and the
+captured player session. They never recalculate rewards, update rank points or query
+another score store. Lifetime level before the grant is derived from
+`LifetimeXpAfter - AwardedXp`; the accepted curve determines both levels.
+
+Live modules publish only the new records returned by persistence. Empty/replayed
+results emit nothing. Grant batches are presented in account-revision order within
+each source; separate checkpoint sources can interleave, so consumers use grant ID
+and revision rather than assuming globally ordered delivery. There is no durable
+outbox: observer failure, cancellation, unload or a process crash after commit can
+lose an event or notice. Neither event delivery nor a reward is replayed to recover
+presentation. Observers must never use these best-effort events as the authoritative
+source for financial/reward persistence; the existing ledger remains authoritative.
+Observer exceptions are isolated and diagnosed without suppressing later event kinds
+or changing committed rewards. Settings failures and delivery failures are also
+isolated from persistence.
+
+The live plugin owns one level-notification subscriber for all enabled reward
+sources. `progression.level-notifications` defaults to true and appears in the
+existing player settings commands/menu. Turning it off only suppresses level chat;
+XP and public events continue. Delivery rechecks the captured session after the
+asynchronous settings read and pins that session in the native message target.
+Reconnect, disconnect and unload suppress stale notices. There is no catch-up of
+old levels after reconnect/reload. Activation failure and unload remove the shared
+subscription and toggle.
+
+Native acceptance: cross a lifetime threshold through gameplay XP, a challenge
+reward and an achievement reward; verify one level transition notice per new grant,
+then disable the toggle and repeat. Reconnect during a checkpoint, reload/unload,
+and restart with already awarded records; verify no stale or historical notices.
+These CS2/DatHost observations remain separate from automated event/service tests.
