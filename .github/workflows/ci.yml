@@ -105,6 +105,12 @@ jobs:
               if not path.is_file() or path.stat().st_size == 0:
                   raise SystemExit(f"missing Panorama source asset: {path}")
 
+          for hud_layout in (layout, pathlib.Path("ui/AnoCore/layout/custom_game/anocore/menu.xml")):
+              document = ET.parse(hud_layout).getroot()
+              panels = [element for element in document if element.tag == "Panel"]
+              if len(panels) != 1 or "id" in panels[0].attrib:
+                  raise SystemExit(f"Panorama requires one anonymous outermost Panel: {hud_layout}")
+
           root = ET.parse(layout).getroot()
           ids = {element.attrib["id"] for element in root.iter() if "id" in element.attrib}
           required = {"ano_veto_root", "ano_veto_close", "ano_veto_title", "ano_veto_status"}

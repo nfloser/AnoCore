@@ -1,3 +1,15 @@
+# Panorama root-panel compile regression — 2026-10-07
+
+- The real Windows Workshop Tools compiler rejected `ano_veto.xml`: an outermost
+  layout Panel cannot declare an `id`. The shared menu had the same source error.
+- Both layouts now have an anonymous full-screen, non-hit-testing host Panel.
+  Existing named visibility panels remain nested with all server-facing IDs intact.
+- CI rejects named/multiple outermost panels for both resources. The check fails
+  against the old sources and passes after the wrapper fix; XML/ID/style gates pass.
+- No C# or plugin binaries change. The user's extracted ZIP needs both XML files
+  patched/replaced before rerunning the same `build.ps1` command. Valve resource
+  compilation remains a real Workshop Tools gate, not a capability of CI.
+
 # Shared Panorama player menu — 2026-10-07
 
 - #312 / `feature/312-panorama-player-menu` builds on the stock-client fallback in #311.
