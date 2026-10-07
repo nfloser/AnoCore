@@ -1,3 +1,17 @@
+# Committed progression events and level notices — 2026-10-07
+
+- #291 publishes newly committed gameplay/reward XP, lifetime level transitions,
+  permanent achievement tiers and challenge completions through the shared event bus.
+- One plugin-owned subscriber presents session-pinned lifetime level-ups with the
+  independent persisted `progression.level-notifications` toggle.
+- Record/revision-based transitions avoid extra database reads and never affect ranks.
+- Event/notice failures are best effort; no durable outbox, replay or offline catch-up.
+- Threshold, multi-level, retry, observer isolation, preference, reconnect, cleanup,
+  cancellation and live checkpoint routing regressions accompany progression docs.
+- Local .NET SDK is unavailable; exact-head CI is required before merge.
+- Progression administration, broader presentation/SDK gaps and native acceptance
+  remain open; this checkpoint does not declare the whole project production complete.
+
 # Objective and special-kill rank coverage — 2026-10-07
 
 - #288 adds bomb pickup/drop, hostage hurt, atomic team explosion/defused-others/all-rescue awards.

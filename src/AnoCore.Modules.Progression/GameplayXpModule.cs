@@ -1,4 +1,5 @@
 using AnoCore.Abstractions.Commands;
+using AnoCore.Abstractions.Events;
 using AnoCore.Abstractions.Modules;
 using AnoCore.Abstractions.Players;
 
@@ -12,6 +13,7 @@ public sealed class GameplayXpModule : IDisposable
     private readonly IGameplayXpRepository _repository;
     private readonly ProgressionGrantService _grants;
     private readonly Action<Exception>? _reportError;
+    private readonly ProgressionEventPublisher? _events;
     private readonly IDisposable _command;
     private readonly SemaphoreSlim _checkpointGate = new(1, 1);
     private readonly CancellationTokenSource _lifetime = new();
@@ -19,7 +21,7 @@ public sealed class GameplayXpModule : IDisposable
 
     public GameplayXpModule(GameplayXpPolicy policy, ProgressionDefinitionSnapshot definitions,
         IPlayerRegistry players, IGameplayXpRepository repository, IProgressionGrantRepository grants,
-        IAnoCommandRegistry commands, Action<Exception>? reportError = null)
+        IAnoCommandRegistry commands, Action<Exception>? reportError = null, IAnoEventBus? events = null)
     {
         _policy = policy ?? throw new ArgumentNullException(nameof(policy));
         _definitions = definitions ?? throw new ArgumentNullException(nameof(definitions));
@@ -28,6 +30,7 @@ public sealed class GameplayXpModule : IDisposable
         _grants = new ProgressionGrantService(grants, definitions);
         ArgumentNullException.ThrowIfNull(commands);
         _reportError = reportError;
+        _events = events is null ? null : new ProgressionEventPublisher(events, definitions, reportError);
         _command = commands.Register(new ModuleId("ano.progression.gameplay-xp"),
             new CommandDescriptor("anoxp", "Show your independent lifetime XP and level."), XpAsync);
     }
@@ -47,7 +50,10 @@ public sealed class GameplayXpModule : IDisposable
                 if (!Current(player)) continue;
                 try
                 {
-                    await _repository.ReconcileAsync(player.Id, _policy, _definitions, at, linked.Token).ConfigureAwait(false);
+                    var committed = await _repository.ReconcileAsync(player.Id, _policy, _definitions, at, linked.Token).ConfigureAwait(false);
+                    if (_events is not null)
+                        foreach (var grant in committed.OrderBy(item => item.AccountRevisionAfter))
+                            await _events.GrantAsync(player, grant, linked.Token).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException) when (linked.IsCancellationRequested) { throw; }
                 catch (Exception exception) { Report(exception); }

@@ -84,14 +84,22 @@ public sealed class ChallengeNotificationTests
         await Connect(players);
         var messages = new Messages();
         var toggles = new PlayerToggleCatalog();
+        var events = new AnoEventBus();
+        var completions = 0;
+        using var subscription = events.Subscribe<ChallengeCompletedEvent>((_, _) =>
+        {
+            completions++;
+            return ValueTask.CompletedTask;
+        });
         var commands = new AnoCore.Runtime.Commands.CommandRegistry(new AllowAll());
         var repository = new Repository();
         using var module = new ChallengeModule(new ChallengeConfiguration().Snapshot(),
             ProgressionDefinitionSnapshot.Create([new(1, 0)], []), players, repository, commands,
-            settings: new Settings(), toggles: toggles, messages: messages);
+            settings: new Settings(), toggles: toggles, messages: messages, events: events);
         await module.ReconcileOnlineAsync(Now);
         await module.ReconcileOnlineAsync(Now);
         Assert.HasCount(3, messages.Requests);
+        Assert.AreEqual(3, completions);
         Assert.ThrowsExactly<InvalidOperationException>(() => new ChallengeModule(new ChallengeConfiguration().Snapshot(),
             ProgressionDefinitionSnapshot.Create([new(1, 0)], []), players, repository, commands,
             settings: new Settings(), toggles: new PlayerToggleCatalog(), messages: messages));

@@ -74,6 +74,7 @@ public sealed class AnoCorePlugin : BasePlugin
     private ChallengeModule? _challenges;
     private GameplayXpModule? _gameplayXp;
     private SeasonModule? _seasons;
+    private LevelNotificationService? _levelNotifications;
     private TournamentMatchRuntime? _tournamentMatch;
     private TournamentTeamEnforcement? _tournamentTeamEnforcement;
     private TournamentSpectatorPolicySource? _tournamentSpectatorPolicies;
@@ -181,6 +182,8 @@ public sealed class AnoCorePlugin : BasePlugin
             _seasonTimer?.Kill();
             _gameplayXpTimer = null;
             _seasonTimer = null;
+            _levelNotifications?.Dispose();
+            _levelNotifications = null;
             _gameplayXp?.Dispose();
             _seasons?.Dispose();
             _gameplayXp = null;
@@ -619,7 +622,7 @@ public sealed class AnoCorePlugin : BasePlugin
                         created.GameplayStats, new MySqlAchievementRepository(database),
                         new MySqlProgressionGrantRepository(database), created.Commands,
                         exception => Logger.LogError(exception, "Achievement checkpoint failed."),
-                        created.Settings, created.ToggleCatalog, created.Messages);
+                        created.Settings, created.ToggleCatalog, created.Messages, events: events);
                 }
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -646,7 +649,7 @@ public sealed class AnoCorePlugin : BasePlugin
                     createdChallenges = new ChallengeModule(challengeConfiguration.Snapshot(), xpConfiguration.Snapshot().Xp,
                         players, new MySqlChallengeRepository(database), created.Commands,
                         reportError: exception => Logger.LogError(exception, "Challenge checkpoint failed."),
-                        settings: created.Settings, toggles: created.ToggleCatalog, messages: created.Messages);
+                        settings: created.Settings, toggles: created.ToggleCatalog, messages: created.Messages, events: events);
                 }
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -672,7 +675,7 @@ public sealed class AnoCorePlugin : BasePlugin
                     await ProgressionPersistenceBootstrap.EnsureReadyAsync(database, timeout.Token).ConfigureAwait(false);
                     createdGameplayXp = new GameplayXpModule(gameplayXpConfiguration.Snapshot(), xpConfiguration.Snapshot().Xp,
                         players, new MySqlGameplayXpRepository(database), new MySqlProgressionGrantRepository(database), created.Commands,
-                        exception => Logger.LogError(exception, "Gameplay XP checkpoint failed."));
+                        exception => Logger.LogError(exception, "Gameplay XP checkpoint failed."), events: events);
                 }
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -879,6 +882,7 @@ public sealed class AnoCorePlugin : BasePlugin
             TournamentCommandController? tournamentCommands = null;
             TournamentMapSelectionCommandController? tournamentMapSelectionCommands = null;
             IDisposable? messageTransportRegistration = null;
+            LevelNotificationService? levelNotifications = null;
             var presenter = new CounterStrikeMenuPresenter(this, runtime.Menus, Logger);
             var bridge = new CounterStrikeCommandBridge(
                 this,
@@ -914,6 +918,10 @@ public sealed class AnoCorePlugin : BasePlugin
             {
                 messageTransportRegistration = runtime.Messages.AttachTransport(
                     new CounterStrikeMessageTransport(runtime.Players));
+                if (achievements is not null || challenges is not null || gameplayXp is not null)
+                    levelNotifications = new LevelNotificationService(_eventBus!, runtime.Players,
+                        runtime.Settings, runtime.ToggleCatalog, runtime.Messages,
+                        exception => Logger.LogError(exception, "Progression level notification failed."));
                 var rankScoreChanges = new ChatFormatRankScoreChangeSink(
                     runtime.Players,
                     () => chatFormatSnapshots);
@@ -1253,6 +1261,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 _achievements = achievements;
                 _challenges = challenges;
                 _gameplayXp = gameplayXp;
+                _levelNotifications = levelNotifications;
                 _seasons = seasons;
                 _tournamentMatch = tournamentMatch;
                 _tournamentTeamEnforcement = tournamentTeamEnforcement;
@@ -1310,6 +1319,8 @@ public sealed class AnoCorePlugin : BasePlugin
                 if (ReferenceEquals(_liveRankScoring, liveRankScoring)) _liveRankScoring = null;
                 rank?.Dispose();
                 gameplayStats?.Dispose();
+                levelNotifications?.Dispose();
+                if (ReferenceEquals(_levelNotifications, levelNotifications)) _levelNotifications = null;
                 achievements?.Dispose();
                 challenges?.Dispose();
                 gameplayXp?.Dispose();
