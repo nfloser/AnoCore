@@ -392,8 +392,17 @@ public sealed class AnoCorePlugin : BasePlugin
             var externalModules = await configuration.LoadAsync("modules", () => new ExternalModuleConfiguration(),
                 ExternalModuleConfiguration.Validate, cancellationToken).ConfigureAwait(false);
             _panoramaMenusEnabled = settings.PanoramaMenusEnabled;
-            _webhookPolicy = await configuration.LoadAsync("moderation-webhooks", () => new ModerationWebhookConfiguration(),
-                ModerationWebhookConfiguration.Validate, cancellationToken).ConfigureAwait(false);
+            try
+            {
+                _webhookPolicy = await configuration.LoadAsync("moderation-webhooks", () => new ModerationWebhookConfiguration(),
+                    ModerationWebhookConfiguration.Validate, cancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
+            catch (Exception)
+            {
+                _webhookPolicy = new();
+                Logger.LogError("Moderation webhook configuration rejected; optional notifications are disabled.");
+            }
             var protectedServerControlPolicy = BuildProtectedServerControlPolicy(
                 settings.ProtectedServerControls);
             var managementConfiguration = await configuration.LoadAsync(
@@ -1011,8 +1020,17 @@ public sealed class AnoCorePlugin : BasePlugin
 
             try
             {
-                _webhooks = ModerationWebhookPump.Create((AnoCore.Abstractions.Persistence.IDatabase)runtime.GetService(typeof(AnoCore.Abstractions.Persistence.IDatabase))!, _webhookPolicy);
-                _webhooks.Start();
+                try
+                {
+                    _webhooks = ModerationWebhookPump.Create((AnoCore.Abstractions.Persistence.IDatabase)runtime.GetService(typeof(AnoCore.Abstractions.Persistence.IDatabase))!, _webhookPolicy);
+                    _webhooks.Start();
+                }
+                catch (Exception)
+                {
+                    _webhooks?.Dispose();
+                    _webhooks = null;
+                    Logger.LogError("Moderation webhook destination rejected; optional notifications are disabled.");
+                }
                 _adminMenu = new AdminMenuModule(runtime.Commands, runtime.Players, runtime.Menus, runtime.Authorization, runtime.TargetAuthorization, _eventBus!);
                 _roleCommands = new RoleAdministrationCommands(runtime.Commands,
                     new MySqlRoleAdministration((AnoCore.Abstractions.Persistence.IDatabase)runtime.GetService(typeof(AnoCore.Abstractions.Persistence.IDatabase))!, runtime.Authorization),

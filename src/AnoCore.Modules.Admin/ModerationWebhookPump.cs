@@ -161,6 +161,7 @@ public sealed class ModerationWebhookPump : IDisposable
         if (!await _checkpoint.WaitAsync(0, linked.Token)) return;
         try
         {
+            linked.CancelAfter(TimeSpan.FromSeconds(_options.TimeoutSeconds));
             var since = now.AddSeconds(-60) > _started ? now.AddSeconds(-60) : _started;
             var batch = await _read(since, _options.BatchSize, linked.Token);
             foreach (var item in batch.Take(_options.BatchSize))
