@@ -1,8 +1,8 @@
+# AnoCore roadmap
+
 ## Test-phase implementation status — 2026-10-08
 
 The final identified implementation packages are role/timed VIP administration (#314), actionable admin forms (#315), optional committed-audit webhooks (#316) and remaining live reload adoption/restart boundaries (#317). Implementation and regression coverage now exist for all four; final CI/review gates the last merge. Native CS2/DatHost acceptance remains the user test phase. See functional-acceptance.md for behavior and configuration-reload.md for restart requirements. The roadmap below describes the target scope, not an unimplemented-feature count.
-
-# AnoCore roadmap
 
 ## Foundation
 

@@ -30,7 +30,7 @@ When AnoVeto starts enabled, it registers `anoveto` and `maps` with the shared r
 | `ranks`, `gameplay-stats` | Restart: source mode, scoring policy, thresholds, native hooks and presentation policy. Existing ledgers/totals are retained; startup does not rewrite earned history. |
 | `achievements`, `challenges`, `seasons` | Restart: definition catalogs, versioned rewards and XP curve/scheduling. Do not edit old immutable reward versions to rescore earned grants; use new versions for changed definitions. |
 | `moderation-webhooks` and webhook environment variables | Restart: opt-in destination, approved hosts, privacy and delivery bounds are pinned for the pump lifetime. |
-| Tournament match definitions (`tournaments/*`) | Validated on explicit match load/map-policy application. Active match recovery remains pinned to stored match state; no generic hot reload. |
+| `tournament-match` | Validated on explicit match load/map-policy application. Active match recovery remains pinned to stored match state; no generic hot reload. |
 | Player settings/storage | Existing typed persistence commands and APIs apply per-player changes; not startup JSON configuration. |
 
 `anoconfigs` lists actual live registrations, not every file. Restart-only files are intentionally absent. Failed JSON, invalid candidates, cancellation and unload retain the last accepted runtime policy. There is no bulk reload or watcher. Native acceptance: reload each registered policy with two connected clients, verify new chat/tag/notification behavior, invalid-candidate retention, active-vote isolation and unload/restart cleanup.
