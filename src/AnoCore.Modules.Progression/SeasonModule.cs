@@ -75,6 +75,8 @@ public sealed class SeasonModule : IDisposable
             _commands.Add(commands.Register(owner, new("anoseasontop", "Show an independent season leaderboard.", arguments:
                 [new("season", CommandArgumentKind.String, "Season ID (default current).", required: false),
                 new("page", CommandArgumentKind.Int32, "Page number.", required: false)]), TopAsync));
+            _commands.Add(commands.Register(owner, new("anoseasontopcurrent", "Show the current season leaderboard.", arguments:
+                [new("page", CommandArgumentKind.Int32, "Page number.", required: false)]), TopAsync));
             _commands.Add(commands.Register(owner, new("anocloseseason", "Freeze an ended season after reward backlogs are drained.",
                 ClosePermission, arguments: [new("season", CommandArgumentKind.String, "Season ID.")]), CloseAsync));
         }

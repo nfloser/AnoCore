@@ -77,6 +77,7 @@ public sealed class AnoCorePlugin : BasePlugin
     private SeasonModule? _seasons;
     private LevelNotificationService? _levelNotifications;
     private ProgressionAdminCommandController? _xpAdminCommands;
+    private ProgressionMenuModule? _progressionMenu;
     private TournamentMatchRuntime? _tournamentMatch;
     private TournamentTeamEnforcement? _tournamentTeamEnforcement;
     private TournamentSpectatorPolicySource? _tournamentSpectatorPolicies;
@@ -184,6 +185,8 @@ public sealed class AnoCorePlugin : BasePlugin
             _seasonTimer?.Kill();
             _gameplayXpTimer = null;
             _seasonTimer = null;
+            _progressionMenu?.Dispose();
+            _progressionMenu = null;
             _xpAdminCommands?.Dispose();
             _xpAdminCommands = null;
             _pendingXpAdministration = null;
@@ -909,6 +912,7 @@ public sealed class AnoCorePlugin : BasePlugin
             IDisposable? messageTransportRegistration = null;
             LevelNotificationService? levelNotifications = null;
             ProgressionAdminCommandController? xpAdminCommands = null;
+            ProgressionMenuModule? progressionMenu = null;
             var presenter = new CounterStrikeMenuPresenter(this, runtime.Menus, Logger);
             var bridge = new CounterStrikeCommandBridge(
                 this,
@@ -916,7 +920,8 @@ public sealed class AnoCorePlugin : BasePlugin
                 Logger,
                 (commandName, player) =>
                 {
-                    if (string.Equals(commandName, RankModule.MenuCommandName,
+                    if (string.Equals(commandName, ProgressionMenuModule.CommandName, StringComparison.Ordinal)
+                        || string.Equals(commandName, RankModule.MenuCommandName,
                             StringComparison.Ordinal)
                         || string.Equals(commandName, GameplayStatsModule.MenuCommandName,
                             StringComparison.Ordinal)
@@ -948,6 +953,8 @@ public sealed class AnoCorePlugin : BasePlugin
                     levelNotifications = new LevelNotificationService(_eventBus!, runtime.Players,
                         runtime.Settings, runtime.ToggleCatalog, runtime.Messages,
                         exception => Logger.LogError(exception, "Progression level notification failed."));
+                if (achievements is not null || challenges is not null || gameplayXp is not null || seasons is not null)
+                    progressionMenu = new ProgressionMenuModule(runtime.Commands, runtime.Players, runtime.Menus, _eventBus!);
                 var rankScoreChanges = new ChatFormatRankScoreChangeSink(
                     runtime.Players,
                     () => chatFormatSnapshots);
@@ -1291,6 +1298,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 _gameplayXp = gameplayXp;
                 _levelNotifications = levelNotifications;
                 _xpAdminCommands = xpAdminCommands;
+                _progressionMenu = progressionMenu;
                 _seasons = seasons;
                 _tournamentMatch = tournamentMatch;
                 _tournamentTeamEnforcement = tournamentTeamEnforcement;
@@ -1348,6 +1356,8 @@ public sealed class AnoCorePlugin : BasePlugin
                 if (ReferenceEquals(_liveRankScoring, liveRankScoring)) _liveRankScoring = null;
                 rank?.Dispose();
                 gameplayStats?.Dispose();
+                progressionMenu?.Dispose();
+                if (ReferenceEquals(_progressionMenu, progressionMenu)) _progressionMenu = null;
                 xpAdminCommands?.Dispose();
                 if (ReferenceEquals(_xpAdminCommands, xpAdminCommands)) _xpAdminCommands = null;
                 levelNotifications?.Dispose();
