@@ -3,7 +3,7 @@ using AnoCore.Abstractions.Settings;
 
 namespace AnoCore.Modules.Stats;
 
-public sealed class RankNotificationPreferenceSink : IRankTransitionNotificationSink, IDisposable
+public sealed class RankNotificationPreferenceSink : ISessionRankTransitionNotificationSink, IDisposable
 {
     public static PlayerSettingKey<bool> EnabledSetting { get; } =
         new("rank.notifications", true);
@@ -23,10 +23,19 @@ public sealed class RankNotificationPreferenceSink : IRankTransitionNotification
         _reportError = reportError;
     }
 
-    public async ValueTask NotifyAsync(
-        PlayerId playerId,
-        RankTransition transition,
+    public ValueTask NotifyAsync(PlayerId playerId, RankTransition transition,
         CancellationToken cancellationToken = default)
+        => NotifyCoreAsync(playerId, transition, null, cancellationToken);
+
+    public ValueTask NotifyAsync(PlayerSnapshot player, RankTransition transition,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(player);
+        return NotifyCoreAsync(player.Id, transition, player, cancellationToken);
+    }
+
+    private async ValueTask NotifyCoreAsync(PlayerId playerId, RankTransition transition,
+        PlayerSnapshot? expected, CancellationToken cancellationToken)
     {
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, this);
         ArgumentNullException.ThrowIfNull(transition);
@@ -47,9 +56,13 @@ public sealed class RankNotificationPreferenceSink : IRankTransitionNotification
             return;
         }
 
-        if (enabled)
-            await _inner.NotifyAsync(playerId, transition, cancellationToken)
-                .ConfigureAwait(false);
+        if (enabled && Volatile.Read(ref _disposed) == 0)
+        {
+            if (expected is not null && _inner is ISessionRankTransitionNotificationSink pinned)
+                await pinned.NotifyAsync(expected, transition, cancellationToken).ConfigureAwait(false);
+            else
+                await _inner.NotifyAsync(playerId, transition, cancellationToken).ConfigureAwait(false);
+        }
     }
 
     public void Dispose()

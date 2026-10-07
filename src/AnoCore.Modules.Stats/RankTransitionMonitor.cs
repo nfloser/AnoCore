@@ -9,6 +9,12 @@ public interface IRankTransitionNotificationSink
         CancellationToken cancellationToken = default);
 }
 
+public interface ISessionRankTransitionNotificationSink : IRankTransitionNotificationSink
+{
+    ValueTask NotifyAsync(PlayerSnapshot player, RankTransition transition,
+        CancellationToken cancellationToken = default);
+}
+
 public interface IRankScoreChangeSink
 {
     ValueTask ScoreChangedAsync(PlayerId playerId,

@@ -86,6 +86,53 @@ public sealed class RankNotificationPreferenceSinkTests
         Assert.AreEqual(1, inner.Disposals);
     }
 
+    [TestMethod]
+    public async Task SessionNotice_PreservesCapturedIdentityAndDisposeSuppressesPendingPreferenceRead()
+    {
+        var at = DateTimeOffset.UtcNow;
+        var player = new PlayerSnapshot(Player, PlayerSessionId.New(), "Player", true, true,
+            PlayerTeam.Terrorist, at, at);
+        var inner = new SessionSink();
+        using (var sink = new RankNotificationPreferenceSink(new FakeSettings(), inner))
+            await sink.NotifyAsync(player, Transition);
+        Assert.AreSame(player, inner.Captured);
+        var settings = new DeferredSettings();
+        var pendingInner = new SessionSink();
+        var pendingSink = new RankNotificationPreferenceSink(settings, pendingInner);
+        var pending = pendingSink.NotifyAsync(player, Transition).AsTask();
+        await settings.Started.Task;
+        pendingSink.Dispose();
+        settings.Release.SetResult();
+        await pending;
+        Assert.IsNull(pendingInner.Captured);
+    }
+
+    private sealed class SessionSink : ISessionRankTransitionNotificationSink
+    {
+        public PlayerSnapshot? Captured { get; private set; }
+        public ValueTask NotifyAsync(PlayerId id, RankTransition transition, CancellationToken cancellationToken = default)
+            => throw new AssertFailedException("The session-pinned overload must be used.");
+        public ValueTask NotifyAsync(PlayerSnapshot player, RankTransition transition, CancellationToken cancellationToken = default)
+        {
+            Captured = player;
+            return ValueTask.CompletedTask;
+        }
+    }
+
+    private sealed class DeferredSettings : IPlayerSettingsService
+    {
+        public TaskCompletionSource Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource Release { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public async ValueTask<T> GetAsync<T>(PlayerId playerId, PlayerSettingKey<T> key, CancellationToken cancellationToken = default)
+        {
+            Started.SetResult();
+            await Release.Task;
+            return key.DefaultValue;
+        }
+        public ValueTask SetAsync<T>(PlayerId playerId, PlayerSettingKey<T> key, T value, CancellationToken cancellationToken = default) => throw new AssertFailedException();
+        public ValueTask<bool> ResetAsync<T>(PlayerId playerId, PlayerSettingKey<T> key, CancellationToken cancellationToken = default) => throw new AssertFailedException();
+    }
+
     private sealed class FakeSettings(bool enabled = true) : IPlayerSettingsService
     {
         public string? LastKey { get; private set; }
