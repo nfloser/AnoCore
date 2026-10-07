@@ -86,6 +86,8 @@ public sealed class AnoCorePlugin : BasePlugin
     private AnoHomeMenuModule? _homeMenu;
     private AdminMenuModule? _adminMenu;
     private RoleAdministrationCommands? _roleCommands;
+    private ModerationWebhookConfiguration _webhookPolicy = new();
+    private ModerationWebhookPump? _webhooks;
     private CounterStrikeSharp.API.Modules.Timers.Timer? _roleExpiryTimer;
     private bool _panoramaMenusEnabled;
     private TournamentMatchRuntime? _tournamentMatch;
@@ -200,6 +202,8 @@ public sealed class AnoCorePlugin : BasePlugin
             _seasonTimer?.Kill();
             _gameplayXpTimer = null;
             _seasonTimer = null;
+            _webhooks?.Dispose();
+            _webhooks = null;
             _adminMenu?.Dispose();
             _adminMenu = null;
             _roleExpiryTimer?.Kill();
@@ -383,6 +387,8 @@ public sealed class AnoCorePlugin : BasePlugin
             var externalModules = await configuration.LoadAsync("modules", () => new ExternalModuleConfiguration(),
                 ExternalModuleConfiguration.Validate, cancellationToken).ConfigureAwait(false);
             _panoramaMenusEnabled = settings.PanoramaMenusEnabled;
+            _webhookPolicy = await configuration.LoadAsync("moderation-webhooks", () => new ModerationWebhookConfiguration(),
+                ModerationWebhookConfiguration.Validate, cancellationToken).ConfigureAwait(false);
             var protectedServerControlPolicy = BuildProtectedServerControlPolicy(
                 settings.ProtectedServerControls);
             var managementConfiguration = await configuration.LoadAsync(
@@ -997,6 +1003,8 @@ public sealed class AnoCorePlugin : BasePlugin
 
             try
             {
+                _webhooks = ModerationWebhookPump.Create((AnoCore.Abstractions.Persistence.IDatabase)runtime.GetService(typeof(AnoCore.Abstractions.Persistence.IDatabase))!, _webhookPolicy);
+                _webhooks.Start();
                 _adminMenu = new AdminMenuModule(runtime.Commands, runtime.Players, runtime.Menus, runtime.Authorization, runtime.TargetAuthorization, _eventBus!);
                 _roleCommands = new RoleAdministrationCommands(runtime.Commands,
                     new MySqlRoleAdministration((AnoCore.Abstractions.Persistence.IDatabase)runtime.GetService(typeof(AnoCore.Abstractions.Persistence.IDatabase))!, runtime.Authorization),
@@ -1414,6 +1422,8 @@ public sealed class AnoCorePlugin : BasePlugin
                 if (ReferenceEquals(_liveRankScoring, liveRankScoring)) _liveRankScoring = null;
                 rank?.Dispose();
                 gameplayStats?.Dispose();
+                _webhooks?.Dispose();
+                _webhooks = null;
                 _adminMenu?.Dispose();
                 _adminMenu = null;
                 _roleExpiryTimer?.Kill();
