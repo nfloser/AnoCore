@@ -69,7 +69,7 @@ public sealed class RankPointPresentationService : IRankPointEventSink, IDisposa
         if (delta == 0) return;
         lock (_gate)
         {
-            if (Volatile.Read(ref _disposed) != 0 || _completed.Contains(change.RoundKey)) return;
+            if (Volatile.Read(ref _disposed) != 0) return;
             var seenKey = (change.EventId, change.Player.Id, change.Player.SessionId);
             if (!_seen.Add(seenKey)) return;
             _seenOrder.Enqueue(seenKey);
@@ -78,7 +78,8 @@ public sealed class RankPointPresentationService : IRankPointEventSink, IDisposa
                          || current is not { IsConnected: true } || current.SessionId != key.Session).ToArray())
                 _rounds.Remove(key);
             var roundKey = (change.Player.Id, change.Player.SessionId, change.RoundKey);
-            if (_summariesEnabled && (_rounds.ContainsKey(roundKey) || _rounds.Count < 128))
+            if (_summariesEnabled && !_completed.Contains(change.RoundKey)
+                && (_rounds.ContainsKey(roundKey) || _rounds.Count < 128))
             {
                 var previous = _rounds.GetValueOrDefault(roundKey)?.Delta ?? 0;
                 _rounds[roundKey] = new(change.Player, checked(previous + delta));

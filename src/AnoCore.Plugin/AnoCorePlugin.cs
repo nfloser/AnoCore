@@ -1954,7 +1954,11 @@ public sealed class AnoCorePlugin : BasePlugin
                 Observe(scoring.RecordGameplayAsync(statistic, LiveRankContext(statistic.EventId, at), player).AsTask(), "rank_round");
             }
             var roundKey = LiveRankContext(Guid.NewGuid(), at).RoundKey;
-            Observe(scoring.CompleteRoundAsync(roundKey).AsTask(), "rank_round_summary");
+            Server.NextWorldUpdate(() =>
+            {
+                if (ReferenceEquals(_liveRankScoring, scoring))
+                    Observe(scoring.CompleteRoundAsync(roundKey).AsTask(), "rank_round_summary");
+            });
         }
         catch (Exception exception) { Logger.LogError(exception, "Could not record live rank round."); }
     }

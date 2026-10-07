@@ -26,7 +26,15 @@ public sealed class LiveRankScoringService : IDisposable
     public LiveRankScoringService(RankConfiguration configuration, IRankPointEventRepository events,
         IGameplayRankScoreRepository scores, IPlayerRegistry players, IPermissionEvaluator permissions,
         IRankTransitionNotificationSink notifications, IRankScoreChangeSink? scoreChanges = null,
-        Action<Exception>? reportError = null, IRankPointEventSink? pointPresentation = null)
+        Action<Exception>? reportError = null)
+        : this(configuration, events, scores, players, permissions, notifications, scoreChanges, reportError, null)
+    {
+    }
+
+    public LiveRankScoringService(RankConfiguration configuration, IRankPointEventRepository events,
+        IGameplayRankScoreRepository scores, IPlayerRegistry players, IPermissionEvaluator permissions,
+        IRankTransitionNotificationSink notifications, IRankScoreChangeSink? scoreChanges,
+        Action<Exception>? reportError, IRankPointEventSink? pointPresentation)
     {
         _policy = new LiveRankPolicy(configuration);
         if (configuration.Source != RankScoreSource.EventLedger)

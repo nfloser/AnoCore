@@ -103,14 +103,57 @@ public sealed class LiveRankScoringServiceTests
         Assert.IsTrue(setup.Errors.Count > 0);
     }
 
-    private static LiveRankScoringService Service(SetupResult setup, decimal vip = 1) => new(
+    [TestMethod]
+    public async Task RoundCompletion_WaitsForQueuedCommittedEventsAndReplaysDoNotPublishAgain()
+    {
+        var setup = await Setup();
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        setup.Events.AfterWrite = async () => { started.TrySetResult(); await release.Task; };
+        var presentation = new PointSink();
+        using var service = Service(setup, presentation: presentation);
+        var firstInput = Death(setup.Players);
+        var first = service.RecordDeathAsync(firstInput).AsTask();
+        await started.Task;
+        var second = service.RecordDeathAsync(Death(setup.Players, Now.AddSeconds(1))).AsTask();
+        var complete = service.CompleteRoundAsync("round-1").AsTask();
+        release.SetResult();
+        await Task.WhenAll(first, second, complete);
+        Assert.AreEqual(4, presentation.Changes.Count);
+        Assert.AreEqual("summary:round-1", presentation.Order.Last());
+        await service.RecordDeathAsync(firstInput);
+        Assert.AreEqual(4, presentation.Changes.Count);
+        service.Dispose();
+        Assert.IsTrue(presentation.Disposed);
+    }
+
+    private sealed class PointSink : IRankPointEventSink, IDisposable
+    {
+        public List<RankPointChange> Changes { get; } = [];
+        public List<string> Order { get; } = [];
+        public bool Disposed { get; private set; }
+        public ValueTask CommittedAsync(RankPointChange change, CancellationToken cancellationToken = default)
+        {
+            Changes.Add(change);
+            Order.Add("event");
+            return ValueTask.CompletedTask;
+        }
+        public ValueTask CompleteRoundAsync(string roundKey, CancellationToken cancellationToken = default)
+        {
+            Order.Add("summary:" + roundKey);
+            return ValueTask.CompletedTask;
+        }
+        public void Dispose() => Disposed = true;
+    }
+
+    private static LiveRankScoringService Service(SetupResult setup, decimal vip = 1, IRankPointEventSink? presentation = null) => new(
         new RankConfiguration
         {
             Source = RankScoreSource.EventLedger,
             Thresholds = [new("Recruit", 0), new("Promoted", 1)],
             GameplayPoints = new() { [GameplayStatKind.BombPlanted] = 5 },
             LivePolicy = new() { StreakPoints = new() { [2] = 5 }, VipMultiplier = vip },
-        }, setup.Events, new Scores(setup.Events), setup.Players, setup.Permissions, setup.Sinks, setup.Sinks, setup.Errors.Add);
+        }, setup.Events, new Scores(setup.Events), setup.Players, setup.Permissions, setup.Sinks, setup.Sinks, setup.Errors.Add, presentation);
 
     private static RankDeathInput Death(PlayerRegistry players, DateTimeOffset? at = null)
     {

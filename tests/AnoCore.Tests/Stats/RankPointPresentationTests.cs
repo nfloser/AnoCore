@@ -35,7 +35,8 @@ public sealed class RankPointPresentationTests
         Assert.IsTrue(messages.Requests.All(request => request.Target.SessionId == player!.SessionId));
         await service.CommittedAsync(Change(player!, 7, 9));
         await service.CompleteRoundAsync("round-1");
-        Assert.AreEqual(3, messages.Requests.Count);
+        Assert.AreEqual(4, messages.Requests.Count);
+        StringAssert.Contains(messages.Requests[3].Text, "+2");
         service.Dispose();
         Assert.IsEmpty(toggles.GetAll());
     }
