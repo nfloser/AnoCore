@@ -1,3 +1,14 @@
+# Combat-backed challenge predicates — 2026-10-07
+
+- #297 adds explicit counter sources for ordinary kills, assists and enemy utility
+  health damage, derived from existing raw death/damage ledgers inside UTC windows.
+- Legacy GameplayStat remains the zero/default source; recurring/predefined snapshots
+  validate and preserve selectors. No new tracking, migrations or duplicate counters.
+- Teamkill/self/invalid-assist events are excluded. Utility counts bounded enemy HE/fire
+  health damage, never armor or gun damage. Statistics resets preserve window progress.
+- Predicate/window/replay and configuration/JSON regression tests accompany source docs.
+- Exact-head CI required before merge; native ingestion remains manual acceptance.
+
 # Progression navigation and active boost status — 2026-10-07
 
 - #295 adds `!anoprogression` over existing enabled read commands, with no extra
@@ -10,7 +21,8 @@
   replacing the existing explicitly addressed historical leaderboard command.
 - Regression coverage includes native label safety, enabled-source filtering,
   pagination, read ordering, reconnect/unload and scheduled/weekend boost boundaries.
-- Exact-head CI required before merge; native menus remain manual acceptance.
+- PR #296 merged after CI #714 passed all 898 tests and package checks;
+  native menus remain manual acceptance.
 
 # Audited lifetime XP administration — 2026-10-07
 
