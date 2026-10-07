@@ -63,6 +63,7 @@ public sealed class ChallengeModule : IDisposable
         if (!await _checkpointGate.WaitAsync(0, linked.Token).ConfigureAwait(false)) return;
         try
         {
+            _notifications?.Prune(at);
             var catalog = _schedule.ResolveAt(at);
             var ordered = DependencyOrder(catalog);
             foreach (var player in _players.OnlinePlayers.Where(item => item.IsConnected).ToArray())
@@ -78,7 +79,10 @@ public sealed class ChallengeModule : IDisposable
                         if (_events is not null)
                             await _events.ChallengeAsync(player, result, linked.Token).ConfigureAwait(false);
                         if (_notifications is not null)
+                        {
+                            await _notifications.ObserveProgressAsync(player, result, linked.Token).ConfigureAwait(false);
                             await _notifications.NotifyAsync(player, definition.Name, result, linked.Token).ConfigureAwait(false);
+                        }
                     }
                     catch (OperationCanceledException) when (linked.IsCancellationRequested) { throw; }
                     catch (Exception exception) { Report(exception); }
