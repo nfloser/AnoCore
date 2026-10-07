@@ -24,22 +24,22 @@ public sealed class ScrollMenuCursor
 
     public int EndIndexExclusive => Math.Min(OptionCount, StartIndex + VisibleRows);
 
-    public bool MovePrevious()
+    public bool MovePrevious(int count = 1)
     {
-        if (OptionCount == 0)
+        if (OptionCount == 0 || count <= 0 || SelectedIndex <= 0)
             return false;
 
-        SelectedIndex = SelectedIndex <= 0 ? OptionCount - 1 : SelectedIndex - 1;
+        SelectedIndex = Math.Max(0, SelectedIndex - count);
         KeepVisible();
         return true;
     }
 
-    public bool MoveNext()
+    public bool MoveNext(int count = 1)
     {
-        if (OptionCount == 0)
+        if (OptionCount == 0 || count <= 0 || SelectedIndex >= OptionCount - 1)
             return false;
 
-        SelectedIndex = SelectedIndex >= OptionCount - 1 ? 0 : SelectedIndex + 1;
+        SelectedIndex = Math.Min(OptionCount - 1, SelectedIndex + count);
         KeepVisible();
         return true;
     }
