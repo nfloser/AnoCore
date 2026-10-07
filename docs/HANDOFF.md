@@ -1,3 +1,20 @@
+# Live external SDK module integration — 2026-10-07
+
+- #305 / `feature/external-sdk-module-host` connects explicitly configured trusted
+  SDK modules after native services activate. No arbitrary DLL scan or remote loading.
+- Filename/count/size/link checks and implementation-dependency/API/identity checks
+  protect predictable loading; deterministic discovery isolates extension failures.
+- A separately compiled SDK-only fixture exercises actual assembly discovery and
+  command ownership. Dynamic registry changes reconcile native command bindings;
+  shared menu mutations now present through captured-session native ownership.
+- Host shutdown cancels pending startup, rejects later loads, immediately releases
+  owned registrations and completes reverse-order cleanup without duplicate calls.
+- Tests cover assembly/path/link/duplicate/dependency failures, cancellation/unload
+  ordering, cleanup isolation, command replacements and native binding retries.
+- Exact-head build/tests/format/package CI and self-review are required before merge.
+- Next code work: audited role/timed-assignment administration and admin integration,
+  remaining config adoption, and reconciled test-phase acceptance inventory.
+
 # Owned live gameplay XP reload — 2026-10-07
 
 - #303 adopts the existing shared config reload registry/commands and JSON store.
@@ -9,8 +26,9 @@
   checkpoint policy. XP curves/global modifier definitions remain restart-only here.
 - Startup command collision/unload release reload ownership. No new reload command,
   grant ledger, counters or hot-path database queries were introduced.
-- Regression tests cover status/policy updates, concurrent reload isolation, rejected
-  changes and partial registration rollback. Exact-head CI is required before merge.
+- PR #304 merged after CI #726 passed all 922 tests, formatting and package gates.
+  Regression coverage includes status/policy updates, concurrent reload isolation,
+  rejected changes and partial registration rollback; native tests remain manual.
 
 # SDK host notifications — 2026-10-07
 

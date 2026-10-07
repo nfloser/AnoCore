@@ -94,3 +94,39 @@ Subscribers should capture facts and return/yield promptly; synchronous subscrib
 work still runs on the publishing thread. Asynchronous callbacks must revalidate
 current session/lifetime before using host services and avoid native API access
 without the host's appropriate thread dispatch.
+
+## Configured external modules
+
+Place trusted managed SDK-only assemblies in `plugins/AnoCore/modules/` and list
+exact .dll basenames in `config/modules.json`, for example:
+
+```json
+{ "Assemblies": ["Example.Module.dll"] }
+```
+
+The default list is empty. The host never scans arbitrary DLLs or downloads code.
+It accepts at most 32 unique bounded filenames, 20 MiB per assembly, 32 public
+parameterless `IAnoModule` classes per assembly and a bounded total discovery set.
+Paths, links, malformed assemblies, duplicate module identities and references to
+Runtime/Plugin/optional implementation modules/CounterStrikeSharp/MySqlConnector
+are rejected. Modules initialize in deterministic assembly/type order after native
+services activate, through the same SDK assembly identity and public service provider.
+Failures isolate the extension and are visible as `ready with module errors` plus
+module state/logs; they do not disable built-in features. Cooperative startup uses
+a 30-second cancellation window. This is a trusted-code extension mechanism, not a
+sandbox: install only reviewed binaries. Package binary changes require a process
+restart; a plugin hot reload may reuse the already loaded assembly identity.
+
+Module commands are reconciled to native bindings on the world-update thread,
+including additions, removals and replacements. Shared menu open/close changes are
+also dispatched to native presentation with captured session checks and monotonic
+open revisions, so repeated notifications do not reopen a user-closed menu. Use `context.Own` for command/event/
+settings/menu/config registrations. Host shutdown immediately releases these owned
+handles, cancels pending initialization, rejects new loads and completes shutdown
+in reverse load order, isolating failures. Native unload does not block on async
+shutdown; extensions must not depend on disposed host services after yielding.
+
+Acceptance: install one SDK-only module, execute its command, inspect host/module
+status, trigger a failed initialization, then reconnect/hot reload/unload. Verify
+no duplicate native command or stale registration survives. Automated tests load a
+separately compiled SDK-only fixture and cover real ownership/path/lifecycle edges.
