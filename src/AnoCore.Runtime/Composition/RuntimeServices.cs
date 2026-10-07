@@ -68,6 +68,7 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
         Playtime = new MySqlPlaytimeRepository(database);
         Combat = new MySqlCombatRepository(database);
         GameplayStats = new MySqlGameplayStatRepository(database);
+        RankPointEvents = new MySqlRankPointEventRepository(database);
         RankAdjustments = new MySqlRankAdjustmentRepository(database);
         RankAdjustmentAdministration = new MySqlRankAdjustmentAdministrationService(database);
         StatisticsResetAdministration = new MySqlStatisticsResetAdministrationService(database);
@@ -116,6 +117,7 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
         Add<ICombatRepository>(Combat);
         Add<ICombatDetailRepository>(Combat);
         Add<IGameplayStatRepository>(GameplayStats);
+        Add<IRankPointEventRepository>(RankPointEvents);
         Add<IRankAdjustmentRepository>(RankAdjustments);
         Add<IRankAdjustmentAdministrationService>(RankAdjustmentAdministration);
         Add<IStatisticsResetAdministrationService>(StatisticsResetAdministration);
@@ -202,7 +204,7 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
         await new DatabaseStartupProbe(
             database,
             [new CoreSchemaMigration001(), new ModerationSchemaMigration002(), new AdminAuditSchemaMigration003(), new WarningSchemaMigration004(), new PlaytimeSchemaMigration005(), new CombatSchemaMigration006(), new RankAdjustmentSchemaMigration007(), new PlaytimeStateSchemaMigration008(), new CombatDetailSchemaMigration009(), new GameplayStatSchemaMigration010(),
-             new StatisticsResetSchemaMigration011()])
+             new StatisticsResetSchemaMigration011(), new RankPointEventSchemaMigration018()])
             .EnsureReadyAsync(cancellationToken).ConfigureAwait(false);
         var runtime = new RuntimeServices(
             database,
