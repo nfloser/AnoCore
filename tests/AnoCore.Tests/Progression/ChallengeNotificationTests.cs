@@ -128,6 +128,119 @@ public sealed class ChallengeNotificationTests
         Assert.IsEmpty(messages.Requests);
     }
 
+    [TestMethod]
+    public async Task ProgressIsOptInAndBaselineRepeatsDecreasesAndCompletionAreSilent()
+    {
+        var players = new PlayerRegistry(new AnoEventBus());
+        var player = await Connect(players);
+        var messages = new Messages();
+        using var service = new ChallengeNotificationService(players, new Settings { ProgressEnabled = true },
+            new PlayerToggleCatalog(), messages);
+        await service.ObserveProgressAsync(player, Progress(1));
+        await service.ObserveProgressAsync(player, Progress(2));
+        await service.ObserveProgressAsync(player, Progress(2));
+        await service.ObserveProgressAsync(player, Progress(1));
+        await service.ObserveProgressAsync(player, Progress(2));
+        await service.ObserveProgressAsync(player, Progress(3));
+        await service.ObserveProgressAsync(player, Completion(true, 100));
+        Assert.HasCount(2, messages.Requests);
+        StringAssert.Contains(messages.Requests[0].Text, "2/10");
+        StringAssert.Contains(messages.Requests[1].Text, "3/10");
+        Assert.AreEqual(player.SessionId, messages.Requests[0].Target.SessionId);
+        Assert.IsFalse(ChallengeNotificationService.ProgressPreference.DefaultValue);
+    }
+
+    [TestMethod]
+    public async Task DisabledProgressAndChangedPreferenceDoNotCatchUpEarlierCounts()
+    {
+        var players = new PlayerRegistry(new AnoEventBus());
+        var player = await Connect(players);
+        var settings = new Settings();
+        var messages = new Messages();
+        using var service = new ChallengeNotificationService(players, settings, new PlayerToggleCatalog(), messages);
+        await service.ObserveProgressAsync(player, Progress(1));
+        await service.ObserveProgressAsync(player, Progress(5));
+        settings.ProgressEnabled = true;
+        await service.ObserveProgressAsync(player, Progress(5));
+        Assert.IsEmpty(messages.Requests);
+        await service.ObserveProgressAsync(player, Progress(6));
+        Assert.HasCount(1, messages.Requests);
+    }
+
+    [TestMethod]
+    public async Task ProgressRolloverVersionAndReconnectStartSilentBaselines()
+    {
+        var players = new PlayerRegistry(new AnoEventBus());
+        var player = await Connect(players);
+        var messages = new Messages();
+        using var service = new ChallengeNotificationService(players, new Settings { ProgressEnabled = true },
+            new PlayerToggleCatalog(), messages);
+        await service.ObserveProgressAsync(player, Progress(1));
+        player = await Connect(players);
+        service.Prune(Now);
+        await service.ObserveProgressAsync(player, Progress(5));
+        var next = Progress(5);
+        next = next with { Evaluation = next.Evaluation with
+            { Definition = next.Evaluation.Definition with { StartsAtUtc = Now.AddDays(7), EndsAtUtc = Now.AddDays(14) } } };
+        service.Prune(Now.AddDays(7));
+        await service.ObserveProgressAsync(player, next);
+        var version = next with { Evaluation = next.Evaluation with { Definition = next.Evaluation.Definition with { Version = 2 } } };
+        await service.ObserveProgressAsync(player, version);
+        Assert.IsEmpty(messages.Requests);
+    }
+
+    [TestMethod]
+    public async Task ProgressReconnectDuringPreferenceReadAndDisposeSuppressDelivery()
+    {
+        var players = new PlayerRegistry(new AnoEventBus());
+        var player = await Connect(players);
+        var messages = new Messages();
+        using var service = new ChallengeNotificationService(players,
+            new Settings { ProgressEnabled = true, BeforeRead = async () => { await Connect(players); } },
+            new PlayerToggleCatalog(), messages);
+        await service.ObserveProgressAsync(player, Progress(1));
+        await service.ObserveProgressAsync(player, Progress(2));
+        service.Dispose();
+        await service.ObserveProgressAsync(player, Progress(3));
+        Assert.IsEmpty(messages.Requests);
+    }
+
+    [TestMethod]
+    public async Task ProgressDeliveryFailureAdvancesObservationWithoutRepeatingNotice()
+    {
+        var players = new PlayerRegistry(new AnoEventBus());
+        var player = await Connect(players);
+        var messages = new Messages { FailFirst = true };
+        using var service = new ChallengeNotificationService(players, new Settings { ProgressEnabled = true },
+            new PlayerToggleCatalog(), messages, _ => throw new InvalidOperationException("diagnostics"));
+        await service.ObserveProgressAsync(player, Progress(1));
+        await service.ObserveProgressAsync(player, Progress(2));
+        await service.ObserveProgressAsync(player, Progress(2));
+        await service.ObserveProgressAsync(player, Progress(3));
+        Assert.HasCount(2, messages.Requests);
+        StringAssert.Contains(messages.Requests[1].Text, "3/10");
+    }
+
+    [TestMethod]
+    public async Task ProgressToggleCollisionRollsBackCompletionToggle()
+    {
+        var players = new PlayerRegistry(new AnoEventBus());
+        await Connect(players);
+        var toggles = new PlayerToggleCatalog();
+        using var reserved = toggles.Register(new AnoCore.Abstractions.Modules.ModuleId("reserved"),
+            new PlayerToggleSetting(ChallengeNotificationService.ProgressPreference, "Reserved", "Reserved"));
+        Assert.ThrowsExactly<InvalidOperationException>(() => new ChallengeNotificationService(players,
+            new Settings(), toggles, new Messages()));
+        Assert.IsFalse(toggles.TryGet(ChallengeNotificationService.Preference.Name, out _));
+        Assert.IsTrue(toggles.TryGet(ChallengeNotificationService.ProgressPreference.Name, out _));
+    }
+
+    private static ChallengeCompletionResult Progress(long count)
+    {
+        var completion = Completion(false, 100);
+        return new(false, completion.Evaluation with { State = ChallengeEvaluationState.Active, Progress = count }, null);
+    }
+
     private sealed class Repository : IChallengeRepository
     {
         private readonly HashSet<string> _completed = [];
@@ -164,12 +277,13 @@ public sealed class ChallengeNotificationTests
     private sealed class Settings : IPlayerSettingsService
     {
         public bool Enabled { get; init; } = true;
+        public bool ProgressEnabled { get; set; }
         public Func<Task>? BeforeRead { get; init; }
         public async ValueTask<T> GetAsync<T>(PlayerId playerId, PlayerSettingKey<T> key,
             CancellationToken cancellationToken = default)
         {
             if (BeforeRead is not null) await BeforeRead();
-            return (T)(object)Enabled;
+            return (T)(object)(key.Name == ChallengeNotificationService.ProgressPreference.Name ? ProgressEnabled : Enabled);
         }
         public ValueTask SetAsync<T>(PlayerId playerId, PlayerSettingKey<T> key, T value,
             CancellationToken cancellationToken = default) => throw new AssertFailedException();
