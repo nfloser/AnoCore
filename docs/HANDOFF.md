@@ -1,3 +1,16 @@
+# Audited lifetime XP administration — 2026-10-07
+
+- #293 adds centrally authorized give/take/set/reset commands for lifetime XP.
+- Migration 019 stores immutable idempotent admin requests; account update, request
+  and shared administrative audit commit together under the existing account lock.
+- Operation amounts are bounded, XP remains nonnegative, and request reuse checks
+  actor/target/operation/amount/reason/time. Earned grants and all season/rank state remain untouched.
+- Commands compose when a live lifetime reward module is available; activation failure
+  and unload remove all four registrations. Administration never receives XP boosts.
+- Policy/command and MariaDB tests cover bounds, denial, rollback, retries, restart,
+  concurrency with earned grants and offline console administration.
+- Exact-head CI and review required before merge; native command acceptance remains manual.
+
 # Committed progression events and level notices — 2026-10-07
 
 - #291 publishes newly committed gameplay/reward XP, lifetime level transitions,
@@ -8,7 +21,7 @@
 - Event/notice failures are best effort; no durable outbox, replay or offline catch-up.
 - Threshold, multi-level, retry, observer isolation, preference, reconnect, cleanup,
   cancellation and live checkpoint routing regressions accompany progression docs.
-- Local .NET SDK is unavailable; exact-head CI is required before merge.
+- PR #292 merged after CI #710 passed all 879 tests, formatting and package checks.
 - Progression administration, broader presentation/SDK gaps and native acceptance
   remain open; this checkpoint does not declare the whole project production complete.
 
