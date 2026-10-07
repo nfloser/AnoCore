@@ -5,6 +5,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\AnoCore.Abstractions\AnoCore.Abstractions.csproj" />
+    <ProjectReference Include="..\AnoCore.Modules.Progression\AnoCore.Modules.Progression.csproj" />
     <ProjectReference Include="..\AnoCore.Runtime\AnoCore.Runtime.csproj" />
   </ItemGroup>
 </Project>

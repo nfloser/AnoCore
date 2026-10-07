@@ -691,3 +691,46 @@ reward and an achievement reward; verify one level transition notice per new gra
 then disable the toggle and repeat. Reconnect during a checkpoint, reload/unload,
 and restart with already awarded records; verify no stale or historical notices.
 These CS2/DatHost observations remain separate from automated event/service tests.
+
+
+## Audited lifetime XP administration
+
+Issue #293 adds four commands with separate permissions:
+
+| Command | Permission |
+| --- | --- |
+| `!anogivexp <target> <amount> <reason>` | `ano.progression.xp.give` |
+| `!anotakexp <target> <amount> <reason>` | `ano.progression.xp.take` |
+| `!anosetxp <target> <amount> <reason>` | `ano.progression.xp.set` |
+| `!anoresetxp <target> <reason>` | `ano.progression.xp.reset` |
+
+Targets use the existing centralized name/SteamID64 resolver, authorization,
+self-target and immunity policy. Offline targets require an explicit SteamID64.
+The server console is supported. Commands exist when at least one lifetime reward
+module is available; shutdown and activation rollback remove them.
+
+Amounts are 0–1,000,000,000 XP per operation; give/take require a positive value.
+Taking more than the current lifetime total is rejected. Set/reset affect the current
+lifetime balance and its derived account level. They preserve earned-grant history,
+permanent achievement tiers, challenge completions, season accounts/history and rank
+points. Administrative changes never receive boosts or enter season reconciliation,
+and never masquerade as earned-XP or level-up events.
+
+Migration 019 adds `ano_progression_admin_requests`. The persistence API requires a
+stable request UUID; an exact retry returns the original result without mutation or
+another audit. Reusing a UUID with changed actor, target, operation, amount, reason or
+normalized UTC time is rejected. Console/chat command executions each represent a
+new deliberate request and generate a fresh UUID shown in the result; repeating the
+command creates another operation, unlike retrying an API request with the same UUID.
+
+One MariaDB transaction serializes on the existing progression account row and
+commits the lifetime balance/revision, request result and existing shared admin audit.
+Audit failure rolls all three back. Earned awards use the same account lock, avoiding
+lost XP during concurrent administration. No destructive deletion of grant history
+occurs, even on reset. Back up the database before migration; DDL remains retry-safe
+rather than falsely treated as transactional.
+
+Native acceptance: verify each command from an authorized player and console,
+permission denial, equal/higher immunity and ambiguous targets; use an offline
+SteamID64; restart and inspect audit/lifetime state. Confirm season XP, competitive
+rank points and permanent unlocks remain intact after lifetime set/reset.
