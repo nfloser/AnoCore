@@ -28,6 +28,88 @@ public sealed class ChatFormatSnapshotLifecycleTests
     }
 
     [TestMethod]
+    public async Task ReloadDuringPreparationCannotPublishOldOrMixedTemplates()
+    {
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var calls = 0;
+        var store = new JsonConfigStore(_root);
+        var reloads = new ConfigReloadRegistry();
+        var events = new AnoEventBus();
+        var placeholders = Tags(async (_, token) =>
+        {
+            if (Interlocked.Increment(ref calls) == 1)
+            {
+                entered.SetResult();
+                await release.Task.WaitAsync(token);
+            }
+            return "[R]";
+        });
+        using var formatter = await ChatMessageFormatter.CreateAsync(store, placeholders, reloads: reloads);
+        using var snapshots = new ChatFormatSnapshotLifecycle(events, formatter);
+        var player = Snapshot(PlayerSessionId.New(), "Player");
+        var warming = events.PublishAsync(new PlayerConnectedEvent(player)).AsTask();
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(3));
+        await store.SaveAsync("chat-format", new ChatFormatConfiguration
+        {
+            PublicTemplate = "NEW {player.name}: {message}",
+            TeamTemplate = "TEAMNEW {player.name}: {message}",
+        });
+        await reloads.ReloadAsync("chat-format");
+        release.SetResult();
+        await warming.WaitAsync(TimeSpan.FromSeconds(3));
+        Assert.IsFalse(snapshots.TryFormat(Player, player.SessionId, "stale", false, out _));
+        await snapshots.WarmExistingAsync([player]);
+        Assert.IsTrue(snapshots.TryFormat(Player, player.SessionId, "new", true, out var message));
+        Assert.AreEqual("TEAMNEW Player: new", message);
+    }
+
+    [TestMethod]
+    public async Task ReloadInvalidatesCachedPolicyAndRejectsInvalidCandidates()
+    {
+        var store = new JsonConfigStore(_root);
+        var reloads = new ConfigReloadRegistry();
+        var events = new AnoEventBus();
+        using var formatter = await ChatMessageFormatter.CreateAsync(store, new PlaceholderRegistry(), reloads: reloads);
+        using var snapshots = new ChatFormatSnapshotLifecycle(events, formatter);
+        var player = Snapshot(PlayerSessionId.New(), "Player");
+        await events.PublishAsync(new PlayerConnectedEvent(player));
+        Assert.IsTrue(snapshots.TryFormat(Player, player.SessionId, "old", false, out _));
+        await store.SaveAsync("chat-format", new ChatFormatConfiguration
+        {
+            PublicTemplate = "NEW {player.name}: {message}",
+            TeamTemplate = "TEAMNEW {player.name}: {message}",
+        });
+        await reloads.ReloadAsync("chat-format");
+        Assert.IsFalse(snapshots.TryFormat(Player, player.SessionId, "stale", false, out _));
+        await snapshots.WarmExistingAsync([player]);
+        Assert.IsTrue(snapshots.TryFormat(Player, player.SessionId, "new", true, out var message));
+        Assert.AreEqual("TEAMNEW Player: new", message);
+        await store.SaveAsync("chat-format", new ChatFormatConfiguration { PublicTemplate = "invalid" });
+        await Assert.ThrowsAsync<Exception>(async () => await reloads.ReloadAsync("chat-format"));
+        Assert.IsTrue(snapshots.TryFormat(Player, player.SessionId, "kept", true, out message));
+        Assert.AreEqual("TEAMNEW Player: kept", message);
+        formatter.Dispose();
+        Assert.AreEqual(0, reloads.Configurations.Count);
+    }
+
+    [TestMethod]
+    public async Task TagPolicyIdentityImmediatelyInvalidatesWarmedChat()
+    {
+        var events = new AnoEventBus();
+        using var formatter = await ChatMessageFormatter.CreateAsync(new JsonConfigStore(_root), new PlaceholderRegistry());
+        object identity = new();
+        formatter.TagPolicyIdentity = () => identity;
+        using var snapshots = new ChatFormatSnapshotLifecycle(events, formatter);
+        var player = Snapshot(PlayerSessionId.New(), "Player");
+        await events.PublishAsync(new PlayerConnectedEvent(player));
+        identity = new();
+        Assert.IsFalse(snapshots.TryFormat(Player, player.SessionId, "stale", false, out _));
+        await snapshots.WarmExistingAsync([player]);
+        Assert.IsTrue(snapshots.TryFormat(Player, player.SessionId, "current", false, out _));
+    }
+
+    [TestMethod]
     public async Task ConnectedPlayer_WarmsSynchronousPublicAndTeamFormats()
     {
         var events = new AnoEventBus();

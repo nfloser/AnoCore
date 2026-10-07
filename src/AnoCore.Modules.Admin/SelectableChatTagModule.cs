@@ -27,7 +27,13 @@ public sealed class SelectableChatTagModule : IDisposable
     private readonly IAuthorizationReloadEvents _reloadEvents;
     private readonly Func<PlayerSnapshot, CancellationToken, ValueTask> _refresh;
     private readonly Action<Exception>? _onFailure;
-    private readonly IReadOnlyDictionary<string, TagOption> _tags;
+    private readonly IReadOnlyDictionary<string, TagOption> _initialTags;
+    private IConfigReloadRegistration<IReadOnlyDictionary<string, TagOption>>? _configReload;
+    private IReadOnlyDictionary<string, TagOption> _tags => _configReload?.Current ?? _initialTags;
+    public object PolicyIdentity => _tags;
+    private static IReadOnlyDictionary<string, TagOption> Compile(SelectableChatTagConfiguration configuration)
+        => configuration.Tags.ToDictionary(tag => tag.Id,
+            tag => new TagOption(tag.Text, new PermissionId(tag.Permission)), StringComparer.OrdinalIgnoreCase);
     private readonly CancellationTokenSource _lifetime = new();
     private readonly CancellationToken _lifetimeToken;
     private readonly IDisposable _provider;
@@ -55,10 +61,7 @@ public sealed class SelectableChatTagModule : IDisposable
         _reloadEvents = reloadEvents;
         _refresh = refresh;
         _onFailure = onFailure;
-        _tags = configuration.Tags.ToDictionary(
-            tag => tag.Id,
-            tag => new TagOption(tag.Text, new PermissionId(tag.Permission)),
-            StringComparer.OrdinalIgnoreCase);
+        _initialTags = Compile(configuration);
         _provider = placeholders.RegisterPrioritized(
             Owner, "chat.tag", 100, ResolveTagAsync);
         var registrations = new List<IDisposable>();
@@ -132,7 +135,8 @@ public sealed class SelectableChatTagModule : IDisposable
         IMenuService? menus = null,
         IAnoEventBus? events = null,
         Action<Exception>? onFailure = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        IConfigReloadRegistry? reloads = null)
     {
         ArgumentNullException.ThrowIfNull(configuration);
         ArgumentNullException.ThrowIfNull(commands);
@@ -148,9 +152,18 @@ public sealed class SelectableChatTagModule : IDisposable
             SelectableChatTagConfiguration.Validate,
             cancellationToken).ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
-        return new SelectableChatTagModule(loaded, commands, placeholders,
+        var module = new SelectableChatTagModule(loaded, commands, placeholders,
             players, settings, permissions, reloadEvents, refresh, menus, events,
             onFailure);
+        try
+        {
+            module._configReload = reloads?.Register(Owner, "chat-tags", module._initialTags,
+                async token => Compile(await configuration.LoadAsync("chat-tags",
+                    () => SelectableChatTagConfiguration.Default, SelectableChatTagConfiguration.Validate, token)
+                    .ConfigureAwait(false)));
+            return module;
+        }
+        catch { module.Dispose(); throw; }
     }
 
     private async ValueTask<string?> ResolveTagAsync(
@@ -433,6 +446,7 @@ public sealed class SelectableChatTagModule : IDisposable
         if (Interlocked.Exchange(ref _disposed, 1) != 0)
             return;
         _reloadEvents.Reloaded -= OnReloaded;
+        _configReload?.Dispose();
         _lifetime.Cancel();
         foreach (var subscription in _subscriptions)
             subscription.Dispose();

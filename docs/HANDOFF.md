@@ -1,3 +1,16 @@
+# Remaining implementation packages completed — 2026-10-08
+
+- #314 / PR #318: audited role definitions, assignments and UTC-expiring VIP authority; CI #750 green, merged.
+- #315 / PR #319: session-safe actionable administration forms over audited commands; CI #753 green, merged.
+- #316 / PR #320: default-off bounded committed-audit webhooks, public HTTPS destination policy, opt-in disclosure and cancellation tests; CI #755 green, merged.
+- #317: chat-format, compiled chat-tag and playtime-notification reload adoption, immediate stale-cache rejection and explicit restart matrix for every startup policy.
+- Final integration also isolates invalid optional webhook startup and bounds audit read/delivery checkpoints. Full integrated-head CI and review gate these final changes. The menu already accepted by the user is preserved.
+- Native acceptance remains the user's CS2/DatHost test phase; this is not a production-release declaration. Use docs/configuration-reload.md and docs/moderation-webhooks.md for operator setup and checks.
+
+## Historical implementation checkpoints
+
+The sections below record earlier checkpoints; the current completion state is above.
+
 # Actionable administration menus — 2026-10-08
 
 - #315 adds permissioned `!anoadminmenu` and a Home destination over existing

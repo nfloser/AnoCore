@@ -48,7 +48,8 @@ public sealed class ChatFormatSnapshotLifecycle : IDisposable
         {
             if (Volatile.Read(ref _disposed) == 0
                 && _snapshots.TryGetValue(playerId, out var entry)
-                && entry.SessionId == sessionId)
+                && entry.SessionId == sessionId
+                && _formatter.IsCurrent(entry.Format))
             {
                 formatted = entry.Format.Format(message, isTeamMessage);
                 return true;
@@ -182,7 +183,8 @@ public sealed class ChatFormatSnapshotLifecycle : IDisposable
                     && _sessions.TryGetValue(player.Id, out var current)
                     && current == player.SessionId
                     && _revisions.TryGetValue(player.Id, out var currentRevision)
-                    && currentRevision == revision)
+                    && currentRevision == revision
+                    && _formatter.IsCurrent(prepared))
                 {
                     _snapshots[player.Id] =
                         new SnapshotEntry(player.SessionId, prepared);

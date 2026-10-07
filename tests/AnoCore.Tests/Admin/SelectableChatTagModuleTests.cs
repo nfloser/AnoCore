@@ -32,6 +32,29 @@ public sealed class SelectableChatTagModuleTests
     }
 
     [TestMethod]
+    public async Task ReloadRemovesSelectedTagsAndSelectionCannotRestoreThem()
+    {
+        var config = await ConfigAsync();
+        var reloads = new ConfigReloadRegistry();
+        var permissions = new Permissions { Allowed = true };
+        var placeholders = new PlaceholderRegistry();
+        var commands = new CommandRegistry(permissions);
+        using var module = await SelectableChatTagModule.CreateAsync(config, commands, placeholders,
+            await ConnectedAsync(), new Settings(), permissions, permissions,
+            (_, _) => ValueTask.CompletedTask, reloads: reloads);
+        Assert.IsTrue((await commands.ExecuteAsync("!anosettag staff", Player)).Success);
+        var before = module.PolicyIdentity;
+        await config.SaveAsync("chat-tags", new SelectableChatTagConfiguration());
+        await reloads.ReloadAsync("chat-tags");
+        Assert.AreNotSame(before, module.PolicyIdentity);
+        Assert.IsFalse((await commands.ExecuteAsync("!anosettag staff", Player)).Success);
+        var context = new PlaceholderContext(new Dictionary<string, object?> { ["player"] = Player });
+        Assert.AreEqual("", await placeholders.ResolveAsync("{chat.tag}", context));
+        module.Dispose();
+        Assert.AreEqual(0, reloads.Configurations.Count);
+    }
+
+    [TestMethod]
     public async Task Selection_IsPermissionGatedPersistedAndFallsBackAfterClearOrRevocation()
     {
         var config = await ConfigAsync();

@@ -30,8 +30,8 @@ public sealed class PlaytimeNotificationService : IDisposable
     private readonly IPlaytimeRepository _repository;
     private readonly IPlayerSettingsService _settings;
     private readonly IMessageService _messages;
-    private readonly bool _enabled;
-    private readonly TimeSpan _interval;
+    private readonly PlaytimeNotificationConfiguration _initial;
+    private IConfigReloadRegistration<PlaytimeNotificationConfiguration>? _reload;
     private readonly Action<Exception>? _onFailure;
     private readonly IDisposable _toggle;
     private readonly CancellationTokenSource _lifetime = new();
@@ -53,8 +53,7 @@ public sealed class PlaytimeNotificationService : IDisposable
         _repository = repository;
         _settings = settings;
         _messages = messages;
-        _enabled = configuration.Enabled;
-        _interval = TimeSpan.FromSeconds(configuration.IntervalSeconds);
+        _initial = configuration;
         _onFailure = onFailure;
         _lifetimeToken = _lifetime.Token;
         try
@@ -78,7 +77,8 @@ public sealed class PlaytimeNotificationService : IDisposable
         IPlayerToggleCatalog catalog,
         IMessageService messages,
         Action<Exception>? onFailure = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        IConfigReloadRegistry? reloads = null)
     {
         ArgumentNullException.ThrowIfNull(configuration);
         ArgumentNullException.ThrowIfNull(players);
@@ -90,8 +90,16 @@ public sealed class PlaytimeNotificationService : IDisposable
             () => new PlaytimeNotificationConfiguration(),
             PlaytimeNotificationConfiguration.Validate, cancellationToken).ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
-        return new PlaytimeNotificationService(
+        var service = new PlaytimeNotificationService(
             loaded, players, repository, settings, catalog, messages, onFailure);
+        try
+        {
+            service._reload = reloads?.Register(new ModuleId("ano.stats.playtime"), "playtime-notifications", loaded,
+                token => configuration.LoadAsync("playtime-notifications", () => new PlaytimeNotificationConfiguration(),
+                    PlaytimeNotificationConfiguration.Validate, token), PlaytimeNotificationConfiguration.Validate);
+            return service;
+        }
+        catch { service.Dispose(); throw; }
     }
 
     // Called only after the durable playtime checkpoint has completed.
@@ -99,7 +107,8 @@ public sealed class PlaytimeNotificationService : IDisposable
         CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        if (!_enabled || Volatile.Read(ref _disposed) != 0
+        var policy = _reload?.Current ?? _initial;
+        if (!policy.Enabled || Volatile.Read(ref _disposed) != 0
             || Interlocked.CompareExchange(ref _busy, 1, 0) != 0)
             return;
         try
@@ -119,7 +128,7 @@ public sealed class PlaytimeNotificationService : IDisposable
                 if (Volatile.Read(ref _disposed) != 0)
                     return;
                 linked.Token.ThrowIfCancellationRequested();
-                if (!IsCurrent(player) || !TryReserve(player, now))
+                if (!IsCurrent(player) || !TryReserve(player, now, TimeSpan.FromSeconds(policy.IntervalSeconds)))
                     continue;
                 try
                 {
@@ -128,7 +137,7 @@ public sealed class PlaytimeNotificationService : IDisposable
                         continue;
                     var totals = await _repository.ReadAsync(player.Id,
                         DateOnly.FromDateTime(now.UtcDateTime), linked.Token).ConfigureAwait(false);
-                    if (!IsCurrent(player))
+                    if (!IsCurrent(player) || !ReferenceEquals(policy, _reload?.Current ?? _initial))
                         continue;
                     await _messages.SendAsync(new MessageRequest(
                         MessageTarget.ForPlayer(player.Id, player.SessionId),
@@ -162,7 +171,7 @@ public sealed class PlaytimeNotificationService : IDisposable
             && current is { IsConnected: true }
             && current.SessionId == player.SessionId;
 
-    private bool TryReserve(PlayerSnapshot player, DateTimeOffset now)
+    private bool TryReserve(PlayerSnapshot player, DateTimeOffset now, TimeSpan interval)
     {
         lock (_sync)
         {
@@ -176,7 +185,7 @@ public sealed class PlaytimeNotificationService : IDisposable
                 _schedules[player.Id] = new Schedule(player.SessionId, now);
                 return false;
             }
-            if (now - previous < _interval)
+            if (now - previous < interval)
                 return false;
             // Failed or disabled attempts are also bounded to one per interval.
             _schedules[player.Id] = new Schedule(player.SessionId, now);
@@ -202,6 +211,7 @@ public sealed class PlaytimeNotificationService : IDisposable
             return;
         _lifetime.Cancel();
         _toggle.Dispose();
+        _reload?.Dispose();
         lock (_sync)
             _schedules.Clear();
         _lifetime.Dispose();

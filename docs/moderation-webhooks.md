@@ -25,7 +25,7 @@ first. Late commits with older timestamps, bursts beyond the batch, downtime and
 outages may lose notifications. Each observed event is attempted once; failed
 requests are not replayed. The in-memory deduplication limit is 4,096 and one
 checkpoint/sender may run at a time. Disposal cancels reads/HTTP without blocking
-native unload. The audit database remains the authoritative history.
+native unload. The configured timeout bounds the entire read/delivery checkpoint as well as individual HTTP calls. Invalid optional config or destination disables notifications with a secret-free diagnostic; the rest of AnoCore still starts. The audit database remains the authoritative history.
 
 Test phase: use an approved disposable webhook, perform an audited action, verify
 one minimal notification, outage behavior and shutdown. With `Enabled: false` no

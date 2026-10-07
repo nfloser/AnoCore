@@ -50,6 +50,22 @@ public sealed class ModerationWebhookTests
     }
 
     [TestMethod]
+    public async Task CheckpointDeadlineAlsoBoundsTheAuditRead()
+    {
+        var entered = false;
+        using var pump = new ModerationWebhookPump(new() { Enabled = true, TimeoutSeconds = 1, AllowedHosts = ["example.com"] },
+            async (_, _, token) =>
+            {
+                entered = true;
+                await Task.Delay(Timeout.InfiniteTimeSpan, token);
+                return Array.Empty<CommittedAdminAudit>();
+            }, (_, _) => throw new AssertFailedException("Timed-out reads must not deliver."));
+        await pump.CheckpointAsync(DateTimeOffset.UtcNow).AsTask().WaitAsync(TimeSpan.FromSeconds(3));
+        Assert.IsTrue(entered);
+        Assert.AreEqual(0L, pump.Failures);
+    }
+
+    [TestMethod]
     public async Task DisposalCancelsAnInFlightDelivery()
     {
         var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
