@@ -2016,7 +2016,8 @@ public sealed class AnoCorePlugin : BasePlugin
             var distance = float.IsFinite(value.Distance) ? (decimal)Math.Clamp(value.Distance, 0f, 10000f) : 0m;
             var input = new RankDeathInput(LiveRankContext(eventId, at), victim, attacker,
                 CombatPlayer(value.Assister), CombatDetailKey(value.Weapon, "world", 64),
-                specials.AsReadOnly(), value.Assistedflash, distance) { Penetrations = Math.Clamp(value.Penetrated, 0, 32) };
+                specials.AsReadOnly(), value.Assistedflash, distance)
+            { Penetrations = Math.Clamp(value.Penetrated, 0, 32) };
             Observe(scoring.RecordDeathAsync(input).AsTask(), "rank_death");
         }
         catch (Exception exception) { Logger.LogError(exception, "Could not record live rank death."); }

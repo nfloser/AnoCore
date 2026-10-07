@@ -6,7 +6,9 @@
   bonuses and bounded penetration-count scaling complete the reference policy controls.
 - New weights/penalties default zero; native hooks reuse independent rank eligibility.
 - Policy, identity and atomic service retry/replay regressions accompany documentation.
-- #287 scoreboard exact-head CI remains pending. Native acceptance remains #23.
+- #287 merged after CI #703 passed 863 tests and all checks.
+- #289 initial head passed 868 tests; native initializer formatting was corrected.
+- Final exact-head CI is required before closing #228/#275. Native acceptance remains #23.
 
 # Optional rank scoreboard — 2026-10-07
 
