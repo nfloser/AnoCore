@@ -140,6 +140,36 @@ This is the most client-sensitive part of the run.
 - Reload invalid configuration and verify the last accepted runtime value remains active.
 - An already-running vote keeps the policy/catalog snapshot it started with.
 
+## Independent progression and live configuration
+
+Use a disposable configuration with short known XP thresholds, a current season,
+a dated season challenge and ordinary kill/assist/utility challenge predicates.
+Record lifetime XP, season XP and rank points before and after each action.
+
+- `anoprogression` exposes only enabled sources; back/refresh/pages work and reconnect/unload closes old menus. Reconnect during a slow detail read must not show the old session's response.
+- Controlled eligible kills, assists and objectives award lifetime XP once. `anoxp` shows next-level XP and the strongest configured UTC boost. Global/window/weekend boundaries and overlap match configuration; challenge/achievement payouts remain unboosted by default.
+- `anotoggle progression.level-notifications off` suppresses level notices without changing XP. Re-enable it, cross one or several thresholds and receive one committed transition notice. Reconnect/restart/checkpoint replay must not repeat the reward or notice.
+- Give/take/set/reset lifetime XP through the four authorized administrative commands with required reasons. Verify audit rows, nonnegative bounds, offline targeting and immunity/permission denial. Season XP, earned grant history and rank points remain unchanged by administration.
+- Ordinary kill/assist challenges exclude self/teamkill/invalid-assist input. Utility challenges count enemy HE/fire health damage, excluding gun/armor/team/self damage. Resetting statistics preserves raw window-scoped challenge progress.
+- Challenge prerequisites show locked state until committed parent completion. Completion rewards once across repeated checkpoints/restart; daily/weekly UTC rollover starts a fresh occurrence.
+- Intermediate notices default off. Enable `progression.challenge-progress-notifications`, establish a silent baseline, then observe a positive incomplete-task increase. Repeated/decreased counts, enabling after prior progress and reconnect/reload must not catch up old notices. Completion uses its independent completion toggle.
+- Permanent achievement tiers unlock once with prerequisites and persist across season changes. Ending/closing a season preserves lifetime progression and immutable historical results; start the next configured season and verify deterministic current/history leaderboards.
+- `anoconfigs` lists `gameplay-xp` while the module is active. Reload valid weights/weekend multiplier through `anoreloadconfig gameplay-xp`; verify the next checkpoint/status uses them and existing grants retain their recorded values.
+- Invalid weights/JSON and activation/checkpoint-interval/earn-start changes reject reload and preserve active policy. Hot reload/restart installs restart-only changes without duplicated commands/timers/registrations.
+
+These native observations belong to the current owning issues (#229 and #303),
+with rank/client behavior under #290. They do not follow automatically from green
+MariaDB/contract tests; preserve the exact installed artifact and server versions.
+
+## SDK host notifications
+
+With a test subscriber owned by a module lifetime:
+
+- Connected public/team accepted chat captures the correct sender/session, raw bounded input, channel and UTC time. Commands, empty input, gagged senders and failed formatting emit no accepted-chat fact; native pass-through still emits accepted connected chat.
+- A throwing/asynchronously failing observer must not change chat routing or produce duplicates. Async callbacks revalidate session/lifetime and use proper native thread dispatch.
+- Unload/hot reload starts exactly one advisory core-unloading fact with the correct reason; observer failure must not prevent normal teardown. Required cleanup remains `ShutdownAsync`/owned resources, since native unload does not await async observer work.
+- Baseline API-level 1 modules and event-aware level 2 modules initialize; future API levels are rejected before initialization.
+
 ## SDK artifact
 
 From the same CI download:
