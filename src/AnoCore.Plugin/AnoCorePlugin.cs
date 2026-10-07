@@ -28,6 +28,7 @@ using AnoCore.Runtime.Events;
 using AnoCore.Runtime.Management;
 using AnoCore.Runtime.Menus;
 using AnoCore.Runtime.Modules;
+using AnoCore.Runtime.Permissions;
 using AnoCore.Runtime.Persistence;
 using AnoCore.Runtime.Players;
 using AnoCore.Runtime.Settings;
@@ -83,6 +84,9 @@ public sealed class AnoCorePlugin : BasePlugin
     private ProgressionAdminCommandController? _xpAdminCommands;
     private ProgressionMenuModule? _progressionMenu;
     private AnoHomeMenuModule? _homeMenu;
+    private AdminMenuModule? _adminMenu;
+    private RoleAdministrationCommands? _roleCommands;
+    private CounterStrikeSharp.API.Modules.Timers.Timer? _roleExpiryTimer;
     private bool _panoramaMenusEnabled;
     private TournamentMatchRuntime? _tournamentMatch;
     private TournamentTeamEnforcement? _tournamentTeamEnforcement;
@@ -196,6 +200,12 @@ public sealed class AnoCorePlugin : BasePlugin
             _seasonTimer?.Kill();
             _gameplayXpTimer = null;
             _seasonTimer = null;
+            _adminMenu?.Dispose();
+            _adminMenu = null;
+            _roleExpiryTimer?.Kill();
+            _roleExpiryTimer = null;
+            _roleCommands?.Dispose();
+            _roleCommands = null;
             _homeMenu?.Dispose();
             _homeMenu = null;
             _progressionMenu?.Dispose();
@@ -987,6 +997,11 @@ public sealed class AnoCorePlugin : BasePlugin
 
             try
             {
+                _adminMenu = new AdminMenuModule(runtime.Commands, runtime.Players, runtime.Menus, runtime.Authorization, runtime.TargetAuthorization, _eventBus!);
+                _roleCommands = new RoleAdministrationCommands(runtime.Commands,
+                    new MySqlRoleAdministration((AnoCore.Abstractions.Persistence.IDatabase)runtime.GetService(typeof(AnoCore.Abstractions.Persistence.IDatabase))!, runtime.Authorization),
+                    (AnoCore.Abstractions.Permissions.IAuthorizationStore)runtime.GetService(typeof(AnoCore.Abstractions.Permissions.IAuthorizationStore))!);
+                _roleExpiryTimer = AddTimer(1.0f, runtime.Authorization.RefreshExpiredAssignments, TimerFlags.REPEAT);
                 homeMenu = new AnoHomeMenuModule(runtime.Commands, runtime.Players, runtime.Menus, runtime.Authorization, _eventBus!);
                 messageTransportRegistration = runtime.Messages.AttachTransport(
                     new CounterStrikeMessageTransport(runtime.Players));
@@ -1399,6 +1414,12 @@ public sealed class AnoCorePlugin : BasePlugin
                 if (ReferenceEquals(_liveRankScoring, liveRankScoring)) _liveRankScoring = null;
                 rank?.Dispose();
                 gameplayStats?.Dispose();
+                _adminMenu?.Dispose();
+                _adminMenu = null;
+                _roleExpiryTimer?.Kill();
+                _roleExpiryTimer = null;
+                _roleCommands?.Dispose();
+                _roleCommands = null;
                 homeMenu?.Dispose();
                 if (ReferenceEquals(_homeMenu, homeMenu)) _homeMenu = null;
                 progressionMenu?.Dispose();

@@ -1,3 +1,33 @@
+# Actionable administration menus — 2026-10-08
+
+- #315 adds permissioned `!anoadminmenu` and a Home destination over existing
+  audited commands: action → eligible player → bounded parameters → confirmation.
+- Captured actor/target sessions, permission/immunity rechecks and consumed
+  confirmation prevent stale or repeated execution. Asynchronous reads cannot
+  reopen closed forms or replace another feature menu; unload/disconnect release
+  owned registrations. No parallel sanction, target or audit store is introduced.
+- Arbitrary coordinate/item/name/text parameters retain their direct commands;
+  supported moderation/player-state forms are documented in the menu runbook.
+- #314 merged in PR #318 after CI #750 passed every gate. Its role/VIP work is
+  preserved during integration. Remaining code packages: #316 and #317.
+- Full integrated-head CI is required before merging this menu change.
+
+# Role administration and expiring VIP authority — 2026-10-08
+
+- #314 adds console role definitions, permissioned SteamID grant/revoke/inspection,
+  old SDK constructor/JSON compatibility and inherited timed authority.
+- Policy updates and audit commit together under the existing MariaDB policy row
+  lock. Console bootstraps; actor immunity, permanent role and denial ceilings
+  prevent self-escalation or delegation from temporary authority.
+- Permission/tag/immunity reads enforce UTC expiry immediately; the native timer
+  also invalidates warmed chat snapshots. Reconnect/restart do not extend grants.
+- Regression tests cover boundaries/inheritance/JSON/delegation, concurrent database
+  grants, restart and audit-failure rollback. Local Release build has zero warnings
+  or errors; exact-head CI must pass database/format/package gates before merge.
+- Owner reports the shared Panorama menu working in the New UI test thread; do
+  not reopen that reported menu fix as missing implementation. Broader gameplay
+  native acceptance remains distinct. Remaining code packages: #315–#317.
+
 # SDK host and player-menu integration — 2026-10-08
 
 - PR #311 and #313 are merged after exact-head CI #739/#744; the shared

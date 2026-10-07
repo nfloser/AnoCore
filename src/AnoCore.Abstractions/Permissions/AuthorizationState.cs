@@ -94,7 +94,7 @@ public sealed class AuthorizationState : IEquatable<AuthorizationState>
                 throw new ArgumentException($"Player '{player.PlayerId}' has duplicate authorization assignments.", nameof(Players));
             }
 
-            foreach (var role in player.Roles)
+            foreach (var role in player.Roles.Concat(player.TimedRoles.Select(grant => grant.Role)))
             {
                 if (!rolesById.ContainsKey(role))
                 {
@@ -139,5 +139,6 @@ public sealed class AuthorizationState : IEquatable<AuthorizationState>
     private static bool PlayerEquals(PlayerAuthorization left, PlayerAuthorization right)
         => left.PlayerId == right.PlayerId
             && left.Roles.SequenceEqual(right.Roles)
-            && left.Rules.SequenceEqual(right.Rules);
+            && left.Rules.SequenceEqual(right.Rules)
+            && left.TimedRoles.SequenceEqual(right.TimedRoles);
 }
