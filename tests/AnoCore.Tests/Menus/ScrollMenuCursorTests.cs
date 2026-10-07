@@ -16,7 +16,7 @@ public sealed class ScrollMenuCursorTests
     }
 
     [TestMethod]
-    public void Next_scrolls_window_and_wraps()
+    public void Next_scrolls_window_without_wrapping()
     {
         var cursor = new ScrollMenuCursor(optionCount: 8, visibleRows: 3);
 
@@ -28,22 +28,43 @@ public sealed class ScrollMenuCursorTests
         Assert.AreEqual(1, cursor.StartIndex);
         Assert.AreEqual(4, cursor.EndIndexExclusive);
 
-        for (var index = 0; index < 5; index++)
-            cursor.MoveNext();
-
-        Assert.AreEqual(0, cursor.SelectedIndex);
-        Assert.AreEqual(0, cursor.StartIndex);
+        Assert.IsTrue(cursor.MoveNext(10));
+        Assert.AreEqual(7, cursor.SelectedIndex);
+        Assert.AreEqual(5, cursor.StartIndex);
+        Assert.IsFalse(cursor.MoveNext());
     }
 
     [TestMethod]
-    public void Previous_wraps_to_last_option_and_keeps_it_visible()
+    public void Previous_stops_at_first_option()
     {
         var cursor = new ScrollMenuCursor(optionCount: 8, visibleRows: 3);
 
-        cursor.MovePrevious();
+        cursor.MoveNext(7);
+        Assert.IsTrue(cursor.MovePrevious(10));
 
-        Assert.AreEqual(7, cursor.SelectedIndex);
-        Assert.AreEqual(5, cursor.StartIndex);
-        Assert.AreEqual(8, cursor.EndIndexExclusive);
+        Assert.AreEqual(0, cursor.SelectedIndex);
+        Assert.AreEqual(0, cursor.StartIndex);
+        Assert.IsFalse(cursor.MovePrevious());
+    }
+
+    [TestMethod]
+    public void Page_navigation_keeps_selected_row_visible()
+    {
+        var cursor = new ScrollMenuCursor(optionCount: 20, visibleRows: 6);
+
+        cursor.MoveNext(6);
+
+        Assert.AreEqual(6, cursor.SelectedIndex);
+        Assert.AreEqual(1, cursor.StartIndex);
+
+        cursor.MoveNext(6);
+
+        Assert.AreEqual(12, cursor.SelectedIndex);
+        Assert.AreEqual(7, cursor.StartIndex);
+
+        cursor.MovePrevious(6);
+
+        Assert.AreEqual(6, cursor.SelectedIndex);
+        Assert.AreEqual(6, cursor.StartIndex);
     }
 }
