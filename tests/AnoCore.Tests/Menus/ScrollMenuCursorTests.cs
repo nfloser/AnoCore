@@ -67,4 +67,18 @@ public sealed class ScrollMenuCursorTests
         Assert.AreEqual(6, cursor.SelectedIndex);
         Assert.AreEqual(6, cursor.StartIndex);
     }
+
+    [TestMethod]
+    public void Initial_selection_is_clamped_and_visible()
+    {
+        var cursor = new ScrollMenuCursor(optionCount: 8, visibleRows: 3, selectedIndex: 6);
+
+        Assert.AreEqual(6, cursor.SelectedIndex);
+        Assert.AreEqual(4, cursor.StartIndex);
+        Assert.AreEqual(7, cursor.EndIndexExclusive);
+
+        var clamped = new ScrollMenuCursor(optionCount: 2, visibleRows: 3, selectedIndex: 99);
+        Assert.AreEqual(1, clamped.SelectedIndex);
+        Assert.AreEqual(0, clamped.StartIndex);
+    }
 }
