@@ -1,3 +1,19 @@
+# SDK host notifications — 2026-10-07
+
+- #301 adds dependency-free accepted-chat/core-unloading facts at API level 2,
+  while baseline API level 1 modules remain supported.
+- Connected non-command chat is observed only after moderation/format acceptance;
+  bounded raw text, sender snapshot/session and channel/time are immutable facts.
+- Observer failure cannot alter routing. Async notices are best effort without
+  replay; synchronous subscriber work must return promptly on the publishing thread.
+- Core unload starts one advisory notification before teardown, including partial
+  startup. Async callbacks are not a cleanup barrier; module-owned lifetimes remain
+  authoritative and native services must be revalidated after asynchronous work.
+- Tests cover routing filters/native pass-through, bounds/captured facts, async
+  failures, one-shot unload/reason/time and API compatibility. Exact-head CI required.
+- External module discovery, wider concrete configuration reload adoption and
+  admin integration remain code work; actual CS2/DatHost acceptance remains manual.
+
 # Opt-in challenge progress notices — 2026-10-07
 
 - #299 adds default-off `progression.challenge-progress-notifications`, independent
@@ -20,7 +36,8 @@
 - Teamkill/self/invalid-assist events are excluded. Utility counts bounded enemy HE/fire
   health damage, never armor or gun damage. Statistics resets preserve window progress.
 - Predicate/window/replay and configuration/JSON regression tests accompany source docs.
-- Exact-head CI required before merge; native ingestion remains manual acceptance.
+- PR #298 merged after CI #717 passed all 902 tests, formatting and package gates;
+  native ingestion remains manual acceptance.
 
 # Progression navigation and active boost status — 2026-10-07
 

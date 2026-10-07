@@ -44,6 +44,7 @@ public sealed class AnoCorePlugin : BasePlugin
 {
     private readonly object _startupGate = new();
     private AnoEventBus? _eventBus;
+    private CoreUnloadNotifier? _unloadNotifications;
     private PlayerRegistry? _players;
     private bool _lifecycleHooksRegistered;
     private CancellationTokenSource? _startup;
@@ -141,6 +142,8 @@ public sealed class AnoCorePlugin : BasePlugin
         using var process = System.Diagnostics.Process.GetCurrentProcess();
         _combatServerInstance = $"{Environment.ProcessId}-{process.StartTime.ToUniversalTime().Ticks}";
         _eventBus = new AnoEventBus();
+        _unloadNotifications = new CoreUnloadNotifier(_eventBus,
+            reportError: exception => Logger.LogError(exception, "Core unload observer failed."));
         _players = new PlayerRegistry(_eventBus);
         _customHud = new CounterStrikeCustomHudService(this, Logger);
         _customHud.Start();
@@ -156,6 +159,9 @@ public sealed class AnoCorePlugin : BasePlugin
 
     public override void Unload(bool hotReload)
     {
+        var unloadNotifications = Interlocked.Exchange(ref _unloadNotifications, null);
+        if (unloadNotifications is not null)
+            Observe(unloadNotifications.NotifyAsync(hotReload).AsTask(), "core_unload_notification");
         lock (_startupGate)
         {
             _startup?.Cancel();
@@ -1174,7 +1180,9 @@ public sealed class AnoCorePlugin : BasePlugin
                     new NativeChatRouter(
                         communicationModeration.ChatGate.Evaluate,
                         runtime.Players,
-                        snapshotFormatter));
+                        snapshotFormatter,
+                        events,
+                        reportError: exception => Logger.LogError(exception, "Chat observer failed.")));
                 voiceModeration = new ModerationVoiceCoordinator(
                     runtime.Players,
                     communicationModeration.VoiceGate,

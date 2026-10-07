@@ -1,3 +1,4 @@
+using AnoCore.Abstractions.Events;
 using AnoCore.Abstractions.Players;
 using AnoCore.Modules.Admin;
 using AnoCore.Runtime.Events;
@@ -151,6 +152,80 @@ public sealed class NativeChatRouterTests
         var route = router.Route(sender.Id, "native", false);
 
         Assert.IsFalse(route.ShouldIntercept);
+    }
+
+    [TestMethod]
+    public async Task AcceptedChatCapturesSessionChannelAndUtcWithoutIncludingCommandsOrSuppressedInput()
+    {
+        var bus = new AnoEventBus();
+        var players = new PlayerRegistry(bus);
+        var sender = await ConnectAsync(players, 76561198000012652, PlayerTeam.Terrorist);
+        var received = new List<PlayerChatAcceptedEvent>();
+        using var subscription = bus.Subscribe<PlayerChatAcceptedEvent>((item, _) =>
+        {
+            received.Add(item);
+            return ValueTask.CompletedTask;
+        });
+        var router = new NativeChatRouter(_ => ChatInterceptionDecision.Allow, players, Format, bus, () => Now);
+        router.Route(sender.Id, "team hello", true);
+        router.Route(sender.Id, "!anostatus", false);
+        router.Route(sender.Id, "   ", false);
+        new NativeChatRouter(_ => ChatInterceptionDecision.Block, players, Format, bus).Route(sender.Id, "blocked", false);
+        new NativeChatRouter(_ => ChatInterceptionDecision.Allow, players,
+            (PlayerId _, PlayerSessionId _, string? _, bool _, out string? formatted) =>
+            {
+                formatted = null;
+                return false;
+            }, bus).Route(sender.Id, "not formatted", false);
+        Assert.HasCount(1, received);
+        Assert.AreEqual(sender, received[0].Sender);
+        Assert.AreEqual("team hello", received[0].Message);
+        Assert.IsTrue(received[0].IsTeamMessage);
+        Assert.AreEqual(Now, received[0].OccurredAtUtc);
+    }
+
+    [TestMethod]
+    public async Task NativePassThroughPublishesOnlyConnectedSendersAndBoundsPayload()
+    {
+        var bus = new AnoEventBus();
+        var players = new PlayerRegistry(bus);
+        var sender = await ConnectAsync(players, 76561198000012653, PlayerTeam.Terrorist);
+        var received = new List<PlayerChatAcceptedEvent>();
+        using var subscription = bus.Subscribe<PlayerChatAcceptedEvent>((item, _) =>
+        {
+            received.Add(item);
+            return ValueTask.CompletedTask;
+        });
+        var router = new NativeChatRouter(_ => ChatInterceptionDecision.Allow, players, null, bus);
+        Assert.IsFalse(router.Route(sender.Id, new string('a', 2048), false).ShouldIntercept);
+        Assert.IsFalse(router.Route(new PlayerId(76561198000012654), "unknown", false).ShouldIntercept);
+        Assert.HasCount(1, received);
+        Assert.AreEqual(1024, received[0].Message.Length);
+    }
+
+    [TestMethod]
+    public async Task AsyncObserverFailureDoesNotDelayRoutingOrEscapeDiagnostics()
+    {
+        var bus = new AnoEventBus();
+        var players = new PlayerRegistry(bus);
+        var sender = await ConnectAsync(players, 76561198000012655, PlayerTeam.Terrorist);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var reported = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var subscription = bus.Subscribe<PlayerChatAcceptedEvent>(async (_, _) =>
+        {
+            await release.Task;
+            throw new InvalidOperationException("observer");
+        });
+        var router = new NativeChatRouter(_ => ChatInterceptionDecision.Allow, players, Format, bus,
+            reportError: _ =>
+            {
+                reported.SetResult();
+                throw new InvalidOperationException("diagnostics");
+            });
+        var route = router.Route(sender.Id, "hello", false);
+        Assert.AreEqual("[R] Player: hello", route.FormattedMessage);
+        release.SetResult();
+        await reported.Task.WaitAsync(TimeSpan.FromSeconds(5));
     }
 
     private static NativeChatRouter Router(

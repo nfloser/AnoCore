@@ -8,6 +8,18 @@ namespace AnoCore.Tests.Runtime;
 public sealed class ModuleHostTests
 {
     [TestMethod]
+    [DataRow(1)]
+    [DataRow(2)]
+    public async Task LoadAsync_SupportsBaselineAndHostNotificationApiModules(int minimumApiLevel)
+    {
+        var module = new FakeModule("ano.compat", minimumApiLevel);
+        var host = new ModuleHost(new TestModuleContext());
+        await host.LoadAsync(module);
+        Assert.AreEqual(1, module.InitializeCalls);
+        Assert.AreEqual(ModuleState.Loaded, host.GetState(module.Descriptor.Id));
+    }
+
+    [TestMethod]
     public async Task LoadAsync_InitializesModuleAndMarksItLoaded()
     {
         var module = new FakeModule("ano.test");
