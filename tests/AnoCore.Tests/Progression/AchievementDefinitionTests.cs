@@ -6,6 +6,54 @@ namespace AnoCore.Tests.Progression;
 [TestClass]
 public sealed class AchievementDefinitionTests
 {
+    [TestMethod]
+    public void Prerequisites_AreBoundedValidatedAndSnapshotted()
+    {
+        var prerequisites = new List<AchievementPrerequisite> { new("first", 2) };
+        var definition = AchievementDefinition.Create("second", 1, GameplayStatKind.Mvp,
+            [new(1, 10, 100)], prerequisites);
+        prerequisites.Clear();
+        Assert.AreEqual(new AchievementPrerequisite("first", 2), definition.Prerequisites.Single());
+        Assert.ThrowsExactly<NotSupportedException>(() => ((IList<AchievementPrerequisite>)definition.Prerequisites).Clear());
+        foreach (var invalid in new AchievementPrerequisite[][]
+        {
+            [new("second", 1)], [new("bad id", 1)], [new("first", 0)],
+            [new("first", 101)], [null!], [new("first", 1), new("first", 2)],
+        })
+            Assert.ThrowsExactly<ArgumentException>(() => AchievementDefinition.Create("second", 1,
+                GameplayStatKind.Mvp, [new(1, 10, 100)], invalid));
+        Assert.ThrowsExactly<ArgumentException>(() => AchievementDefinition.Create("second", 1,
+            GameplayStatKind.Mvp, [new(1, 10, 100)], Enumerable.Range(0, 33)
+                .Select(index => new AchievementPrerequisite("a" + index, 1))));
+        Assert.IsEmpty(Definition().Prerequisites);
+    }
+
+    [TestMethod]
+    public void Catalog_RejectsUnknownTiersAndCyclesAndOrdersDependenciesBeforeChildren()
+    {
+        static AchievementCatalogEntry Entry(string id, params AchievementPrerequisite[] prerequisites)
+            => new(id, 1, id, GameplayStatKind.Mvp, [new(1, 1, 10)])
+            { Prerequisites = prerequisites.ToList() };
+        var configuration = new AchievementConfiguration
+        {
+            Achievements = [Entry("a-child", new AchievementPrerequisite("z-parent", 1)), Entry("z-parent")],
+        };
+        CollectionAssert.AreEqual(new[] { "z-parent", "a-child" }, configuration.Snapshot()
+            .Achievements.Select(entry => entry.Definition.Id).ToArray());
+        foreach (var invalid in new List<AchievementCatalogEntry>[]
+        {
+            [Entry("a", new AchievementPrerequisite("missing", 1))],
+            [Entry("a", new AchievementPrerequisite("b", 2)), Entry("b")],
+            [Entry("a", new AchievementPrerequisite("b", 1)), Entry("b", new AchievementPrerequisite("a", 1))],
+            [Entry("a", new AchievementPrerequisite("B", 1)), Entry("b")],
+            [Entry("a") with { Prerequisites = null! }],
+        })
+        {
+            configuration.Achievements = invalid;
+            Assert.IsNotEmpty(AchievementConfiguration.Validate(configuration));
+        }
+    }
+
     private static AchievementDefinition Definition() => AchievementDefinition.Create(
         "headshots", 1, GameplayStatKind.HeadshotKill,
         [new(1, 10, 100), new(2, 50, 200), new(3, 100, 300)]);

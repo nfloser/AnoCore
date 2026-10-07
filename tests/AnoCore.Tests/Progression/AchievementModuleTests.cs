@@ -186,6 +186,33 @@ public sealed class AchievementModuleTests
         Assert.AreEqual(0, unlocks.Calls);
     }
 
+    [TestMethod]
+    public async Task Prerequisites_SurviveModuleSnapshotAndShowLockedState()
+    {
+        var configuration = new AchievementConfiguration
+        {
+            Achievements =
+            [
+                new("a-child", 1, "Child", GameplayStatKind.Mvp, [new(1, 1, 10)])
+                { Prerequisites = [new("z-parent", 1)] },
+                new("z-parent", 1, "Parent", GameplayStatKind.Mvp, [new(1, 1, 10)]),
+            ],
+        };
+        var players = new PlayerRegistry(new AnoEventBus());
+        await Connect(players);
+        var commands = new CommandRegistry(new AllowAll());
+        var unlocks = new Unlocks();
+        using var module = new AchievementModule(configuration.Snapshot(), players,
+            new Stats(), unlocks, new Grants(), commands);
+        configuration.Achievements.Clear();
+        await module.ReconcileOnlineAsync(Now);
+        CollectionAssert.AreEqual(new[] { "z-parent", "a-child" }, unlocks.Definitions.Select(value => value.Id).ToArray());
+        Assert.AreEqual(new AchievementPrerequisite("z-parent", 1), unlocks.Definitions[1].Prerequisites.Single());
+        var result = await commands.ExecuteAsync("!anoachievements", Player);
+        Assert.IsTrue(result.Success);
+        StringAssert.Contains(result.Message!, "locked: z-parent tier 1");
+    }
+
     private static async Task Connect(PlayerRegistry players)
         => _ = await players.ConnectAsync(new PlayerConnection(Player, "Player", PlayerTeam.Terrorist, true, Now));
 
@@ -206,6 +233,7 @@ public sealed class AchievementModuleTests
     private sealed class Unlocks : IAchievementRepository
     {
         public int Calls { get; private set; }
+        public List<AchievementDefinition> Definitions { get; } = [];
         public bool Fail { get; set; }
         public bool AwardFirst { get; init; }
         public PlayerId? FailPlayer { get; set; }
@@ -216,6 +244,7 @@ public sealed class AchievementModuleTests
             ProgressionDefinitionSnapshot xpDefinitions, CancellationToken cancellationToken = default)
         {
             Calls++;
+            Definitions.Add(definition);
             if (Fail || playerId == FailPlayer) throw new InvalidOperationException("test");
             if (AwardFirst && Calls == 1)
                 return ValueTask.FromResult<IReadOnlyList<AchievementUnlockRecord>>([new(definition.Id, definition.Version, 1,

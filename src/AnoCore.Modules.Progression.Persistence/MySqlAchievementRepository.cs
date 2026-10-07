@@ -39,6 +39,13 @@ public sealed class MySqlAchievementRepository : IAchievementRepository
             await MySqlProgressionGrantRepository.EnsureAccountAsync(connection, transaction, playerId, token).ConfigureAwait(false);
             _ = await MySqlProgressionGrantRepository.ReadLifetimeForUpdateAsync(connection, transaction, playerId, token).ConfigureAwait(false);
             var awardedTier = await ReadTierAsync(connection, transaction, playerId, definition.Id, token).ConfigureAwait(false);
+            foreach (var requirement in definition.Prerequisites)
+            {
+                var parentTier = await ReadTierAsync(connection, transaction, playerId,
+                    requirement.AchievementId, token).ConfigureAwait(false);
+                if (parentTier < requirement.Tier)
+                    return Array.Empty<AchievementUnlockRecord>();
+            }
             var evaluation = definition.Evaluate(snapshot, awardedTier);
             var unlocked = new List<AchievementUnlockRecord>();
             foreach (var tier in evaluation.NewlyUnlocked)
