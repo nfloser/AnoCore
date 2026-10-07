@@ -26,8 +26,8 @@ public sealed class AdminMenuTests
         await fixture.Commands.ExecuteAsync("!anoadminmenu", Admin);
         await fixture.Menus.SelectAsync(Admin, "anomute");
         await fixture.Menus.SelectAsync(Admin, Target.SteamId64.ToString());
-        await fixture.Menus.SelectAsync(Admin, "15");
-        await fixture.Menus.SelectAsync(Admin, "Rule violation");
+        await fixture.Menus.SelectAsync(Admin, "choice1");
+        await fixture.Menus.SelectAsync(Admin, "choice0");
         fixture.Menus.TryGetOpenMenu(Admin, out var confirm);
         await fixture.Menus.SelectAsync(Admin, confirm!, "confirm");
         await fixture.Menus.SelectAsync(Admin, confirm!, "confirm");
@@ -44,8 +44,8 @@ public sealed class AdminMenuTests
         await fixture.Commands.ExecuteAsync("!anoadminmenu", Admin);
         await fixture.Menus.SelectAsync(Admin, "anomute");
         await fixture.Menus.SelectAsync(Admin, Target.SteamId64.ToString());
-        await fixture.Menus.SelectAsync(Admin, "15");
-        await fixture.Menus.SelectAsync(Admin, "Rule violation");
+        await fixture.Menus.SelectAsync(Admin, "choice1");
+        await fixture.Menus.SelectAsync(Admin, "choice0");
         fixture.Gateway.Allowed = false;
         await fixture.Menus.SelectAsync(Admin, "confirm");
         Assert.AreEqual(0, fixture.Calls);
@@ -53,8 +53,8 @@ public sealed class AdminMenuTests
         await fixture.Commands.ExecuteAsync("!anoadminmenu", Admin);
         await fixture.Menus.SelectAsync(Admin, "anomute");
         await fixture.Menus.SelectAsync(Admin, Target.SteamId64.ToString());
-        await fixture.Menus.SelectAsync(Admin, "15");
-        await fixture.Menus.SelectAsync(Admin, "Rule violation");
+        await fixture.Menus.SelectAsync(Admin, "choice1");
+        await fixture.Menus.SelectAsync(Admin, "choice0");
         await fixture.Players.ConnectAsync(new(Target, "New session", PlayerTeam.CounterTerrorist, true, Now.AddMinutes(1)));
         await fixture.Menus.SelectAsync(Admin, "confirm");
         Assert.AreEqual(0, fixture.Calls);

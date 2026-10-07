@@ -110,7 +110,7 @@ public sealed class AdminMenuModule : IDisposable
         {
             var argument = command.Arguments[index];
             var choices = command.Name == "anoarmor" && argument.Name == "value" ? new[] { "0", "50", "100" } : Choices[argument.Name];
-            var options = choices.Select(value => new MenuOption(value, Text(value), context =>
+            var options = choices.Select((value, choice) => new MenuOption("choice" + choice, Text(value), context =>
                 Current(actor) && Current(target) ? Argument(actor, target, command, values.Append(value).ToArray(), index + 1,
                     context.CancellationToken) : ValueTask.CompletedTask, keepOpen: true)).Append(Back(actor)).ToArray();
             Replace(actor, "Administration — " + argument.Name, options, revision);
