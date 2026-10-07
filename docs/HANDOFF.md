@@ -1,3 +1,17 @@
+# Progression navigation and active boost status — 2026-10-07
+
+- #295 adds `!anoprogression` over existing enabled read commands, with no extra
+  state store: lifetime, achievements, challenges, season, history and leaderboard.
+- Detail pages reuse command authorization and data, bound/escape native labels,
+  support refresh/back/pagination and reject stale-session/older async responses.
+- Menu ownership is cleaned on disconnect, unload and activation failure.
+- `!anoxp` shows next-level XP and the strongest active gameplay boost at current UTC.
+- `!anoseasontopcurrent [page]` exposes current-season leaderboard pagination without
+  replacing the existing explicitly addressed historical leaderboard command.
+- Regression coverage includes native label safety, enabled-source filtering,
+  pagination, read ordering, reconnect/unload and scheduled/weekend boost boundaries.
+- Exact-head CI required before merge; native menus remain manual acceptance.
+
 # Audited lifetime XP administration — 2026-10-07
 
 - #293 adds centrally authorized give/take/set/reset commands for lifetime XP.
@@ -9,7 +23,8 @@
   and unload remove all four registrations. Administration never receives XP boosts.
 - Policy/command and MariaDB tests cover bounds, denial, rollback, retries, restart,
   concurrency with earned grants and offline console administration.
-- Exact-head CI and review required before merge; native command acceptance remains manual.
+- PR #294 merged after CI #712 passed all 889 tests and package checks;
+  native command acceptance remains manual.
 
 # Committed progression events and level notices — 2026-10-07
 

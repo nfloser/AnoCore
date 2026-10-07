@@ -734,3 +734,34 @@ Native acceptance: verify each command from an authorized player and console,
 permission denial, equal/higher immunity and ambiguous targets; use an offline
 SteamID64; restart and inspect audit/lifetime state. Confirm season XP, competitive
 rank points and permanent unlocks remain intact after lifetime set/reset.
+
+
+## Progression menu and active boost status
+
+Issue #295 adds `!anoprogression` to the existing native menu bridge. The hub shows
+only enabled/registered progression sources and prefers `!anoxp` for lifetime status,
+falling back to `!anolevel` when gameplay XP is disabled. Views cover lifetime XP,
+permanent achievements, active challenges, current season, accepted season history
+and the current season leaderboard. The paged `!anoseasontopcurrent [page]` reuses the
+existing season leaderboard implementation and current-season resolver; the explicit
+historical `!anoseasontop <season> [page]` remains available.
+
+Selecting a view runs the existing read command as the current player. Menus display
+bounded, HTML-escaped command-result rows, with refresh/back and bounded pagination
+for paged sources. A rejected page displays the command's validation message and
+previous/back navigation. No new database store, XP calculation or gameplay tracking
+is introduced. Captured sessions are checked before and after asynchronous reads;
+per-player request revisions prevent an older slow response replacing a newer view.
+Owned menus disappear on disconnect/unload, and activation failure rolls back the
+command/subscription registrations. Administrative commands are never menu sources.
+
+`!anoxp` now shows XP remaining to the next configured level (or the highest-level
+state) and the strongest current gameplay XP modifier, including its stable ID and
+UTC evaluation time. The same resolver used for earned grants resolves scheduled
+and recurring weekend boosts. This current status does not reinterpret historical
+awards, whose original event timestamps still govern their multipliers.
+
+Native acceptance: open the menu with combinations of enabled sources, navigate
+all views and pages, refresh after earning XP, inspect current/historical seasons,
+then reconnect/reload while a view loads. Verify navigation and text in the client,
+and check active scheduled/weekend boost boundaries with the server UTC clock.
