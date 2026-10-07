@@ -33,8 +33,10 @@ public sealed class LiveRankScoringService : IDisposable
         _weights = configuration.ScoreWeights;
         _configuration = new RankConfiguration
         {
-            Source = configuration.Source, StartingPoints = configuration.StartingPoints,
-            Thresholds = configuration.Thresholds.ToList(), NotifyRankChanges = configuration.NotifyRankChanges,
+            Source = configuration.Source,
+            StartingPoints = configuration.StartingPoints,
+            Thresholds = configuration.Thresholds.ToList(),
+            NotifyRankChanges = configuration.NotifyRankChanges,
         };
         _events = events ?? throw new ArgumentNullException(nameof(events));
         _scores = scores ?? throw new ArgumentNullException(nameof(scores));

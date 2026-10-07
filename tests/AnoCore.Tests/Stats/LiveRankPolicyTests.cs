@@ -26,8 +26,11 @@ public sealed class LiveRankPolicyTests
             GameplayPoints = new() { [GameplayStatKind.HeadshotKill] = 3, [GameplayStatKind.FlashAssist] = 2 },
             LivePolicy = new()
             {
-                VipMultiplier = 2m, WeaponPoints = new() { ["ak47"] = 4 },
-                DistanceThresholdMeters = 20, DistanceBonus = 5, StreakPoints = new() { [2] = 6 },
+                VipMultiplier = 2m,
+                WeaponPoints = new() { ["ak47"] = 4 },
+                DistanceThresholdMeters = 20,
+                DistanceBonus = 5,
+                StreakPoints = new() { [2] = 6 },
             },
         };
         var result = new LiveRankPolicy(configuration).Death(Death(), 100, 100, [Attacker.Id, Assister.Id], 2);
@@ -41,7 +44,8 @@ public sealed class LiveRankPolicyTests
     {
         var configuration = new RankConfiguration
         {
-            KillPoints = 10, DeathPenalty = 10,
+            KillPoints = 10,
+            DeathPenalty = 10,
             LivePolicy = new() { DynamicMultipliers = true, MinimumDynamicMultiplier = 0.5m, MaximumDynamicMultiplier = 2m, VipMultiplier = 3m },
         };
         var policy = new LiveRankPolicy(configuration);
