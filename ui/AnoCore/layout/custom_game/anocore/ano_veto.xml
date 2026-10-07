@@ -3,35 +3,37 @@
         <include src="s2r://panorama/styles/custom_game/anocore/ano_veto.vcss_c" />
     </styles>
 
-    <Panel id="ano_veto_root" class="ano-overlay" hittest="true" hittestchildren="true">
-        <Panel class="ano-dim" hittest="false" />
+    <Panel style="width: 100%; height: 100%;" hittest="false" hittestchildren="true">
+        <Panel id="ano_veto_root" class="ano-overlay" hittest="true" hittestchildren="true">
+            <Panel class="ano-dim" hittest="false" />
 
-        <Panel class="ano-window" hittest="true" hittestchildren="true">
-            <Panel class="ano-header" hittest="false">
-                <Panel class="ano-header-copy" hittest="false">
-                    <Label class="ano-brand" text="ANOMEME" />
-                    <Label id="ano_veto_title" class="ano-title" text="{s:text}" />
-                    <Label id="ano_veto_status" class="ano-status" text="{s:text}" />
+            <Panel class="ano-window" hittest="true" hittestchildren="true">
+                <Panel class="ano-header" hittest="false">
+                    <Panel class="ano-header-copy" hittest="false">
+                        <Label class="ano-brand" text="ANOMEME" />
+                        <Label id="ano_veto_title" class="ano-title" text="{s:text}" />
+                        <Label id="ano_veto_status" class="ano-status" text="{s:text}" />
+                    </Panel>
+                    <Button id="ano_veto_close" class="ano-close" hittest="true" hittestchildren="false">
+                        <Label text="×" />
+                    </Button>
                 </Panel>
-                <Button id="ano_veto_close" class="ano-close" hittest="true" hittestchildren="false">
-                    <Label text="×" />
-                </Button>
-            </Panel>
 
-            <Panel class="ano-map-grid" hittest="true" hittestchildren="true">
-                <Button id="ano_veto_map_0" class="ano-map" hittest="true" hittestchildren="false"><Label id="ano_veto_map_0_text" class="ano-map-text" text="{s:text}" /></Button>
-                <Button id="ano_veto_map_1" class="ano-map" hittest="true" hittestchildren="false"><Label id="ano_veto_map_1_text" class="ano-map-text" text="{s:text}" /></Button>
-                <Button id="ano_veto_map_2" class="ano-map" hittest="true" hittestchildren="false"><Label id="ano_veto_map_2_text" class="ano-map-text" text="{s:text}" /></Button>
-                <Button id="ano_veto_map_3" class="ano-map" hittest="true" hittestchildren="false"><Label id="ano_veto_map_3_text" class="ano-map-text" text="{s:text}" /></Button>
-                <Button id="ano_veto_map_4" class="ano-map" hittest="true" hittestchildren="false"><Label id="ano_veto_map_4_text" class="ano-map-text" text="{s:text}" /></Button>
-                <Button id="ano_veto_map_5" class="ano-map" hittest="true" hittestchildren="false"><Label id="ano_veto_map_5_text" class="ano-map-text" text="{s:text}" /></Button>
-                <Button id="ano_veto_map_6" class="ano-map" hittest="true" hittestchildren="false"><Label id="ano_veto_map_6_text" class="ano-map-text" text="{s:text}" /></Button>
-                <Button id="ano_veto_map_7" class="ano-map" hittest="true" hittestchildren="false"><Label id="ano_veto_map_7_text" class="ano-map-text" text="{s:text}" /></Button>
-            </Panel>
+                <Panel class="ano-map-grid" hittest="true" hittestchildren="true">
+                    <Button id="ano_veto_map_0" class="ano-map" hittest="true" hittestchildren="false"><Label id="ano_veto_map_0_text" class="ano-map-text" text="{s:text}" /></Button>
+                    <Button id="ano_veto_map_1" class="ano-map" hittest="true" hittestchildren="false"><Label id="ano_veto_map_1_text" class="ano-map-text" text="{s:text}" /></Button>
+                    <Button id="ano_veto_map_2" class="ano-map" hittest="true" hittestchildren="false"><Label id="ano_veto_map_2_text" class="ano-map-text" text="{s:text}" /></Button>
+                    <Button id="ano_veto_map_3" class="ano-map" hittest="true" hittestchildren="false"><Label id="ano_veto_map_3_text" class="ano-map-text" text="{s:text}" /></Button>
+                    <Button id="ano_veto_map_4" class="ano-map" hittest="true" hittestchildren="false"><Label id="ano_veto_map_4_text" class="ano-map-text" text="{s:text}" /></Button>
+                    <Button id="ano_veto_map_5" class="ano-map" hittest="true" hittestchildren="false"><Label id="ano_veto_map_5_text" class="ano-map-text" text="{s:text}" /></Button>
+                    <Button id="ano_veto_map_6" class="ano-map" hittest="true" hittestchildren="false"><Label id="ano_veto_map_6_text" class="ano-map-text" text="{s:text}" /></Button>
+                    <Button id="ano_veto_map_7" class="ano-map" hittest="true" hittestchildren="false"><Label id="ano_veto_map_7_text" class="ano-map-text" text="{s:text}" /></Button>
+                </Panel>
 
-            <Panel class="ano-footer" hittest="false">
-                <Label class="ano-help" text="CLICK A MAP TO VOTE" />
-                <Label class="ano-help ano-help-secondary" text="CLOSE releases the cursor without voting" />
+                <Panel class="ano-footer" hittest="false">
+                    <Label class="ano-help" text="CLICK A MAP TO VOTE" />
+                    <Label class="ano-help ano-help-secondary" text="CLOSE releases the cursor without voting" />
+                </Panel>
             </Panel>
         </Panel>
     </Panel>

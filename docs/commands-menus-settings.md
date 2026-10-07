@@ -47,3 +47,14 @@ CounterStrikeSharp-specific command and menu code lives only in `AnoCore.Plugin`
 ## Internal rating
 
 `!anorating` lists connected human players in pages of five. `!anorating list <page>` navigates the list; `!anorating <name-or-SteamID64>` shows observed dimensions and sample counts. New/low-sample players are explicitly unscored/provisional. The command supports server-console inspection and does not change teams, rank points or progression. See [AnoRating](ano-rating.md) for the versioned heuristic and confidence boundaries.
+
+## AnoCore home and Panorama presentation
+
+`!anomenu` opens the enabled feature menus and read views from one entry point.
+Protected destinations and the administration command reference are permission-filtered.
+Existing `!anostatsmenu`, `!anoranks`, `!anoprogression`, `!anochatmenu` and
+`!anosettingsmenu` still open their own logical pages. Set `PanoramaMenusEnabled`
+in `config/core.json` only after the compiled shared Workshop addon is automatically
+mounted for joining clients; see [Custom HUD deployment](custom-hud.md#shared-player-menu).
+The false default retains the stock-client CenterHTML presenter. This is a restart-only
+presentation switch and does not change gameplay, bot filtering or persistence.

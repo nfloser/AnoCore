@@ -27,6 +27,7 @@ using AnoCore.Runtime.Configuration;
 using AnoCore.Runtime.Events;
 using AnoCore.Runtime.Management;
 using AnoCore.Runtime.Modules;
+using AnoCore.Runtime.Menus;
 using AnoCore.Runtime.Persistence;
 using AnoCore.Runtime.Players;
 using AnoCore.Runtime.Settings;
@@ -81,6 +82,8 @@ public sealed class AnoCorePlugin : BasePlugin
     private LevelNotificationService? _levelNotifications;
     private ProgressionAdminCommandController? _xpAdminCommands;
     private ProgressionMenuModule? _progressionMenu;
+    private AnoHomeMenuModule? _homeMenu;
+    private bool _panoramaMenusEnabled;
     private TournamentMatchRuntime? _tournamentMatch;
     private TournamentTeamEnforcement? _tournamentTeamEnforcement;
     private TournamentSpectatorPolicySource? _tournamentSpectatorPolicies;
@@ -193,6 +196,8 @@ public sealed class AnoCorePlugin : BasePlugin
             _seasonTimer?.Kill();
             _gameplayXpTimer = null;
             _seasonTimer = null;
+            _homeMenu?.Dispose();
+            _homeMenu = null;
             _progressionMenu?.Dispose();
             _progressionMenu = null;
             _xpAdminCommands?.Dispose();
@@ -367,6 +372,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 cancellationToken: cancellationToken).ConfigureAwait(false);
             var externalModules = await configuration.LoadAsync("modules", () => new ExternalModuleConfiguration(),
                 ExternalModuleConfiguration.Validate, cancellationToken).ConfigureAwait(false);
+            _panoramaMenusEnabled = settings.PanoramaMenusEnabled;
             var protectedServerControlPolicy = BuildProtectedServerControlPolicy(
                 settings.ProtectedServerControls);
             var managementConfiguration = await configuration.LoadAsync(
@@ -954,7 +960,11 @@ public sealed class AnoCorePlugin : BasePlugin
             LevelNotificationService? levelNotifications = null;
             ProgressionAdminCommandController? xpAdminCommands = null;
             ProgressionMenuModule? progressionMenu = null;
-            var presenter = new CounterStrikeMenuPresenter(this, runtime.Menus, Logger, runtime.Players);
+            AnoHomeMenuModule? homeMenu = null;
+            var presenter = new CounterStrikeMenuPresenter(this, runtime.Menus, Logger,
+                _panoramaMenusEnabled && _customHud is not null
+                    ? new PanoramaMenuPresenter(_customHud, runtime.Menus, runtime.Players, runtime.Commands, _eventBus!)
+                    : null, runtime.Players);
             var bridge = new CounterStrikeCommandBridge(
                 this,
                 runtime.Commands,
@@ -977,6 +987,7 @@ public sealed class AnoCorePlugin : BasePlugin
 
             try
             {
+                homeMenu = new AnoHomeMenuModule(runtime.Commands, runtime.Players, runtime.Menus, runtime.Authorization, _eventBus!);
                 messageTransportRegistration = runtime.Messages.AttachTransport(
                     new CounterStrikeMessageTransport(runtime.Players));
                 if (achievements is not null || challenges is not null || gameplayXp is not null)
@@ -1328,6 +1339,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 _levelNotifications = levelNotifications;
                 _xpAdminCommands = xpAdminCommands;
                 _progressionMenu = progressionMenu;
+                _homeMenu = homeMenu;
                 _seasons = seasons;
                 _tournamentMatch = tournamentMatch;
                 _tournamentTeamEnforcement = tournamentTeamEnforcement;
@@ -1387,6 +1399,8 @@ public sealed class AnoCorePlugin : BasePlugin
                 if (ReferenceEquals(_liveRankScoring, liveRankScoring)) _liveRankScoring = null;
                 rank?.Dispose();
                 gameplayStats?.Dispose();
+                homeMenu?.Dispose();
+                if (ReferenceEquals(_homeMenu, homeMenu)) _homeMenu = null;
                 progressionMenu?.Dispose();
                 if (ReferenceEquals(_progressionMenu, progressionMenu)) _progressionMenu = null;
                 xpAdminCommands?.Dispose();
@@ -1411,6 +1425,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 communicationModeration?.Dispose();
                 anoVeto?.Dispose();
                 bridge.Dispose();
+                presenter.Dispose();
                 rankAdminCommands?.Dispose();
                 rankAdminNotifications?.Dispose();
                 statisticsResetCommands?.Dispose();
@@ -1526,6 +1541,8 @@ public sealed class AnoCorePlugin : BasePlugin
     public sealed class RuntimeConfiguration
     {
         public string ConnectionString { get; set; } = string.Empty;
+
+        public bool PanoramaMenusEnabled { get; set; }
 
         public ProtectedServerControlConfiguration ProtectedServerControls { get; set; } = new();
     }

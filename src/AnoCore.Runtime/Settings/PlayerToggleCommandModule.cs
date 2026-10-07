@@ -187,17 +187,6 @@ public sealed class PlayerToggleCommandModule : IDisposable
                     await OpenPageAsync(player, page, context.CancellationToken)
                         .ConfigureAwait(false);
                 }, keepOpen: true));
-            options.Add(new MenuOption(
-                $"r{generation}_{index}", $"Default: {selected.Label}",
-                async context =>
-                {
-                    if (!StillAvailable(player, selected))
-                        return;
-                    await _settings.ResetAsync(player.Id, selected.Key,
-                        context.CancellationToken).ConfigureAwait(false);
-                    await OpenPageAsync(player, page, context.CancellationToken)
-                        .ConfigureAwait(false);
-                }, keepOpen: true));
         }
 
         if (page > 1)
