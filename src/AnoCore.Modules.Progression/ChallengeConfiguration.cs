@@ -3,7 +3,10 @@ using AnoCore.Abstractions.Stats;
 namespace AnoCore.Modules.Progression;
 
 public sealed record RecurringChallengeTemplate(string Id, int Version, string Name, ChallengeWindowKind WindowKind,
-    GameplayStatKind Statistic, long Target, long RewardXp, IReadOnlyList<string> PrerequisiteIds);
+    GameplayStatKind Statistic, long Target, long RewardXp, IReadOnlyList<string> PrerequisiteIds)
+{
+    public ChallengeCounterSource CounterSource { get; init; }
+}
 
 public sealed class ChallengeConfiguration
 {
@@ -82,7 +85,7 @@ public sealed class ChallengeScheduleSnapshot
             var start = item.WindowKind == ChallengeWindowKind.Daily ? day : monday;
             var end = start.AddDays(item.WindowKind == ChallengeWindowKind.Daily ? 1 : 7);
             definitions.Add(new(item.Id, item.Version, item.Name, item.WindowKind, item.Statistic,
-                item.Target, item.RewardXp, start, end, item.PrerequisiteIds));
+                item.Target, item.RewardXp, start, end, item.PrerequisiteIds) { CounterSource = item.CounterSource });
         }
         return ChallengeCatalogSnapshot.Create(definitions);
     }

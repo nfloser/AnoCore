@@ -95,11 +95,32 @@ public sealed class MySqlChallengeRepository : IChallengeRepository
             await using var count = connection.CreateCommand();
             count.Transaction = transaction;
             // Raw durable events intentionally preserve challenge progress across statistics resets.
-            count.CommandText = """
-                SELECT COALESCE(SUM(amount), 0) FROM ano_gameplay_stats
-                WHERE player_steam_id = @player AND stat_kind = @kind
-                    AND occurred_at_utc >= @start AND occurred_at_utc < @end
-                    AND occurred_at_utc <= @at
+            count.CommandText = definition.CounterSource switch
+            {
+                ChallengeCounterSource.GameplayStat => """
+                    SELECT COALESCE(SUM(amount), 0) FROM ano_gameplay_stats
+                    WHERE player_steam_id = @player AND stat_kind = @kind
+                    """,
+                ChallengeCounterSource.CombatKills => """
+                    SELECT COUNT(*) FROM ano_combat_deaths
+                    WHERE attacker_steam_id = @player AND attacker_steam_id <> victim_steam_id
+                        AND is_team_kill = FALSE
+                    """,
+                ChallengeCounterSource.CombatAssists => """
+                    SELECT COUNT(*) FROM ano_combat_deaths
+                    WHERE assister_steam_id = @player AND attacker_steam_id IS NOT NULL
+                        AND assister_steam_id <> attacker_steam_id AND assister_steam_id <> victim_steam_id
+                        AND attacker_steam_id <> victim_steam_id AND is_team_kill = FALSE
+                    """,
+                ChallengeCounterSource.UtilityDamage => """
+                    SELECT COALESCE(SUM(damage_health), 0) FROM ano_combat_damage
+                    WHERE attacker_steam_id = @player AND attacker_steam_id <> victim_steam_id
+                        AND is_team_damage = FALSE AND weapon IN ('hegrenade', 'inferno', 'molotov', 'incgrenade')
+                    """,
+                _ => throw new ArgumentOutOfRangeException(nameof(definition)),
+            } + """
+                 AND occurred_at_utc >= @start AND occurred_at_utc < @end
+                     AND occurred_at_utc <= @at
                 """;
             Add(count, "@player", playerId.SteamId64);
             Add(count, "@kind", (byte)definition.Statistic);
