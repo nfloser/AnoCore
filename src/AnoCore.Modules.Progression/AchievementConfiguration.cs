@@ -3,7 +3,10 @@ using AnoCore.Abstractions.Stats;
 namespace AnoCore.Modules.Progression;
 
 public sealed record AchievementCatalogEntry(string Id, int Version, string Name,
-    GameplayStatKind Statistic, List<AchievementTier> Tiers);
+    GameplayStatKind Statistic, List<AchievementTier> Tiers)
+{
+    public List<AchievementPrerequisite> Prerequisites { get; init; } = [];
+}
 
 public sealed record NamedAchievement(string Name, AchievementDefinition Definition);
 
@@ -43,11 +46,38 @@ public sealed class AchievementConfiguration
                 || entry.Name != entry.Name.Trim() || entry.Name.Any(char.IsControl) || !ids.Add(entry.Id))
                 throw new ArgumentException("Achievement IDs must be unique and names printable with at most 48 characters.");
             snapshot.Add(new NamedAchievement(entry.Name,
-                AchievementDefinition.Create(entry.Id, entry.Version, entry.Statistic, entry.Tiers)));
+                AchievementDefinition.Create(entry.Id, entry.Version, entry.Statistic, entry.Tiers,
+                    entry.Prerequisites ?? throw new ArgumentException("Achievement prerequisites cannot be null."))));
         }
+        var byId = snapshot.ToDictionary(entry => entry.Definition.Id, StringComparer.Ordinal);
+        var ordered = new List<NamedAchievement>();
+        var states = new Dictionary<string, byte>(StringComparer.Ordinal);
+        foreach (var entry in snapshot.OrderBy(entry => entry.Definition.Id, StringComparer.Ordinal))
+            Visit(entry);
+
+        void Visit(NamedAchievement entry)
+        {
+            var id = entry.Definition.Id;
+            if (states.TryGetValue(id, out var state))
+            {
+                if (state == 1) throw new ArgumentException("Achievement prerequisites cannot contain cycles.");
+                return;
+            }
+            states[id] = 1;
+            foreach (var requirement in entry.Definition.Prerequisites.OrderBy(value => value.AchievementId, StringComparer.Ordinal))
+            {
+                if (!byId.TryGetValue(requirement.AchievementId, out var parent)
+                    || requirement.Tier > parent.Definition.Tiers.Count)
+                    throw new ArgumentException("Achievement prerequisites must reference exact catalog IDs and existing tiers.");
+                Visit(parent);
+            }
+            states[id] = 2;
+            ordered.Add(entry);
+        }
+
         return new AchievementCatalogSnapshot(CheckpointSeconds,
             ProgressionDefinitionSnapshot.Create(Levels, Boosts),
-            snapshot.OrderBy(entry => entry.Definition.Id, StringComparer.Ordinal).ToList().AsReadOnly());
+            ordered.AsReadOnly());
     }
 
     public static IReadOnlyCollection<string> Validate(AchievementConfiguration configuration)

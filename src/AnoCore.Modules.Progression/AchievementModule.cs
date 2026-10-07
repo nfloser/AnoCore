@@ -39,7 +39,8 @@ public sealed class AchievementModule : IDisposable
             Achievements = catalog.Achievements.Select(entry => entry is null || entry.Definition is null
                 ? throw new ArgumentException("Catalog entries cannot be null.", nameof(catalog))
                 : new AchievementCatalogEntry(entry.Definition.Id, entry.Definition.Version, entry.Name,
-                    entry.Definition.Statistic, entry.Definition.Tiers.ToList())).ToList(),
+                    entry.Definition.Statistic, entry.Definition.Tiers.ToList())
+                { Prerequisites = entry.Definition.Prerequisites.ToList() }).ToList(),
         };
         _catalog = validationCopy.Snapshot();
         _players = players ?? throw new ArgumentNullException(nameof(players));
@@ -142,7 +143,17 @@ public sealed class AchievementModule : IDisposable
             var awarded = await _achievements.ReadAwardedTierAsync(player.Id, entry.Definition.Id, token).ConfigureAwait(false);
             var status = entry.Definition.Evaluate(totals, awarded);
             var target = status.NextTarget is { } next ? $"{status.Count}/{next}" : "complete";
-            lines.Add($"{entry.Name}: awarded {awarded}/{entry.Definition.Tiers.Count}, progress {target}");
+            var missing = new List<string>();
+            if (awarded < entry.Definition.Tiers.Count)
+            {
+                foreach (var requirement in entry.Definition.Prerequisites)
+                {
+                    var parentTier = await _achievements.ReadAwardedTierAsync(player.Id, requirement.AchievementId, token).ConfigureAwait(false);
+                    if (parentTier < requirement.Tier) missing.Add($"{requirement.AchievementId} tier {requirement.Tier}");
+                }
+            }
+            var locked = missing.Count > 0 ? $", locked: {string.Join(", ", missing)}" : "";
+            lines.Add($"{entry.Name}: awarded {awarded}/{entry.Definition.Tiers.Count}, progress {target}{locked}");
         }
         if (!Current(player)) return CommandResult.Fail(CommandFailureReason.Forbidden);
         return CommandResult.Ok(string.Join(" | ", lines));

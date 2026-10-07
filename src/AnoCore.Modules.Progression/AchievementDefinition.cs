@@ -2,6 +2,8 @@ using AnoCore.Abstractions.Stats;
 
 namespace AnoCore.Modules.Progression;
 
+public sealed record AchievementPrerequisite(string AchievementId, int Tier);
+
 public sealed record AchievementTier(int Tier, long Target, long RewardXp);
 
 public sealed record AchievementEvaluation(long Count, int UnlockedTier,
@@ -10,14 +12,16 @@ public sealed record AchievementEvaluation(long Count, int UnlockedTier,
 public sealed class AchievementDefinition
 {
     public const int MaxTiers = 100;
+    public const int MaxPrerequisites = 32;
 
     private AchievementDefinition(string id, int version, GameplayStatKind statistic,
-        IReadOnlyList<AchievementTier> tiers)
+        IReadOnlyList<AchievementTier> tiers, IReadOnlyList<AchievementPrerequisite> prerequisites)
     {
         Id = id;
         Version = version;
         Statistic = statistic;
         Tiers = tiers;
+        Prerequisites = prerequisites;
     }
 
     public string Id { get; }
@@ -25,8 +29,11 @@ public sealed class AchievementDefinition
     public GameplayStatKind Statistic { get; }
     public IReadOnlyList<AchievementTier> Tiers { get; }
 
+    public IReadOnlyList<AchievementPrerequisite> Prerequisites { get; }
+
     public static AchievementDefinition Create(string id, int version,
-        GameplayStatKind statistic, IEnumerable<AchievementTier> tiers)
+        GameplayStatKind statistic, IEnumerable<AchievementTier> tiers,
+        IEnumerable<AchievementPrerequisite>? prerequisites = null)
     {
         if (string.IsNullOrWhiteSpace(id) || id.Length > 64
             || id.Any(character => !char.IsAsciiLetterOrDigit(character)
@@ -46,7 +53,21 @@ public sealed class AchievementDefinition
                 throw new ArgumentException("Tiers must be consecutive with increasing positive targets and nonnegative XP rewards.", nameof(tiers));
             previousTarget = tier.Target;
         }
-        return new AchievementDefinition(id, version, statistic, Array.AsReadOnly(snapshot));
+        var requirements = (prerequisites ?? []).Take(MaxPrerequisites + 1).ToArray();
+        if (requirements.Length > MaxPrerequisites)
+            throw new ArgumentException("Define at most 32 achievement prerequisites.", nameof(prerequisites));
+        var ids = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var requirement in requirements)
+        {
+            if (requirement is null || string.IsNullOrWhiteSpace(requirement.AchievementId)
+                || requirement.AchievementId.Length > 64
+                || requirement.AchievementId.Any(character => !char.IsAsciiLetterOrDigit(character)
+                    && character is not '-' and not '_' and not '.')
+                || requirement.Tier is < 1 or > MaxTiers
+                || requirement.AchievementId == id || !ids.Add(requirement.AchievementId))
+                throw new ArgumentException("Achievement prerequisites require unique valid IDs, positive bounded tiers and no self-reference.", nameof(prerequisites));
+        }
+        return new AchievementDefinition(id, version, statistic, Array.AsReadOnly(snapshot), Array.AsReadOnly(requirements));
     }
 
     public AchievementEvaluation Evaluate(IEnumerable<GameplayStatTotal> totals, int awardedTier)

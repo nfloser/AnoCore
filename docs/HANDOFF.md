@@ -1,3 +1,13 @@
+# Permanent achievement prerequisites — 2026-10-07
+
+- #276 adds optional exact-ID/tier prerequisites to permanent achievement catalogs.
+- Bounded immutable snapshots reject unknown tiers, null lists and dependency cycles.
+- Parent-first checkpoints and player-account-locked durable reads gate atomic rewards.
+- Existing catalogs stay compatible; statistic resets retain permanent unlocks.
+- Definition/catalog, live module and concurrent MariaDB regression tests are added.
+- Local .NET SDK is unavailable; exact-head CI remains the executable quality gate.
+- Rank policy #228/#275 and native CS2 acceptance remain outstanding.
+
 # HTTPS management sidecar — 2026-10-06
 
 - #222 adds a separate ASP.NET Core host over the existing local ManagementPipeClient.

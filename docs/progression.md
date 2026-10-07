@@ -624,3 +624,27 @@ boost metadata, include an offline account, cross the end, drain delayed process
 close with an authorized admin, then query frozen history and the next season. Check
 permission denial, invalid config isolation, pagination, reconnect and unload. Nine
 module tests complement the transactional MariaDB tests; native behavior is manual.
+
+## Permanent achievement prerequisites
+
+Each entry in `achievements.json` accepts an optional `Prerequisites` array:
+
+```json
+"Prerequisites": [{ "AchievementId": "headshots", "Tier": 2 }]
+```
+
+All listed tiers must already be durably unlocked by the same player before any
+new tier of the dependent achievement can be awarded. These are permanent gates:
+statistic resets do not revoke existing unlocks. Progress still uses lifetime
+statistics, including observations made before the prerequisite was unlocked.
+An empty/omitted array preserves existing behavior. Explicit null arrays fail
+validation. IDs are exact and case-sensitive; references must exist in the catalog
+and name a valid tier. At most 32 unique prerequisites are allowed per achievement;
+self-references and cycles are rejected before module registration.
+
+The checkpoint processes parents before children, so a committed parent can open
+its children in the same pass even when alphabetical IDs would put children first.
+The repository checks prerequisites under the same player-account transaction lock
+as XP and unlock writes; evaluation candidates never satisfy a gate. No schema
+migration or competitive rank mutation is required. `!anoachievements` lists missing
+prerequisite tiers as locked. Native chat presentation still requires CS2 acceptance.
