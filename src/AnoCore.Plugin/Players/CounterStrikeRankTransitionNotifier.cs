@@ -5,7 +5,7 @@ using CounterStrikeSharp.API;
 namespace AnoCore.Plugin.Players;
 
 public sealed class CounterStrikeRankTransitionNotifier(
-    IPlayerRegistry players) : IRankTransitionNotificationSink, IDisposable
+    IPlayerRegistry players) : ISessionRankTransitionNotificationSink, IDisposable
 {
     private readonly IPlayerRegistry _players =
         players ?? throw new ArgumentNullException(nameof(players));
@@ -19,6 +19,19 @@ public sealed class CounterStrikeRankTransitionNotifier(
             || expected is null || !expected.IsConnected)
             return ValueTask.CompletedTask;
 
+        return NotifyAsync(expected, transition, cancellationToken);
+    }
+
+    public ValueTask NotifyAsync(PlayerSnapshot expected, RankTransition transition,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(expected);
+        ArgumentNullException.ThrowIfNull(transition);
+        cancellationToken.ThrowIfCancellationRequested();
+        var playerId = expected.Id;
+        if (Volatile.Read(ref _disposed) != 0 || !_players.TryGet(playerId, out var currentSession)
+            || currentSession is not { IsConnected: true } || currentSession.SessionId != expected.SessionId)
+            return ValueTask.CompletedTask;
         var expectedSession = expected.SessionId;
         var direction = transition.Kind == RankTransitionKind.Promotion
             ? "Promotion" : "Demotion";

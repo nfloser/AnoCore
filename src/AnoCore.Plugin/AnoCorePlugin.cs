@@ -1205,7 +1205,6 @@ public sealed class AnoCorePlugin : BasePlugin
                 _playtime = playtime;
                 _rank = rank;
                 _liveRankScoring = liveRankScoring;
-                liveRankScoring = null;
                 _gameplayStats = gameplayStats;
                 _achievements = achievements;
                 _challenges = challenges;
@@ -1257,6 +1256,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 seasonTimer?.Kill();
                 playtime?.Dispose();
                 liveRankScoring?.Dispose();
+                if (ReferenceEquals(_liveRankScoring, liveRankScoring)) _liveRankScoring = null;
                 rank?.Dispose();
                 gameplayStats?.Dispose();
                 achievements?.Dispose();

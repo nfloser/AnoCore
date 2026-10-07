@@ -178,7 +178,12 @@ public sealed class LiveRankScoringService : IDisposable
                 var current = (await _scores.GetScorePlacementAsync(player.Id, _weights, CancellationToken.None).ConfigureAwait(false))?.Points ?? 0;
                 var transition = RankTransitionEvaluator.Evaluate(_configuration, previous[player.Id], current);
                 if (transition is not null && Current(player))
-                    await _notifications.NotifyAsync(player.Id, transition, CancellationToken.None).ConfigureAwait(false);
+                {
+                    if (_notifications is ISessionRankTransitionNotificationSink pinned)
+                        await pinned.NotifyAsync(player, transition, CancellationToken.None).ConfigureAwait(false);
+                    else
+                        await _notifications.NotifyAsync(player.Id, transition, CancellationToken.None).ConfigureAwait(false);
+                }
             }
             catch (Exception exception) { Report(exception); }
         }

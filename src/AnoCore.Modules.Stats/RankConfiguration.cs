@@ -10,6 +10,7 @@ public sealed class RankConfiguration
     public int AssistPoints { get; set; } = 1;
     public int DeathPenalty { get; set; } = 1;
     public long StartingPoints { get; set; }
+    [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<RankScoreSource>))]
     public RankScoreSource Source { get; set; } = RankScoreSource.DerivedStatistics;
     public LiveRankConfiguration LivePolicy { get; set; } = new();
     public Dictionary<GameplayStatKind, int> GameplayPoints { get; set; } = [];
