@@ -1,4 +1,5 @@
 using AnoCore.Abstractions.Commands;
+using AnoCore.Abstractions.Events;
 using AnoCore.Abstractions.Messaging;
 using AnoCore.Abstractions.Modules;
 using AnoCore.Abstractions.Players;
@@ -16,6 +17,7 @@ public sealed class AchievementModule : IDisposable
     private readonly IAchievementRepository _achievements;
     private readonly ProgressionGrantService _grants;
     private readonly Action<Exception>? _reportError;
+    private readonly ProgressionEventPublisher? _events;
     private readonly AchievementNotificationService? _notifications;
     private readonly List<IDisposable> _registrations = [];
     private readonly Dictionary<PlayerId, (PlayerSessionId Session, GameplayStatTotal[] Totals)> _checked = [];
@@ -26,7 +28,7 @@ public sealed class AchievementModule : IDisposable
     public AchievementModule(AchievementCatalogSnapshot catalog, IPlayerRegistry players,
         IGameplayStatRepository statistics, IAchievementRepository achievements,
         IProgressionGrantRepository grants, IAnoCommandRegistry commands, Action<Exception>? reportError = null,
-        IPlayerSettingsService? settings = null, IPlayerToggleCatalog? toggles = null, IMessageService? messages = null)
+        IPlayerSettingsService? settings = null, IPlayerToggleCatalog? toggles = null, IMessageService? messages = null, IAnoEventBus? events = null)
     {
         ArgumentNullException.ThrowIfNull(catalog);
         if (catalog.Xp is null || catalog.Achievements is null)
@@ -48,6 +50,7 @@ public sealed class AchievementModule : IDisposable
         _achievements = achievements ?? throw new ArgumentNullException(nameof(achievements));
         _grants = new ProgressionGrantService(grants, _catalog.Xp);
         _reportError = reportError;
+        _events = events is null ? null : new ProgressionEventPublisher(events, _catalog.Xp, reportError);
         ArgumentNullException.ThrowIfNull(commands);
         if ((settings is not null || toggles is not null || messages is not null)
             && (settings is null || toggles is null || messages is null))
@@ -96,6 +99,9 @@ public sealed class AchievementModule : IDisposable
                     foreach (var entry in _catalog.Achievements)
                     {
                         var unlocked = await _achievements.UnlockAsync(player.Id, entry.Definition, totals, at, _catalog.Xp, token).ConfigureAwait(false);
+                        if (_events is not null)
+                            foreach (var unlock in unlocked.OrderBy(item => item.Grant.AccountRevisionAfter))
+                                await _events.AchievementAsync(player, unlock, token).ConfigureAwait(false);
                         if (_notifications is not null)
                             await _notifications.NotifyAsync(player, entry.Name, unlocked, token).ConfigureAwait(false);
                     }

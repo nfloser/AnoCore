@@ -1,4 +1,5 @@
 using AnoCore.Abstractions.Commands;
+using AnoCore.Abstractions.Events;
 using AnoCore.Abstractions.Messaging;
 using AnoCore.Abstractions.Modules;
 using AnoCore.Abstractions.Players;
@@ -15,6 +16,7 @@ public sealed class ChallengeModule : IDisposable
     private readonly IChallengeRepository _repository;
     private readonly Func<DateTimeOffset> _clock;
     private readonly Action<Exception>? _reportError;
+    private readonly ProgressionEventPublisher? _events;
     private readonly IDisposable _command;
     private readonly ChallengeNotificationService? _notifications;
     private readonly SemaphoreSlim _checkpointGate = new(1, 1);
@@ -24,7 +26,7 @@ public sealed class ChallengeModule : IDisposable
     public ChallengeModule(ChallengeScheduleSnapshot schedule, ProgressionDefinitionSnapshot xp,
         IPlayerRegistry players, IChallengeRepository repository, IAnoCommandRegistry commands,
         Func<DateTimeOffset>? clock = null, Action<Exception>? reportError = null,
-        IPlayerSettingsService? settings = null, IPlayerToggleCatalog? toggles = null, IMessageService? messages = null)
+        IPlayerSettingsService? settings = null, IPlayerToggleCatalog? toggles = null, IMessageService? messages = null, IAnoEventBus? events = null)
     {
         _schedule = schedule ?? throw new ArgumentNullException(nameof(schedule));
         _xp = xp ?? throw new ArgumentNullException(nameof(xp));
@@ -33,6 +35,7 @@ public sealed class ChallengeModule : IDisposable
         ArgumentNullException.ThrowIfNull(commands);
         _clock = clock ?? (() => DateTimeOffset.UtcNow);
         _reportError = reportError;
+        _events = events is null ? null : new ProgressionEventPublisher(events, xp, reportError);
         if ((settings is not null || toggles is not null || messages is not null)
             && (settings is null || toggles is null || messages is null))
             throw new ArgumentException("Challenge notifications require settings, toggles and messages together.");
@@ -72,6 +75,8 @@ public sealed class ChallengeModule : IDisposable
                     try
                     {
                         var result = await _repository.CompleteAsync(player.Id, catalog, definition.Id, at, _xp, linked.Token).ConfigureAwait(false);
+                        if (_events is not null)
+                            await _events.ChallengeAsync(player, result, linked.Token).ConfigureAwait(false);
                         if (_notifications is not null)
                             await _notifications.NotifyAsync(player, definition.Name, result, linked.Token).ConfigureAwait(false);
                     }
