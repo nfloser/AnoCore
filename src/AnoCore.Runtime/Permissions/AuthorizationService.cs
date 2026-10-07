@@ -9,13 +9,21 @@ public sealed class AuthorizationService : IAuthorizationService, IAuthorization
 
     private readonly IAuthorizationStore _store;
     private CompiledAuthorization _compiled;
+    private readonly object _expiryGate = new();
+    private readonly TimeProvider _clock;
+    private AuthorizationState _state;
+    private DateTimeOffset _nextExpiry;
+    private readonly SemaphoreSlim _reloadGate = new(1, 1);
 
     public AuthorizationService(
         IAuthorizationStore store,
-        AuthorizationState? initialState = null)
+        AuthorizationState? initialState = null,
+        TimeProvider? clock = null)
     {
         _store = store ?? throw new ArgumentNullException(nameof(store));
-        _compiled = CompiledAuthorization.Create(initialState ?? AuthorizationState.Empty);
+        _clock = clock ?? TimeProvider.System;
+        _state = initialState ?? AuthorizationState.Empty;
+        _compiled = CompileActive(_state, _clock.GetUtcNow());
     }
 
     public async ValueTask<bool> HasPermissionAsync(
@@ -33,7 +41,7 @@ public sealed class AuthorizationService : IAuthorizationService, IAuthorization
         ArgumentNullException.ThrowIfNull(permission);
         cancellationToken.ThrowIfCancellationRequested();
 
-        var compiled = Volatile.Read(ref _compiled);
+        var compiled = CurrentSnapshot();
         if (!compiled.Players.TryGetValue(playerId, out var player))
         {
             return ValueTask.FromResult(AuthorizationDecision.DeniedByDefault);
@@ -79,7 +87,7 @@ public sealed class AuthorizationService : IAuthorizationService, IAuthorization
     {
         ArgumentNullException.ThrowIfNull(playerId);
         cancellationToken.ThrowIfCancellationRequested();
-        var compiled = Volatile.Read(ref _compiled);
+        var compiled = CurrentSnapshot();
         return ValueTask.FromResult(
             compiled.Players.TryGetValue(playerId, out var player) ? player.Immunity : 0);
     }
@@ -115,7 +123,7 @@ public sealed class AuthorizationService : IAuthorizationService, IAuthorization
 
         cancellationToken.ThrowIfCancellationRequested();
         var normalized = tag.Trim().ToLowerInvariant();
-        var compiled = Volatile.Read(ref _compiled);
+        var compiled = CurrentSnapshot();
         return ValueTask.FromResult(
             compiled.Players.TryGetValue(playerId, out var player)
             && player.Tags.Contains(normalized));
@@ -123,11 +131,69 @@ public sealed class AuthorizationService : IAuthorizationService, IAuthorization
 
     public async ValueTask ReloadAsync(CancellationToken cancellationToken = default)
     {
-        var state = await _store.LoadAsync(cancellationToken).ConfigureAwait(false)
-            ?? AuthorizationState.Empty;
-        var replacement = CompiledAuthorization.Create(state);
-        Volatile.Write(ref _compiled, replacement);
-        Reloaded?.Invoke();
+        await _reloadGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            var state = await _store.LoadAsync(cancellationToken).ConfigureAwait(false) ?? AuthorizationState.Empty;
+            lock (_expiryGate)
+            {
+                var replacement = CompileActive(state, _clock.GetUtcNow());
+                _state = state;
+                Volatile.Write(ref _compiled, replacement);
+            }
+        }
+        finally { _reloadGate.Release(); }
+        NotifyReloaded();
+    }
+
+    public void FailClosed()
+    {
+        lock (_expiryGate)
+        {
+            _state = AuthorizationState.Empty;
+            Volatile.Write(ref _compiled, CompileActive(_state, _clock.GetUtcNow()));
+        }
+        NotifyReloaded();
+    }
+
+    public void RefreshExpiredAssignments() => CurrentSnapshot();
+
+    private CompiledAuthorization CurrentSnapshot()
+    {
+        var changed = false;
+        CompiledAuthorization result;
+        lock (_expiryGate)
+        {
+            var now = _clock.GetUtcNow();
+            if (now >= _nextExpiry)
+            {
+                Volatile.Write(ref _compiled, CompileActive(_state, now));
+                changed = true;
+            }
+            result = _compiled;
+        }
+        if (changed) NotifyReloaded();
+        return result;
+    }
+
+    private CompiledAuthorization CompileActive(AuthorizationState state, DateTimeOffset now)
+    {
+        _nextExpiry = state.Players.SelectMany(player => player.TimedRoles)
+            .Where(grant => grant.ExpiresAtUtc > now).Select(grant => grant.ExpiresAtUtc)
+            .DefaultIfEmpty(DateTimeOffset.MaxValue).Min();
+        return CompiledAuthorization.Create(new AuthorizationState(state.Roles,
+            state.Players.Select(player => new PlayerAuthorization(player.PlayerId,
+                player.Roles.Concat(player.TimedRoles.Where(grant => grant.ExpiresAtUtc > now)
+                    .Select(grant => grant.Role)).ToArray(), player.Rules)).ToArray()));
+    }
+
+    private void NotifyReloaded()
+    {
+        foreach (var handler in Reloaded?.GetInvocationList() ?? [])
+        {
+            try { ((Action)handler)(); }
+            catch { /* Committed authorization must remain effective if an observer fails. */ }
+        }
     }
 
     private static PermissionRule? SelectRule(
