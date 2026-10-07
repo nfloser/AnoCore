@@ -16,6 +16,7 @@ public sealed class AnoHomeMenuModule : IDisposable
     private static readonly ModuleId Owner = new("core.home-menu");
     private static readonly (string Name, string Label, bool Menu, bool Paged)[] Destinations =
     [
+        ("anoadminmenu", "Administration actions", true, false),
         ("anostatsmenu", "Statistics", true, false),
         ("anoranks", "Ranks", true, false),
         ("anoprogression", "Progression", true, false),

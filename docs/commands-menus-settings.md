@@ -58,3 +58,26 @@ in `config/core.json` only after the compiled shared Workshop addon is automatic
 mounted for joining clients; see [Custom HUD deployment](custom-hud.md#shared-player-menu).
 The false default retains the stock-client CenterHTML presenter. This is a restart-only
 presentation switch and does not change gameplay, bot filtering or persistence.
+
+## Administration actions
+
+`!anoadminmenu` (`ano.admin.menu`) opens an actionable menu, also linked from Home.
+Only enabled, permissioned commands with supported bounded forms appear. Each
+operation selects an eligible connected player, then its bounded argument choices,
+then an explicit confirmation. The existing command executor performs the final
+mutation and audit; there is no second administration store.
+
+Forms cover kick/silent kick, ban/unban, mute/unmute, gag/ungag, silence/unsilence,
+and supported player-state actions (health/armor, freeze, noclip/walk, slay,
+speed/reset, blind/unblind, god/ungod, respawn/revive, bury/unbury, strip and team).
+Denying immunity or revoking permission before confirmation blocks execution.
+Disconnected/reconnected targets and actors invalidate captured forms. Confirmation
+is consumed before asynchronous execution, so repeated clicks cannot repeat the
+operation. Disconnect/unload release owned menus; map end closes the logical menu,
+and delayed form reads cannot replace a newer menu.
+
+Moderation presets are 5, 15, 60 or 1,440 minutes and three explicit reasons.
+Permanent sanctions, arbitrary reasons, rename/item/coordinate inputs and other
+advanced parameters retain their existing direct commands and Administration command
+reference. No text input is simulated through Panorama labels. Stock W/S/E/R and
+Panorama share the same forms and permission path.
