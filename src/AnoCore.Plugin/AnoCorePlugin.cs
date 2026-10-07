@@ -690,7 +690,8 @@ public sealed class AnoCorePlugin : BasePlugin
                     await ProgressionPersistenceBootstrap.EnsureReadyAsync(database, timeout.Token).ConfigureAwait(false);
                     createdGameplayXp = new GameplayXpModule(gameplayXpConfiguration.Snapshot(), xpConfiguration.Snapshot().Xp,
                         players, new MySqlGameplayXpRepository(database), new MySqlProgressionGrantRepository(database), created.Commands,
-                        exception => Logger.LogError(exception, "Gameplay XP checkpoint failed."), events: events);
+                        exception => Logger.LogError(exception, "Gameplay XP checkpoint failed."), events: events,
+                        reloads: created.ConfigReloads, configuration: configuration);
                 }
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
