@@ -311,9 +311,10 @@ public sealed class AnoCorePlugin : BasePlugin
             _connectBan = null;
             _messageTransportRegistration?.Dispose();
             _messageTransportRegistration = null;
+            MenuPresenter?.Dispose();
+            MenuPresenter = null;
             _runtime?.Dispose();
             _runtime = null;
-            MenuPresenter = null;
             _customHud?.Dispose();
             _customHud = null;
             _runtimeStatus = "stopped";
@@ -1389,6 +1390,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 communicationModeration?.Dispose();
                 anoVeto?.Dispose();
                 bridge.Dispose();
+                presenter.Dispose();
                 rankAdminCommands?.Dispose();
                 rankAdminNotifications?.Dispose();
                 statisticsResetCommands?.Dispose();
