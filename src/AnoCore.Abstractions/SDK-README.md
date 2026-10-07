@@ -108,3 +108,28 @@ if (messages is not null)
 ```
 
 Timed center messages also accept a bounded priority and duration. The host suppresses lower-priority output while a higher-priority lease is active. Resolve localization and trusted placeholders before dispatching so the transport remains independent of catalogs and formatting providers.
+
+## Host notification events (API level 2)
+
+The SDK exposes `PlayerChatAcceptedEvent` and `CoreUnloadingEvent` through the
+shared `IAnoEventBus`. Declare `MinimumApiLevel = 2` when requiring these contracts;
+baseline level 1 modules remain supported by the host.
+
+Accepted chat is an immutable observation after AnoCore moderation/routing accepts
+connected-player input. Commands, empty input, blocked senders and failed formatting
+are excluded. It captures the sender snapshot/session, public/team channel, UTC
+acceptance time and up to 1024 characters of unformatted input. Native pass-through
+chat also emits it when a connected sender is known. It does not confirm client
+delivery and cannot mutate or cancel routing. Observer errors are isolated.
+
+Core unload starts one `CoreUnloadingEvent` per plugin load before teardown, with
+hot-reload reason and UTC time, even if runtime startup did not finish. This is an
+advisory observation: native unload cannot await asynchronous module callbacks.
+Use `context.Own(...)` and `ShutdownAsync` for required cleanup; do not rely on this
+event to finish asynchronous database work before resources disappear.
+
+Both publishers use best-effort notifications without persistence or replay.
+Subscribers should capture facts and return/yield promptly; synchronous subscriber
+work still runs on the publishing thread. Asynchronous callbacks must revalidate
+current session/lifetime before using host services and avoid native API access
+without the host's appropriate thread dispatch.
