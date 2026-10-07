@@ -149,6 +149,48 @@ public sealed class MySqlRankPointEventRepositoryTests
         Assert.AreEqual(-40L, await new MySqlCombatRepository(_database).ReadRawScoreAsync(Other, Ledger()));
     }
 
+    [TestMethod]
+    public async Task ProfileOnlyBaseline_IsSelectedWithoutImportingCombatParticipants()
+    {
+        await _database.WithConnectionAsync(async (connection, token) =>
+        {
+            await using var command = connection.CreateCommand();
+            command.CommandText = """
+                INSERT INTO ano_players (steam_id, last_known_name, first_seen_utc, last_seen_utc)
+                VALUES (@player, 'Profile only', UTC_TIMESTAMP(6), UTC_TIMESTAMP(6))
+                """;
+            var parameter = command.CreateParameter();
+            parameter.ParameterName = "@player";
+            parameter.Value = Player.SteamId64;
+            command.Parameters.Add(parameter);
+            await command.ExecuteNonQueryAsync(token);
+            return true;
+        });
+        var scores = new MySqlCombatRepository(_database);
+        Assert.IsNull(await scores.GetScorePlacementAsync(Player, Ledger()));
+        Assert.AreEqual(50L, (await scores.GetScorePlacementAsync(Player, Ledger(50)))!.Points);
+        Assert.AreEqual("Profile only", (await scores.GetTopScoresAsync(Ledger(50), 10, 0)).Single().DisplayName);
+        await scores.RecordAsync(new CombatDeath(Guid.NewGuid(), Other, Player, null, Now));
+        Assert.IsNull(await scores.GetScorePlacementAsync(Other, Ledger()));
+    }
+
+    [TestMethod]
+    public async Task Migration_IsRepeatableAndReadRejectsEmptyIdentity()
+    {
+        await _database.WithConnectionAsync(async (connection, token) =>
+        {
+            await new RankPointEventSchemaMigration018().ApplyAsync(connection, token);
+            await new RankPointEventSchemaMigration018().ApplyAsync(connection, token);
+            return true;
+        });
+        var repository = new MySqlRankPointEventRepository(_database);
+        Assert.IsNull(await repository.ReadAsync(Guid.NewGuid()));
+        await Assert.ThrowsExactlyAsync<ArgumentException>(async () => await repository.ReadAsync(Guid.Empty));
+        var batch = RankPointEventBatch.Create(Guid.NewGuid(), "zero", Now, [new(Player, 0)]);
+        Assert.IsTrue((await repository.ApplyAsync(batch)).Applied);
+        Assert.IsFalse((await repository.ApplyAsync(batch)).Applied);
+    }
+
     private async Task DropAsync()
     {
         await _database.WithConnectionAsync(async (connection, token) =>

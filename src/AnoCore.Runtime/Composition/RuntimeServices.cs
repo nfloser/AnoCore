@@ -164,6 +164,8 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
 
     public MySqlGameplayStatRepository GameplayStats { get; }
 
+    public MySqlRankPointEventRepository RankPointEvents { get; }
+
     public MySqlRankAdjustmentRepository RankAdjustments { get; }
 
     public MySqlRankAdjustmentAdministrationService RankAdjustmentAdministration { get; }

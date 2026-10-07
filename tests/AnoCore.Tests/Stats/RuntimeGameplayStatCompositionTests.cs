@@ -29,6 +29,8 @@ public sealed class RuntimeGameplayStatCompositionTests
             events,
             players);
 
+        Assert.AreSame(runtime.RankPointEvents, runtime.GetService(typeof(IRankPointEventRepository)));
+
         Assert.AreSame(
             runtime.GameplayStats,
             runtime.GetService(typeof(IGameplayStatRepository)));
