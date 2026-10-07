@@ -1901,7 +1901,7 @@ public sealed class AnoCorePlugin : BasePlugin
             if (value.Dominated > 0) specials.Add(GameplayStatKind.DominatedKill);
             if (value.Revenge > 0) specials.Add(GameplayStatKind.RevengeKill);
             var at = DateTimeOffset.UtcNow;
-            var distance = float.IsFinite(value.Distance) ? Math.Clamp((decimal)value.Distance, 0m, 10000m) : 0m;
+            var distance = float.IsFinite(value.Distance) ? (decimal)Math.Clamp(value.Distance, 0f, 10000f) : 0m;
             var input = new RankDeathInput(LiveRankContext(eventId, at), victim, attacker,
                 CombatPlayer(value.Assister), CombatDetailKey(value.Weapon, "world", 64),
                 specials.AsReadOnly(), value.Assistedflash, distance);

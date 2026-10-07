@@ -103,6 +103,7 @@ public sealed class LiveRankScoringService : IDisposable
         PlayerSnapshot player, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(statistic);
+        ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(player);
         if (statistic.PlayerId != player.Id || statistic.EventId != context.EventId || statistic.Amount != 1)
             throw new ArgumentException("Live rank gameplay events require one captured player/event occurrence.", nameof(statistic));
