@@ -1,4 +1,8 @@
 using AnoCore.Modules.Stats;
+using AnoCore.Abstractions.Players;
+using AnoCore.Abstractions.Stats;
+using AnoCore.Runtime.Players;
+using AnoCore.Runtime.Events;
 
 namespace AnoCore.Tests.Stats;
 
@@ -53,5 +57,88 @@ public sealed class RankScoreboardTests
         Assert.IsFalse(new RankConfiguration().Scoreboard.Enabled);
         Assert.IsNotEmpty(RankConfiguration.Validate(new RankConfiguration { Scoreboard = null! }));
         Assert.IsNotEmpty(RankConfiguration.Validate(new RankConfiguration { Scoreboard = new() { RankMode = (RankScoreboardMode)255 } }));
+    }
+    [TestMethod]
+    public async Task Refresh_SuppressesReconnectDuringQueryAndOwnsTransportDisposal()
+    {
+        var players = new PlayerRegistry(new AnoEventBus());
+        var id = new PlayerId(76561198000286101);
+        var now = DateTimeOffset.UtcNow;
+        await players.ConnectAsync(new PlayerConnection(id, "Old", PlayerTeam.Terrorist, true, now));
+        players.TryGet(id, out var player);
+        var scores = new Scores
+        {
+            BeforeRead = async () =>
+            {
+                await players.DisconnectAsync(id, player!.SessionId, now);
+                await players.ConnectAsync(new PlayerConnection(id, "New", PlayerTeam.Terrorist, true, now));
+            },
+        };
+        var transport = new Transport();
+        using var service = new RankScoreboardService(new RankConfiguration
+        {
+            Source = RankScoreSource.EventLedger,
+            Scoreboard = new() { SyncScore = true },
+        }, players, scores, transport);
+        await service.RefreshAsync();
+        Assert.AreEqual(RankScoreSource.EventLedger, scores.Source);
+        Assert.IsEmpty(transport.Players);
+        service.Dispose();
+        Assert.IsTrue(transport.Disposed);
+        await service.RefreshAsync();
+        Assert.IsEmpty(transport.Players);
+    }
+
+    [TestMethod]
+    public async Task Refresh_IsolatesPlayerFailureAndCapturesConfiguration()
+    {
+        var players = new PlayerRegistry(new AnoEventBus());
+        var now = DateTimeOffset.UtcNow;
+        await players.ConnectAsync(new PlayerConnection(new PlayerId(76561198000286101), "One", PlayerTeam.Terrorist, true, now));
+        await players.ConnectAsync(new PlayerConnection(new PlayerId(76561198000286102), "Two", PlayerTeam.Terrorist, true, now));
+        var config = new RankConfiguration { Scoreboard = new() { SyncScore = true } };
+        var transport = new Transport { FailFirst = true };
+        var errors = new List<Exception>();
+        using var service = new RankScoreboardService(config, players, new Scores(), transport, errors.Add);
+        config.Scoreboard.SyncScore = false;
+        await service.RefreshAsync();
+        Assert.HasCount(1, errors);
+        Assert.HasCount(1, transport.Players);
+        Assert.AreEqual(100, transport.Last!.Score);
+    }
+
+    private sealed class Transport : IRankScoreboardTransport
+    {
+        public List<PlayerSnapshot> Players { get; } = [];
+        public RankScoreboardProjection? Last { get; private set; }
+        public bool FailFirst { get; set; }
+        public bool Disposed { get; private set; }
+        public ValueTask ApplyAsync(PlayerSnapshot player, RankScoreboardProjection projection, CancellationToken cancellationToken = default)
+        {
+            if (FailFirst) { FailFirst = false; throw new InvalidOperationException("test failure"); }
+            Players.Add(player);
+            Last = projection;
+            return ValueTask.CompletedTask;
+        }
+        public void Dispose() => Disposed = true;
+    }
+
+    private sealed class Scores : IGameplayRankScoreRepository
+    {
+        public Func<Task>? BeforeRead { get; init; }
+        public RankScoreSource Source { get; private set; }
+        public async ValueTask<CombatScoreRankEntry?> GetScorePlacementAsync(PlayerId id, RankScoreWeights weights, CancellationToken cancellationToken = default)
+        {
+            Source = weights.Source;
+            if (BeforeRead is not null) await BeforeRead();
+            return new(id, 100, 1);
+        }
+        public ValueTask<IReadOnlyList<CombatScoreRankEntry>> GetTopScoresAsync(RankScoreWeights weights, int limit, int offset, CancellationToken cancellationToken = default) => throw new AssertFailedException();
+        public ValueTask<long> ReadRawScoreAsync(PlayerId id, RankScoreWeights weights, CancellationToken cancellationToken = default) => throw new AssertFailedException();
+        public ValueTask RecordAsync(CombatDeath death, CancellationToken cancellationToken = default) => throw new AssertFailedException("Rank events must not write combat statistics.");
+        public ValueTask<CombatTotals> ReadAsync(PlayerId id, CancellationToken cancellationToken = default) => throw new AssertFailedException();
+        public ValueTask<IReadOnlyList<CombatRankEntry>> GetTopKillsAsync(int limit, int offset, CancellationToken cancellationToken = default) => throw new AssertFailedException();
+        public ValueTask<IReadOnlyList<CombatCountRankEntry>> GetTopDeathsAsync(int limit, int offset, CancellationToken cancellationToken = default) => throw new AssertFailedException();
+        public ValueTask<IReadOnlyList<CombatCountRankEntry>> GetTopAssistsAsync(int limit, int offset, CancellationToken cancellationToken = default) => throw new AssertFailedException();
     }
 }
