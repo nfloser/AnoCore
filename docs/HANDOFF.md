@@ -10,8 +10,8 @@
   at map end, matching the Panorama cleanup boundary.
 - Final integrated-head CI is required before merging #307. Native SDK command/menu
   delivery, two-client HUD behavior and gameplay/database failure cases remain manual.
-- Remaining code scope: audited role/timed-assignment administration, actionable admin
-  menus, optional webhook delivery and broader concrete module reload adoption.
+- Remaining code scope: #314 audited role/timed-assignment administration, #315 actionable
+  admin menus, #316 optional webhook delivery and #317 broader concrete reload adoption.
   Historical open native-acceptance PRs are not an inventory of missing implementation.
 
 # Live external SDK module integration — 2026-10-07

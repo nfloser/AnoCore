@@ -40,7 +40,7 @@
 - No automatic team balancing
 - Optional live Leetify context, displayed separately and never folded into AnoRating
 - No FACEIT integration
-- Internal versioned list/detail commands implemented in #234; optional Leetify remains in #230
+- Internal versioned list/detail commands implemented in #234; opt-in live Leetify context implemented in #242, native/provider acceptance remains #230
 - Tracked in #230
 
 ## Maps and voting
