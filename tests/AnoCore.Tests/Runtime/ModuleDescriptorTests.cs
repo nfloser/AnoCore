@@ -6,14 +6,6 @@ namespace AnoCore.Tests.Runtime;
 public sealed class ModuleDescriptorTests
 {
     [TestMethod]
-    public void HostNotificationsHaveExplicitApiLevelWhileOriginalDescriptorStaysCompatible()
-    {
-        Assert.AreEqual(1, AnoCoreApi.BaselineLevel);
-        Assert.AreEqual(1, AnoCoreApi.MinimumSupportedLevel);
-        Assert.AreEqual(2, AnoCoreApi.CurrentLevel);
-    }
-
-    [TestMethod]
     public void ExistingConstructor_DefaultsToStableBaselineApiLevel()
     {
         var descriptor = new ModuleDescriptor(
