@@ -8,6 +8,10 @@ public sealed class ModuleHost
     private readonly object _sync = new();
     private readonly Dictionary<ModuleId, Registration> _registrations = [];
     private readonly IAnoModuleContext _context;
+    private readonly CancellationTokenSource _lifetime = new();
+    private TaskCompletionSource? _shutdown;
+    private bool _stopping;
+    private long _loadOrder;
 
     public ModuleHost(IAnoModuleContext context)
     {
@@ -60,6 +64,7 @@ public sealed class ModuleHost
 
         lock (_sync)
         {
+            ObjectDisposedException.ThrowIf(_stopping, this);
             if (_registrations.TryGetValue(id, out var existing)
                 && existing.State is ModuleState.Loading or ModuleState.Loaded or ModuleState.Unloading)
             {
@@ -69,16 +74,22 @@ public sealed class ModuleHost
             registration = new Registration(
                 module,
                 new ModuleLifetimeContext(_context.Services),
-                ModuleState.Loading);
+                ModuleState.Loading,
+                ++_loadOrder);
             _registrations[id] = registration;
         }
 
+        var loadCompletion = registration.Completion;
         try
         {
-            await module.InitializeAsync(registration.Context, cancellationToken).ConfigureAwait(false);
+            using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _lifetime.Token);
+            linked.Token.ThrowIfCancellationRequested();
+            await module.InitializeAsync(registration.Context, linked.Token).ConfigureAwait(false);
+            linked.Token.ThrowIfCancellationRequested();
 
             lock (_sync)
             {
+                if (_stopping) throw new OperationCanceledException("AnoCore module host is stopping.");
                 registration.State = ModuleState.Loaded;
                 registration.Failure = null;
             }
@@ -118,6 +129,7 @@ public sealed class ModuleHost
 
             throw;
         }
+        finally { loadCompletion.TrySetResult(); }
     }
 
     public async Task<bool> UnloadAsync(ModuleId moduleId, CancellationToken cancellationToken = default)
@@ -139,6 +151,7 @@ public sealed class ModuleHost
             }
 
             registration.State = ModuleState.Unloading;
+            registration.Completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         }
 
         Exception? failure = null;
@@ -170,16 +183,73 @@ public sealed class ModuleHost
             registration.State = failure is null ? ModuleState.Unloaded : ModuleState.Faulted;
             registration.Failure = failure;
         }
+        registration.Completion.TrySetResult();
 
         if (failure is not null)
             ExceptionDispatchInfo.Capture(failure).Throw();
         return true;
     }
 
+    // Start teardown synchronously: release registrations before any asynchronous shutdown can yield.
+    public Task ShutdownAsync()
+    {
+        Registration[] registrations;
+        TaskCompletionSource completion;
+        lock (_sync)
+        {
+            if (_shutdown is not null) return _shutdown.Task;
+            _stopping = true;
+            completion = _shutdown = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            registrations = _registrations.Values.OrderByDescending(item => item.Order).ToArray();
+        }
+        var failures = new List<Exception>();
+        try { _lifetime.Cancel(); }
+        catch (Exception exception) { failures.Add(exception); }
+        foreach (var registration in registrations)
+        {
+            try { registration.Context.Dispose(); }
+            catch (Exception exception) { failures.Add(exception); }
+        }
+        _ = CompleteShutdownAsync(registrations, failures, completion);
+        return completion.Task;
+    }
+
+    private async Task CompleteShutdownAsync(Registration[] registrations, List<Exception> failures,
+        TaskCompletionSource completion)
+    {
+        foreach (var registration in registrations)
+        {
+            try
+            {
+                while (true)
+                {
+                    ModuleState state;
+                    Task operation;
+                    lock (_sync) { state = registration.State; operation = registration.Completion.Task; }
+                    if (state is ModuleState.Loading or ModuleState.Unloading)
+                    {
+                        await operation.ConfigureAwait(false);
+                        continue;
+                    }
+                    if (state == ModuleState.Loaded)
+                        await UnloadAsync(registration.Module.Descriptor.Id).ConfigureAwait(false);
+                    else if (state == ModuleState.Faulted && registration.Failure is { } failure
+                        && failure is not OperationCanceledException)
+                        ExceptionDispatchInfo.Capture(failure).Throw();
+                    break;
+                }
+            }
+            catch (Exception exception) { failures.Add(exception); }
+        }
+        if (failures.Count == 0) completion.TrySetResult();
+        else completion.TrySetException(new AggregateException("Module host shutdown was incomplete.", failures));
+    }
+
     private sealed class Registration(
         IAnoModule module,
         ModuleLifetimeContext context,
-        ModuleState state)
+        ModuleState state,
+        long order)
     {
         public IAnoModule Module { get; } = module;
 
@@ -188,6 +258,8 @@ public sealed class ModuleHost
         public ModuleState State { get; set; } = state;
 
         public Exception? Failure { get; set; }
+        public long Order { get; } = order;
+        public TaskCompletionSource Completion { get; set; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         public ModuleSnapshot ToSnapshot() => new(Module.Descriptor, State, Failure);
     }

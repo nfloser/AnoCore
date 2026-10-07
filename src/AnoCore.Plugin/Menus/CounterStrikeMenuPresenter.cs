@@ -19,17 +19,23 @@ public sealed class CounterStrikeMenuPresenter : IDisposable
     private readonly PanoramaMenuPresenter? _panorama;
     private readonly Dictionary<PlayerId, RenderedMenu> _renderedMenus = [];
     private bool _disposed;
+    private readonly Dictionary<PlayerId, long> _presentedRevisions = [];
+    private readonly MenuService? _observableMenus;
+    private readonly IPlayerRegistry? _players;
 
-    public CounterStrikeMenuPresenter(BasePlugin plugin, IMenuService menus, ILogger logger, PanoramaMenuPresenter? panorama = null)
+    public CounterStrikeMenuPresenter(BasePlugin plugin, IMenuService menus, ILogger logger, PanoramaMenuPresenter? panorama = null, IPlayerRegistry? players = null)
     {
         _plugin = plugin ?? throw new ArgumentNullException(nameof(plugin));
         _menus = menus ?? throw new ArgumentNullException(nameof(menus));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _panorama = panorama;
+        _players = players;
+        _observableMenus = menus as MenuService;
         try
         {
             _plugin.RegisterListener<Listeners.OnMapEnd>(OnMapEnd);
             _plugin.RegisterListener<Listeners.OnTick>(OnTick);
+            if (_observableMenus is not null && players is not null) _observableMenus.Changed += OnMenusChanged;
         }
         catch
         {
@@ -39,12 +45,43 @@ public sealed class CounterStrikeMenuPresenter : IDisposable
         }
     }
 
+    private void OnMenusChanged(PlayerId playerId)
+    {
+        _players!.TryGet(playerId, out var captured);
+        Server.NextWorldUpdate(() =>
+        {
+            if (_disposed) return;
+            if (_observableMenus!.GetOpenRevision(playerId) == 0)
+                lock (_gate) _presentedRevisions.Remove(playerId);
+            Reconcile();
+            if (captured is not { IsConnected: true } || !_players.TryGet(playerId, out var current)
+                || current is not { IsConnected: true } || current.SessionId != captured.SessionId) return;
+            var player = Utilities.GetPlayers().FirstOrDefault(item => item.IsValid && item.SteamID == playerId.SteamId64);
+            OpenIfChanged(player);
+        });
+    }
+
+    public bool OpenIfChanged(CCSPlayerController? player)
+    {
+        if (!TryGetPlayerId(player, out var id)) return false;
+        var revision = _observableMenus?.GetOpenRevision(id) ?? 0;
+        lock (_gate)
+            if (revision != 0 && _presentedRevisions.GetValueOrDefault(id) == revision) return false;
+        return Open(player);
+    }
+
     public bool Open(CCSPlayerController? player)
     {
         if (_disposed || !TryGetPlayerId(player, out var playerId) || player is null)
             return false;
 
-        if (_panorama is not null) return _panorama.Open(playerId);
+        if (_panorama is not null)
+        {
+            var opened = _panorama.Open(playerId);
+            if (opened)
+                lock (_gate) _presentedRevisions[playerId] = _observableMenus?.GetOpenRevision(playerId) ?? 0;
+            return opened;
+        }
 
         if (!_menus.TryGetOpenMenu(playerId, out var definition) || definition is null)
             return false;
@@ -76,7 +113,10 @@ public sealed class CounterStrikeMenuPresenter : IDisposable
             originalVelocityModifier);
 
         lock (_gate)
+        {
             _renderedMenus[playerId] = rendered;
+            _presentedRevisions[playerId] = _observableMenus?.GetOpenRevision(playerId) ?? 0;
+        }
 
         BlockMovement(player);
         Render(player, rendered);
@@ -99,7 +139,7 @@ public sealed class CounterStrikeMenuPresenter : IDisposable
             if (!IsSamePlayer(player, pair.Key)
                 || !_menus.TryGetOpenMenu(pair.Key, out var logicalMenu)
                 || logicalMenu is null
-                || logicalMenu.Id != pair.Value.Definition.Id)
+                || !ReferenceEquals(logicalMenu, pair.Value.Definition))
             {
                 ClosePresentation(pair.Key, pair.Value, IsSamePlayer(player, pair.Key) ? player : null);
             }
@@ -112,6 +152,7 @@ public sealed class CounterStrikeMenuPresenter : IDisposable
             return;
 
         _disposed = true;
+        if (_observableMenus is not null) _observableMenus.Changed -= OnMenusChanged;
         _plugin.RemoveListener<Listeners.OnTick>(OnTick);
         _plugin.RemoveListener<Listeners.OnMapEnd>(OnMapEnd);
         _panorama?.Dispose();
@@ -121,6 +162,7 @@ public sealed class CounterStrikeMenuPresenter : IDisposable
         {
             rendered = _renderedMenus.ToArray();
             _renderedMenus.Clear();
+            _presentedRevisions.Clear();
         }
 
         foreach (var pair in rendered)
@@ -133,7 +175,19 @@ public sealed class CounterStrikeMenuPresenter : IDisposable
         }
     }
 
-    private void OnMapEnd() => _panorama?.CloseAll();
+    private void OnMapEnd()
+    {
+        _panorama?.CloseAll();
+        KeyValuePair<PlayerId, RenderedMenu>[] rendered;
+        lock (_gate) rendered = _renderedMenus.ToArray();
+        foreach (var pair in rendered)
+        {
+            if (_menus.TryGetOpenMenu(pair.Key, out var current) && ReferenceEquals(current, pair.Value.Definition))
+                _menus.Close(pair.Key);
+            ClosePresentation(pair.Key, pair.Value, IsSamePlayer(pair.Value.Player, pair.Key) ? pair.Value.Player : null);
+        }
+        lock (_gate) _presentedRevisions.Clear();
+    }
 
     private void OnTick()
     {
@@ -160,7 +214,7 @@ public sealed class CounterStrikeMenuPresenter : IDisposable
 
             if (!_menus.TryGetOpenMenu(pair.Key, out var logicalMenu)
                 || logicalMenu is null
-                || logicalMenu.Id != pair.Value.Definition.Id)
+                || !ReferenceEquals(logicalMenu, pair.Value.Definition))
             {
                 ClosePresentation(pair.Key, pair.Value, player);
                 continue;

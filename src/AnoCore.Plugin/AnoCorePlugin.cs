@@ -27,6 +27,7 @@ using AnoCore.Runtime.Configuration;
 using AnoCore.Runtime.Events;
 using AnoCore.Runtime.Management;
 using AnoCore.Runtime.Menus;
+using AnoCore.Runtime.Modules;
 using AnoCore.Runtime.Persistence;
 using AnoCore.Runtime.Players;
 using AnoCore.Runtime.Settings;
@@ -50,6 +51,7 @@ public sealed class AnoCorePlugin : BasePlugin
     private bool _lifecycleHooksRegistered;
     private CancellationTokenSource? _startup;
     private RuntimeServices? _pendingRuntime;
+    private ExternalModuleConfiguration? _pendingExternalModules;
     private ManagementPipeServer? _pendingManagementPipe;
     private AnoVetoModuleRuntime? _pendingAnoVeto;
     private PlaytimeModule? _pendingPlaytime;
@@ -265,6 +267,7 @@ public sealed class AnoCorePlugin : BasePlugin
             _pendingProtectedServerControlPolicy = null;
             _pendingRuntime?.Dispose();
             _pendingRuntime = null;
+            _pendingExternalModules = null;
 
             _voiceModeration?.Dispose();
             _voiceModeration = null;
@@ -316,10 +319,11 @@ public sealed class AnoCorePlugin : BasePlugin
             _connectBan = null;
             _messageTransportRegistration?.Dispose();
             _messageTransportRegistration = null;
-            MenuPresenter?.Dispose();
-            MenuPresenter = null;
+            if (_runtime is not null) Observe(_runtime.Modules.ShutdownAsync(), "external_module_unload");
             _runtime?.Dispose();
             _runtime = null;
+            MenuPresenter?.Dispose();
+            MenuPresenter = null;
             _customHud?.Dispose();
             _customHud = null;
             _runtimeStatus = "stopped";
@@ -366,6 +370,8 @@ public sealed class AnoCorePlugin : BasePlugin
                 "core",
                 () => new RuntimeConfiguration(),
                 cancellationToken: cancellationToken).ConfigureAwait(false);
+            var externalModules = await configuration.LoadAsync("modules", () => new ExternalModuleConfiguration(),
+                ExternalModuleConfiguration.Validate, cancellationToken).ConfigureAwait(false);
             _panoramaMenusEnabled = settings.PanoramaMenusEnabled;
             var protectedServerControlPolicy = BuildProtectedServerControlPolicy(
                 settings.ProtectedServerControls);
@@ -759,6 +765,7 @@ public sealed class AnoCorePlugin : BasePlugin
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 _pendingRuntime = created;
+                _pendingExternalModules = externalModules;
                 _pendingManagementPipe = createdManagementPipe;
                 _pendingAnoVeto = createdAnoVeto;
                 _pendingPlaytime = createdPlaytime;
@@ -855,6 +862,30 @@ public sealed class AnoCorePlugin : BasePlugin
         }
     }
 
+    private async Task LoadExternalModulesAsync(RuntimeServices runtime, ExternalModuleConfiguration configuration,
+        CancellationToken cancellationToken)
+    {
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(TimeSpan.FromSeconds(30));
+        try
+        {
+            var results = await new ExternalModuleCatalog(runtime.Modules,
+                exception => Logger.LogError(exception, "External SDK module failed."))
+                .LoadAsync(Path.Combine(ModuleDirectory, "modules"), configuration, timeout.Token).ConfigureAwait(false);
+            lock (_startupGate)
+                if (!cancellationToken.IsCancellationRequested && ReferenceEquals(_runtime, runtime))
+                    _runtimeStatus = results.Any(item => !item.Loaded) ? "ready with module errors" : "ready";
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "External SDK module startup failed or timed out.");
+            lock (_startupGate)
+                if (!cancellationToken.IsCancellationRequested && ReferenceEquals(_runtime, runtime))
+                    _runtimeStatus = "ready with module errors";
+        }
+    }
+
     private void ActivateRuntime(CancellationToken cancellationToken)
     {
         lock (_startupGate)
@@ -865,6 +896,8 @@ public sealed class AnoCorePlugin : BasePlugin
             }
 
             var runtime = _pendingRuntime;
+            var externalModules = _pendingExternalModules ?? new ExternalModuleConfiguration();
+            _pendingExternalModules = null;
             var managementPipe = _pendingManagementPipe;
             var anoVeto = _pendingAnoVeto;
             var playtime = _pendingPlaytime;
@@ -931,28 +964,16 @@ public sealed class AnoCorePlugin : BasePlugin
             var presenter = new CounterStrikeMenuPresenter(this, runtime.Menus, Logger,
                 _panoramaMenusEnabled && _customHud is not null
                     ? new PanoramaMenuPresenter(_customHud, runtime.Menus, runtime.Players, runtime.Commands, _eventBus!)
-                    : null);
+                    : null, runtime.Players);
             var bridge = new CounterStrikeCommandBridge(
                 this,
                 runtime.Commands,
                 Logger,
                 (commandName, player) =>
                 {
-                    if (string.Equals(commandName, AnoHomeMenuModule.CommandName, StringComparison.Ordinal)
-                        || string.Equals(commandName, ProgressionMenuModule.CommandName, StringComparison.Ordinal)
-                        || string.Equals(commandName, RankModule.MenuCommandName,
-                            StringComparison.Ordinal)
-                        || string.Equals(commandName, GameplayStatsModule.MenuCommandName,
-                            StringComparison.Ordinal)
-                        || string.Equals(commandName, SelectableChatTagModule.MenuCommandName,
-                            StringComparison.Ordinal)
-                        || string.Equals(commandName,
-                            PlayerToggleCommandModule.MenuCommandName,
-                            StringComparison.Ordinal))
-                    {
-                        presenter.Reconcile();
-                        presenter.Open(player);
-                    }
+                    _ = commandName;
+                    presenter.Reconcile();
+                    presenter.OpenIfChanged(player);
                 });
             CounterStrikeSharp.API.Modules.Timers.Timer? expiryTimer = null;
             CounterStrikeSharp.API.Modules.Timers.Timer? voiceTimer = null;
@@ -1269,10 +1290,7 @@ public sealed class AnoCorePlugin : BasePlugin
                             "achievement_checkpoint"), TimerFlags.REPEAT);
                 }
 
-                foreach (var descriptor in runtime.Commands.GetCommands())
-                {
-                    bridge.Bind(descriptor);
-                }
+                bridge.Synchronize();
 
                 if (anoVeto is not null)
                 {
@@ -1341,7 +1359,9 @@ public sealed class AnoCorePlugin : BasePlugin
                 _challengeTimer = challengeTimer;
                 _gameplayXpTimer = gameplayXpTimer;
                 _seasonTimer = seasonTimer;
-                _runtimeStatus = "ready";
+                _runtimeStatus = externalModules.Assemblies.Count == 0 ? "ready" : "loading external modules";
+                if (externalModules.Assemblies.Count > 0)
+                    Observe(LoadExternalModulesAsync(runtime, externalModules, cancellationToken), "external_module_bootstrap");
                 if (seasons is not null)
                     Observe(seasons.ReconcileAsync(DateTimeOffset.UtcNow).AsTask(), "season_reward_bootstrap");
                 if (gameplayXp is not null)
@@ -1421,6 +1441,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 messageTransportRegistration?.Dispose();
                 managementPipe?.Dispose();
                 runtime.Dispose();
+                presenter.Dispose();
                 MenuPresenter = null;
                 _runtimeStatus = "activation failed";
                 Logger.LogError(exception, "AnoCore command/menu/module activation failed.");

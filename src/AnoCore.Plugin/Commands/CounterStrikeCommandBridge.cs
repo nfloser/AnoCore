@@ -1,6 +1,7 @@
 using System.Text;
 using AnoCore.Abstractions.Commands;
 using AnoCore.Abstractions.Players;
+using AnoCore.Runtime.Commands;
 using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Modules.Commands;
@@ -17,6 +18,8 @@ public sealed class CounterStrikeCommandBridge : IDisposable
     private readonly Action<string, CCSPlayerController?>? _afterDispatch;
     private readonly Dictionary<string, CommandInfo.CommandCallback> _bindings = new(StringComparer.Ordinal);
     private bool _disposed;
+    private readonly CommandBindingSynchronizer _synchronizer;
+    private readonly CommandRegistry? _observableRegistry;
 
     public CounterStrikeCommandBridge(
         BasePlugin plugin,
@@ -28,7 +31,20 @@ public sealed class CounterStrikeCommandBridge : IDisposable
         _registry = registry ?? throw new ArgumentNullException(nameof(registry));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _afterDispatch = afterDispatch;
+        _synchronizer = new CommandBindingSynchronizer(registry, Bind);
+        _observableRegistry = registry as CommandRegistry;
+        if (_observableRegistry is not null) _observableRegistry.Changed += QueueSynchronization;
     }
+
+    public void Synchronize() => _synchronizer.Synchronize();
+
+    private void QueueSynchronization()
+        => Server.NextWorldUpdate(() =>
+        {
+            if (Volatile.Read(ref _disposed)) return;
+            try { Synchronize(); }
+            catch (Exception exception) { _logger.LogError(exception, "Native command synchronization failed."); }
+        });
 
     public IDisposable Bind(CommandDescriptor descriptor)
     {
@@ -77,6 +93,8 @@ public sealed class CounterStrikeCommandBridge : IDisposable
 
     public void Dispose()
     {
+        if (_observableRegistry is not null) _observableRegistry.Changed -= QueueSynchronization;
+        _synchronizer.Dispose();
         lock (_gate)
         {
             if (_disposed)

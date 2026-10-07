@@ -257,6 +257,9 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
         }
 
         _profileLifecycle.Dispose();
+        var shutdown = Modules.ShutdownAsync();
+        _ = shutdown.ContinueWith(task => { _ = task.Exception; }, CancellationToken.None,
+            TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
 
         for (var index = _registrations.Count - 1; index >= 0; index--)
         {

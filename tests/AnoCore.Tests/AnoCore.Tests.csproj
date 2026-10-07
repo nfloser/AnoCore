@@ -4,6 +4,7 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="..\AnoCore.TestModuleFixture\AnoCore.TestModuleFixture.csproj" />
     <ProjectReference Include="..\..\src\AnoCore.Abstractions\AnoCore.Abstractions.csproj" />
     <ProjectReference Include="..\..\src\AnoCore.Runtime\AnoCore.Runtime.csproj" />
     <ProjectReference Include="..\..\src\AnoCore.Management.Host\AnoCore.Management.Host.csproj" />

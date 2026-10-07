@@ -1,3 +1,36 @@
+# SDK host and player-menu integration — 2026-10-08
+
+- PR #311 and #313 are merged after exact-head CI #739/#744; the shared
+  Panorama menu remains default off for the user-owned native test phase.
+- PR #307 previously failed only formatting; correction and cold-start integration
+  passed all gates in CI #742. It is now reconciled with both merged menu presenters.
+- Dynamic SDK menu changes use session-pinned world-update delivery and monotonic
+  logical-menu revisions; command reconciliation preserves the shared host registry.
+- Stock menus reject replaced definitions and close owned logical/presentation state
+  at map end, matching the Panorama cleanup boundary.
+- Final integrated-head CI is required before merging #307. Native SDK command/menu
+  delivery, two-client HUD behavior and gameplay/database failure cases remain manual.
+- Remaining code scope: #314 audited role/timed-assignment administration, #315 actionable
+  admin menus, #316 optional webhook delivery and #317 broader concrete reload adoption.
+  Historical open native-acceptance PRs are not an inventory of missing implementation.
+
+# Live external SDK module integration — 2026-10-07
+
+- #305 / `feature/external-sdk-module-host` connects explicitly configured trusted
+  SDK modules after native services activate. No arbitrary DLL scan or remote loading.
+- Filename/count/size/link checks and implementation-dependency/API/identity checks
+  protect predictable loading; deterministic discovery isolates extension failures.
+- A separately compiled SDK-only fixture exercises actual assembly discovery and
+  command ownership. Dynamic registry changes reconcile native command bindings;
+  shared menu mutations now present through captured-session native ownership.
+- Host shutdown cancels pending startup, rejects later loads, immediately releases
+  owned registrations and completes reverse-order cleanup without duplicate calls.
+- Tests cover assembly/path/link/duplicate/dependency failures, cancellation/unload
+  ordering, cleanup isolation, command replacements and native binding retries.
+- Exact-head build/tests/format/package CI and self-review are required before merge.
+- Next code work: audited role/timed-assignment administration and admin integration,
+  remaining config adoption, and reconciled test-phase acceptance inventory.
+
 # Panorama root-panel compile regression — 2026-10-07
 
 - The real Windows Workshop Tools compiler rejected `ano_veto.xml`: an outermost
@@ -55,8 +88,9 @@
   checkpoint policy. XP curves/global modifier definitions remain restart-only here.
 - Startup command collision/unload release reload ownership. No new reload command,
   grant ledger, counters or hot-path database queries were introduced.
-- Regression tests cover status/policy updates, concurrent reload isolation, rejected
-  changes and partial registration rollback. Exact-head CI is required before merge.
+- PR #304 merged after CI #726 passed all 922 tests, formatting and package gates.
+  Regression coverage includes status/policy updates, concurrent reload isolation,
+  rejected changes and partial registration rollback; native tests remain manual.
 
 # SDK host notifications — 2026-10-07
 

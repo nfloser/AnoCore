@@ -9,6 +9,7 @@ namespace AnoCore.Runtime.Commands;
 
 public sealed class CommandRegistry : IAnoCommandRegistry
 {
+    public event Action? Changed;
     private readonly object _gate = new();
     private readonly IPermissionEvaluator _permissions;
     private readonly Dictionary<string, Registration> _names = new(StringComparer.Ordinal);
@@ -46,6 +47,7 @@ public sealed class CommandRegistry : IAnoCommandRegistry
             _registrationNames.Add(registration, names);
         }
 
+        NotifyChanged();
         return new RegistrationHandle(this, registration);
     }
 
@@ -58,6 +60,7 @@ public sealed class CommandRegistry : IAnoCommandRegistry
                 UnregisterUnsafe(registration);
             }
         }
+        NotifyChanged();
     }
 
     public IReadOnlyCollection<CommandDescriptor> GetCommands()
@@ -130,6 +133,16 @@ public sealed class CommandRegistry : IAnoCommandRegistry
         lock (_gate)
         {
             UnregisterUnsafe(registration);
+        }
+        NotifyChanged();
+    }
+
+    private void NotifyChanged()
+    {
+        foreach (var handler in Changed?.GetInvocationList() ?? [])
+        {
+            try { ((Action)handler)(); }
+            catch { /* Observers cannot roll back a committed registry mutation. */ }
         }
     }
 

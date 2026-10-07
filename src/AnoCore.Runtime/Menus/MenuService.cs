@@ -6,6 +6,9 @@ namespace AnoCore.Runtime.Menus;
 
 public sealed class MenuService : IMenuService
 {
+    public event Action<PlayerId>? Changed;
+    private readonly Dictionary<PlayerId, long> _revisions = [];
+    private long _nextRevision;
     private readonly object _gate = new();
     private readonly Dictionary<MenuId, Registration> _menus = [];
     private readonly Dictionary<PlayerId, MenuId> _openMenus = [];
@@ -28,13 +31,16 @@ public sealed class MenuService : IMenuService
 
     public void UnregisterAll(ModuleId owner)
     {
+        PlayerId[] affected;
         lock (_gate)
         {
+            affected = _openMenus.Where(pair => _menus[pair.Value].Owner == owner).Select(pair => pair.Key).ToArray();
             foreach (var id in _menus.Where(pair => pair.Value.Owner == owner).Select(pair => pair.Key).ToArray())
             {
                 RemoveMenuUnsafe(id);
             }
         }
+        foreach (var player in affected) NotifyChanged(player);
     }
 
     public void Open(PlayerId playerId, MenuId menuId)
@@ -47,14 +53,34 @@ public sealed class MenuService : IMenuService
             }
 
             _openMenus[playerId] = menuId;
+            _revisions[playerId] = ++_nextRevision;
         }
+        NotifyChanged(playerId);
     }
 
     public bool Close(PlayerId playerId)
     {
+        bool closed;
         lock (_gate)
         {
-            return _openMenus.Remove(playerId);
+            closed = _openMenus.Remove(playerId);
+            _revisions.Remove(playerId);
+        }
+        if (closed) NotifyChanged(playerId);
+        return closed;
+    }
+
+    public long GetOpenRevision(PlayerId playerId)
+    {
+        lock (_gate) return _revisions.GetValueOrDefault(playerId);
+    }
+
+    private void NotifyChanged(PlayerId playerId)
+    {
+        foreach (var handler in Changed?.GetInvocationList() ?? [])
+        {
+            try { ((Action<PlayerId>)handler)(playerId); }
+            catch { /* Observers cannot roll back an accepted menu mutation. */ }
         }
     }
 
@@ -102,6 +128,7 @@ public sealed class MenuService : IMenuService
 
         MenuDefinition? menu;
         MenuOption? option;
+        var closed = false;
         lock (_gate)
         {
             if (!_openMenus.TryGetValue(playerId, out var menuId)
@@ -124,8 +151,11 @@ public sealed class MenuService : IMenuService
             if (!option.KeepOpen)
             {
                 _openMenus.Remove(playerId);
+                _revisions.Remove(playerId);
+                closed = true;
             }
         }
+        if (closed) NotifyChanged(playerId);
 
         cancellationToken.ThrowIfCancellationRequested();
         await option.OnSelected(new MenuSelectionContext(playerId, menu.Id, option.Id, cancellationToken)).ConfigureAwait(false);
@@ -134,13 +164,16 @@ public sealed class MenuService : IMenuService
 
     private void Unregister(MenuId id, Registration expected)
     {
+        PlayerId[] affected = [];
         lock (_gate)
         {
             if (_menus.TryGetValue(id, out var current) && ReferenceEquals(current, expected))
             {
+                affected = _openMenus.Where(pair => pair.Value == id).Select(pair => pair.Key).ToArray();
                 RemoveMenuUnsafe(id);
             }
         }
+        foreach (var player in affected) NotifyChanged(player);
     }
 
     private void RemoveMenuUnsafe(MenuId id)
@@ -149,6 +182,7 @@ public sealed class MenuService : IMenuService
         foreach (var player in _openMenus.Where(pair => pair.Value == id).Select(pair => pair.Key).ToArray())
         {
             _openMenus.Remove(player);
+            _revisions.Remove(player);
         }
     }
 

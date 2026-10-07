@@ -13,6 +13,25 @@ public sealed class MenuServiceTests
     private static readonly ModuleId Owner = new("tests");
 
     [TestMethod]
+    public void OpenRevisionsDistinguishReopensAndChangesSurviveFailingObservers()
+    {
+        var service = new MenuService();
+        var changes = new List<PlayerId>();
+        service.Changed += _ => throw new InvalidOperationException("observer");
+        service.Changed += changes.Add;
+        using var registration = service.Register(Owner, new MenuDefinition(new MenuId("ano.revision"), "Revision", []));
+        service.Open(Player, new MenuId("ano.revision"));
+        var revision = service.GetOpenRevision(Player);
+        Assert.IsTrue(service.Close(Player));
+        Assert.AreEqual(0L, service.GetOpenRevision(Player));
+        service.Open(Player, new MenuId("ano.revision"));
+        Assert.IsTrue(service.GetOpenRevision(Player) > revision);
+        registration.Dispose();
+        Assert.AreEqual(0L, service.GetOpenRevision(Player));
+        Assert.HasCount(4, changes);
+    }
+
+    [TestMethod]
     public void MenuId_RejectsEmptyAndNonAnoNamespaces()
     {
         Assert.ThrowsExactly<ArgumentException>(() => new MenuId(""));
