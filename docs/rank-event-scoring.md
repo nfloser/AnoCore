@@ -193,7 +193,8 @@ GameplayPoints also accepts GrenadeKill, InfernoKill, ImpactKill, KnifeKill and
 TaserKill family bonuses. Precedence is HE grenade, inferno, other grenade/molotov/
 flashbang/bumpmine impacts, knife/bayonet, then exact taser. A family bonus stacks
 with an exact WeaponPoints token. PenetratedKill scales with the bounded native
-penetration count (0–32); the existing public death input defaults to one count.
+penetration count (0–32); combined scaled awards clamp to the ledger contract
+limit of ±1,000,000 points per participant; the existing public death input defaults to one count.
 TeamKillAssistPenalty and TeamKillFlashAssistPenalty in LivePolicy default zero
 and are each bounded 0–1000. A distinct same-team teamkill assister receives the
 combined negative penalty; ordinary assist/flash rewards and VIP do not apply.

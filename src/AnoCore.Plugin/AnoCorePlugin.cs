@@ -1822,7 +1822,9 @@ public sealed class AnoCorePlugin : BasePlugin
     private HookResult OnBombDefused(EventBombDefused @event, GameEventInfo _)
     {
         RecordGameplayStat(@event.Userid, GameplayStatKind.BombDefused, "bomb_defused");
-        RecordLiveRankTeamObjective(GameplayStatKind.BombDefusedOthers, PlayerTeam.CounterTerrorist, CombatPlayer(@event.Userid)?.Id);
+        var defuser = @event.Userid;
+        RecordLiveRankTeamObjective(GameplayStatKind.BombDefusedOthers, PlayerTeam.CounterTerrorist,
+            defuser is { IsValid: true, IsBot: false, IsHLTV: false, SteamID: > 0 } ? new PlayerId(defuser.SteamID) : null);
         return HookResult.Continue;
     }
 

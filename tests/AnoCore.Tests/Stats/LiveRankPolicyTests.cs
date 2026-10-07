@@ -175,4 +175,29 @@ public sealed class LiveRankPolicyTests
         Assert.ThrowsExactly<ArgumentException>(() => CombatEventIdentity.CreateTeam("server", "de_test", 1, 100, GameplayStatKind.Mvp, PlayerTeam.Terrorist));
     }
 
+    [TestMethod]
+    public void MaximumCombinedBonuses_StayWithinDurableAwardContract()
+    {
+        var policy = new LiveRankPolicy(new RankConfiguration
+        {
+            KillPoints = 1000,
+            GameplayPoints = new() { [GameplayStatKind.PenetratedKill] = 1000, [GameplayStatKind.KnifeKill] = 1000 },
+            LivePolicy = new()
+            {
+                DynamicMultipliers = true,
+                MinimumDynamicMultiplier = 4,
+                MaximumDynamicMultiplier = 4,
+                VipMultiplier = 10,
+                WeaponPoints = new() { ["knife"] = 1000 },
+                DistanceThresholdMeters = 1,
+                DistanceBonus = 1000,
+                StreakPoints = new() { [2] = 1000 },
+            },
+        });
+        var input = Death() with { Weapon = "knife", Specials = [GameplayStatKind.PenetratedKill], Penetrations = 32 };
+        var awards = policy.Death(input, 100, 1, [Attacker.Id], 2);
+        Assert.AreEqual(RankPointEventBatch.MaximumAbsolutePoints, awards.Single(award => award.PlayerId == Attacker.Id).Points);
+        _ = RankPointEventBatch.Create(input.Context.EventId, "combat.death", Now, awards);
+    }
+
 }

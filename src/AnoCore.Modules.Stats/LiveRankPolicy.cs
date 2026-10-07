@@ -234,7 +234,8 @@ public sealed class LiveRankPolicy
         : Math.Clamp((decimal)Math.Max(1, numerator) / Math.Max(1, denominator), _minimumDynamic, _maximumDynamic);
 
     private long Scale(long points, decimal dynamic, bool vip)
-        => checked((long)decimal.Truncate(points * dynamic * (points > 0 && vip ? _vipMultiplier : 1m)));
+        => checked((long)Math.Clamp(decimal.Truncate(points * dynamic * (points > 0 && vip ? _vipMultiplier : 1m)),
+            -RankPointEventBatch.MaximumAbsolutePoints, RankPointEventBatch.MaximumAbsolutePoints));
 
     private static bool Playing(PlayerTeam team) => team is PlayerTeam.Terrorist or PlayerTeam.CounterTerrorist;
 
