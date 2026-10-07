@@ -1,5 +1,6 @@
 using AnoCore.Abstractions.Menus;
 using AnoCore.Abstractions.Players;
+using AnoCore.Runtime.Menus;
 using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Modules.Menu;
@@ -7,23 +8,56 @@ using Microsoft.Extensions.Logging;
 
 namespace AnoCore.Plugin.Menus;
 
-public sealed class CounterStrikeMenuPresenter
+public sealed class CounterStrikeMenuPresenter : IDisposable
 {
     private readonly object _gate = new();
     private readonly BasePlugin _plugin;
     private readonly IMenuService _menus;
     private readonly ILogger _logger;
     private readonly Dictionary<PlayerId, RenderedMenu> _renderedMenus = [];
+    private readonly Dictionary<PlayerId, long> _presentedRevisions = [];
+    private readonly MenuService? _observableMenus;
+    private readonly IPlayerRegistry? _players;
+    private int _disposed;
 
-    public CounterStrikeMenuPresenter(BasePlugin plugin, IMenuService menus, ILogger logger)
+    public CounterStrikeMenuPresenter(BasePlugin plugin, IMenuService menus, ILogger logger, IPlayerRegistry? players = null)
     {
         _plugin = plugin ?? throw new ArgumentNullException(nameof(plugin));
         _menus = menus ?? throw new ArgumentNullException(nameof(menus));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _players = players;
+        _observableMenus = menus as MenuService;
+        if (_observableMenus is not null && players is not null) _observableMenus.Changed += OnMenusChanged;
+    }
+
+    private void OnMenusChanged(PlayerId playerId)
+    {
+        _players!.TryGet(playerId, out var captured);
+        Server.NextWorldUpdate(() =>
+        {
+            if (Volatile.Read(ref _disposed) != 0) return;
+            if (_observableMenus!.GetOpenRevision(playerId) == 0)
+                lock (_gate) _presentedRevisions.Remove(playerId);
+            Reconcile();
+            if (captured is not { IsConnected: true } || !_players.TryGet(playerId, out var current)
+                || current is not { IsConnected: true } || current.SessionId != captured.SessionId) return;
+            var player = Utilities.GetPlayers().FirstOrDefault(item => item.IsValid && item.SteamID == playerId.SteamId64);
+            OpenIfChanged(player);
+        });
+    }
+
+    public bool OpenIfChanged(CCSPlayerController? player)
+    {
+        if (!TryGetPlayerId(player, out var id)) return false;
+        var revision = _observableMenus?.GetOpenRevision(id) ?? 0;
+        lock (_gate)
+            if (revision != 0 && _presentedRevisions.GetValueOrDefault(id) == revision) return false;
+        return Open(player);
     }
 
     public bool Open(CCSPlayerController? player)
     {
+        if (Volatile.Read(ref _disposed) != 0) return false;
         if (!TryGetPlayerId(player, out var playerId) || player is null)
         {
             return false;
@@ -57,6 +91,7 @@ public sealed class CounterStrikeMenuPresenter
             lock (_gate)
             {
                 _renderedMenus[playerId] = new RenderedMenu(definition.Id, openedInstance);
+                _presentedRevisions[playerId] = _observableMenus?.GetOpenRevision(playerId) ?? 0;
             }
         }
 
@@ -65,6 +100,7 @@ public sealed class CounterStrikeMenuPresenter
 
     public void Reconcile()
     {
+        if (Volatile.Read(ref _disposed) != 0) return;
         KeyValuePair<PlayerId, RenderedMenu>[] rendered;
         lock (_gate)
         {
@@ -143,7 +179,7 @@ public sealed class CounterStrikeMenuPresenter
     private bool IsCurrent(
         CCSPlayerController player, PlayerId playerId, IMenuInstance? instance)
     {
-        if (instance is null || !TryGetPlayerId(player, out var currentId)
+        if (Volatile.Read(ref _disposed) != 0 || instance is null || !TryGetPlayerId(player, out var currentId)
             || currentId != playerId
             || !ReferenceEquals(MenuManager.GetActiveMenu(player), instance))
             return false;
@@ -161,6 +197,20 @@ public sealed class CounterStrikeMenuPresenter
                 _renderedMenus.Remove(playerId);
             }
         }
+    }
+
+    public void Dispose()
+    {
+        if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
+        if (_observableMenus is not null && _players is not null) _observableMenus.Changed -= OnMenusChanged;
+        foreach (var player in Utilities.GetPlayers().Where(item => item.IsValid && item.SteamID != 0))
+        {
+            if (!TryGetPlayerId(player, out var id)) continue;
+            lock (_gate)
+                if (_renderedMenus.TryGetValue(id, out var rendered)
+                    && ReferenceEquals(MenuManager.GetActiveMenu(player), rendered.Instance)) MenuManager.CloseActiveMenu(player);
+        }
+        lock (_gate) { _renderedMenus.Clear(); _presentedRevisions.Clear(); }
     }
 
     private static bool TryGetPlayerId(CCSPlayerController? player, out PlayerId playerId)

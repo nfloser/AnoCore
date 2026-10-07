@@ -26,12 +26,18 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AnoCore.Tests", "tests\AnoC
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AnoCore.Management.Host", "src\AnoCore.Management.Host\AnoCore.Management.Host.csproj", "{E6D8E5BE-6E24-4C96-88DB-CCAF88741C33}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AnoCore.TestModuleFixture", "tests\AnoCore.TestModuleFixture\AnoCore.TestModuleFixture.csproj", "{D8A6C19F-C347-49E5-9021-CBE2AB305305}"
+EndProject
 Global
   GlobalSection(SolutionConfigurationPlatforms) = preSolution
     Debug|Any CPU = Debug|Any CPU
     Release|Any CPU = Release|Any CPU
   EndGlobalSection
   GlobalSection(ProjectConfigurationPlatforms) = postSolution
+    {D8A6C19F-C347-49E5-9021-CBE2AB305305}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+    {D8A6C19F-C347-49E5-9021-CBE2AB305305}.Debug|Any CPU.Build.0 = Debug|Any CPU
+    {D8A6C19F-C347-49E5-9021-CBE2AB305305}.Release|Any CPU.ActiveCfg = Release|Any CPU
+    {D8A6C19F-C347-49E5-9021-CBE2AB305305}.Release|Any CPU.Build.0 = Release|Any CPU
     {7CA361CC-C3A2-4CBF-95BB-1F8645DA18C9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
     {7CA361CC-C3A2-4CBF-95BB-1F8645DA18C9}.Debug|Any CPU.Build.0 = Debug|Any CPU
     {7CA361CC-C3A2-4CBF-95BB-1F8645DA18C9}.Release|Any CPU.ActiveCfg = Release|Any CPU
