@@ -95,7 +95,7 @@ public sealed class RankNotificationPreferenceSinkTests
         var inner = new SessionSink();
         using (var sink = new RankNotificationPreferenceSink(new FakeSettings(), inner))
             await sink.NotifyAsync(player, Transition);
-        Assert.AreSame(player, inner.Expected);
+        Assert.AreSame(player, inner.Captured);
         var settings = new DeferredSettings();
         var pendingInner = new SessionSink();
         var pendingSink = new RankNotificationPreferenceSink(settings, pendingInner);
@@ -104,17 +104,17 @@ public sealed class RankNotificationPreferenceSinkTests
         pendingSink.Dispose();
         settings.Release.SetResult();
         await pending;
-        Assert.IsNull(pendingInner.Expected);
+        Assert.IsNull(pendingInner.Captured);
     }
 
     private sealed class SessionSink : ISessionRankTransitionNotificationSink
     {
-        public PlayerSnapshot? Expected { get; private set; }
+        public PlayerSnapshot? Captured { get; private set; }
         public ValueTask NotifyAsync(PlayerId id, RankTransition transition, CancellationToken cancellationToken = default)
             => throw new AssertFailedException("The session-pinned overload must be used.");
         public ValueTask NotifyAsync(PlayerSnapshot player, RankTransition transition, CancellationToken cancellationToken = default)
         {
-            Expected = player;
+            Captured = player;
             return ValueTask.CompletedTask;
         }
     }
