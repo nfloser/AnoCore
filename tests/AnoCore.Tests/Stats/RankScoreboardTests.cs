@@ -1,8 +1,8 @@
-using AnoCore.Modules.Stats;
 using AnoCore.Abstractions.Players;
 using AnoCore.Abstractions.Stats;
-using AnoCore.Runtime.Players;
+using AnoCore.Modules.Stats;
 using AnoCore.Runtime.Events;
+using AnoCore.Runtime.Players;
 
 namespace AnoCore.Tests.Stats;
 
