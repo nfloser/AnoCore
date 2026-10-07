@@ -1,3 +1,15 @@
+# Durable rank event foundation — 2026-10-07
+
+- #278 adds bounded atomic replay-safe rank batches and migration 018.
+- RankScoreWeights selects derived statistics (legacy default) or the event ledger.
+- Raw scores, placements and toplists consistently use the chosen source, baseline
+  and existing audited adjustments; statistics reset leaves rank events intact.
+- Shared runtime exposes the repository; no live configuration switch is introduced
+  before policy/native composition under #275 is implemented.
+- Contract and MariaDB regression tests cover concurrency, conflicting replay,
+  rollback/retry, source isolation, adjustments, floors, profiles and placements.
+- See docs/rank-event-scoring.md. Exact-head CI is the executable quality gate.
+
 # Permanent achievement prerequisites — 2026-10-07
 
 - #276 adds optional exact-ID/tier prerequisites to permanent achievement catalogs.

@@ -442,6 +442,14 @@ public sealed class MySqlCombatRepository : ICombatDetailRepository, IGameplayRa
             await using var command = connection.CreateCommand();
             Add(command, "@player", playerId.SteamId64);
             Add(command, "@starting_points", weights.StartingPoints);
+            if (weights.Source == RankScoreSource.EventLedger)
+            {
+                command.CommandText = """
+                    SELECT @starting_points + COALESCE((SELECT SUM(points) FROM ano_rank_point_events
+                        WHERE player_steam_id = @player), 0)
+                    """;
+                return Convert.ToInt64(await command.ExecuteScalarAsync(token).ConfigureAwait(false), CultureInfo.InvariantCulture);
+            }
             Add(command, "@kill_points", weights.KillPoints);
             Add(command, "@assist_points", weights.AssistPoints);
             Add(command, "@death_penalty", weights.DeathPenalty);
@@ -480,6 +488,27 @@ public sealed class MySqlCombatRepository : ICombatDetailRepository, IGameplayRa
     private static string ScoreCte(DbCommand command, RankScoreWeights weights)
     {
         Add(command, "@starting_points", weights.StartingPoints);
+        if (weights.Source == RankScoreSource.EventLedger)
+        {
+            var profiles = weights.StartingPoints == 0 ? "" : "UNION SELECT steam_id FROM ano_players";
+            return $"""
+                WITH players AS (
+                    SELECT player_steam_id AS steam_id FROM ano_rank_point_events
+                    UNION SELECT player_steam_id FROM ano_rank_adjustments
+                    {profiles}
+                ), event_totals AS (
+                    SELECT player_steam_id, SUM(points) AS points FROM ano_rank_point_events
+                    GROUP BY player_steam_id
+                ), scored AS (
+                    SELECT players.steam_id,
+                        GREATEST(0, @starting_points + COALESCE(event_totals.points, 0)
+                            + COALESCE(adjustments.points, 0)) AS points
+                    FROM players
+                    LEFT JOIN event_totals ON event_totals.player_steam_id = players.steam_id
+                    LEFT JOIN ano_rank_adjustments AS adjustments ON adjustments.player_steam_id = players.steam_id
+                )
+                """ + "\n";
+        }
         Add(command, "@kill_points", weights.KillPoints);
         Add(command, "@assist_points", weights.AssistPoints);
         Add(command, "@death_penalty", weights.DeathPenalty);

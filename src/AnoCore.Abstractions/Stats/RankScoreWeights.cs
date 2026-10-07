@@ -15,7 +15,14 @@ public sealed class RankScoreWeights
 
     public RankScoreWeights(int killPoints, int assistPoints, int deathPenalty,
         long startingPoints, IReadOnlyDictionary<GameplayStatKind, int>? gameplayPoints = null)
+        : this(killPoints, assistPoints, deathPenalty, startingPoints, gameplayPoints, RankScoreSource.DerivedStatistics)
     {
+    }
+
+    public RankScoreWeights(int killPoints, int assistPoints, int deathPenalty,
+        long startingPoints, IReadOnlyDictionary<GameplayStatKind, int>? gameplayPoints, RankScoreSource source)
+    {
+        if (!Enum.IsDefined(source)) throw new ArgumentOutOfRangeException(nameof(source));
         if (killPoints is < 1 or > 1000) throw new ArgumentOutOfRangeException(nameof(killPoints));
         if (assistPoints is < 0 or > 1000) throw new ArgumentOutOfRangeException(nameof(assistPoints));
         if (deathPenalty is < 0 or > 1000) throw new ArgumentOutOfRangeException(nameof(deathPenalty));
@@ -28,6 +35,7 @@ public sealed class RankScoreWeights
         AssistPoints = assistPoints;
         DeathPenalty = deathPenalty;
         StartingPoints = startingPoints;
+        Source = source;
         GameplayPoints = (gameplayPoints ?? new Dictionary<GameplayStatKind, int>())
             .Where(pair => pair.Value != 0).ToFrozenDictionary();
     }
@@ -36,6 +44,7 @@ public sealed class RankScoreWeights
     public int AssistPoints { get; }
     public int DeathPenalty { get; }
     public long StartingPoints { get; }
+    public RankScoreSource Source { get; }
     public IReadOnlyDictionary<GameplayStatKind, int> GameplayPoints { get; }
 }
 
@@ -48,7 +57,7 @@ public interface IGameplayRankScoreRepository : ICombatRepository
     ValueTask<CombatScoreRankEntry?> GetScorePlacementAsync(PlayerId playerId,
         RankScoreWeights weights, CancellationToken cancellationToken = default);
 
-    // Includes the configured starting baseline plus combat and effective gameplay events, before adjustment and flooring.
+    // Includes the configured baseline plus the selected source, before adjustment and flooring.
     ValueTask<long> ReadRawScoreAsync(PlayerId playerId, RankScoreWeights weights,
         CancellationToken cancellationToken = default);
 }
