@@ -10,9 +10,11 @@ public sealed class RankConfiguration
     public int AssistPoints { get; set; } = 1;
     public int DeathPenalty { get; set; } = 1;
     public long StartingPoints { get; set; }
+    public RankScoreSource Source { get; set; } = RankScoreSource.DerivedStatistics;
+    public LiveRankConfiguration LivePolicy { get; set; } = new();
     public Dictionary<GameplayStatKind, int> GameplayPoints { get; set; } = [];
     [System.Text.Json.Serialization.JsonIgnore]
-    public RankScoreWeights ScoreWeights => new(KillPoints, AssistPoints, DeathPenalty, StartingPoints, GameplayPoints);
+    public RankScoreWeights ScoreWeights => new(KillPoints, AssistPoints, DeathPenalty, StartingPoints, GameplayPoints, Source);
     public bool NotifyRankChanges { get; set; } = true;
     public bool NotifyAdministrativeRankChanges { get; set; } = true;
     public List<RankThreshold> Thresholds { get; set; } =
@@ -49,7 +51,8 @@ public sealed class RankConfiguration
     public static IReadOnlyCollection<string> Validate(RankConfiguration configuration)
     {
         if (configuration is null) return ["Rank configuration is required."];
-        var errors = new List<string>();
+        var errors = new List<string>(LiveRankConfiguration.Validate(configuration.LivePolicy));
+        if (!Enum.IsDefined(configuration.Source)) errors.Add("Rank score source is invalid.");
         if (configuration.KillPoints is < 1 or > 1000
             || configuration.AssistPoints is < 0 or > 1000
             || configuration.DeathPenalty is < 0 or > 1000)

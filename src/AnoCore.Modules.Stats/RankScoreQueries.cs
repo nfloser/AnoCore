@@ -7,7 +7,8 @@ internal static class RankScoreQueries
 {
     public static void ValidateRepository(ICombatRepository repository, RankConfiguration configuration)
     {
-        if ((configuration.StartingPoints != 0
+        if ((configuration.Source == RankScoreSource.EventLedger
+                || configuration.StartingPoints != 0
                 || configuration.GameplayPoints.Any(pair => pair.Value != 0))
             && repository is not IGameplayRankScoreRepository)
             throw new ArgumentException(
