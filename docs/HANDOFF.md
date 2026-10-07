@@ -8,7 +8,7 @@
 - Policy, identity and atomic service retry/replay regressions accompany documentation.
 - #287 merged after CI #703 passed 863 tests and all checks.
 - #289 initial head passed 868 tests; native initializer formatting was corrected.
-- Final exact-head CI is required before closing #228/#275. Native acceptance remains #23.
+- Final exact-head CI is required before closing #228/#275. Native acceptance remains #290.
 
 # Optional rank scoreboard — 2026-10-07
 
@@ -17,7 +17,7 @@
 - Captured sessions protect asynchronous refresh and world-update delivery.
 - Score sync reapplies after engine changes; badge conflicts relinquish ownership.
 - Unload restores only still-owned fields; queued updates stop and reconnect resets ownership.
-- Steam group clan tags remain untouched. Native client rendering/halftime acceptance remains #23.
+- Steam group clan tags remain untouched. Native client rendering/halftime acceptance remains #290.
 - #285 merged after CI #700 passed 858 tests and all checks.
 - Remaining rank implementation scope: further objective/teamkill-assist parity.
 
@@ -58,7 +58,7 @@
 - Automated policy/service/preference regressions accompany docs/rank-event-scoring.md.
 - #281 merged after CI #696 passed 846 tests and all package checks.
 - #282 implements committed point notices and ordered round summaries; playtime,
-  scoreboard and further objective parity remain #228. Native acceptance remains #23.
+  scoreboard and further objective parity remain #228. Native acceptance remains #290.
 
 # Durable rank event foundation — 2026-10-07
 

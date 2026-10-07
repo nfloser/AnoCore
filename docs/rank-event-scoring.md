@@ -127,7 +127,7 @@ round caches protect presentation only; the durable ledger remains the replay ga
 Automated tests cover deduplication, positive/negative/zero changes, settings and
 server flags, reconnect, failure isolation, registration rollback, ordered completion,
 late notices and ledger replay. Real CS2 chat delivery and round timing remain native
-acceptance under #23.
+acceptance under #290.
 
 
 ## Live playtime intervals
@@ -150,7 +150,7 @@ one pending award and bounded time backlog prevent outage catch-up storms. A pen
 interval already earned can commit after a same-session team/eligibility change.
 Replay detection precedes award calculation. Notices use the existing committed
 presentation path. No combat, playtime totals or progression XP are mutated. Native
-sampling and round-boundary timing require #23 acceptance.
+sampling and round-boundary timing require #290 acceptance.
 
 
 ## Optional native scoreboard presentation
@@ -167,7 +167,7 @@ shows points (rank type 11); Competitive and Wingman map the one-based configure
 threshold ordinal to at most 18 badges (types 12 and 7); DangerZone clamps at 15
 (type 10). Overrides set competitive wins to 10 for badge visibility. These mappings
 follow the referenced K4-Zenith adapter and pinned CSS native schema; real client
-rendering remains #23 acceptance. Custom threshold names are not native badge names.
+rendering remains #290 acceptance. Custom threshold names are not native badge names.
 
 Score sync deliberately reapplies after native engine score changes. It remembers
 the latest observed external score for cleanup. Badge ownership relinquishes for
@@ -203,4 +203,4 @@ FFA retains the ordinary assist path. Score events remain separate from XP.
 Native acceptance: exercise every added objective, defuser exclusion, bots, FFA,
 multiple same-tick hostage/weapon events, team membership changes, penalties,
 penetration counts, reconnect/reload and failed database writes before enabling
-these optional awards on a production server. #23 tracks this unperformed pass.
+these optional awards on a production server. #290 tracks this unperformed pass.
