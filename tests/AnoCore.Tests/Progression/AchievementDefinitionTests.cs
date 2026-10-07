@@ -36,16 +36,16 @@ public sealed class AchievementDefinitionTests
             { Prerequisites = prerequisites.ToList() };
         var configuration = new AchievementConfiguration
         {
-            Achievements = [Entry("a-child", new("z-parent", 1)), Entry("z-parent")],
+            Achievements = [Entry("a-child", new AchievementPrerequisite("z-parent", 1)), Entry("z-parent")],
         };
         CollectionAssert.AreEqual(new[] { "z-parent", "a-child" }, configuration.Snapshot()
             .Achievements.Select(entry => entry.Definition.Id).ToArray());
         foreach (var invalid in new List<AchievementCatalogEntry>[]
         {
-            [Entry("a", new("missing", 1))],
-            [Entry("a", new("b", 2)), Entry("b")],
-            [Entry("a", new("b", 1)), Entry("b", new("a", 1))],
-            [Entry("a", new("B", 1)), Entry("b")],
+            [Entry("a", new AchievementPrerequisite("missing", 1))],
+            [Entry("a", new AchievementPrerequisite("b", 2)), Entry("b")],
+            [Entry("a", new AchievementPrerequisite("b", 1)), Entry("b", new AchievementPrerequisite("a", 1))],
+            [Entry("a", new AchievementPrerequisite("B", 1)), Entry("b")],
             [Entry("a") with { Prerequisites = null! }],
         })
         {
