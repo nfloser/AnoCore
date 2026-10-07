@@ -127,6 +127,27 @@ public sealed class LiveRankScoringServiceTests
         Assert.IsTrue(presentation.Disposed);
     }
 
+    [TestMethod]
+    public async Task PlaytimeIntervals_ReuseLedgerRetryVipAndCommittedConsumers()
+    {
+        var setup = await Setup();
+        using var service = Service(setup, vip: 2, playtime: 10);
+        setup.Players.TryGet(Attacker, out var player);
+        var context = new RankLiveContext(Guid.NewGuid(), Now, false, 4, "round-1");
+        await service.TickPlaytimeAsync([player!], context);
+        await service.TickPlaytimeAsync([player!], context with { OccurredAtUtc = Now.AddSeconds(5) });
+        setup.Events.Fail = true;
+        await service.TickPlaytimeAsync([player!], context with { OccurredAtUtc = Now.AddSeconds(10) });
+        Assert.IsEmpty(setup.Events.Batches);
+        setup.Events.Fail = false;
+        await service.TickPlaytimeAsync([player!], context with { OccurredAtUtc = Now.AddSeconds(15) });
+        Assert.AreEqual(6L, setup.Events.Points(Attacker));
+        Assert.AreEqual("gameplay.PlaytimeInterval", setup.Events.Batches.Values.Single().Source);
+        await service.TickPlaytimeAsync([player!], context with { OccurredAtUtc = Now.AddSeconds(15) });
+        Assert.HasCount(1, setup.Events.Batches);
+        Assert.HasCount(1, setup.Sinks.Changes);
+    }
+
     private sealed class PointSink : IRankPointEventSink, IDisposable
     {
         public List<RankPointChange> Changes { get; } = [];
@@ -146,13 +167,13 @@ public sealed class LiveRankScoringServiceTests
         public void Dispose() => Disposed = true;
     }
 
-    private static LiveRankScoringService Service(SetupResult setup, decimal vip = 1, IRankPointEventSink? presentation = null) => new(
+    private static LiveRankScoringService Service(SetupResult setup, decimal vip = 1, IRankPointEventSink? presentation = null, int playtime = 0) => new(
         new RankConfiguration
         {
             Source = RankScoreSource.EventLedger,
             Thresholds = [new("Recruit", 0), new("Promoted", 1)],
-            GameplayPoints = new() { [GameplayStatKind.BombPlanted] = 5 },
-            LivePolicy = new() { StreakPoints = new() { [2] = 5 }, VipMultiplier = vip },
+            GameplayPoints = new() { [GameplayStatKind.BombPlanted] = 5, [GameplayStatKind.PlaytimeInterval] = 3 },
+            LivePolicy = new() { StreakPoints = new() { [2] = 5 }, VipMultiplier = vip, PlaytimeIntervalSeconds = playtime },
         }, setup.Events, new Scores(setup.Events), setup.Players, setup.Permissions, setup.Sinks, setup.Sinks, setup.Errors.Add, presentation);
 
     private static RankDeathInput Death(PlayerRegistry players, DateTimeOffset? at = null)
