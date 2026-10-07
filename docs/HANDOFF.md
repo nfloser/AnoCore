@@ -1,3 +1,17 @@
+# Cold-start player bootstrap — 2026-10-07
+
+- #308 reproduces a native DatHost startup failure on CounterStrikeSharp 1.0.376:
+  AnoCore was discovered but unloaded with `Global Variables not initialized yet`.
+- Root cause is synchronous `Utilities.GetPlayers()` from `AnoCorePlugin.Load`;
+  CounterStrikeSharp resolves native `GetMaxClients` before engine global vars exist.
+- The bootstrap is now queued through `Server.NextWorldUpdate`, so cold startup
+  performs no player enumeration inline while hot reload still discovers connected humans.
+- Runtime verification now requires a true process cold start and an explicit
+  `css_plugins list` LOADED check before database/configuration acceptance.
+- This is a native-host regression and is not meaningfully reproducible in the
+  engine-independent unit suite; exact-head CI plus the DatHost cold-start retest
+  remain the acceptance evidence before merge.
+
 # Owned live gameplay XP reload — 2026-10-07
 
 - #303 adopts the existing shared config reload registry/commands and JSON store.
