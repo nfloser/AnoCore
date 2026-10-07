@@ -826,3 +826,23 @@ failures remain isolated from durable progress and rewards.
 Native acceptance: opt in, establish a baseline, increase progress before completion
 and check the count; repeat a checkpoint, reconnect and disable/re-enable the toggle.
 Verify no catch-up or duplicate intermediate notice and unchanged completion rewards.
+
+## Live gameplay XP configuration reload
+
+An active gameplay XP module owns the shared `gameplay-xp` reload registration.
+Use the existing permissioned `!anoconfigs` / `!anoreloadconfig gameplay-xp` commands
+after editing its JSON configuration. Validated kill/assist/gameplay weights,
+batch size and weekend multiplier become visible atomically. `!anoxp` reads the
+current active boost policy; a whole reconciliation checkpoint captures one policy
+for every player, so a concurrent reload never mixes versions within that checkpoint.
+
+Activation (`Enabled`), `CheckpointSeconds` and `EarnFromUtc` remain fixed until
+restart. Changing them through reload is rejected and keeps the previous policy,
+as do invalid JSON/weights. XP curves and global scheduled modifiers remain in the
+separate achievements configuration and require restart here. Already committed
+grants remain immutable/idempotent; still-unprocessed event backlog uses the policy
+selected by its next checkpoint. Reload does not recalculate historical XP.
+
+The module releases reload registration on failed command registration and unload.
+Disabled modules register no live reload capability; enable them through restart.
+Native timer/status acceptance remains a real-server gate.

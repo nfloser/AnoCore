@@ -1,3 +1,17 @@
+# Owned live gameplay XP reload — 2026-10-07
+
+- #303 adopts the existing shared config reload registry/commands and JSON store.
+- Validated weights, batch size and weekend multiplier reload atomically; each
+  checkpoint pins one snapshot across players, while status reads the current policy.
+- Activation, timer interval and earn-start cutoff remain restart-only. Invalid or
+  structural changes preserve active policy and command registrations.
+- Earned grants stay immutable/idempotent; unprocessed events use the next selected
+  checkpoint policy. XP curves/global modifier definitions remain restart-only here.
+- Startup command collision/unload release reload ownership. No new reload command,
+  grant ledger, counters or hot-path database queries were introduced.
+- Regression tests cover status/policy updates, concurrent reload isolation, rejected
+  changes and partial registration rollback. Exact-head CI is required before merge.
+
 # SDK host notifications — 2026-10-07
 
 - #301 adds dependency-free accepted-chat/core-unloading facts at API level 2,
@@ -9,8 +23,9 @@
 - Core unload starts one advisory notification before teardown, including partial
   startup. Async callbacks are not a cleanup barrier; module-owned lifetimes remain
   authoritative and native services must be revalidated after asynchronous work.
-- Tests cover routing filters/native pass-through, bounds/captured facts, async
-  failures, one-shot unload/reason/time and API compatibility. Exact-head CI required.
+- PR #302 merged after CI #722 passed all 915 tests and all package gates.
+  Tests cover routing filters/native pass-through, bounds/captured facts, async
+  failures, one-shot unload/reason/time and actual API-level 1/2 module initialization.
 - External module discovery, wider concrete configuration reload adoption and
   admin integration remain code work; actual CS2/DatHost acceptance remains manual.
 
@@ -24,8 +39,9 @@
   locked, expired and ready-to-complete tasks remain silent here.
 - Old windows/offline sessions are pruned each checkpoint; observations are bounded,
   and registration rollback/unload cleans toggles and ephemeral state.
-- Tests cover opt-in/baselines/repeats, rollover/version/reconnect, stale preferences,
-  delivery failure and partial registration rollback. Exact-head CI remains required.
+- PR #300 merged after CI #720 passed all 908 tests, formatting and package checks;
+  coverage includes opt-in/baselines, rollover/version/reconnect, stale preferences,
+  failed delivery and partial registration rollback. Native presentation remains manual.
 
 # Combat-backed challenge predicates — 2026-10-07
 
