@@ -153,7 +153,7 @@ public sealed class AnoCorePlugin : BasePlugin
         RegisterLifecycleHooks();
 
         AddCommand("css_anostatus", "Show AnoCore runtime status", OnStatus);
-        BootstrapConnectedPlayers();
+        Server.NextWorldUpdate(BootstrapConnectedPlayers);
         _startup = new CancellationTokenSource();
         _runtimeStatus = "starting";
         _ = InitializeRuntimeAsync(_eventBus, _players, _customHud, _startup.Token);

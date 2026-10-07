@@ -18,8 +18,8 @@ CI verifies:
 
 Use a disposable/non-production CS2 server with the pinned CounterStrikeSharp API version.
 
-1. Install the built AnoCore plugin and start the server with no players connected.
-2. Confirm AnoCore loads once and the server log contains no plugin exceptions. Run `css_anostatus`; expect zero tracked humans on an empty server.
+1. Install the built AnoCore plugin before starting the server, then cold-start the complete CS2 process with no players connected. Confirm CounterStrikeSharp does not unload AnoCore with `Global Variables not initialized yet` while engine/world globals are still starting.
+2. Confirm AnoCore loads once and the server log contains no plugin exceptions. Run `css_plugins list` and verify AnoCore is `LOADED`, then run `css_anostatus`; expect zero tracked humans on an empty server.
 3. Join with one human Steam account. Run `!anostatus` and confirm one player connection is tracked and no duplicate lifecycle errors occur.
 4. Change between Spectator, Terrorist and Counter-Terrorist. Confirm the server remains stable and the player snapshot follows the resulting team.
 5. Spawn and die. Confirm alive state follows the game state after the next frame.

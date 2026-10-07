@@ -218,7 +218,8 @@ public sealed class ModuleHostTests
         var first = new FakeModule("ano.good");
         var second = new FakeModule("ano.bad")
         {
-            OwnedResourceNames = ["broken"], CleanupException = new InvalidOperationException("cleanup"),
+            OwnedResourceNames = ["broken"],
+            CleanupException = new InvalidOperationException("cleanup"),
             ShutdownException = new InvalidOperationException("shutdown"),
         };
         await host.LoadAsync(first);
