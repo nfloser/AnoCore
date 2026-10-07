@@ -1,3 +1,17 @@
+# Actionable administration menus — 2026-10-08
+
+- #315 adds permissioned `!anoadminmenu` and a Home destination over existing
+  audited commands: action → eligible player → bounded parameters → confirmation.
+- Captured actor/target sessions, permission/immunity rechecks and consumed
+  confirmation prevent stale or repeated execution. Asynchronous reads cannot
+  reopen closed forms or replace another feature menu; unload/disconnect release
+  owned registrations. No parallel sanction, target or audit store is introduced.
+- Arbitrary coordinate/item/name/text parameters retain their direct commands;
+  supported moderation/player-state forms are documented in the menu runbook.
+- #314 merged in PR #318 after CI #750 passed every gate. Its role/VIP work is
+  preserved during integration. Remaining code packages: #316 and #317.
+- Full integrated-head CI is required before merging this menu change.
+
 # Role administration and expiring VIP authority — 2026-10-08
 
 - #314 adds console role definitions, permissioned SteamID grant/revoke/inspection,

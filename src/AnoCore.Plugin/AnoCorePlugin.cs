@@ -84,6 +84,7 @@ public sealed class AnoCorePlugin : BasePlugin
     private ProgressionAdminCommandController? _xpAdminCommands;
     private ProgressionMenuModule? _progressionMenu;
     private AnoHomeMenuModule? _homeMenu;
+    private AdminMenuModule? _adminMenu;
     private RoleAdministrationCommands? _roleCommands;
     private CounterStrikeSharp.API.Modules.Timers.Timer? _roleExpiryTimer;
     private bool _panoramaMenusEnabled;
@@ -199,6 +200,8 @@ public sealed class AnoCorePlugin : BasePlugin
             _seasonTimer?.Kill();
             _gameplayXpTimer = null;
             _seasonTimer = null;
+            _adminMenu?.Dispose();
+            _adminMenu = null;
             _roleExpiryTimer?.Kill();
             _roleExpiryTimer = null;
             _roleCommands?.Dispose();
@@ -994,6 +997,7 @@ public sealed class AnoCorePlugin : BasePlugin
 
             try
             {
+                _adminMenu = new AdminMenuModule(runtime.Commands, runtime.Players, runtime.Menus, runtime.Authorization, runtime.TargetAuthorization, _eventBus!);
                 _roleCommands = new RoleAdministrationCommands(runtime.Commands,
                     new MySqlRoleAdministration((AnoCore.Abstractions.Persistence.IDatabase)runtime.GetService(typeof(AnoCore.Abstractions.Persistence.IDatabase))!, runtime.Authorization),
                     (AnoCore.Abstractions.Permissions.IAuthorizationStore)runtime.GetService(typeof(AnoCore.Abstractions.Permissions.IAuthorizationStore))!);
@@ -1410,6 +1414,8 @@ public sealed class AnoCorePlugin : BasePlugin
                 if (ReferenceEquals(_liveRankScoring, liveRankScoring)) _liveRankScoring = null;
                 rank?.Dispose();
                 gameplayStats?.Dispose();
+                _adminMenu?.Dispose();
+                _adminMenu = null;
                 _roleExpiryTimer?.Kill();
                 _roleExpiryTimer = null;
                 _roleCommands?.Dispose();
