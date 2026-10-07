@@ -12,6 +12,7 @@ public sealed class RankConfiguration
     public long StartingPoints { get; set; }
     [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<RankScoreSource>))]
     public RankScoreSource Source { get; set; } = RankScoreSource.DerivedStatistics;
+    public RankScoreboardConfiguration Scoreboard { get; set; } = new();
     public LiveRankConfiguration LivePolicy { get; set; } = new();
     public Dictionary<GameplayStatKind, int> GameplayPoints { get; set; } = [];
     [System.Text.Json.Serialization.JsonIgnore]
@@ -55,6 +56,8 @@ public sealed class RankConfiguration
     {
         if (configuration is null) return ["Rank configuration is required."];
         var errors = new List<string>(LiveRankConfiguration.Validate(configuration.LivePolicy));
+        if (configuration.Scoreboard is null || !Enum.IsDefined(configuration.Scoreboard.RankMode))
+            errors.Add("Rank scoreboard configuration/mode is invalid.");
         if (!Enum.IsDefined(configuration.Source)) errors.Add("Rank score source is invalid.");
         if (configuration.KillPoints is < 1 or > 1000
             || configuration.AssistPoints is < 0 or > 1000
