@@ -16,6 +16,8 @@ public sealed class RankConfiguration
     public Dictionary<GameplayStatKind, int> GameplayPoints { get; set; } = [];
     [System.Text.Json.Serialization.JsonIgnore]
     public RankScoreWeights ScoreWeights => new(KillPoints, AssistPoints, DeathPenalty, StartingPoints, GameplayPoints, Source);
+    public bool NotifyPointChanges { get; set; }
+    public bool RoundPointSummaries { get; set; }
     public bool NotifyRankChanges { get; set; } = true;
     public bool NotifyAdministrativeRankChanges { get; set; } = true;
     public List<RankThreshold> Thresholds { get; set; } =

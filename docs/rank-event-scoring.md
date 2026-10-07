@@ -51,7 +51,7 @@ compatibility. MariaDB tests cover restart/replay, concurrent same/different eve
 conflicting payload rejection, full-batch rollback and retry, zero awards, migration
 reapplication, source isolation, adjustments, flooring, baselines, ordering,
 pagination and statistic-reset independence. Live eligibility, dynamic/VIP policy and streak bonuses are added under #280.
-Summaries, playtime awards and native scoreboard presentation remain #228.
+Point presentation is added under #282. Playtime awards and native scoreboard presentation remain #228.
 
 ## Opt-in live scoring
 
@@ -98,5 +98,33 @@ cannot make a committed rank write fail. Notifications retain the captured playe
 session through asynchronous preference lookup and native world-update delivery;
 old-session notices are suppressed after reconnect. `rank.notifications` still
 controls threshold notices. Native scoring/rendering requires the CS2 acceptance
-pass. Playtime awards, individual point notices, round summaries and scoreboard
-presentation remain separate follow-ups under #228.
+pass. Playtime awards and scoreboard presentation remain separate follow-ups under #228.
+
+
+## Committed point notices and round summaries
+
+In EventLedger mode, `NotifyPointChanges` and `RoundPointSummaries` in ranks.json
+independently enable individual point notices and round summaries. Both default to
+false. Players can independently disable them through persisted settings
+`rank.point-notifications` and `rank.round-summaries` (both default true when the
+server feature is enabled). Threshold notices retain their separate existing toggle.
+
+Only successfully committed, newly applied events feed presentation. Individual
+messages show the observed change in the effective, floored score and its current
+total. Zero visible changes are silent. Round summaries sum those observed changes;
+they are ephemeral per server/player session/round and are not reconstructed after
+reload. Concurrent external score changes can affect the observed difference.
+
+Round completion shares the scoring queue and is scheduled after same-tick native
+round hooks. Repeated completion emits no second summary. Events arriving after
+completion still produce individual notices, but do not reopen a completed summary.
+Captured sessions are checked before and after preference reads, and transport
+requests retain that session. Preference, transport and diagnostic failures cannot
+roll back awards or interrupt other post-commit consumers. Owned toggle registrations
+are removed on unload and rolled back on activation failure. Bounded duplicate and
+round caches protect presentation only; the durable ledger remains the replay gate.
+
+Automated tests cover deduplication, positive/negative/zero changes, settings and
+server flags, reconnect, failure isolation, registration rollback, ordered completion,
+late notices and ledger replay. Real CS2 chat delivery and round timing remain native
+acceptance under #23.
