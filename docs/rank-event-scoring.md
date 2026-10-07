@@ -82,6 +82,8 @@ Death batches combine attacker/victim/valid assister rewards atomically. Support
 special bonuses reuse GameplayPoints for first blood, headshot, no-scope,
 penetration, smoke, blind, domination, revenge and flash assist. First blood is
 owned by the independent rank checkpoint, rather than the statistics policy.
+After reload in an unobserved round, native FirstBlood is suppressed until the
+plugin observes a round start; this avoids minting another bonus mid-round.
 Round, match, grenade, bomb, hostage and MVP hooks use the same independent rank
 eligibility and selected score source. No duplicate statistics counters are created.
 

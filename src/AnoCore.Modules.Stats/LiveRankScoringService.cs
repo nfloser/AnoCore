@@ -99,7 +99,7 @@ public sealed class LiveRankScoringService : IDisposable
                 && captured.Context.OccurredAtUtc >= streak.At
                 && captured.Context.OccurredAtUtc - streak.At < _policy.StreakWindow)
                 streakCount = Math.Min(65, streak.Count + 1);
-            if (validKill && _firstBloodRound != captured.Context.RoundKey
+            if (validKill && captured.Context.FirstBloodAvailable && _firstBloodRound != captured.Context.RoundKey
                 && !captured.Specials.Contains(GameplayStatKind.FirstBlood))
                 captured = captured with { Specials = captured.Specials.Append(GameplayStatKind.FirstBlood).ToArray() };
             var awards = _policy.Death(captured,

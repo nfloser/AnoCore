@@ -8,6 +8,7 @@
 - Policy, identity and atomic service retry/replay regressions accompany documentation.
 - #287 merged after CI #703 passed 863 tests and all checks.
 - #289 initial head passed 868 tests; native initializer formatting was corrected.
+- Final review also suppresses FirstBlood after mid-round reload until an observed round start.
 - Final exact-head CI is required before closing #228/#275. Native acceptance remains #290.
 
 # Optional rank scoreboard — 2026-10-07

@@ -1970,7 +1970,8 @@ public sealed class AnoCorePlugin : BasePlugin
         var humans = _players?.OnlinePlayers.Count(player => player.IsConnected
             && player.Team is PlayerTeam.Terrorist or PlayerTeam.CounterTerrorist) ?? 0;
         return new(eventId, at, warmup, humans,
-            FormattableString.Invariant($"{Server.MapName}|{CombatMapEpoch()}|{Interlocked.Read(ref _rankRoundGeneration)}"));
+            FormattableString.Invariant($"{Server.MapName}|{CombatMapEpoch()}|{Interlocked.Read(ref _rankRoundGeneration)}"))
+        { FirstBloodAvailable = Interlocked.Read(ref _rankRoundGeneration) > 0 };
     }
 
     private RankParticipant? LiveRankParticipant(CCSPlayerController? controller)
@@ -2141,6 +2142,7 @@ public sealed class AnoCorePlugin : BasePlugin
 
     private void OnMapEnd()
     {
+        Interlocked.Exchange(ref _rankRoundGeneration, 0);
         var state = _extendedPlayerState;
         if (state is not null)
         {

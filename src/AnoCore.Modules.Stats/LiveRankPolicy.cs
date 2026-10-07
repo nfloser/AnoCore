@@ -54,7 +54,10 @@ public sealed class LiveRankConfiguration
 }
 
 public sealed record RankLiveContext(Guid EventId, DateTimeOffset OccurredAtUtc,
-    bool IsWarmup, int HumanPlayers, string RoundKey);
+    bool IsWarmup, int HumanPlayers, string RoundKey)
+{
+    public bool FirstBloodAvailable { get; init; } = true;
+}
 
 public sealed record RankParticipant(PlayerSnapshot? Player, PlayerTeam Team, bool IsBot);
 
