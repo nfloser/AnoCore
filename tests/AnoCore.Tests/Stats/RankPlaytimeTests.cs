@@ -76,6 +76,25 @@ public sealed class RankPlaytimeTests
     }
 
     [TestMethod]
+    public async Task BackwardClockAndDisconnectedSnapshots_DoNotAccrueTime()
+    {
+        var calls = 0;
+        using var service = new RankPlaytimeService(Policy(), (player, context, token) => { calls++; return ValueTask.CompletedTask; });
+        var player = Player();
+        await service.TickAsync([player], Context(0));
+        await service.TickAsync([player], Context(5));
+        await service.TickAsync([player], Context(0));
+        await service.TickAsync([player], Context(5));
+        Assert.AreEqual(0, calls);
+        await service.TickAsync([], Context(10));
+        await service.TickAsync([player], Context(15));
+        await service.TickAsync([player], Context(20));
+        Assert.AreEqual(0, calls);
+        await service.TickAsync([player], Context(25));
+        Assert.AreEqual(1, calls);
+    }
+
+    [TestMethod]
     public async Task DisabledAndDisposedServices_DoNotInvokeAwards()
     {
         var calls = 0;

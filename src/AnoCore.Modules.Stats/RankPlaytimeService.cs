@@ -56,7 +56,7 @@ public sealed class RankPlaytimeService : IDisposable
                     schedule.Eligible = eligible;
                 }
                 if (schedule.Pending is null && eligible && schedule.Accrued >= _policy.PlaytimeInterval)
-                    {
+                {
                     schedule.Pending = context with { EventId = Guid.NewGuid() };
                     schedule.PendingPlayer = player;
                 }

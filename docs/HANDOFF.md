@@ -1,3 +1,14 @@
+# Eligible live rank playtime — 2026-10-07
+
+- #284 adds disabled-by-default PlaytimeIntervalSeconds and GameplayPoints.PlaytimeInterval.
+- Five-second native samples accrue only consecutive eligible active-team human time.
+- No historical/offline backfill; late samples are capped, reconnect/reload reset partial time.
+- Frozen interval identity/player/time/context retries through the shared rank ledger.
+- VIP and committed point/threshold consumers reuse existing paths; XP/stats stay independent.
+- Timer is killed on unload and activation failure. Exact-head CI required before merge.
+- #283 merged after CI #698 passed 852 tests and all package checks.
+- Remaining reference gaps: scoreboard presentation and additional objective parity.
+
 # Committed rank point presentation — 2026-10-07
 
 - #282 adds opt-in NotifyPointChanges and RoundPointSummaries, disabled by default.
