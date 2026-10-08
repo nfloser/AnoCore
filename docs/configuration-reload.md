@@ -27,6 +27,7 @@ When AnoVeto starts enabled, it registers `anoveto` and `maps` with the shared r
 | `core` | Restart: database/connection composition, protected controls, presentation and native feature switches. |
 | `modules` | Restart: trusted assembly paths, hashes, activation and API compatibility. |
 | `management` | Restart: authentication/capability, transport and provider composition. Sidecar environment settings require sidecar restart. |
+| `combat-recording` | Restart: shot/hit recording switches, bounded queue, batch mode/size/interval and shutdown deadline. Existing ledgers remain. |
 | `ranks`, `gameplay-stats` | Restart: source mode, scoring policy, thresholds, native hooks and presentation policy. Existing ledgers/totals are retained; startup does not rewrite earned history. |
 | `achievements`, `challenges`, `seasons` | Restart: definition catalogs, versioned rewards and XP curve/scheduling. Do not edit old immutable reward versions to rescore earned grants; use new versions for changed definitions. |
 | `moderation-webhooks` and webhook environment variables | Restart: opt-in destination, approved hosts, privacy and delivery bounds are pinned for the pump lifetime. |

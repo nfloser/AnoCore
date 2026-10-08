@@ -11,6 +11,7 @@ public sealed class CombatModule : IDisposable
     private readonly ICombatRepository _repository;
     private readonly ICombatDetailRepository? _detailRepository;
     private readonly RankTransitionMonitor? _transitionMonitor;
+    private readonly Func<CancellationToken, ValueTask>? _flushDetails;
     private readonly IDisposable _command;
     private readonly IDisposable _topCommand;
     private readonly IDisposable _deathCommand;
@@ -21,12 +22,18 @@ public sealed class CombatModule : IDisposable
 
     public CombatModule(IAnoCommandRegistry commands, IPlayerRegistry players,
         ICombatRepository repository, RankTransitionMonitor? transitionMonitor = null)
+        : this(commands, players, repository, transitionMonitor, null) { }
+
+    public CombatModule(IAnoCommandRegistry commands, IPlayerRegistry players,
+        ICombatRepository repository, RankTransitionMonitor? transitionMonitor,
+        Func<CancellationToken, ValueTask>? flushDetails)
     {
         ArgumentNullException.ThrowIfNull(commands);
         _players = players ?? throw new ArgumentNullException(nameof(players));
         _repository = repository ?? throw new ArgumentNullException(nameof(repository));
         _detailRepository = repository as ICombatDetailRepository;
         _transitionMonitor = transitionMonitor;
+        _flushDetails = flushDetails;
         _command = commands.Register(new ModuleId("ano.stats"),
             new CommandDescriptor("anokda", "Show your kill, death and assist totals."),
             context => OwnStatsAsync(context.Caller, context.CancellationToken));
@@ -149,6 +156,7 @@ public sealed class CombatModule : IDisposable
             return failure!;
 
         var sessionId = player.SessionId;
+        if (_flushDetails is not null) await _flushDetails(context.CancellationToken).ConfigureAwait(false);
         var totals = await _detailRepository.ReadDetailsAsync(
             context.Caller, filter, context.CancellationToken).ConfigureAwait(false);
         if (!IsCurrentSession(context.Caller, sessionId))
@@ -173,6 +181,7 @@ public sealed class CombatModule : IDisposable
             return failure!;
 
         var sessionId = player.SessionId;
+        if (_flushDetails is not null) await _flushDetails(context.CancellationToken).ConfigureAwait(false);
         var entries = await _detailRepository.ReadHitgroupsAsync(
             context.Caller, filter, context.CancellationToken).ConfigureAwait(false);
         if (!IsCurrentSession(context.Caller, sessionId))
