@@ -1343,6 +1343,9 @@ public sealed class AnoCorePlugin : BasePlugin
                     {
                         RolePrefix = roleChatTags is null ? null
                             : player => CounterStrikeRoleChatTags.Resolve(roleChatTags, player),
+                        IsExternalCommand = chatFormatter is null
+                            ? ChatFormatConfiguration.Default.IsPassthroughCommand
+                            : chatFormatter.IsPassthroughCommand,
                     });
                 voiceModeration = new ModerationVoiceCoordinator(
                     runtime.Players,

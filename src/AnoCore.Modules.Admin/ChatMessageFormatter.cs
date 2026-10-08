@@ -20,6 +20,17 @@ public sealed class ChatFormatConfiguration
 
     public string MessageColor { get; set; } = "None";
 
+    // Exact external command tokens only. Their owning plugin retains dispatch and authorization.
+    public List<string> PassthroughCommands { get; set; } =
+        [".map", ".prac", ".ready", ".unready", ".pause", ".unpause", ".stay", ".switch"];
+
+    public bool IsPassthroughCommand(string input)
+    {
+        if (input.Length < 2 || input[0] != '.') return false;
+        return PassthroughCommands.Any(command => input.StartsWith(command, StringComparison.OrdinalIgnoreCase)
+            && (input.Length == command.Length || char.IsWhiteSpace(input[command.Length])));
+    }
+
     public static ChatFormatConfiguration Default => new();
 
     public static IReadOnlyCollection<string> Validate(
@@ -34,6 +45,20 @@ public sealed class ChatFormatConfiguration
         ValidateColor(configuration.RankColor, "Rank", errors);
         ValidateColor(configuration.NameColor, "Name", errors);
         ValidateColor(configuration.MessageColor, "Message", errors);
+        if (configuration.PassthroughCommands is null || configuration.PassthroughCommands.Count > 64)
+            errors.Add("PassthroughCommands must contain at most 64 exact dot-command tokens.");
+        else
+        {
+            var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var command in configuration.PassthroughCommands)
+            {
+                if (string.IsNullOrEmpty(command) || command.Length is < 2 or > 33
+                    || command[0] != '.' || !char.IsAsciiLetter(command[1])
+                    || command.Skip(2).Any(character => !char.IsAsciiLetterOrDigit(character) && character != '_')
+                    || !names.Add(command))
+                    errors.Add("PassthroughCommands entries must be unique .name tokens (1..32 ASCII letters/digits/underscores, starting with a letter).");
+            }
+        }
         return errors;
     }
 
@@ -120,6 +145,7 @@ public sealed class ChatMessageFormatter : IDisposable
     private object? _observedTagPolicy;
     public Func<object?>? TagPolicyIdentity { get; set; }
     private ChatFormatConfiguration Current => _reload?.Current ?? _configuration;
+    public bool IsPassthroughCommand(string input) => Current.IsPassthroughCommand(input);
     public bool IsCurrent(PreparedChatFormat prepared)
         => ReferenceEquals(prepared.Policy, Current) && ReferenceEquals(prepared.TagPolicy, TagPolicyIdentity?.Invoke());
     public bool ObserveReload()

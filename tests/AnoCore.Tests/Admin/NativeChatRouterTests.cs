@@ -287,6 +287,47 @@ public sealed class NativeChatRouterTests
         Assert.AreEqual(1, calls);
     }
 
+    [TestMethod]
+    [DataRow(".map 123456789", false)]
+    [DataRow("  .MAP de_mirage", true)]
+    [DataRow(".ready", false)]
+    [DataRow(".pause", true)]
+    public async Task ExternalDotCommandsPassThroughBeforeModerationSnapshotsPrefixesAndEvents(string message, bool team)
+    {
+        var bus = new AnoEventBus();
+        var players = new PlayerRegistry(bus);
+        var sender = await ConnectAsync(players, 76561198000012661, PlayerTeam.Terrorist);
+        var observed = 0;
+        using var subscription = bus.Subscribe<PlayerChatAcceptedEvent>((_, _) =>
+        { observed++; return ValueTask.CompletedTask; });
+        var configuration = ChatFormatConfiguration.Default;
+        var router = new NativeChatRouter(_ => throw new AssertFailedException("moderation"), players,
+            (PlayerId _, PlayerSessionId _, string? _, bool _, out string? formatted) =>
+            { formatted = null; throw new AssertFailedException("formatter"); }, bus)
+        {
+            IsExternalCommand = configuration.IsPassthroughCommand,
+            RolePrefix = _ => throw new AssertFailedException("prefix"),
+        };
+        Assert.IsFalse(router.Route(sender.Id, message, team).ShouldIntercept);
+        Assert.AreEqual(0, observed);
+    }
+
+    [TestMethod]
+    [DataRow(".mapx 123456789")]
+    [DataRow(".map;quit")]
+    [DataRow(".unknown hello")]
+    [DataRow("...")]
+    public async Task UnlistedOrNonExactDotTextStillPassesThroughModeration(string message)
+    {
+        var players = new PlayerRegistry(new AnoEventBus());
+        var sender = await ConnectAsync(players, 76561198000012662, PlayerTeam.Terrorist);
+        var calls = 0;
+        var router = new NativeChatRouter(_ => { calls++; return ChatInterceptionDecision.Block; }, players, Format)
+        { IsExternalCommand = ChatFormatConfiguration.Default.IsPassthroughCommand };
+        Assert.IsTrue(router.Route(sender.Id, message, false).ShouldIntercept);
+        Assert.AreEqual(1, calls);
+    }
+
     private static NativeChatRouter Router(
         IPlayerRegistry players,
         ChatSnapshotFormatter? formatter)
