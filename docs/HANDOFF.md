@@ -1,3 +1,16 @@
+## Challenge predicate package (#330)
+
+Implemented optional immutable map/weapon/hitgroup predicates using existing durable
+facts, plus DamageHealth counter source (4). Existing unfiltered definitions retain
+behavior. Unsupported counter/filter combinations are rejected. No schema migration.
+Team sides and rich kill context remain unavailable in current ledgers and are not
+inferred; see docs/progression.md for the support matrix and native acceptance.
+Tests cover snapshot/JSON compatibility, bounds, exact matching, combined filters,
+utility narrowing and reward/event replay. Local Release build has zero warnings/errors;
+844 tests pass, 163 MariaDB tests skip locally and 10 socket bridge tests require CI.
+Whitespace verification passes. Full CI must be green before merge.
+Battlepass remains cancelled (#332); Workshop metadata (#331) remains open.
+
 # Combat detail write batches — 2026-10-08
 
 - `perf/329-combat-write-batches`, part of #329: bounded shot/damage queue,

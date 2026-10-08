@@ -846,3 +846,72 @@ selected by its next checkpoint. Reload does not recalculate historical XP.
 The module releases reload registration on failed command registration and unload.
 Disabled modules register no live reload capability; enable them through restart.
 Native timer/status acceptance remains a real-server gate.
+
+
+### Durable challenge predicates (#330)
+
+Recurring templates and predefined definitions accept an optional `Predicates`
+object. Existing definitions default to empty filters and keep their behavior.
+All populated lists must match (AND); entries within one list are alternatives
+(OR). Matching uses exact case-sensitive engine keys, never wildcards. Lists
+accept at most 16 unique values and are copied/sorted into immutable snapshots.
+Keys must be lowercase ASCII engine keys (`a-z`, digits, `_`, `-`, `/`, `.`),
+with at most 128 characters for maps and 64 for weapons. Use `ak47`, not
+`weapon_ak47`. Hitgroups are integers from 0 through 255.
+
+| CounterSource | Value | Supported predicates |
+| --- | --- | --- |
+| GameplayStat | 0 | Maps |
+| CombatKills | 1 | None: death ledger has no map/weapon/context |
+| CombatAssists | 2 | None: death ledger has no map/weapon/context |
+| UtilityDamage | 3 | Maps, Weapons (utility only), Hitgroups |
+| DamageHealth | 4 | Maps, Weapons, Hitgroups |
+
+For example, a recurring damage mission can use:
+
+```json
+{
+  "Id": "weekly.ak-damage",
+  "Version": 1,
+  "Name": "AK damage on Dust2",
+  "WindowKind": 1,
+  "Statistic": 15,
+  "CounterSource": 4,
+  "Target": 1000,
+  "RewardXp": 100,
+  "PrerequisiteIds": [],
+  "Predicates": {
+    "Maps": ["de_dust2"],
+    "Weapons": ["ak47"],
+    "Hitgroups": []
+  }
+}
+```
+
+`Statistic` remains the evaluation slot for non-gameplay counters and does not
+change their counted facts. DamageHealth sums the recorded health damage,
+excluding self/team damage and events without this player as attacker; it does
+not calculate damage again. UtilityDamage retains its existing utility-only
+constraint and permits a narrower utility weapon list. Unsupported combinations,
+null lists, duplicate/oversized lists, unknown predicate properties and invalid keys fail validation instead
+of silently counting unrelated events. No schema migration or new combat write
+path is required. Filter values are SQL parameters; string comparisons explicitly
+use binary matching regardless of database collation.
+
+Counters read raw committed facts inside the existing UTC half-open window and
+as-of timestamp. Buffered damage can appear after its next successful flush;
+disabled damage recording supplies no new damage progress. Statistics resets do
+not erase challenge evidence. Completion/reward locks and occurrence identity
+remain unchanged: replayed events do not count twice, and changing filters,
+version or rewards cannot pay an already completed occurrence again. Changes to
+an uncompleted occurrence re-evaluate its existing window facts under the new
+filters; define a new ID/window if separate progress is intended.
+
+Team side (T/CT), kill weapon/map, scoped/airborne/blind/distance context are not
+stored in these ledgers, so this package does not offer them or infer them from
+current player state. They require a separately designed durable event extension.
+
+Native acceptance: configure one map-filtered gameplay mission and one weapon/
+hitgroup damage mission; verify other maps/weapons/hitgroups and team/self damage
+remain excluded, matching facts advance after commit, and reconnect/reload/retry
+shows one reward only. Run these checks on CS2/DatHost before release.
