@@ -20,6 +20,9 @@
   passed, 160 skipped without MariaDB; ten Named Pipe tests excluded because
   the local sandbox denies their sockets. Full semantic format/DB/pipe checks
   must pass in exact-head CI before merge.
+- CI #774 exposed MySqlConnector returning event IDs as Guid values; batch
+  verification now uses typed GetGuid reads. Existing and new MariaDB regression
+  tests must pass on the corrected head before merge.
 - #333 is merged: CI #772 passed all 994 tests and build/format/package checks;
   validated GameRules lookup cache retains live warmup semantics.
 - #330 challenge filters and #331 Workshop previews remain open.

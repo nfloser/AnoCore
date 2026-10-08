@@ -161,7 +161,7 @@ public sealed class MySqlCombatRepository : ICombatDetailRepository, ICombatDeta
         var found = 0;
         while (await reader.ReadAsync(token).ConfigureAwait(false))
         {
-            if (!expected.TryGetValue(Guid.Parse(reader.GetString(0)), out var shot)
+            if (!expected.TryGetValue(reader.GetGuid(0), out var shot)
                 || ReadPlayer(reader, 1) != shot.PlayerId
                 || !string.Equals(reader.GetString(2), shot.MapName, StringComparison.Ordinal)
                 || !string.Equals(reader.GetString(3), shot.Weapon, StringComparison.Ordinal))
@@ -213,7 +213,7 @@ public sealed class MySqlCombatRepository : ICombatDetailRepository, ICombatDeta
         var found = 0;
         while (await reader.ReadAsync(token).ConfigureAwait(false))
         {
-            if (!expected.TryGetValue(Guid.Parse(reader.GetString(0)), out var hit)
+            if (!expected.TryGetValue(reader.GetGuid(0), out var hit)
                 || ReadPlayer(reader, 1) != hit.VictimId || ReadPlayer(reader, 2) != hit.AttackerId
                 || !string.Equals(reader.GetString(3), hit.MapName, StringComparison.Ordinal)
                 || !string.Equals(reader.GetString(4), hit.Weapon, StringComparison.Ordinal)
