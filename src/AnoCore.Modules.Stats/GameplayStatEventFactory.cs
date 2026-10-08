@@ -7,6 +7,33 @@ public sealed record GameplayMatchParticipant(PlayerId PlayerId, PlayerTeam Team
 
 public static class GameplayStatEventFactory
 {
+    public static GameplayStatEvent? WeaponKill(string serverInstance, string mapName, long mapEpoch,
+        int tick, DateTimeOffset occurredAtUtc, PlayerId attacker, PlayerId victim, string weapon)
+    {
+        ArgumentNullException.ThrowIfNull(attacker);
+        ArgumentNullException.ThrowIfNull(victim);
+        if (attacker == victim || LiveRankPolicy.WeaponFamily(weapon) is not { } kind) return null;
+        return Player(serverInstance, mapName, mapEpoch, tick, occurredAtUtc, attacker, kind,
+            victim.SteamId64.ToString(System.Globalization.CultureInfo.InvariantCulture));
+    }
+
+    public static IReadOnlyList<GameplayStatEvent> TeamObjective(string serverInstance, string mapName, long mapEpoch,
+        int tick, DateTimeOffset occurredAtUtc, IEnumerable<PlayerSnapshot> players, GameplayStatKind kind,
+        PlayerTeam team, PlayerId? excluded = null)
+    {
+        ArgumentNullException.ThrowIfNull(players);
+        if (!LiveRankPolicy.IsTeamObjective(kind) || team is not PlayerTeam.Terrorist and not PlayerTeam.CounterTerrorist)
+            throw new ArgumentException("Team objective facts require a supported objective and playing team.");
+        var snapshot = players.Take(65).ToArray();
+        if (snapshot.Length > 64 || snapshot.Any(player => player is null)
+            || snapshot.Select(player => player.Id).Distinct().Count() != snapshot.Length)
+            throw new ArgumentException("Team objective facts require at most 64 unique players.");
+        return Array.AsReadOnly(snapshot.Where(player => player.IsConnected && player.Team == team && player.Id != excluded)
+            .OrderBy(player => player.Id.SteamId64)
+            .Select(player => Player(serverInstance, mapName, mapEpoch, tick, occurredAtUtc, player.Id, kind,
+                FormattableString.Invariant($"team:{(int)team}|excluded:{excluded?.SteamId64 ?? 0}"))).ToArray());
+    }
+
     public static GameplayStatEvent Player(
         string serverInstance,
         string mapName,

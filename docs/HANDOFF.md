@@ -1,3 +1,11 @@
+## Native progression fact coverage (#340)
+
+Mirrored existing weapon-family/objective native evidence into durable gameplay
+statistics without calling the live-rank kill/team bonus path twice. Added tested
+stable factories and kept eligibility, FFA/team/self exclusions and no backfill.
+PlaytimeInterval remains rank-only; progression presets keep it at zero.
+Native predicates PR #339 is merged (CI #781: 1024 tests and all gates passed).
+
 ## Native kill condition package (#330 / #335)
 
 Death context is now captured from native player_death fields and committed with

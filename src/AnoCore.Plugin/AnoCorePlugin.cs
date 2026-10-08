@@ -1941,6 +1941,11 @@ public sealed class AnoCorePlugin : BasePlugin
                 && !teamKill;
             if (validKill)
             {
+                var weaponFact = GameplayStatEventFactory.WeaponKill(_combatServerInstance,
+                    CombatDetailKey(Server.MapName, "unknown_map", 128), CombatMapEpoch(), Server.TickCount,
+                    death.OccurredAtUtc, attacker!.Id, victim.Id, death.Context!.Weapon);
+                if (weaponFact is not null && _gameplayStats is { } weaponStatistics)
+                    Observe(weaponStatistics.RecordAsync(weaponFact).AsTask(), "gameplay_weapon_kill");
                 var victimSignature = victim.Id.SteamId64.ToString(
                     System.Globalization.CultureInfo.InvariantCulture);
                 if (!_roundFirstBloodRecorded)
@@ -1998,39 +2003,40 @@ public sealed class AnoCorePlugin : BasePlugin
 
     private HookResult OnRankBombPickup(EventBombPickup value, GameEventInfo _)
     {
-        RecordLiveRankGameplay(value.Userid, GameplayStatKind.BombPickedUp, "bomb_pickup");
+        RecordGameplayStat(value.Userid, GameplayStatKind.BombPickedUp, "bomb_pickup");
         return HookResult.Continue;
     }
 
     private HookResult OnRankBombDropped(EventBombDropped value, GameEventInfo _)
     {
-        RecordLiveRankGameplay(value.Userid, GameplayStatKind.BombDropped, "bomb_dropped");
+        RecordGameplayStat(value.Userid, GameplayStatKind.BombDropped, "bomb_dropped");
         return HookResult.Continue;
     }
 
     private HookResult OnRankHostageHurt(EventHostageHurt value, GameEventInfo _)
     {
-        RecordLiveRankGameplay(value.Userid, GameplayStatKind.HostageHurt,
+        RecordGameplayStat(value.Userid, GameplayStatKind.HostageHurt,
             FormattableString.Invariant($"hostage:{value.Hostage}"));
         return HookResult.Continue;
     }
 
     private HookResult OnRankBombExploded(EventBombExploded value, GameEventInfo _)
     {
-        RecordLiveRankTeamObjective(GameplayStatKind.BombExploded, PlayerTeam.Terrorist);
+        RecordTeamObjective(GameplayStatKind.BombExploded, PlayerTeam.Terrorist);
         return HookResult.Continue;
     }
 
     private HookResult OnRankHostagesRescuedAll(EventHostageRescuedAll value, GameEventInfo _)
     {
-        RecordLiveRankTeamObjective(GameplayStatKind.HostagesRescuedAll, PlayerTeam.CounterTerrorist);
+        RecordTeamObjective(GameplayStatKind.HostagesRescuedAll, PlayerTeam.CounterTerrorist);
         return HookResult.Continue;
     }
 
-    private void RecordLiveRankTeamObjective(GameplayStatKind kind, PlayerTeam team, PlayerId? excluded = null)
+    private void RecordTeamObjective(GameplayStatKind kind, PlayerTeam team, PlayerId? excluded = null)
     {
         var scoring = _liveRankScoring;
-        if (scoring is null) return;
+        var gameplay = _gameplayStats;
+        if (scoring is null && gameplay is null) return;
         try
         {
             var players = _players?.OnlinePlayers.Where(player => player.IsConnected && player.Team == team
@@ -2039,7 +2045,13 @@ public sealed class AnoCorePlugin : BasePlugin
             var at = DateTimeOffset.UtcNow;
             var eventId = CombatEventIdentity.CreateTeam(_combatServerInstance, Server.MapName,
                 CombatMapEpoch(), Server.TickCount, kind, team, excluded);
-            Observe(scoring.RecordTeamObjectiveAsync(kind, LiveRankContext(eventId, at), players).AsTask(), "rank_team_objective");
+            if (scoring is not null)
+                Observe(scoring.RecordTeamObjectiveAsync(kind, LiveRankContext(eventId, at), players).AsTask(), "rank_team_objective");
+            if (gameplay is not null && !gameplay.Configuration.FreeForAll && GameplayStatsAllowed())
+                foreach (var statistic in GameplayStatEventFactory.TeamObjective(_combatServerInstance,
+                    CombatDetailKey(Server.MapName, "unknown_map", 128), CombatMapEpoch(), Server.TickCount,
+                    at, players, kind, team, excluded))
+                    Observe(gameplay.RecordAsync(statistic).AsTask(), "gameplay_team_objective");
         }
         catch (Exception exception) { Logger.LogError(exception, "Could not record native rank team objective."); }
     }
@@ -2054,7 +2066,7 @@ public sealed class AnoCorePlugin : BasePlugin
     {
         RecordGameplayStat(@event.Userid, GameplayStatKind.BombDefused, "bomb_defused");
         var defuser = @event.Userid;
-        RecordLiveRankTeamObjective(GameplayStatKind.BombDefusedOthers, PlayerTeam.CounterTerrorist,
+        RecordTeamObjective(GameplayStatKind.BombDefusedOthers, PlayerTeam.CounterTerrorist,
             defuser is { IsValid: true, IsBot: false, IsHLTV: false, SteamID: > 0 } ? new PlayerId(defuser.SteamID) : null);
         return HookResult.Continue;
     }

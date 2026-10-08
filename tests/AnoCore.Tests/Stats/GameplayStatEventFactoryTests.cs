@@ -15,6 +15,41 @@ public sealed class GameplayStatEventFactoryTests
         76561198000184102, PlayerTeam.CounterTerrorist);
 
     [TestMethod]
+    public void WeaponKillFactsUseExistingFamilyRulesAndStableVictimIdentity()
+    {
+        foreach (var (weapon, expected) in new[] { ("knife_karambit", GameplayStatKind.KnifeKill),
+            ("hegrenade", GameplayStatKind.GrenadeKill), ("inferno", GameplayStatKind.InfernoKill),
+            ("flashbang", GameplayStatKind.ImpactKill), ("taser", GameplayStatKind.TaserKill) })
+        {
+            var first = GameplayStatEventFactory.WeaponKill("server", "de_test", 1, 100, Now,
+                Terrorist.Id, CounterTerrorist.Id, weapon);
+            Assert.AreEqual(expected, first!.Kind);
+            var replay = GameplayStatEventFactory.WeaponKill("server", "de_test", 1, 100, Now.AddSeconds(1),
+                Terrorist.Id, CounterTerrorist.Id, weapon);
+            Assert.AreEqual(first.EventId, replay!.EventId);
+        }
+        Assert.IsNull(GameplayStatEventFactory.WeaponKill("server", "de_test", 1, 100, Now,
+            Terrorist.Id, CounterTerrorist.Id, "ak47"));
+        Assert.IsNull(GameplayStatEventFactory.WeaponKill("server", "de_test", 1, 100, Now,
+            Terrorist.Id, Terrorist.Id, "knife"));
+    }
+
+    [TestMethod]
+    public void TeamObjectiveFactsExcludeOtherTeamDisconnectedAndActorWithReplayStableIds()
+    {
+        var disconnected = new PlayerSnapshot(new(76561198000184103), PlayerSessionId.New(), "Disconnected", false, true, PlayerTeam.CounterTerrorist, Now, Now);
+        var other = Snapshot(76561198000184104, PlayerTeam.CounterTerrorist);
+        var facts = GameplayStatEventFactory.TeamObjective("server", "de_test", 1, 100, Now,
+            [Terrorist, CounterTerrorist, disconnected, other], GameplayStatKind.BombDefusedOthers,
+            PlayerTeam.CounterTerrorist, CounterTerrorist.Id);
+        Assert.HasCount(1, facts);
+        Assert.AreEqual(other.Id, facts.Single().PlayerId);
+        var retry = GameplayStatEventFactory.TeamObjective("server", "de_test", 1, 100, Now.AddSeconds(1),
+            [other], GameplayStatKind.BombDefusedOthers, PlayerTeam.CounterTerrorist, CounterTerrorist.Id);
+        Assert.AreEqual(facts.Single().EventId, retry.Single().EventId);
+    }
+
+    [TestMethod]
     public void RoundEvents_RecordParticipationTeamAndOutcomeDeterministically()
     {
         var first = GameplayStatEventFactory.Round(
