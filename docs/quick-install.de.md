@@ -9,7 +9,7 @@ Es ist kein Battlepass enthalten.
 
 CS2-Server mit Metamod, CounterStrikeSharp API 374 oder neuer und kompatiblem .NET-10-Host;
 eine eigene MySQL/MariaDB-Datenbank. Für den UI-Build: Windows, CS2 und CS2 Workshop Tools.
-Siehe [Deployment](deployment.md) für Datenbank, Voraussetzungen und Rollback.
+Siehe [Server- und Datenbanksetup](server-setup.de.md) sowie [Deployment](deployment.md) für Voraussetzungen und Rollback.
 
 ## Serverplugin installieren oder aktualisieren
 
