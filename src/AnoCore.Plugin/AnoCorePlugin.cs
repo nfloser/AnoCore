@@ -1177,7 +1177,9 @@ public sealed class AnoCorePlugin : BasePlugin
                         targetGateway,
                         runtime.Players,
                         runtime.Authorization,
-                        new CounterStrikeExtendedInventoryTeamTransport(runtime.Players)));
+                        new CounterStrikeExtendedInventoryTeamTransport(runtime.Players)),
+                    new CounterStrikeTeamAdministrationCommandHandler(runtime.Players, Logger,
+                        () => ReferenceEquals(_runtime, runtime)));
                 protectedServerControlCommands = new ProtectedServerControlCommandController(
                     runtime.Commands,
                     new ProtectedServerControlExecutor(

@@ -10,14 +10,24 @@ public sealed class ExtendedInventoryTeamCommandController : IDisposable
 
     private readonly List<IDisposable> _registrations = [];
     private readonly ExtendedInventoryTeamCommandExecutor _executor;
+    private readonly ITeamAdministrationCommandHandler? _teams;
     private int _disposed;
 
     public ExtendedInventoryTeamCommandController(
         IAnoCommandRegistry commands,
         ExtendedInventoryTeamCommandExecutor executor)
+        : this(commands, executor, null)
+    {
+    }
+
+    public ExtendedInventoryTeamCommandController(
+        IAnoCommandRegistry commands,
+        ExtendedInventoryTeamCommandExecutor executor,
+        ITeamAdministrationCommandHandler? teams)
     {
         ArgumentNullException.ThrowIfNull(commands);
         _executor = executor ?? throw new ArgumentNullException(nameof(executor));
+        _teams = teams;
 
         try
         {
@@ -56,6 +66,7 @@ public sealed class ExtendedInventoryTeamCommandController : IDisposable
         }
 
         _registrations.Clear();
+        _teams?.Dispose();
     }
 
     private void RegisterRename(IAnoCommandRegistry commands)
@@ -97,7 +108,8 @@ public sealed class ExtendedInventoryTeamCommandController : IDisposable
             new CommandDescriptor(
                 name,
                 description,
-                ExtendedInventoryTeamCommandExecutor.GetPermission(operation),
+                _teams is not null && operation == ExtendedInventoryTeamOperation.SwapTeam
+                    ? null : ExtendedInventoryTeamCommandExecutor.GetPermission(operation),
                 arguments:
                 [
                     new CommandArgumentDescriptor(
@@ -105,7 +117,9 @@ public sealed class ExtendedInventoryTeamCommandController : IDisposable
                         CommandArgumentKind.String,
                         "One explicit online player."),
                 ]),
-            context => _executor.ExecuteTargetAsync(
+            context => _teams is not null && operation == ExtendedInventoryTeamOperation.SwapTeam
+                ? _teams.ExecuteAsync(operation, context.Caller, context.Get<string>("target"), null, context.CancellationToken)
+                : _executor.ExecuteTargetAsync(
                 operation,
                 context.Caller,
                 context.Get<string>("target"),
@@ -149,7 +163,7 @@ public sealed class ExtendedInventoryTeamCommandController : IDisposable
             new CommandDescriptor(
                 "anoteam",
                 "Move a player to Terrorist, Counter-Terrorist or Spectator.",
-                ExtendedInventoryTeamCommandExecutor.GetPermission(operation),
+                _teams is null ? ExtendedInventoryTeamCommandExecutor.GetPermission(operation) : null,
                 arguments:
                 [
                     new CommandArgumentDescriptor(
@@ -161,7 +175,9 @@ public sealed class ExtendedInventoryTeamCommandController : IDisposable
                         CommandArgumentKind.String,
                         "t, ct or spec."),
                 ]),
-            context => _executor.ExecuteTargetAsync(
+            context => _teams is not null
+                ? _teams.ExecuteAsync(operation, context.Caller, context.Get<string>("target"), context.Get<string>("team"), context.CancellationToken)
+                : _executor.ExecuteTargetAsync(
                 operation,
                 context.Caller,
                 context.Get<string>("target"),
