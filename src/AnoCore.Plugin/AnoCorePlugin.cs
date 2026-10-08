@@ -75,6 +75,10 @@ public sealed class AnoCorePlugin : BasePlugin
     private RankScoreboardService? _rankScoreboard;
     private LiveRankScoringService? _liveRankScoring;
     private long _rankRoundGeneration;
+    private readonly WarmupStateCache<CCSGameRulesProxy> _warmupState = new(
+        () => Utilities.FindAllEntitiesByDesignerName<CCSGameRulesProxy>("cs_gamerules").FirstOrDefault(),
+        proxy => proxy.IsValid,
+        proxy => proxy.GameRules?.WarmupPeriod);
     private GameplayStatsModule? _gameplayStats;
     private AchievementModule? _achievements;
     private ChallengeModule? _challenges;
@@ -171,6 +175,7 @@ public sealed class AnoCorePlugin : BasePlugin
 
     public override void Unload(bool hotReload)
     {
+        _warmupState.Reset();
         var unloadNotifications = Interlocked.Exchange(ref _unloadNotifications, null);
         if (unloadNotifications is not null)
             Observe(unloadNotifications.NotifyAsync(hotReload).AsTask(), "core_unload_notification");
@@ -1646,6 +1651,7 @@ public sealed class AnoCorePlugin : BasePlugin
         RegisterEventHandler<EventRoundEnd>(OnRoundEnd);
         RegisterEventHandler<EventCsWinPanelMatch>(OnMatchEnd);
         RegisterListener<Listeners.OnMapEnd>(OnMapEnd);
+        RegisterListener<Listeners.OnMapStart>(OnMapStart);
         _lifecycleHooksRegistered = true;
     }
 
@@ -1679,6 +1685,7 @@ public sealed class AnoCorePlugin : BasePlugin
         DeregisterEventHandler<EventRoundEnd>(OnRoundEnd);
         DeregisterEventHandler<EventCsWinPanelMatch>(OnMatchEnd);
         RemoveListener<Listeners.OnMapEnd>(OnMapEnd);
+        RemoveListener<Listeners.OnMapStart>(OnMapStart);
         _lifecycleHooksRegistered = false;
     }
 
@@ -2133,8 +2140,7 @@ public sealed class AnoCorePlugin : BasePlugin
         var warmup = true;
         try
         {
-            warmup = Utilities.FindAllEntitiesByDesignerName<CCSGameRulesProxy>("cs_gamerules")
-                .FirstOrDefault()?.GameRules?.WarmupPeriod ?? true;
+            warmup = _warmupState.Read(Server.TickCount) ?? true;
         }
         catch (Exception exception) { Logger.LogDebug(exception, "Could not inspect warmup state for ranks."); }
         var humans = _players?.OnlinePlayers.Count(player => player.IsConnected
@@ -2272,9 +2278,7 @@ public sealed class AnoCorePlugin : BasePlugin
         var warmup = false;
         try
         {
-            warmup = Utilities
-                .FindAllEntitiesByDesignerName<CCSGameRulesProxy>("cs_gamerules")
-                .FirstOrDefault()?.GameRules?.WarmupPeriod ?? false;
+            warmup = _warmupState.Read(Server.TickCount) ?? false;
         }
         catch (Exception exception)
         {
@@ -2310,8 +2314,11 @@ public sealed class AnoCorePlugin : BasePlugin
             ? player : null;
     }
 
+    private void OnMapStart(string mapName) => _warmupState.Reset();
+
     private void OnMapEnd()
     {
+        _warmupState.Reset();
         Interlocked.Exchange(ref _rankRoundGeneration, 0);
         var state = _extendedPlayerState;
         if (state is not null)
