@@ -66,6 +66,7 @@ public sealed class AnoCorePlugin : BasePlugin
     private TournamentMatchRuntime? _pendingTournamentMatch;
     private ChatMessageFormatter? _pendingChatFormatter;
     private SelectableChatTagModule? _pendingChatTags;
+    private RoleChatTagModule? _pendingRoleChatTags;
     private ProtectedServerControlPolicy? _pendingProtectedServerControlPolicy;
     private RuntimeServices? _runtime;
     private ManagementPipeServer? _managementPipe;
@@ -103,6 +104,7 @@ public sealed class AnoCorePlugin : BasePlugin
     private CounterStrikeSharp.API.Modules.Timers.Timer? _chatPolicyTimer;
     private ChatMessageFormatter? _chatFormatter;
     private SelectableChatTagModule? _chatTags;
+    private RoleChatTagModule? _roleChatTags;
     private ChatFormatSnapshotLifecycle? _chatFormatSnapshots;
     private CombatModule? _combat;
     private CombatDetailBuffer? _combatDetailBuffer;
@@ -244,7 +246,9 @@ public sealed class AnoCorePlugin : BasePlugin
             _chatFormatSnapshots?.Dispose();
             _chatFormatSnapshots = null;
             _chatTags?.Dispose();
+            _roleChatTags?.Dispose();
             _chatTags = null;
+            _roleChatTags = null;
             _rankScoreboard?.Dispose();
             _rankScoreboard = null;
             _liveRankScoring?.Dispose();
@@ -288,7 +292,9 @@ public sealed class AnoCorePlugin : BasePlugin
             _pendingChatFormatter?.Dispose();
             _pendingChatFormatter = null;
             _pendingChatTags?.Dispose();
+            _pendingRoleChatTags?.Dispose();
             _pendingChatTags = null;
+            _pendingRoleChatTags = null;
 
             _pendingAnoVeto?.Dispose();
             _pendingAnoVeto = null;
@@ -393,6 +399,7 @@ public sealed class AnoCorePlugin : BasePlugin
         TournamentMatchRuntime? createdTournamentMatch = null;
         ChatMessageFormatter? createdChatFormatter = null;
         SelectableChatTagModule? createdChatTags = null;
+        RoleChatTagModule? createdRoleChatTags = null;
         try
         {
             var configuration = new JsonConfigStore(Path.Combine(ModuleDirectory, "config"));
@@ -636,6 +643,23 @@ public sealed class AnoCorePlugin : BasePlugin
 
             try
             {
+                createdRoleChatTags = await RoleChatTagModule.CreateAsync(
+                    configuration, created.ConfigReloads, timeout.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception exception)
+            {
+                createdRoleChatTags?.Dispose();
+                createdRoleChatTags = null;
+                Logger.LogError(exception,
+                    "Role chat tag composition failed; AnoCore will continue without role prefixes.");
+            }
+
+            try
+            {
                 var placeholders = created.GetService(typeof(IPlaceholderRegistry))
                     as IPlaceholderRegistry
                     ?? throw new InvalidOperationException(
@@ -837,6 +861,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 _pendingTournamentMatch = createdTournamentMatch;
                 _pendingChatFormatter = createdChatFormatter;
                 _pendingChatTags = createdChatTags;
+                _pendingRoleChatTags = createdRoleChatTags;
                 _pendingProtectedServerControlPolicy = protectedServerControlPolicy;
                 created = null;
                 createdManagementPipe = null;
@@ -851,6 +876,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 createdTournamentMatch = null;
                 createdChatFormatter = null;
                 createdChatTags = null;
+                createdRoleChatTags = null;
                 Server.NextWorldUpdate(() => ActivateRuntime(cancellationToken));
             }
         }
@@ -866,6 +892,7 @@ public sealed class AnoCorePlugin : BasePlugin
             createdGameplayXp?.Dispose();
             createdSeasons?.Dispose();
             createdChatTags?.Dispose();
+            createdRoleChatTags?.Dispose();
             createdChatFormatter?.Dispose();
             created?.Dispose();
         }
@@ -881,6 +908,7 @@ public sealed class AnoCorePlugin : BasePlugin
             createdGameplayXp?.Dispose();
             createdSeasons?.Dispose();
             createdChatTags?.Dispose();
+            createdRoleChatTags?.Dispose();
             createdChatFormatter?.Dispose();
             created?.Dispose();
             lock (_startupGate)
@@ -906,7 +934,9 @@ public sealed class AnoCorePlugin : BasePlugin
                     _pendingChatFormatter?.Dispose();
                     _pendingChatFormatter = null;
                     _pendingChatTags?.Dispose();
+                    _pendingRoleChatTags?.Dispose();
                     _pendingChatTags = null;
+                    _pendingRoleChatTags = null;
                     _pendingAnoVeto?.Dispose();
                     _pendingAnoVeto = null;
                     _pendingManagementPipe?.Dispose();
@@ -973,6 +1003,7 @@ public sealed class AnoCorePlugin : BasePlugin
             var tournamentMatch = _pendingTournamentMatch;
             var chatFormatter = _pendingChatFormatter;
             var chatTags = _pendingChatTags;
+            var roleChatTags = _pendingRoleChatTags;
             _pendingRuntime = null;
             _pendingManagementPipe = null;
             _pendingAnoVeto = null;
@@ -986,6 +1017,7 @@ public sealed class AnoCorePlugin : BasePlugin
             _pendingTournamentMatch = null;
             _pendingChatFormatter = null;
             _pendingChatTags = null;
+            _pendingRoleChatTags = null;
             var protectedServerControlPolicy = _pendingProtectedServerControlPolicy
                 ?? ProtectedServerControlPolicy.Create(
                     new ProtectedServerControlConfiguration());
@@ -1307,7 +1339,11 @@ public sealed class AnoCorePlugin : BasePlugin
                         runtime.Players,
                         snapshotFormatter,
                         events,
-                        reportError: exception => Logger.LogError(exception, "Chat observer failed.")));
+                        reportError: exception => Logger.LogError(exception, "Chat observer failed."))
+                    {
+                        RolePrefix = roleChatTags is null ? null
+                            : player => CounterStrikeRoleChatTags.Resolve(roleChatTags, player),
+                    });
                 voiceModeration = new ModerationVoiceCoordinator(
                     runtime.Players,
                     communicationModeration.VoiceGate,
@@ -1439,6 +1475,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 _tournamentMapSelectionCommands = tournamentMapSelectionCommands;
                 _chatFormatter = chatFormatter;
                 _chatTags = chatTags;
+                _roleChatTags = roleChatTags;
                 _combat = combat;
                 _combatDetailBuffer = combatDetails;
                 combatDetails?.Start(exception => Logger.LogError(exception,
@@ -1519,6 +1556,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 tournamentSpectatorPolicies?.Dispose();
                 tournamentTeamEnforcement?.Dispose();
                 chatTags?.Dispose();
+                roleChatTags?.Dispose();
                 combat?.Dispose();
                 if (combatDetails is not null)
                 {

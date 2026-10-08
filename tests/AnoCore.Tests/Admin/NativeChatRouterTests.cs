@@ -228,6 +228,65 @@ public sealed class NativeChatRouterTests
         await reported.Task.WaitAsync(TimeSpan.FromSeconds(5));
     }
 
+    [TestMethod]
+    public async Task RolePrefixReadsCurrentMembershipAndPreservesTeamRoutingAndSafeFormatting()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "anocore-role-chat-route", Guid.NewGuid().ToString("N"));
+        try
+        {
+            var bus = new AnoEventBus();
+            var players = new PlayerRegistry(bus);
+            var sender = await players.ConnectAsync(new PlayerConnection(new PlayerId(76561198000012656),
+                "Nils\x07 {rank.tag}", PlayerTeam.Terrorist, true, Now));
+            var teammate = await ConnectAsync(players, 76561198000012657, PlayerTeam.Terrorist);
+            await ConnectAsync(players, 76561198000012658, PlayerTeam.CounterTerrorist);
+            using var formatter = await ChatMessageFormatter.CreateAsync(new AnoCore.Runtime.Configuration.JsonConfigStore(root),
+                new AnoCore.Runtime.Placeholders.PlaceholderRegistry());
+            using var snapshots = new ChatFormatSnapshotLifecycle(bus, formatter);
+            await snapshots.WarmExistingAsync(players.OnlinePlayers);
+            var policy = RoleChatTagPolicy.Compile(new RoleChatTagConfiguration
+            {
+                Enabled = true,
+                Groups = [new("#css/host", 1, new("[HOST]", "Purple"))],
+            });
+            var groups = new HashSet<string> { "#css/host" };
+            var router = new NativeChatRouter(_ => ChatInterceptionDecision.Allow, players, snapshots.TryFormat)
+            {
+                RolePrefix = player => policy.Resolve(player.Id, groups, player.Team),
+            };
+            var first = router.Route(sender.Id, "hello\x04 {chat.tag}", true);
+            StringAssert.StartsWith(first.FormattedMessage!, "\x0E[HOST]\x01 (TEAM)");
+            StringAssert.Contains(first.FormattedMessage!, "Nils  {rank.tag}: hello  {chat.tag}");
+            CollectionAssert.AreEquivalent(new[] { sender.Id, teammate.Id }, first.Recipients.ToArray());
+            groups.Clear(); // no reconnect/snapshot refresh needed when CSS removes a role
+            StringAssert.StartsWith(router.Route(sender.Id, "next", false).FormattedMessage!, "\x04[ANOMEME]\x01 ");
+        }
+        finally { if (Directory.Exists(root)) Directory.Delete(root, true); }
+    }
+
+    [TestMethod]
+    public async Task RolePrefixIsNotReadForCommandsModeratedOrStaleMessagesAndFailureIsSuppressed()
+    {
+        var players = new PlayerRegistry(new AnoEventBus());
+        var sender = await ConnectAsync(players, 76561198000012659, PlayerTeam.Terrorist);
+        var calls = 0;
+        Func<PlayerSnapshot, string?> prefix = _ => { calls++; throw new InvalidOperationException("lookup failed"); };
+        var router = new NativeChatRouter(_ => ChatInterceptionDecision.Allow, players, Format)
+        {
+            RolePrefix = prefix,
+        };
+        Assert.IsFalse(router.Route(sender.Id, "!anostatus", false).ShouldIntercept);
+        Assert.IsNull(new NativeChatRouter(_ => ChatInterceptionDecision.Block, players, Format)
+        { RolePrefix = prefix }.Route(sender.Id, "blocked", false).FormattedMessage);
+        Assert.IsNull(router.Route(new PlayerId(76561198000012660), "missing", false).FormattedMessage);
+        Assert.AreEqual(0, calls);
+        var failure = router.Route(sender.Id, "allowed", false);
+        Assert.IsTrue(failure.ShouldIntercept);
+        Assert.IsNull(failure.FormattedMessage);
+        Assert.IsEmpty(failure.Recipients);
+        Assert.AreEqual(1, calls);
+    }
+
     private static NativeChatRouter Router(
         IPlayerRegistry players,
         ChatSnapshotFormatter? formatter)
