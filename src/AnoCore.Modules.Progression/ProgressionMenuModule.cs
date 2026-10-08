@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Net;
+using System.Text.RegularExpressions;
 using AnoCore.Abstractions.Commands;
 using AnoCore.Abstractions.Events;
 using AnoCore.Abstractions.Menus;
@@ -85,16 +86,19 @@ public sealed class ProgressionMenuModule : IDisposable
         var result = await _commands.ExecuteAsync(input, player.Id, linked.Token).ConfigureAwait(false);
         if (!Current(player)) return;
         var lines = (result.Message ?? "Progression data unavailable.").Split('|', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+        var pageHeader = lines.Length > 0 ? Regex.Match(lines[0], @"\b(\d+)/(\d+)$") : Match.Empty;
+        var totalPages = pageHeader.Success && int.TryParse(pageHeader.Groups[2].Value, out var total) ? total : page;
+        if (view.Paged && pageHeader.Success) lines = lines.Skip(1).ToArray();
         var options = lines.Take(8).Select((line, index) => Info("line" + index, Escape(line))).ToList();
         if (view.Paged && page > 1) options.Add(Navigate("previous", "Previous page", player, view, page - 1));
-        if (view.Paged && result.Success && page < 1000) options.Add(Navigate("next", "Next page", player, view, page + 1));
+        if (view.Paged && result.Success && page < totalPages) options.Add(Navigate("next", "Next page", player, view, page + 1));
         options.Add(Navigate("refresh", "Refresh", player, view, page));
         options.Add(new("back", "Back to progression", context =>
         {
             if (context.PlayerId == player.Id && Current(player)) Root(player);
             return ValueTask.CompletedTask;
         }, keepOpen: true));
-        Replace(player, view.Label + (view.Paged ? " — page " + page.ToString(CultureInfo.InvariantCulture) : ""), options, request);
+        Replace(player, view.Label + (view.Paged ? " — page " + page.ToString(CultureInfo.InvariantCulture) + "/" + totalPages.ToString(CultureInfo.InvariantCulture) : ""), options, request);
     }
 
     private MenuOption Navigate(string id, string label, PlayerSnapshot player,

@@ -118,7 +118,7 @@ public sealed class PlayerToggleCommandModuleTests
     {
         var players = await ConnectedAsync();
         var catalog = new PlayerToggleCatalog();
-        for (var index = 1; index <= 4; index++)
+        for (var index = 1; index <= 7; index++)
             catalog.Register(new ModuleId("tests"), new PlayerToggleSetting(
                 new PlayerSettingKey<bool>($"test.option{index}", index == 4),
                 $"Option {index}", ""));
@@ -130,7 +130,7 @@ public sealed class PlayerToggleCommandModuleTests
 
         Assert.IsTrue((await commands.ExecuteAsync("!anosettingsmenu", Player)).Success);
         Assert.IsTrue(menus.TryGetOpenMenu(Player, out var first));
-        Assert.AreEqual(3, first!.Options.Count(option =>
+        Assert.AreEqual(6, first!.Options.Count(option =>
             option.Label.StartsWith("Option", StringComparison.Ordinal)));
         var firstToggle = first.Options.Single(option =>
             option.Label.StartsWith("Option 1", StringComparison.Ordinal));
@@ -154,7 +154,7 @@ public sealed class PlayerToggleCommandModuleTests
         Assert.IsTrue(menus.TryGetOpenMenu(Player, out var second));
         StringAssert.Contains(second!.Title, "page 2");
         Assert.IsTrue(second.Options.Any(option =>
-            option.Label.StartsWith("Option 4", StringComparison.Ordinal)));
+            option.Label.StartsWith("Option 7", StringComparison.Ordinal)));
         Assert.IsFalse(second.Options.Any(option =>
             option.Label == "Next page"));
     }

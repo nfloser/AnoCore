@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.RegularExpressions;
 using AnoCore.Abstractions.Commands;
 using AnoCore.Abstractions.Events;
 using AnoCore.Abstractions.Hud;
@@ -37,7 +38,7 @@ public sealed class PanoramaMenuPresenter : IDisposable
             _registrations.Add(hud.Register(new ModuleId("core.menu"), new(HudId,
                 LayoutResource, "ano_menu_root", Enumerable.Range(0, PageSize)
                     .Select(index => $"ano_menu_row_{index}")
-                    .Concat(["ano_menu_previous", "ano_menu_next", "ano_menu_home", "ano_menu_close"])
+                    .Concat(["ano_menu_back", "ano_menu_previous", "ano_menu_next", "ano_menu_home", "ano_menu_close"])
                     .ToArray(), captureInput: true), ClickAsync));
             _registrations.Add(events.Subscribe<PlayerDisconnectedEvent>((value, _) =>
             {
@@ -102,6 +103,7 @@ public sealed class PanoramaMenuPresenter : IDisposable
         Presentation state;
         MenuOption? option = null;
         var home = false;
+        var back = false;
         lock (_gate)
         {
             if (_disposed || context.HudId != HudId || !_open.TryGetValue(context.PlayerId, out state!)
@@ -115,19 +117,29 @@ public sealed class PanoramaMenuPresenter : IDisposable
             if (state.Busy) return;
             if (context.ButtonId is "ano_menu_previous" or "ano_menu_next")
             {
-                state.Page = Math.Clamp(state.Page + (context.ButtonId == "ano_menu_next" ? 1 : -1), 0, LastPage(state.Menu));
-                Render(state);
-                return;
+                var forward = context.ButtonId == "ano_menu_next";
+                option = state.Menu.Options.FirstOrDefault(item => item.Label == (forward ? "Next page" : "Previous page"));
+                if (option is null)
+                {
+                    state.Page = Math.Clamp(state.Page + (forward ? 1 : -1), 0, LastPage(state.Menu));
+                    Render(state);
+                    return;
+                }
             }
+            back = context.ButtonId == "ano_menu_back";
+            if (back && state.Menu.Dashboard is not null) return;
             home = context.ButtonId == "ano_menu_home";
-            if (!home)
+            if (back)
+                option = state.Menu.Options.FirstOrDefault(item => item.Id == "back")
+                    ?? state.Menu.Options.FirstOrDefault(item => item.Id == "home");
+            if (!home && !back && option is null)
             {
                 if (!context.ButtonId.StartsWith("ano_menu_row_", StringComparison.Ordinal)
                     || !int.TryParse(context.ButtonId.AsSpan("ano_menu_row_".Length), out var row)
                     || row is < 0 or >= PageSize) return;
                 var index = state.Page * PageSize + row;
-                if (index >= state.Menu.Options.Count) return;
-                option = state.Menu.Options[index];
+                if (index >= Options(state.Menu).Count) return;
+                option = Options(state.Menu)[index];
             }
             state.Busy = true;
             _hud.SetClass(context.PlayerId, HudId, "ano_menu_root", "busy", true);
@@ -135,9 +147,9 @@ public sealed class PanoramaMenuPresenter : IDisposable
         try
         {
             string? error;
-            if (home)
+            if (home || (back && option is null))
             {
-                var result = await _commands.ExecuteAsync("!anomenu", context.PlayerId, context.CancellationToken).ConfigureAwait(false);
+                var result = await _commands.ExecuteAsync(home ? "!anomenu" : "!anomenunavigation", context.PlayerId, context.CancellationToken).ConfigureAwait(false);
                 error = result.Success ? null : result.Message;
             }
             else
@@ -175,27 +187,41 @@ public sealed class PanoramaMenuPresenter : IDisposable
     private void Render(Presentation state)
     {
         var id = state.Player.Id;
-        _hud.SetText(id, HudId, "ano_menu_title", Text(state.Menu.Title));
-        _hud.SetText(id, HudId, "ano_menu_status", "Select an item or return to Home");
-        _hud.SetText(id, HudId, "ano_menu_page", $"{state.Page + 1} / {LastPage(state.Menu) + 1}");
+        var dashboard = state.Menu.Dashboard;
+        _hud.SetClass(id, HudId, "ano_menu_root", "dashboard", dashboard is not null);
+        var values = new[] { dashboard?.Profile, dashboard?.Progression, dashboard?.Statistics,
+            dashboard?.Playtime, dashboard?.Challenge1, dashboard?.Challenge2 };
+        var panels = new[] { "profile", "progression", "statistics", "playtime", "challenge_0", "challenge_1" };
+        for (var index = 0; index < panels.Length; index++)
+            _hud.SetText(id, HudId, "ano_dashboard_" + panels[index], Text(values[index] ?? string.Empty));
+        _hud.SetText(id, HudId, "ano_menu_title", Text(Regex.Replace(state.Menu.Title, @" — page \d+(?:/\d+)?$", "")));
+        _hud.SetText(id, HudId, "ano_menu_status", dashboard is null ? "Select an item or return to Home" : "Personal overview — refresh to update");
+        var sourcePage = Regex.Match(state.Menu.Title, @" — page (\d+)/(\d+)$");
+        _hud.SetText(id, HudId, "ano_menu_page", sourcePage.Success
+            ? $"{sourcePage.Groups[1].Value} / {sourcePage.Groups[2].Value}" : $"{state.Page + 1} / {LastPage(state.Menu) + 1}");
         _hud.SetClass(id, HudId, "ano_menu_root", "busy", false);
-        _hud.SetClass(id, HudId, "ano_menu_previous", "disabled", state.Page == 0);
-        _hud.SetClass(id, HudId, "ano_menu_next", "disabled", state.Page == LastPage(state.Menu));
+        _hud.SetClass(id, HudId, "ano_menu_back", "disabled", dashboard is not null);
+        _hud.SetClass(id, HudId, "ano_menu_previous", "disabled", state.Page == 0 && !state.Menu.Options.Any(item => item.Label == "Previous page"));
+        _hud.SetClass(id, HudId, "ano_menu_next", "disabled", state.Page == LastPage(state.Menu) && !state.Menu.Options.Any(item => item.Label == "Next page"));
         for (var row = 0; row < PageSize; row++)
         {
             var index = state.Page * PageSize + row;
-            var visible = index < state.Menu.Options.Count;
+            var visible = index < Options(state.Menu).Count;
             _hud.SetClass(id, HudId, $"ano_menu_row_{row}", "hidden", !visible);
-            _hud.SetText(id, HudId, $"ano_menu_row_{row}_text", visible ? Text(state.Menu.Options[index].Label) : string.Empty);
+            _hud.SetText(id, HudId, $"ano_menu_row_{row}_text", visible ? Text(Options(state.Menu)[index].Label) : string.Empty);
         }
     }
+
+    private static IReadOnlyList<MenuOption> Options(MenuDefinition menu) => menu.Options.Where(option =>
+        option.Label is not ("Next page" or "Previous page") && option.Id is not ("home" or "back")
+        && (menu.Dashboard is null || !option.Id.StartsWith("dashboard_info_", StringComparison.Ordinal))).ToArray();
 
     private bool CurrentSession(Presentation state)
         => _players.TryGet(state.Player.Id, out var current) && current is { IsConnected: true }
             && current.SessionId == state.Player.SessionId;
     private bool Current(Presentation state)
         => CurrentSession(state) && _menus.TryGetOpenMenu(state.Player.Id, out var menu) && ReferenceEquals(menu, state.Menu);
-    private static int LastPage(MenuDefinition menu) => Math.Max(0, (menu.Options.Count - 1) / PageSize);
+    private static int LastPage(MenuDefinition menu) => Math.Max(0, (Options(menu).Count - 1) / PageSize);
     private static string Text(string text)
         => new(WebUtility.HtmlDecode(text).Where(character => !char.IsControl(character)).Take(240).ToArray());
     private void RemoveSession(PlayerSnapshot player)

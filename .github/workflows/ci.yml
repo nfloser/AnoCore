@@ -111,6 +111,14 @@ jobs:
               if len(panels) != 1 or "id" in panels[0].attrib:
                   raise SystemExit(f"Panorama requires one anonymous outermost Panel: {hud_layout}")
 
+          allowed = {"root": set(), "styles": set(), "include": {"src"},
+                     "Panel": {"id", "class", "hittest"}, "Button": {"id", "class"},
+                     "Label": {"id", "class", "text"}}
+          for source in (layout, pathlib.Path("ui/AnoCore/layout/custom_game/anocore/menu.xml")):
+              for element in ET.parse(source).getroot().iter():
+                  if element.tag not in allowed or set(element.attrib) - allowed[element.tag]:
+                      raise SystemExit(f"Unsupported native Panorama element/attributes: {source}: {element.tag} {element.attrib}")
+
           root = ET.parse(layout).getroot()
           ids = {element.attrib["id"] for element in root.iter() if "id" in element.attrib}
           required = {"ano_veto_root", "ano_veto_close", "ano_veto_title", "ano_veto_status"}
@@ -134,7 +142,12 @@ jobs:
           menu_ids = [element.attrib["id"] for element in menu_root.iter() if "id" in element.attrib]
           if len(menu_ids) != len(set(menu_ids)):
               raise SystemExit("Duplicate menu panel IDs")
-          menu_required = {"ano_menu_root", "ano_menu_title", "ano_menu_status", "ano_menu_page", "ano_menu_home", "ano_menu_close", "ano_menu_previous", "ano_menu_next"}
+          menu_required = {"ano_menu_root", "ano_menu_title", "ano_menu_status", "ano_menu_page", "ano_menu_home", "ano_menu_back", "ano_menu_close", "ano_menu_previous", "ano_menu_next"}
+          menu_required.update({"ano_dashboard_" + name for name in
+                                ("profile", "progression", "statistics", "playtime", "challenge_0", "challenge_1")})
+          for resource in ("anomeme_banner.png", "anomeme_banner.vtex"):
+              if not (menu_style.parent / resource).is_file():
+                  raise SystemExit(f"Missing ANOMEME artwork: {resource}")
           menu_required.update({f"ano_menu_row_{index}" for index in range(6)})
           menu_required.update({f"ano_menu_row_{index}_text" for index in range(6)})
           if menu_required - set(menu_ids):
@@ -179,6 +192,7 @@ jobs:
           fi
           cp LICENSE.md NOTICE.md artifacts/
           cp docs/deployment.md artifacts/INSTALL.md
+          cp docs/player-dashboard.md artifacts/DASHBOARD.md
           cp -R docs artifacts/docs
           cp docs/quick-install.md artifacts/QUICK-INSTALL.md
           cp docs/steam-addon.md artifacts/STEAM-ADDON.md

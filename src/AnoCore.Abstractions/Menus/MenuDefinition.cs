@@ -3,6 +3,11 @@ namespace AnoCore.Abstractions.Menus;
 public sealed class MenuDefinition
 {
     public MenuDefinition(MenuId id, string title, IReadOnlyCollection<MenuOption> options)
+        : this(id, title, options, null)
+    {
+    }
+
+    public MenuDefinition(MenuId id, string title, IReadOnlyCollection<MenuOption> options, MenuDashboard? dashboard)
     {
         if (string.IsNullOrWhiteSpace(title))
         {
@@ -20,7 +25,10 @@ public sealed class MenuDefinition
         Id = id;
         Title = title.Trim();
         Options = optionArray;
+        Dashboard = dashboard;
     }
+
+    public MenuDashboard? Dashboard { get; }
 
     public MenuId Id { get; }
 

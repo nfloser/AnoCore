@@ -11,6 +11,7 @@ namespace AnoCore.Runtime.Settings;
 public sealed class PlayerToggleCommandModule : IDisposable
 {
     private const int PageSize = 3;
+    private const int MenuPageSize = 6;
     public const string MenuCommandName = "anosettingsmenu";
     private static readonly ModuleId Owner = new("core.settings");
     private readonly object _menuGate = new();
@@ -162,12 +163,12 @@ public sealed class PlayerToggleCommandModule : IDisposable
         if (_menus is null || page is < 1 or > 1000 || !TryCurrentSession(player))
             return false;
         var all = _catalog.GetAll();
-        var start = (page - 1) * PageSize;
+        var start = (page - 1) * MenuPageSize;
         if (start >= all.Count)
             return false;
         var generation = Interlocked.Increment(ref _generation).ToString("x8");
         var options = new List<MenuOption>();
-        foreach (var setting in all.Skip(start).Take(PageSize))
+        foreach (var setting in all.Skip(start).Take(MenuPageSize))
         {
             var current = await _settings.GetAsync(
                 player.Id, setting.Key, cancellationToken).ConfigureAwait(false);
@@ -198,7 +199,7 @@ public sealed class PlayerToggleCommandModule : IDisposable
                         player, page - 1, context.CancellationToken).ConfigureAwait(false);
                 },
                 keepOpen: true));
-        if (all.Count > start + PageSize && page < 1000)
+        if (all.Count > start + MenuPageSize && page < 1000)
             options.Add(new MenuOption(
                 $"n{generation}", "Next page",
                 async context =>
@@ -209,7 +210,7 @@ public sealed class PlayerToggleCommandModule : IDisposable
                 keepOpen: true));
         var definition = new MenuDefinition(
             new MenuId($"ano.settings.{player.Id.SteamId64}"),
-            $"Settings — page {page}", options);
+            $"Settings — page {page}/{(all.Count + MenuPageSize - 1) / MenuPageSize}", options);
         lock (_menuGate)
         {
             if (!TryCurrentSession(player))
