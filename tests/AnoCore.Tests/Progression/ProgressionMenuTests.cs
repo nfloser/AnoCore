@@ -72,7 +72,7 @@ public sealed class ProgressionMenuTests
     }
 
     [TestMethod]
-    public async Task PagedViewsPassPageAndStopNavigationAfterCommandFailure()
+    public async Task PagedViewsPassPageAndNeverOfferBeyondReportedLastPage()
     {
         var events = new AnoEventBus();
         var players = new PlayerRegistry(events);
@@ -82,7 +82,7 @@ public sealed class ProgressionMenuTests
         using var challenges = Register(commands, "anochallenges", context =>
         {
             var page = context.Get<int>("page");
-            return ValueTask.FromResult(page <= 2 ? CommandResult.Ok("Challenge page " + page)
+            return ValueTask.FromResult(page <= 2 ? CommandResult.Ok($"Challenges {page}/2 | Challenge page {page}")
                 : CommandResult.Fail(CommandFailureReason.InvalidInput, "Choose page 1-2."));
         }, paged: true);
         using var module = new ProgressionMenuModule(commands, players, menus, events);
@@ -97,7 +97,7 @@ public sealed class ProgressionMenuTests
         Assert.IsTrue(invalid.Options.Any(item => item.Id == "previous"));
         await menus.SelectAsync(Player, "previous");
         menus.TryGetOpenMenu(Player, out var restored);
-        StringAssert.Contains(restored!.Options[0].Label, "page 2");
+        StringAssert.Contains(restored!.Options[0].Label, "page 1");
     }
 
     [TestMethod]

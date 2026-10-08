@@ -1,30 +1,62 @@
 <root>
-    <styles><include src="s2r://panorama/styles/custom_game/anocore/menu.vcss_c" /></styles>
-    <Panel style="width: 100%; height: 100%;" hittest="false" hittestchildren="true">
-        <Panel id="ano_menu_root" class="ano-menu-overlay" hittest="true" hittestchildren="true">
-            <Panel class="ano-menu-dim" hittest="false" />
-            <Panel class="ano-menu-window" hittest="true" hittestchildren="true">
-                <Panel class="ano-menu-header" hittest="false">
-                    <Label class="ano-menu-brand" text="ANOCORE" />
-                    <Label id="ano_menu_title" class="ano-menu-title" text="{s:text}" html="false" />
-                    <Label id="ano_menu_status" class="ano-menu-status" text="{s:text}" html="false" />
-                </Panel>
-                <Panel class="ano-menu-rows" hittest="true" hittestchildren="true">
-                    <Button id="ano_menu_row_0" class="ano-menu-row" hittest="true" hittestchildren="false"><Label id="ano_menu_row_0_text" text="{s:text}" html="false" /></Button>
-                    <Button id="ano_menu_row_1" class="ano-menu-row" hittest="true" hittestchildren="false"><Label id="ano_menu_row_1_text" text="{s:text}" html="false" /></Button>
-                    <Button id="ano_menu_row_2" class="ano-menu-row" hittest="true" hittestchildren="false"><Label id="ano_menu_row_2_text" text="{s:text}" html="false" /></Button>
-                    <Button id="ano_menu_row_3" class="ano-menu-row" hittest="true" hittestchildren="false"><Label id="ano_menu_row_3_text" text="{s:text}" html="false" /></Button>
-                    <Button id="ano_menu_row_4" class="ano-menu-row" hittest="true" hittestchildren="false"><Label id="ano_menu_row_4_text" text="{s:text}" html="false" /></Button>
-                    <Button id="ano_menu_row_5" class="ano-menu-row" hittest="true" hittestchildren="false"><Label id="ano_menu_row_5_text" text="{s:text}" html="false" /></Button>
-                </Panel>
-                <Panel class="ano-menu-footer" hittest="true" hittestchildren="true">
-                    <Button id="ano_menu_home" class="ano-menu-control" hittest="true" hittestchildren="false"><Label text="Home" /></Button>
-                    <Button id="ano_menu_previous" class="ano-menu-control" hittest="true" hittestchildren="false"><Label text="Previous" /></Button>
-                    <Label id="ano_menu_page" class="ano-menu-page" text="{s:text}" />
-                    <Button id="ano_menu_next" class="ano-menu-control" hittest="true" hittestchildren="false"><Label text="Next" /></Button>
-                    <Button id="ano_menu_close" class="ano-menu-control ano-menu-close" hittest="true" hittestchildren="false"><Label text="Close" /></Button>
-                </Panel>
-            </Panel>
+  <styles>
+    <include src="s2r://panorama/styles/custom_game/anocore/menu.vcss_c" />
+  </styles>
+  <Panel class="ano-hud-host" hittest="false">
+    <Panel id="ano_menu_root" class="ano-menu-overlay" hittest="true">
+      <Panel class="ano-menu-dim" hittest="false" />
+      <Panel class="ano-menu-window" hittest="true">
+        <Panel class="ano-menu-header" hittest="false">
+          <Panel class="ano-menu-banner" hittest="false" />
+          <Label id="ano_menu_title" class="ano-menu-title" text="{s:text}" />
+          <Label id="ano_menu_status" class="ano-menu-status" text="{s:text}" />
         </Panel>
+        <Panel class="ano-dashboard" hittest="false">
+          <Panel class="ano-dashboard-profile" hittest="false">
+            <Label class="ano-dashboard-heading" text="YOUR PROFILE" />
+            <Label id="ano_dashboard_profile" class="ano-dashboard-copy" text="{s:text}" />
+            <Label id="ano_dashboard_progression" class="ano-dashboard-copy" text="{s:text}" />
+          </Panel>
+          <Panel class="ano-dashboard-statistics" hittest="false">
+            <Label class="ano-dashboard-heading" text="PERSONAL STATS" />
+            <Label id="ano_dashboard_statistics" class="ano-dashboard-copy" text="{s:text}" />
+            <Label id="ano_dashboard_playtime" class="ano-dashboard-copy" text="{s:text}" />
+          </Panel>
+          <Panel class="ano-dashboard-challenges" hittest="false">
+            <Label class="ano-dashboard-heading" text="YOUR CHALLENGES" />
+            <Label id="ano_dashboard_challenge_0" class="ano-dashboard-challenge" text="{s:text}" />
+            <Label id="ano_dashboard_challenge_1" class="ano-dashboard-challenge" text="{s:text}" />
+          </Panel>
+        </Panel>
+        <Panel class="ano-menu-rows" hittest="true">
+          <Button id="ano_menu_row_0" class="ano-menu-row">
+            <Label id="ano_menu_row_0_text" text="{s:text}" />
+          </Button>
+          <Button id="ano_menu_row_1" class="ano-menu-row">
+            <Label id="ano_menu_row_1_text" text="{s:text}" />
+          </Button>
+          <Button id="ano_menu_row_2" class="ano-menu-row">
+            <Label id="ano_menu_row_2_text" text="{s:text}" />
+          </Button>
+          <Button id="ano_menu_row_3" class="ano-menu-row">
+            <Label id="ano_menu_row_3_text" text="{s:text}" />
+          </Button>
+          <Button id="ano_menu_row_4" class="ano-menu-row">
+            <Label id="ano_menu_row_4_text" text="{s:text}" />
+          </Button>
+          <Button id="ano_menu_row_5" class="ano-menu-row">
+            <Label id="ano_menu_row_5_text" text="{s:text}" />
+          </Button>
+        </Panel>
+        <Panel class="ano-menu-footer" hittest="true">
+          <Button id="ano_menu_home" class="ano-menu-control"><Label text="Home" /></Button>
+          <Button id="ano_menu_back" class="ano-menu-control"><Label text="Back" /></Button>
+          <Button id="ano_menu_previous" class="ano-menu-control"><Label text="Prev page" /></Button>
+          <Label id="ano_menu_page" class="ano-menu-page" text="{s:text}" />
+          <Button id="ano_menu_next" class="ano-menu-control"><Label text="Next page" /></Button>
+          <Button id="ano_menu_close" class="ano-menu-control ano-menu-close"><Label text="Close" /></Button>
+        </Panel>
+      </Panel>
     </Panel>
+  </Panel>
 </root>

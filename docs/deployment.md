@@ -156,3 +156,5 @@ season tables and config together. Season checkpoints include offline accounts a
 copy committed earned XP without reboosting. Explicit `anocloseseason` requires
 `ano.progression.season.close`; drain reward backlogs first, since closure freezes
 the season against later grants. No extra DB connection or schema migration is added.
+
+See [ANOMEME player dashboard](player-dashboard.md) for dashboard commands, source files and the coordinated plugin/Workshop update procedure.
