@@ -31,5 +31,6 @@ public sealed class RuntimeCombatDetailCompositionTests
 
         Assert.AreSame(runtime.Combat, runtime.GetService(typeof(ICombatRepository)));
         Assert.AreSame(runtime.Combat, runtime.GetService(typeof(ICombatDetailRepository)));
+        Assert.AreSame(runtime.Combat, runtime.GetService(typeof(ICombatDetailBatchRepository)));
     }
 }

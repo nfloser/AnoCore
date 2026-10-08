@@ -7,7 +7,7 @@ using AnoCore.Runtime.Persistence.Migrations;
 
 namespace AnoCore.Runtime.Stats;
 
-public sealed class MySqlCombatRepository : ICombatDetailRepository, IGameplayRankScoreRepository
+public sealed class MySqlCombatRepository : ICombatDetailRepository, ICombatDetailBatchRepository, IGameplayRankScoreRepository
 {
     private readonly IDatabase _database;
 
@@ -82,111 +82,169 @@ public sealed class MySqlCombatRepository : ICombatDetailRepository, IGameplayRa
         }, cancellationToken);
     }
 
-    public async ValueTask RecordWeaponFireAsync(CombatWeaponFireEvent weaponFire,
+    public ValueTask RecordWeaponFireAsync(CombatWeaponFireEvent weaponFire,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(weaponFire);
-        await _database.InTransactionAsync(async (connection, transaction, token) =>
-        {
-            await using (var insert = connection.CreateCommand())
-            {
-                insert.Transaction = transaction;
-                insert.CommandText = """
-                    INSERT INTO ano_combat_weapon_fire (
-                        event_id, player_steam_id, occurred_at_utc, map_name, weapon)
-                    VALUES (@id, @player, @occurred, @map, @weapon)
-                    ON DUPLICATE KEY UPDATE event_id = event_id
-                    """;
-                Add(insert, "@id", weaponFire.EventId.ToString("D"));
-                Add(insert, "@player", weaponFire.PlayerId.SteamId64);
-                Add(insert, "@occurred", weaponFire.OccurredAtUtc.UtcDateTime);
-                Add(insert, "@map", weaponFire.MapName);
-                Add(insert, "@weapon", weaponFire.Weapon);
-                await insert.ExecuteNonQueryAsync(token).ConfigureAwait(false);
-            }
-
-            await using var verify = connection.CreateCommand();
-            verify.Transaction = transaction;
-            verify.CommandText = """
-                SELECT player_steam_id, occurred_at_utc, map_name, weapon
-                FROM ano_combat_weapon_fire
-                WHERE event_id = @id
-                FOR UPDATE
-                """;
-            Add(verify, "@id", weaponFire.EventId.ToString("D"));
-            await using var reader = await verify.ExecuteReaderAsync(token).ConfigureAwait(false);
-            if (!await reader.ReadAsync(token).ConfigureAwait(false)
-                || ReadPlayer(reader, 0) != weaponFire.PlayerId
-                || !string.Equals(reader.GetString(2), weaponFire.MapName, StringComparison.Ordinal)
-                || !string.Equals(reader.GetString(3), weaponFire.Weapon, StringComparison.Ordinal))
-            {
-                throw new InvalidOperationException(
-                    "Combat weapon-fire event id conflicts with a different event.");
-            }
-
-            return true;
-        }, cancellationToken: cancellationToken).ConfigureAwait(false);
+        return RecordDetailsAsync(new CombatDetailBatch([weaponFire], []), cancellationToken);
     }
 
-    public async ValueTask RecordDamageAsync(CombatDamageEvent damage,
+    public ValueTask RecordDamageAsync(CombatDamageEvent damage,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(damage);
+        return RecordDetailsAsync(new CombatDetailBatch([], [damage]), cancellationToken);
+    }
+
+    public async ValueTask RecordDetailsAsync(CombatDetailBatch batch,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(batch);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (batch.Count == 0) return;
+        var shots = new Dictionary<Guid, CombatWeaponFireEvent>();
+        var hits = new Dictionary<Guid, CombatDamageEvent>();
+        foreach (var shot in batch.WeaponFire)
+        {
+            if (shots.TryGetValue(shot.EventId, out var previous) && !SameShot(previous, shot))
+                throw new InvalidOperationException("Combat weapon-fire event id conflicts within the batch.");
+            shots.TryAdd(shot.EventId, shot);
+        }
+        foreach (var hit in batch.Damage)
+        {
+            if (hits.TryGetValue(hit.EventId, out var previous) && !SameDamage(previous, hit))
+                throw new InvalidOperationException("Combat damage event id conflicts within the batch.");
+            hits.TryAdd(hit.EventId, hit);
+        }
+
         await _database.InTransactionAsync(async (connection, transaction, token) =>
         {
-            await using (var insert = connection.CreateCommand())
-            {
-                insert.Transaction = transaction;
-                insert.CommandText = """
-                    INSERT INTO ano_combat_damage (
-                        event_id, victim_steam_id, attacker_steam_id, occurred_at_utc,
-                        map_name, weapon, hitgroup, damage_health, damage_armor, is_team_damage)
-                    VALUES (
-                        @id, @victim, @attacker, @occurred,
-                        @map, @weapon, @hitgroup, @health, @armor, @team)
-                    ON DUPLICATE KEY UPDATE event_id = event_id
-                    """;
-                Add(insert, "@id", damage.EventId.ToString("D"));
-                Add(insert, "@victim", damage.VictimId.SteamId64);
-                Add(insert, "@attacker", Steam(damage.AttackerId));
-                Add(insert, "@occurred", damage.OccurredAtUtc.UtcDateTime);
-                Add(insert, "@map", damage.MapName);
-                Add(insert, "@weapon", damage.Weapon);
-                Add(insert, "@hitgroup", damage.Hitgroup);
-                Add(insert, "@health", damage.DamageHealth);
-                Add(insert, "@armor", damage.DamageArmor);
-                Add(insert, "@team", damage.IsTeamDamage);
-                await insert.ExecuteNonQueryAsync(token).ConfigureAwait(false);
-            }
-
-            await using var verify = connection.CreateCommand();
-            verify.Transaction = transaction;
-            verify.CommandText = """
-                SELECT victim_steam_id, attacker_steam_id, occurred_at_utc,
-                    map_name, weapon, hitgroup, damage_health, damage_armor, is_team_damage
-                FROM ano_combat_damage
-                WHERE event_id = @id
-                FOR UPDATE
-                """;
-            Add(verify, "@id", damage.EventId.ToString("D"));
-            await using var reader = await verify.ExecuteReaderAsync(token).ConfigureAwait(false);
-            if (!await reader.ReadAsync(token).ConfigureAwait(false)
-                || ReadPlayer(reader, 0) != damage.VictimId
-                || ReadPlayer(reader, 1) != damage.AttackerId
-                || !string.Equals(reader.GetString(3), damage.MapName, StringComparison.Ordinal)
-                || !string.Equals(reader.GetString(4), damage.Weapon, StringComparison.Ordinal)
-                || reader.GetInt32(5) != damage.Hitgroup
-                || reader.GetInt32(6) != damage.DamageHealth
-                || reader.GetInt32(7) != damage.DamageArmor
-                || reader.GetBoolean(8) != damage.IsTeamDamage)
-            {
-                throw new InvalidOperationException(
-                    "Combat damage event id conflicts with a different event.");
-            }
-
+            if (shots.Count > 0) await WriteShotsAsync(connection, transaction,
+                shots.Values.OrderBy(value => value.EventId).ToArray(), token).ConfigureAwait(false);
+            if (hits.Count > 0) await WriteDamageAsync(connection, transaction,
+                hits.Values.OrderBy(value => value.EventId).ToArray(), token).ConfigureAwait(false);
             return true;
         }, cancellationToken: cancellationToken).ConfigureAwait(false);
     }
+
+    private static async ValueTask WriteShotsAsync(DbConnection connection, DbTransaction transaction,
+        IReadOnlyList<CombatWeaponFireEvent> shots, CancellationToken token)
+    {
+        await using (var insert = connection.CreateCommand())
+        {
+            insert.Transaction = transaction;
+            var rows = new List<string>();
+            for (var index = 0; index < shots.Count; index++)
+            {
+                var shot = shots[index];
+                var suffix = index.ToString(CultureInfo.InvariantCulture);
+                rows.Add($"(@id{suffix}, @player{suffix}, @occurred{suffix}, @map{suffix}, @weapon{suffix})");
+                Add(insert, "@id" + suffix, shot.EventId.ToString("D"));
+                Add(insert, "@player" + suffix, shot.PlayerId.SteamId64);
+                Add(insert, "@occurred" + suffix, shot.OccurredAtUtc.UtcDateTime);
+                Add(insert, "@map" + suffix, shot.MapName);
+                Add(insert, "@weapon" + suffix, shot.Weapon);
+            }
+            insert.CommandText = "INSERT INTO ano_combat_weapon_fire "
+                + "(event_id, player_steam_id, occurred_at_utc, map_name, weapon) VALUES "
+                + string.Join(",", rows) + " ON DUPLICATE KEY UPDATE event_id = event_id";
+            await insert.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+        }
+
+        await using var verify = connection.CreateCommand();
+        verify.Transaction = transaction;
+        verify.CommandText = "SELECT event_id, player_steam_id, map_name, weapon "
+            + "FROM ano_combat_weapon_fire WHERE event_id IN (" + AddIds(verify, shots.Select(value => value.EventId))
+            + ") FOR UPDATE";
+        var expected = shots.ToDictionary(value => value.EventId);
+        await using var reader = await verify.ExecuteReaderAsync(token).ConfigureAwait(false);
+        var found = 0;
+        while (await reader.ReadAsync(token).ConfigureAwait(false))
+        {
+            if (!expected.TryGetValue(Guid.Parse(reader.GetString(0)), out var shot)
+                || ReadPlayer(reader, 1) != shot.PlayerId
+                || !string.Equals(reader.GetString(2), shot.MapName, StringComparison.Ordinal)
+                || !string.Equals(reader.GetString(3), shot.Weapon, StringComparison.Ordinal))
+                throw new InvalidOperationException("Combat weapon-fire event id conflicts with a different event.");
+            found++;
+        }
+        if (found != expected.Count) throw new InvalidOperationException("Combat weapon-fire batch verification failed.");
+    }
+
+    private static async ValueTask WriteDamageAsync(DbConnection connection, DbTransaction transaction,
+        IReadOnlyList<CombatDamageEvent> hits, CancellationToken token)
+    {
+        await using (var insert = connection.CreateCommand())
+        {
+            insert.Transaction = transaction;
+            var rows = new List<string>();
+            for (var index = 0; index < hits.Count; index++)
+            {
+                var hit = hits[index];
+                var suffix = index.ToString(CultureInfo.InvariantCulture);
+                rows.Add($"(@id{suffix}, @victim{suffix}, @attacker{suffix}, @occurred{suffix}, "
+                    + $"@map{suffix}, @weapon{suffix}, @hitgroup{suffix}, @health{suffix}, @armor{suffix}, @team{suffix})");
+                Add(insert, "@id" + suffix, hit.EventId.ToString("D"));
+                Add(insert, "@victim" + suffix, hit.VictimId.SteamId64);
+                Add(insert, "@attacker" + suffix, Steam(hit.AttackerId));
+                Add(insert, "@occurred" + suffix, hit.OccurredAtUtc.UtcDateTime);
+                Add(insert, "@map" + suffix, hit.MapName);
+                Add(insert, "@weapon" + suffix, hit.Weapon);
+                Add(insert, "@hitgroup" + suffix, hit.Hitgroup);
+                Add(insert, "@health" + suffix, hit.DamageHealth);
+                Add(insert, "@armor" + suffix, hit.DamageArmor);
+                Add(insert, "@team" + suffix, hit.IsTeamDamage);
+            }
+            insert.CommandText = "INSERT INTO ano_combat_damage "
+                + "(event_id, victim_steam_id, attacker_steam_id, occurred_at_utc, "
+                + "map_name, weapon, hitgroup, damage_health, damage_armor, is_team_damage) VALUES "
+                + string.Join(",", rows) + " ON DUPLICATE KEY UPDATE event_id = event_id";
+            await insert.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+        }
+
+        await using var verify = connection.CreateCommand();
+        verify.Transaction = transaction;
+        verify.CommandText = "SELECT event_id, victim_steam_id, attacker_steam_id, "
+            + "map_name, weapon, hitgroup, damage_health, damage_armor, is_team_damage "
+            + "FROM ano_combat_damage WHERE event_id IN (" + AddIds(verify, hits.Select(value => value.EventId))
+            + ") FOR UPDATE";
+        var expected = hits.ToDictionary(value => value.EventId);
+        await using var reader = await verify.ExecuteReaderAsync(token).ConfigureAwait(false);
+        var found = 0;
+        while (await reader.ReadAsync(token).ConfigureAwait(false))
+        {
+            if (!expected.TryGetValue(Guid.Parse(reader.GetString(0)), out var hit)
+                || ReadPlayer(reader, 1) != hit.VictimId || ReadPlayer(reader, 2) != hit.AttackerId
+                || !string.Equals(reader.GetString(3), hit.MapName, StringComparison.Ordinal)
+                || !string.Equals(reader.GetString(4), hit.Weapon, StringComparison.Ordinal)
+                || reader.GetInt32(5) != hit.Hitgroup || reader.GetInt32(6) != hit.DamageHealth
+                || reader.GetInt32(7) != hit.DamageArmor || reader.GetBoolean(8) != hit.IsTeamDamage)
+                throw new InvalidOperationException("Combat damage event id conflicts with a different event.");
+            found++;
+        }
+        if (found != expected.Count) throw new InvalidOperationException("Combat damage batch verification failed.");
+    }
+
+    private static string AddIds(DbCommand command, IEnumerable<Guid> ids)
+    {
+        var names = new List<string>();
+        foreach (var id in ids)
+        {
+            var name = "@id" + names.Count.ToString(CultureInfo.InvariantCulture);
+            names.Add(name);
+            Add(command, name, id.ToString("D"));
+        }
+        return string.Join(",", names);
+    }
+
+    private static bool SameShot(CombatWeaponFireEvent left, CombatWeaponFireEvent right)
+        => left.PlayerId == right.PlayerId && left.MapName == right.MapName && left.Weapon == right.Weapon;
+
+    private static bool SameDamage(CombatDamageEvent left, CombatDamageEvent right)
+        => left.VictimId == right.VictimId && left.AttackerId == right.AttackerId
+            && left.MapName == right.MapName && left.Weapon == right.Weapon && left.Hitgroup == right.Hitgroup
+            && left.DamageHealth == right.DamageHealth && left.DamageArmor == right.DamageArmor
+            && left.IsTeamDamage == right.IsTeamDamage;
 
     public ValueTask<CombatDetailTotals> ReadDetailsAsync(PlayerId playerId,
         CombatDetailFilter? filter = null, CancellationToken cancellationToken = default)

@@ -116,6 +116,7 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
         Add<IPlaytimeStateRepository>(Playtime);
         Add<ICombatRepository>(Combat);
         Add<ICombatDetailRepository>(Combat);
+        Add<ICombatDetailBatchRepository>(Combat);
         Add<IGameplayStatRepository>(GameplayStats);
         Add<IRankPointEventRepository>(RankPointEvents);
         Add<IRankAdjustmentRepository>(RankAdjustments);

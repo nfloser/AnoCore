@@ -1,6 +1,9 @@
+using System.Data;
+using System.Data.Common;
 using AnoCore.Abstractions.Persistence;
 using AnoCore.Abstractions.Players;
 using AnoCore.Abstractions.Stats;
+using AnoCore.Modules.Stats;
 using AnoCore.Runtime.Persistence;
 using AnoCore.Runtime.Persistence.Migrations;
 using AnoCore.Runtime.Stats;
@@ -368,6 +371,121 @@ public sealed class MySqlCombatRepositoryTests
             afterReset.Select(x => x.Points).ToArray());
 
         Assert.IsEmpty(await repo.GetTopScoresAsync(new RankScoreWeights(2, 1, 1), 5, 0));
+    }
+
+    [TestMethod]
+    public async Task MixedBatch_UsesOneTransactionAndReplaysAcrossRestart()
+    {
+        await ApplyDetailMigrationsAsync();
+        var database = new CountingDatabase(_database);
+        var repo = new MySqlCombatRepository(database);
+        var shots = Enumerable.Range(0, 128).Select(_ => new CombatWeaponFireEvent(
+            Guid.NewGuid(), Attacker, Now, "de_dust2", "ak47")).ToArray();
+        var hits = Enumerable.Range(0, 128).Select(_ => new CombatDamageEvent(
+            Guid.NewGuid(), Victim, Attacker, Now, "de_dust2", "ak47", 1, 42, 8)).ToArray();
+        var batch = new CombatDetailBatch(shots, hits);
+        await repo.RecordDetailsAsync(batch);
+        Assert.AreEqual(1, database.Transactions);
+        await repo.RecordDetailsAsync(batch);
+        Assert.AreEqual(2, database.Transactions);
+        var restarted = new MySqlCombatRepository(_database);
+        Assert.AreEqual(new CombatDetailTotals(128, 128, 5376, 1024, 128),
+            await restarted.ReadDetailsAsync(Attacker));
+        await repo.RecordDetailsAsync(new CombatDetailBatch([], []));
+        Assert.AreEqual(2, database.Transactions);
+    }
+
+    [TestMethod]
+    public async Task LaterDamageConflict_RollsBackEarlierShotInsertAndAllowsRetry()
+    {
+        await ApplyDetailMigrationsAsync();
+        var repo = new MySqlCombatRepository(_database);
+        var shot = new CombatWeaponFireEvent(Guid.NewGuid(), Attacker, Now, "de_dust2", "ak47");
+        var hit = new CombatDamageEvent(Guid.NewGuid(), Victim, Attacker, Now, "de_dust2", "ak47", 1, 42, 8);
+        await repo.RecordDamageAsync(hit);
+        var conflicting = new CombatDamageEvent(hit.EventId, Victim, Attacker, Now, "de_dust2", "ak47", 2, 42, 8);
+        await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () =>
+            await repo.RecordDetailsAsync(new CombatDetailBatch([shot], [conflicting])));
+        Assert.AreEqual(new CombatDetailTotals(0, 1, 42, 8, 1), await repo.ReadDetailsAsync(Attacker));
+        await repo.RecordDetailsAsync(new CombatDetailBatch([shot], [hit]));
+        Assert.AreEqual(new CombatDetailTotals(1, 1, 42, 8, 1), await repo.ReadDetailsAsync(Attacker));
+    }
+
+    [TestMethod]
+    public async Task DuplicatePayloadsIgnoreReplayTimeAndConflictingDuplicatesFailBeforeTransaction()
+    {
+        await ApplyDetailMigrationsAsync();
+        var database = new CountingDatabase(_database);
+        var repo = new MySqlCombatRepository(database);
+        var shot = new CombatWeaponFireEvent(Guid.NewGuid(), Attacker, Now, "de_dust2", "ak47");
+        var later = new CombatWeaponFireEvent(shot.EventId, Attacker, Now.AddSeconds(2), "de_dust2", "ak47");
+        await repo.RecordDetailsAsync(new CombatDetailBatch([shot, later], []));
+        Assert.AreEqual(new CombatDetailTotals(1, 0, 0, 0, 0), await repo.ReadDetailsAsync(Attacker));
+        var conflict = new CombatWeaponFireEvent(shot.EventId, Attacker, Now, "de_dust2", "awp");
+        await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () =>
+            await repo.RecordDetailsAsync(new CombatDetailBatch([shot, conflict], [])));
+        Assert.AreEqual(1, database.Transactions);
+    }
+
+    [TestMethod]
+    public async Task ConcurrentBatchReplayCommitsEachEventOnlyOnce()
+    {
+        await ApplyDetailMigrationsAsync();
+        var shot = new CombatWeaponFireEvent(Guid.NewGuid(), Attacker, Now, "workshop/custom", "ak47");
+        var damage = new CombatDamageEvent(Guid.NewGuid(), Victim, Attacker, Now, "workshop/custom", "ak47", 2, 17, 3);
+        var batch = new CombatDetailBatch([shot], [damage]);
+        await Task.WhenAll(
+            new MySqlCombatRepository(_database).RecordDetailsAsync(batch).AsTask(),
+            new MySqlCombatRepository(_database).RecordDetailsAsync(batch).AsTask());
+        Assert.AreEqual(new CombatDetailTotals(1, 1, 17, 3, 0),
+            await new MySqlCombatRepository(_database).ReadDetailsAsync(Attacker));
+    }
+
+    [TestMethod]
+    public async Task AmbiguousCommitRetryKeepsOriginalIdsAndDoesNotDoubleCount()
+    {
+        await ApplyDetailMigrationsAsync();
+        var database = new CountingDatabase(_database) { FailAfterCommit = true };
+        var repo = new MySqlCombatRepository(database);
+        var buffer = new CombatDetailBuffer(repo, new CombatRecordingConfiguration());
+        buffer.TryEnqueue(new CombatWeaponFireEvent(Guid.NewGuid(), Attacker, Now, "de_dust2", "ak47"));
+        await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () => await buffer.FlushAsync());
+        Assert.AreEqual(1, buffer.PendingCount);
+        Assert.AreEqual(1L, (await repo.ReadDetailsAsync(Attacker)).Shots);
+        await buffer.FlushAsync();
+        Assert.AreEqual(0, buffer.PendingCount);
+        Assert.AreEqual(1L, (await repo.ReadDetailsAsync(Attacker)).Shots);
+        await buffer.StopAsync();
+    }
+
+    private async Task ApplyDetailMigrationsAsync()
+        => await new MigrationRunner(_database, [
+            new CoreSchemaMigration001(), new ModerationSchemaMigration002(),
+            new AdminAuditSchemaMigration003(), new WarningSchemaMigration004(),
+            new PlaytimeSchemaMigration005(), new CombatSchemaMigration006(),
+            new RankAdjustmentSchemaMigration007(), new PlaytimeStateSchemaMigration008(),
+            new CombatDetailSchemaMigration009(), new GameplayStatSchemaMigration010(),
+            new StatisticsResetSchemaMigration011()]).ApplyPendingAsync();
+
+    private sealed class CountingDatabase(IDatabase inner) : IDatabase
+    {
+        public int Transactions { get; private set; }
+        public bool FailAfterCommit { get; set; }
+        public ValueTask<bool> PingAsync(CancellationToken cancellationToken = default) => inner.PingAsync(cancellationToken);
+        public ValueTask<T> WithConnectionAsync<T>(Func<DbConnection, CancellationToken, ValueTask<T>> action,
+            CancellationToken cancellationToken = default) => inner.WithConnectionAsync(action, cancellationToken);
+        public async ValueTask<T> InTransactionAsync<T>(Func<DbConnection, DbTransaction, CancellationToken, ValueTask<T>> action,
+            IsolationLevel isolationLevel = IsolationLevel.ReadCommitted, CancellationToken cancellationToken = default)
+        {
+            Transactions++;
+            var result = await inner.InTransactionAsync(action, isolationLevel, cancellationToken);
+            if (FailAfterCommit)
+            {
+                FailAfterCommit = false;
+                throw new InvalidOperationException("Simulated lost commit acknowledgment");
+            }
+            return result;
+        }
     }
 
     private async Task DropAsync()
