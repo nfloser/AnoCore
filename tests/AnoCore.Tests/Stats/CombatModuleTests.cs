@@ -233,6 +233,31 @@ public sealed class CombatModuleTests
             (await registry.ExecuteAsync("!anotopassists", null)).Message);
     }
 
+    [TestMethod]
+    public async Task DetailCommandsFlushBeforeQueryAndDoNotReturnStaleTotalsAfterFlushFailure()
+    {
+        var players = new PlayerRegistry(new AnoEventBus());
+        await players.ConnectAsync(new PlayerConnection(Attacker, "Attacker", PlayerTeam.Terrorist, true, Now));
+        var commands = new CommandRegistry(new AllowAll());
+        var repository = new DetailRepository();
+        var flushes = 0;
+        var fail = false;
+        using var module = new CombatModule(commands, players, repository, null, token =>
+        {
+            if (fail) throw new InvalidOperationException("flush unavailable");
+            flushes++;
+            repository.DetailTotals = new CombatDetailTotals(flushes, 0, 0, 0, 0);
+            return ValueTask.CompletedTask;
+        });
+        var details = await commands.ExecuteAsync("!anodetailstats", Attacker);
+        Assert.IsTrue(details.Success);
+        StringAssert.Contains(details.Message!, "1 shot");
+        Assert.IsTrue((await commands.ExecuteAsync("!anohitgroups", Attacker)).Success);
+        Assert.AreEqual(2, flushes);
+        fail = true;
+        Assert.IsFalse((await commands.ExecuteAsync("!anodetailstats", Attacker)).Success);
+    }
+
     private sealed class AllowAll : IPermissionEvaluator
     {
         public ValueTask<bool> HasPermissionAsync(PlayerId id, PermissionId permission,

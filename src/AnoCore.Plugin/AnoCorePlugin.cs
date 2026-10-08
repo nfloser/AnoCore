@@ -105,6 +105,8 @@ public sealed class AnoCorePlugin : BasePlugin
     private SelectableChatTagModule? _chatTags;
     private ChatFormatSnapshotLifecycle? _chatFormatSnapshots;
     private CombatModule? _combat;
+    private CombatDetailBuffer? _combatDetailBuffer;
+    private CombatRecordingConfiguration _combatRecording = new();
     private string _combatServerInstance = string.Empty;
     private bool _roundFirstBloodRecorded;
     private ModerationCommandController? _adminCommands;
@@ -176,6 +178,8 @@ public sealed class AnoCorePlugin : BasePlugin
     public override void Unload(bool hotReload)
     {
         _warmupState.Reset();
+        var combatDetails = Interlocked.Exchange(ref _combatDetailBuffer, null);
+        if (combatDetails is not null) Observe(StopCombatDetailsAsync(combatDetails), "combat_detail_shutdown");
         var unloadNotifications = Interlocked.Exchange(ref _unloadNotifications, null);
         if (unloadNotifications is not null)
             Observe(unloadNotifications.NotifyAsync(hotReload).AsTask(), "core_unload_notification");
@@ -364,7 +368,9 @@ public sealed class AnoCorePlugin : BasePlugin
         var optionalModules = (_runtime?.Modules.Modules.Count ?? 0) + (_anoVeto is null ? 0 : 1);
         command.ReplyToCommand(
             $"[ANO] AnoCore {ModuleVersion}; tracked humans: {_players?.OnlinePlayers.Count ?? 0}; "
-            + $"services: {_runtimeStatus}; optional gameplay modules: {optionalModules}.");
+            + $"services: {_runtimeStatus}; optional gameplay modules: {optionalModules}; "
+            + $"combat detail queue: {_combatDetailBuffer?.PendingCount ?? 0}; "
+            + $"rejected: {_combatDetailBuffer?.RejectedCount ?? 0}.");
     }
 
     private async Task InitializeRuntimeAsync(
@@ -410,6 +416,18 @@ public sealed class AnoCorePlugin : BasePlugin
             }
             var protectedServerControlPolicy = BuildProtectedServerControlPolicy(
                 settings.ProtectedServerControls);
+            try
+            {
+                _combatRecording = await configuration.LoadAsync("combat-recording",
+                    () => new CombatRecordingConfiguration(), CombatRecordingConfiguration.Validate,
+                    cancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
+            catch (Exception exception)
+            {
+                _combatRecording = new() { RecordWeaponFire = false, RecordDamage = false };
+                Logger.LogError(exception, "Combat recording configuration rejected; shot/hit recording is disabled.");
+            }
             var managementConfiguration = await configuration.LoadAsync(
                 "management",
                 () => new ManagementBridgeConfiguration(),
@@ -976,6 +994,7 @@ public sealed class AnoCorePlugin : BasePlugin
             LiveRankScoringService? liveRankScoring = null;
             RankPointPresentationService? rankPointPresentation = null;
             CombatModule? combat = null;
+            CombatDetailBuffer? combatDetails = null;
             KickCommandController? kickCommands = null;
             ConnectBanEnforcement? connectBan = null;
             WarningCommandController? warningCommands = null;
@@ -1168,8 +1187,11 @@ public sealed class AnoCorePlugin : BasePlugin
                         exception => Logger.LogError(exception, "Live rank presentation failed."), rankPointPresentation);
                     rankPointPresentation = null;
                 }
+                if (_combatRecording.BatchWrites && (_combatRecording.RecordWeaponFire || _combatRecording.RecordDamage))
+                    combatDetails = new CombatDetailBuffer(runtime.Combat, _combatRecording);
                 combat = new CombatModule(
-                    runtime.Commands, runtime.Players, runtime.Combat, transitionMonitor);
+                    runtime.Commands, runtime.Players, runtime.Combat, transitionMonitor,
+                    combatDetails is null ? null : combatDetails.FlushAsync);
                 transitionMonitor = null;
                 var events = _eventBus
                     ?? throw new InvalidOperationException("AnoCore event bus is unavailable during activation.");
@@ -1413,6 +1435,10 @@ public sealed class AnoCorePlugin : BasePlugin
                 _chatFormatter = chatFormatter;
                 _chatTags = chatTags;
                 _combat = combat;
+                _combatDetailBuffer = combatDetails;
+                combatDetails?.Start(exception => Logger.LogError(exception,
+                    "Combat detail batch failed; {PendingCount} accepted events remain queued for retry.",
+                    combatDetails.PendingCount));
                 _anoVetoExpiryTimer = expiryTimer;
                 _voiceModerationTimer = voiceTimer;
                 _rankScoreboardTimer = rankScoreboardTimer;
@@ -1489,6 +1515,11 @@ public sealed class AnoCorePlugin : BasePlugin
                 tournamentTeamEnforcement?.Dispose();
                 chatTags?.Dispose();
                 combat?.Dispose();
+                if (combatDetails is not null)
+                {
+                    if (ReferenceEquals(_combatDetailBuffer, combatDetails)) _combatDetailBuffer = null;
+                    Observe(StopCombatDetailsAsync(combatDetails), "combat_detail_activation_rollback");
+                }
                 transitionMonitor?.Dispose();
                 voiceModeration?.Dispose();
                 _chatPolicyTimer?.Kill();
@@ -1714,6 +1745,7 @@ public sealed class AnoCorePlugin : BasePlugin
 
         if (_players.TryGet(id, out var current) && current is not null)
         {
+            FlushCombatDetails("combat_detail_disconnect");
             var registry = _players;
             var state = _extendedPlayerState;
             var positions = _extendedPositions;
@@ -1792,7 +1824,7 @@ public sealed class AnoCorePlugin : BasePlugin
     private HookResult OnWeaponFire(EventWeaponFire @event, GameEventInfo _)
     {
         var combat = _combat;
-        if (combat is null || !GameplayStatsAllowed()) return HookResult.Continue;
+        if (combat is null || !_combatRecording.RecordWeaponFire || !GameplayStatsAllowed()) return HookResult.Continue;
 
         try
         {
@@ -1806,7 +1838,12 @@ public sealed class AnoCorePlugin : BasePlugin
                 "weapon_fire", player.Id, null, weapon);
             var weaponFire = new CombatWeaponFireEvent(
                 eventId, player.Id, DateTimeOffset.UtcNow, map, weapon);
-            Observe(combat.RecordWeaponFireAsync(weaponFire).AsTask(), "combat_weapon_fire");
+            var buffer = _combatDetailBuffer;
+            if (buffer is not null)
+            {
+                if (!buffer.TryEnqueue(weaponFire)) ReportCombatBackpressure(buffer);
+            }
+            else Observe(combat.RecordWeaponFireAsync(weaponFire).AsTask(), "combat_weapon_fire");
         }
         catch (Exception exception)
         {
@@ -1819,7 +1856,7 @@ public sealed class AnoCorePlugin : BasePlugin
     private HookResult OnPlayerHurt(EventPlayerHurt @event, GameEventInfo _)
     {
         var combat = _combat;
-        if (combat is null || !GameplayStatsAllowed()) return HookResult.Continue;
+        if (combat is null || !_combatRecording.RecordDamage || !GameplayStatsAllowed()) return HookResult.Continue;
 
         try
         {
@@ -1842,7 +1879,12 @@ public sealed class AnoCorePlugin : BasePlugin
             var damage = new CombatDamageEvent(
                 eventId, victim.Id, attacker?.Id, DateTimeOffset.UtcNow,
                 map, weapon, @event.Hitgroup, @event.DmgHealth, @event.DmgArmor, teamDamage);
-            Observe(combat.RecordDamageAsync(damage).AsTask(), "combat_player_hurt");
+            var buffer = _combatDetailBuffer;
+            if (buffer is not null)
+            {
+                if (!buffer.TryEnqueue(damage)) ReportCombatBackpressure(buffer);
+            }
+            else Observe(combat.RecordDamageAsync(damage).AsTask(), "combat_player_hurt");
         }
         catch (Exception exception)
         {
@@ -2319,6 +2361,7 @@ public sealed class AnoCorePlugin : BasePlugin
     private void OnMapEnd()
     {
         _warmupState.Reset();
+        FlushCombatDetails("combat_detail_map_end");
         Interlocked.Exchange(ref _rankRoundGeneration, 0);
         var state = _extendedPlayerState;
         if (state is not null)
@@ -2330,6 +2373,32 @@ public sealed class AnoCorePlugin : BasePlugin
         if (positions is not null)
         {
             Observe(positions.ForgetAllAsync().AsTask(), "extended_position_map_end");
+        }
+    }
+
+    private void FlushCombatDetails(string operation)
+    {
+        var buffer = _combatDetailBuffer;
+        if (buffer is not null) Observe(buffer.FlushAsync().AsTask(), operation);
+    }
+
+    private void ReportCombatBackpressure(CombatDetailBuffer buffer)
+    {
+        var rejected = buffer.RejectedCount;
+        if (rejected > 0 && (rejected & (rejected - 1)) == 0)
+            Logger.LogError("Combat detail buffer full/stopping: {RejectedCount} new events rejected; "
+                + "{PendingCount} accepted events remain queued. Inspect combat-recording limits and database health.",
+                rejected, buffer.PendingCount);
+    }
+
+    private async Task StopCombatDetailsAsync(CombatDetailBuffer buffer)
+    {
+        try { await buffer.StopAsync().ConfigureAwait(false); }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception,
+                "Combat detail shutdown could not persist {PendingCount} queued events before unload completed.",
+                buffer.PendingCount);
         }
     }
 
