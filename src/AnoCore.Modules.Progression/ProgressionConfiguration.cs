@@ -39,7 +39,8 @@ public sealed class ProgressionConfiguration
             var snapshot = migrated.Snapshot();
             var accepted = await store.LoadAsync("progression", () => new ProgressionConfiguration
             {
-                Levels = snapshot.Levels.ToList(), Boosts = snapshot.Boosts.ToList(),
+                Levels = snapshot.Levels.ToList(),
+                Boosts = snapshot.Boosts.ToList(),
             }, Validate, cancellationToken).ConfigureAwait(false);
             return accepted.Snapshot();
         }

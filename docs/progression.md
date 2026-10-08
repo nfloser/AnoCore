@@ -915,3 +915,62 @@ Native acceptance: configure one map-filtered gameplay mission and one weapon/
 hitgroup damage mission; verify other maps/weapons/hitgroups and team/self damage
 remain excluded, matching facts advance after commit, and reconnect/reload/retry
 shows one reward only. Run these checks on CS2/DatHost before release.
+
+
+### Shared server policy in progression.json (#335)
+
+The server now reads shared level thresholds and scheduled XP boosts once from
+`config/progression.json` for achievements, challenges, gameplay XP and seasons.
+It no longer requires achievement activation/catalog validation to enable the
+other progression modules. `achievements.json` remains the permanent achievement
+catalog; its legacy Levels/Boosts properties are accepted for compatibility.
+
+On the first startup without progression.json, AnoCore copies the existing
+Levels/Boosts from achievements.json into the new file. It leaves the old file
+unchanged. Subsequent startups use progression.json exclusively for shared policy.
+Invalid existing canonical files fail validation rather than falling back and
+silently replacing an operator's settings. This migration does not touch any
+account, XP grant, completion or unlock row. Restart is required for shared policy
+and definition catalog changes. Changes to curve thresholds can change the level
+calculated from unchanged XP, but never recalculate earned XP itself.
+
+```json
+{
+  "Levels": [
+    { "Level": 1, "MinimumXp": 0 },
+    { "Level": 2, "MinimumXp": 500 },
+    { "Level": 3, "MinimumXp": 1100 }
+  ],
+  "Boosts": [
+    {
+      "Id": "halloween-2026",
+      "Name": "Halloween Double XP",
+      "StartsAtUtc": "2026-10-30T18:00:00+00:00",
+      "EndsAtUtc": "2026-11-02T00:00:00+00:00",
+      "Multiplier": 2,
+      "EligibleSources": 1
+    }
+  ]
+}
+```
+
+Name is an optional printable label (1-128 characters); anoxp shows it for the
+active scheduled boost. ID remains the durable identity. Windows are UTC [start,
+end), at most 128 windows and 500 consecutive levels. Highest eligible multiplier
+wins, with existing deterministic ID tie-breaking; weekend policy does not stack.
+EligibleSources: gameplay=1, challenge rewards=2, achievement rewards=4 (combine
+by addition). Rewards are excluded from gameplay boosts unless explicitly opted
+in. Keep all existing EarnFromUtc values when updating gameplay-xp.json; changing
+this start can expose historical ungranted facts to reconciliation.
+
+Server content ownership: gameplay-xp.json controls action XP/weekend policy;
+challenges.json controls names/targets/rewards/prerequisites/windows/predicates;
+achievements.json controls permanent names/statistics/tiers/rewards/prerequisites;
+seasons.json controls season names/time windows; ranks.json controls competitive
+points/names. All of these are server-owned and do not require a Workshop update.
+Panorama XML/CSS/static images still require republishing when changed.
+
+Acceptance on CS2/DatHost: preserve a player's earned XP, restart once to migrate,
+verify the new file copied the old curve/boosts, then change one level boundary
+and scheduled boost label and restart. Confirm unchanged XP, updated level/label,
+one-time rewards, and unchanged competitive rank points without Workshop changes.

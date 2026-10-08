@@ -1,3 +1,12 @@
+## Shared progression configuration (#335)
+
+Shared progression.json owns lifetime levels and scheduled boosts for all four
+progression consumers. First missing-file startup copies legacy achievements.json
+policy without rewriting it; canonical files win on later startups. Invalid new
+files do not fall back. Boost labels are optional and shown by anoxp. No DB changes.
+Remaining #335/#330 work: durable kill predicates and complete operator presets.
+Native acceptance stays manual; battlepass remains cancelled.
+
 ## Challenge predicate package (#330)
 
 Implemented optional immutable map/weapon/hitgroup predicates using existing durable

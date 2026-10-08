@@ -29,7 +29,8 @@ When AnoVeto starts enabled, it registers `anoveto` and `maps` with the shared r
 | `management` | Restart: authentication/capability, transport and provider composition. Sidecar environment settings require sidecar restart. |
 | `combat-recording` | Restart: shot/hit recording switches, bounded queue, batch mode/size/interval and shutdown deadline. Existing ledgers remain. |
 | `ranks`, `gameplay-stats` | Restart: source mode, scoring policy, thresholds, native hooks and presentation policy. Existing ledgers/totals are retained; startup does not rewrite earned history. |
-| `achievements`, `challenges`, `seasons` | Restart: definition catalogs, versioned rewards and XP curve/scheduling. Do not edit old immutable reward versions to rescore earned grants; use new versions for changed definitions. |
+| `progression` | Restart: shared lifetime level thresholds and scheduled XP boosts. Existing XP/grants remain. |
+| `achievements`, `challenges`, `seasons` | Restart: definition catalogs and versioned rewards. Do not edit old immutable reward versions to rescore earned grants; use new versions for changed definitions. |
 | `moderation-webhooks` and webhook environment variables | Restart: opt-in destination, approved hosts, privacy and delivery bounds are pinned for the pump lifetime. |
 | `tournament-match` | Validated on explicit match load/map-policy application. Active match recovery remains pinned to stored match state; no generic hot reload. |
 | Player settings/storage | Existing typed persistence commands and APIs apply per-player changes; not startup JSON configuration. |
