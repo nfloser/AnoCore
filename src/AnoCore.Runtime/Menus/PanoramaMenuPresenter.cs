@@ -197,7 +197,7 @@ public sealed class PanoramaMenuPresenter : IDisposable
         _hud.SetText(id, HudId, "ano_menu_title", Text(Regex.Replace(state.Menu.Title, @" — page \d+(?:/\d+)?$", "")));
         _hud.SetText(id, HudId, "ano_menu_status", dashboard is null ? "Select an item or return to Home" : "Personal overview — refresh to update");
         var sourcePage = Regex.Match(state.Menu.Title, @" — page (\d+)/(\d+)$");
-        _hud.SetText(id, HudId, "ano_menu_page", sourcePage.Success
+        _hud.SetText(id, HudId, "ano_menu_page", state.Menu.SuppressPageIndicator ? string.Empty : sourcePage.Success
             ? $"{sourcePage.Groups[1].Value} / {sourcePage.Groups[2].Value}" : $"{state.Page + 1} / {LastPage(state.Menu) + 1}");
         _hud.SetClass(id, HudId, "ano_menu_root", "busy", false);
         _hud.SetClass(id, HudId, "ano_menu_back", "disabled", dashboard is not null);

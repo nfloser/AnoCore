@@ -30,6 +30,8 @@ public sealed class MenuDefinition
 
     public MenuDashboard? Dashboard { get; }
 
+    public bool SuppressPageIndicator { get; init; }
+
     public MenuId Id { get; }
 
     public string Title { get; }

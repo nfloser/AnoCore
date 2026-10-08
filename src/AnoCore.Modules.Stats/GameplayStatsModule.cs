@@ -12,6 +12,7 @@ namespace AnoCore.Modules.Stats;
 public sealed class GameplayStatsModule : IDisposable
 {
     public const string MenuCommandName = "anostatsmenu";
+    public const string DetailsMenuCommandName = "anostatdetails";
     private const int MenuPageSize = 5;
     private static readonly ModuleId Owner = new("ano.stats");
 
@@ -23,10 +24,12 @@ public sealed class GameplayStatsModule : IDisposable
     private readonly IMenuService? _menus;
     private readonly GameplayStatsConfiguration _configuration;
     private readonly Dictionary<PlayerId, MenuRegistration> _playerMenus = [];
+    private readonly Dictionary<PlayerId, (PlayerSessionId Session, int Request, MenuDefinition? Expected)> _menuRequests = [];
     private readonly IDisposable[] _subscriptions;
     private readonly IDisposable _command;
     private readonly IDisposable? _menuCommand;
     private readonly AnoRatingModule? _rating;
+    private readonly StatisticsMenuModule? _statisticsMenus;
     private readonly LeetifyContextModule? _leetifyContext;
     private GameplayRankTransitionMonitor? _rankTracking;
     private int _generation;
@@ -57,6 +60,7 @@ public sealed class GameplayStatsModule : IDisposable
         var subscriptions = new List<IDisposable>();
         AnoRatingModule? rating = null;
         LeetifyContextModule? leetifyContext = null;
+        StatisticsMenuModule? statisticsMenus = null;
         try
         {
             _command = commands.Register(
@@ -74,7 +78,7 @@ public sealed class GameplayStatsModule : IDisposable
                 _menuCommand = commands.Register(
                     Owner,
                     new CommandDescriptor(
-                        MenuCommandName,
+                        DetailsMenuCommandName,
                         "Open your persisted statistics overview.",
                         arguments:
                         [
@@ -106,12 +110,16 @@ public sealed class GameplayStatsModule : IDisposable
             leetifyContext = leetify is null
                 ? null
                 : new LeetifyContextModule(commands, players, leetify);
+            if (menus is not null && repository is IStatisticsMenuRepository statistics)
+                statisticsMenus = new StatisticsMenuModule(commands, players, menus, statistics, events);
+            _statisticsMenus = statisticsMenus;
             _rating = rating;
             _leetifyContext = leetifyContext;
             _subscriptions = subscriptions.ToArray();
         }
         catch
         {
+            statisticsMenus?.Dispose();
             leetifyContext?.Dispose();
             rating?.Dispose();
             foreach (var subscription in subscriptions)
@@ -192,6 +200,12 @@ public sealed class GameplayStatsModule : IDisposable
             notifications, scoreChanges, reportError);
     }
 
+    public void EnableRankLeaderboard(RankConfiguration configuration, ICombatRepository combat)
+    {
+        ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, this);
+        _statisticsMenus?.EnableRanks(configuration, combat);
+    }
+
     private async ValueTask<CommandResult> OwnStatsAsync(CommandContext context)
     {
         if (!TryGetConnected(context.Caller, out var player) || player is null)
@@ -262,8 +276,17 @@ public sealed class GameplayStatsModule : IDisposable
             || !TryCurrentSession(player))
             return false;
 
+        int request;
+        lock (_menuGate)
+        {
+            if (!TryCurrentSession(player)) return false;
+            request = Interlocked.Increment(ref _generation);
+            _menus.TryGetOpenMenu(player.Id, out var expected);
+            _menuRequests[player.Id] = (player.SessionId, request, expected);
+        }
+
         var combat = await _combat.ReadAsync(player.Id, cancellationToken).ConfigureAwait(false);
-        if (!TryCurrentSession(player))
+        if (!IsCurrentMenuRequest(player, request))
             return false;
 
         CombatDetailTotals? detail = null;
@@ -272,18 +295,18 @@ public sealed class GameplayStatsModule : IDisposable
         {
             detail = await _details.ReadDetailsAsync(
                 player.Id, detailFilter, cancellationToken).ConfigureAwait(false);
-            if (!TryCurrentSession(player))
+            if (!IsCurrentMenuRequest(player, request))
                 return false;
 
             hitgroups = await _details.ReadHitgroupsAsync(
                 player.Id, detailFilter, cancellationToken).ConfigureAwait(false);
-            if (!TryCurrentSession(player))
+            if (!IsCurrentMenuRequest(player, request))
                 return false;
         }
 
         var gameplay = await _repository.ReadAsync(
             player.Id, gameplayFilter, cancellationToken).ConfigureAwait(false);
-        if (!TryCurrentSession(player))
+        if (!IsCurrentMenuRequest(player, request))
             return false;
 
         var lines = BuildMenuLines(combat, detail, hitgroups, gameplay);
@@ -330,12 +353,13 @@ public sealed class GameplayStatsModule : IDisposable
 
         var definition = new MenuDefinition(
             new MenuId($"ano.stats.{player.Id.SteamId64}"),
-            $"Statistics — page {page}",
-            options);
+            "Personal Stats",
+            options)
+        { SuppressPageIndicator = true };
 
         lock (_menuGate)
         {
-            if (!TryCurrentSession(player))
+            if (!IsCurrentMenuRequest(player, request))
                 return false;
             if (_playerMenus.Remove(player.Id, out var previous))
                 previous.Handle.Dispose();
@@ -416,6 +440,18 @@ public sealed class GameplayStatsModule : IDisposable
     private bool TryCurrentSession(PlayerSnapshot player)
         => IsCurrentSession(player.Id, player.SessionId);
 
+    private bool IsCurrentMenuRequest(PlayerSnapshot player, int request)
+    {
+        lock (_menuGate)
+        {
+            if (_menus is null || !TryCurrentSession(player)
+                || !_menuRequests.TryGetValue(player.Id, out var current)
+                || current.Session != player.SessionId || current.Request != request) return false;
+            _menus.TryGetOpenMenu(player.Id, out var open);
+            return ReferenceEquals(open, current.Expected);
+        }
+    }
+
     private bool IsCurrentSession(PlayerId id, PlayerSessionId sessionId)
         => Volatile.Read(ref _disposed) == 0
             && _players.TryGet(id, out var current)
@@ -430,6 +466,8 @@ public sealed class GameplayStatsModule : IDisposable
     {
         lock (_menuGate)
         {
+            if (_menuRequests.TryGetValue(player.Id, out var request) && request.Session == player.SessionId)
+                _menuRequests.Remove(player.Id);
             if (_playerMenus.TryGetValue(player.Id, out var registration)
                 && registration.SessionId == player.SessionId)
             {
@@ -451,9 +489,11 @@ public sealed class GameplayStatsModule : IDisposable
             foreach (var registration in _playerMenus.Values)
                 registration.Handle.Dispose();
             _playerMenus.Clear();
+            _menuRequests.Clear();
         }
 
         _leetifyContext?.Dispose();
+        _statisticsMenus?.Dispose();
         _rating?.Dispose();
         _rankTracking?.Dispose();
         _menuCommand?.Dispose();

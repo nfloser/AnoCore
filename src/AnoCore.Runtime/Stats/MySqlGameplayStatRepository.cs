@@ -5,12 +5,19 @@ using AnoCore.Abstractions.Stats;
 
 namespace AnoCore.Runtime.Stats;
 
-public sealed class MySqlGameplayStatRepository : IGameplayStatRepository
+public sealed class MySqlGameplayStatRepository : IGameplayStatRepository, IStatisticsMenuRepository
 {
     private readonly IDatabase _database;
 
     public MySqlGameplayStatRepository(IDatabase database)
         => _database = database ?? throw new ArgumentNullException(nameof(database));
+
+    public ValueTask<PersonalStatistics> ReadPersonalAsync(PlayerId player, CancellationToken cancellationToken = default)
+        => new MySqlStatisticsMenuRepository(_database).ReadPersonalAsync(player, cancellationToken);
+
+    public ValueTask<IReadOnlyList<StatisticsRankEntry>> GetTopAsync(StatisticsCategory category,
+        int limit, int offset, CancellationToken cancellationToken = default)
+        => new MySqlStatisticsMenuRepository(_database).GetTopAsync(category, limit, offset, cancellationToken);
 
     public async ValueTask RecordAsync(GameplayStatEvent statistic,
         CancellationToken cancellationToken = default)

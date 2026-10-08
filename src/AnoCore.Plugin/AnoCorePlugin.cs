@@ -1209,6 +1209,8 @@ public sealed class AnoCorePlugin : BasePlugin
                                 exception, "Rank notification preference read failed.")),
                         rankScoreChanges,
                         exception => Logger.LogError(exception, "Gameplay rank presentation failed."));
+                if (rank is not null && gameplayStats is not null)
+                    gameplayStats.EnableRankLeaderboard(rank.Configuration, runtime.Combat);
                 if (rank is not null && rank.Configuration.Source == RankScoreSource.EventLedger)
                 {
                     rankPointPresentation = new RankPointPresentationService(rank.Configuration.NotifyPointChanges,
