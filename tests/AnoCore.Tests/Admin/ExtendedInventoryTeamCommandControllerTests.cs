@@ -106,10 +106,64 @@ public sealed class ExtendedInventoryTeamCommandControllerTests
         Assert.AreEqual(0, registry.GetCommands().Count);
     }
 
+    [TestMethod]
+    public async Task CssHandlerOwnsOnlyTeamCommandsAndIsDisposedOnce()
+    {
+        var registry = new CommandRegistry(new DenyAllPermissions());
+        var teams = new FakeTeams();
+        var controller = CreateController(registry, out _, out var targets, teams);
+        var commands = registry.GetCommands().ToDictionary(value => value.Name);
+        Assert.IsNull(commands["anoteam"].Permission);
+        Assert.IsNull(commands["anoswap"].Permission);
+        Assert.AreEqual(new PermissionId("ano.admin.rename"), commands["anorename"].Permission);
+        Assert.IsFalse(commands.ContainsKey("css_switch"));
+        var actor = new PlayerId(76561198000016799);
+        var denied = await registry.ExecuteAsync("anoteam @me ct", actor);
+        Assert.AreEqual(CommandFailureReason.Forbidden, denied.FailureReason);
+        teams.HasFlag = true;
+        Assert.IsTrue((await registry.ExecuteAsync("anoteam @me ct", actor)).Success);
+        Assert.AreEqual((ExtendedInventoryTeamOperation.SetTeam, actor, "@me", "ct"), teams.Last);
+        Assert.IsTrue((await registry.ExecuteAsync("anoswap #123", actor)).Success);
+        Assert.AreEqual((ExtendedInventoryTeamOperation.SwapTeam, actor, "#123", (string?)null), teams.Last);
+        Assert.IsFalse((await registry.ExecuteAsync("anostrip Target", actor)).Success);
+        Assert.AreEqual(0, targets.Calls);
+        controller.Dispose();
+        controller.Dispose();
+        Assert.AreEqual(1, teams.Disposals);
+        Assert.AreEqual(0, registry.GetCommands().Count);
+    }
+
+    [TestMethod]
+    public void CollisionDisposesOwnedCssHandler()
+    {
+        var registry = new CommandRegistry(new AllowAllPermissions());
+        registry.Register(new ModuleId("collision"), new CommandDescriptor("anoswap", "occupied"),
+            _ => ValueTask.FromResult(CommandResult.Ok()));
+        var teams = new FakeTeams();
+        Assert.ThrowsExactly<InvalidOperationException>(() => CreateController(registry, out _, out _, teams));
+        Assert.AreEqual(1, teams.Disposals);
+        CollectionAssert.AreEqual(new[] { "anoswap" }, registry.GetCommands().Select(x => x.Name).ToArray());
+    }
+
+    private sealed class FakeTeams : ITeamAdministrationCommandHandler
+    {
+        public bool HasFlag { get; set; }
+        public int Disposals { get; private set; }
+        public (ExtendedInventoryTeamOperation, PlayerId?, string, string?) Last { get; private set; }
+        public ValueTask<CommandResult> ExecuteAsync(ExtendedInventoryTeamOperation operation, PlayerId? actor,
+            string selector, string? requestedTeam, CancellationToken cancellationToken = default)
+        {
+            Last = (operation, actor, selector, requestedTeam);
+            return ValueTask.FromResult(CssTeamAdministrationPolicy.Authorize(HasFlag) ?? CommandResult.Ok());
+        }
+        public void Dispose() => Disposals++;
+    }
+
     private static ExtendedInventoryTeamCommandController CreateController(
         IAnoCommandRegistry registry,
         out RecordingTransport transport,
-        out FakeTargets targets)
+        out FakeTargets targets,
+        ITeamAdministrationCommandHandler? teams = null)
     {
         transport = new RecordingTransport();
         targets = new FakeTargets(
@@ -121,7 +175,8 @@ public sealed class ExtendedInventoryTeamCommandControllerTests
                 targets,
                 new EmptyPlayerRegistry(),
                 new AllowAllPermissions(),
-                transport));
+                transport),
+            teams);
     }
 
     private static PlayerSnapshot Player() => new(

@@ -952,3 +952,7 @@ No known code-review blocker remains. Actual CS2 voice routing still requires di
 Do not create duplicate moderation caches, stores, player registries or permission systems. High-frequency communication enforcement must use shared warmed snapshots. Voice overrides must be session-safe and ownership-aware. Engine work must stay on the server thread where required.
 
 License, NOTICE and source provenance must remain intact.
+
+### CSS-owned individual team administration (#345)
+
+`anoteam`/`anoswap` now use the dedicated CSS `@anocore/team` flag, CSS targets/immunity and current-session engine writes. Other AnoCore permissions remain separate. Existing server developer/host groups need the flag appended; see [team administration](extended-inventory-team-admin.md). No MatchZy aliases or global side swaps are registered, and its roster handlers can restore a locked roster. Native CS2/DatHost acceptance is intentionally outstanding; no release, deployment or live config write occurred.
