@@ -31,6 +31,10 @@ public sealed class NativeChatRouter
     private readonly Func<DateTimeOffset> _clock;
     private readonly Action<Exception>? _reportError;
 
+    // Called only after moderation and exact-session snapshot validation. Native adapters
+    // may supply a bounded in-memory group lookup; no async IO belongs here.
+    public Func<PlayerSnapshot, string?>? RolePrefix { get; init; }
+
     public NativeChatRouter(
         Func<PlayerId, ChatInterceptionDecision> moderation,
         IPlayerRegistry players,
@@ -91,6 +95,17 @@ public sealed class NativeChatRouter
             .Select(player => player.Id)
             .Distinct()
             .ToArray();
+
+        try
+        {
+            formatted = string.Concat(RolePrefix?.Invoke(sender), formatted);
+        }
+        catch (Exception exception)
+        {
+            try { _reportError?.Invoke(exception); }
+            catch { }
+            return NativeChatRoute.Suppress;
+        }
 
         var route = new NativeChatRoute(true, formatted, recipients);
         Notify(sender, message!, isTeamMessage);

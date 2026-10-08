@@ -1,0 +1,12 @@
+{
+  "Enabled": true,
+  "DefaultTag": { "Text": "[ANOMEME]", "Color": "Green" },
+  "Groups": [
+    { "Group": "#css/admin", "Priority": 400, "Tag": { "Text": "[ADMIN]", "Color": "LightRed" } },
+    { "Group": "#css/dev", "Priority": 300, "Tag": { "Text": "[DEV]", "Color": "Yellow" } },
+    { "Group": "#css/host", "Priority": 200, "Tag": { "Text": "[HOST]", "Color": "Purple" } },
+    { "Group": "#css/og", "Priority": 100, "Tag": { "Text": "[OG]", "Color": "DarkBlue" } },
+    { "Group": "#css/normal", "Priority": 0, "Tag": { "Text": "[ANOMEME]", "Color": "Green" } }
+  ],
+  "PlayerOverrides": {}
+}
