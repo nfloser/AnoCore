@@ -2,6 +2,11 @@
 
 AnoCore authorization is independent from CounterStrikeSharp and gameplay modules. Commands and modules depend on `IAuthorizationService`; persistence is provided through `IAuthorizationStore` backed by the core module-data store.
 
+Native [role chat prefixes](role-chat-tags.md) read existing CSS group assignments
+for display only. Copying CSS `admins.json`/`admin_groups.json` preserves CSS/MatchZy
+configuration, but does not grant AnoCore `ano.*` permissions. Neither a chat tag
+nor `@css/root` bypasses this independent authorization policy.
+
 ## Model
 
 - `RoleId` identifies a role/group.

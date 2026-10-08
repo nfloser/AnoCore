@@ -31,6 +31,7 @@ The integration candidate includes the shared runtime plus the currently code-co
 - persistent playtime, kill/death/assist statistics, deterministic toplists and configurable ranks;
 - audited rank point administration, rank transition notifications and rank/menu views;
 - warmed native chat formatting, colors, rank/tag placeholders and permission-gated selectable tags;
+- optional exact-CSS-group chat prefixes and personal display overrides; migration/configuration in `role-chat-tags.md`, with CSS and AnoCore permission boundaries unchanged;
 - self-service player toggle commands/menu;
 - persisted tournament match recovery plus session-safe roster team assignment enforcement;
 - AnoVeto using the Panorama CustomHud path plus live veto/map configuration reloads;

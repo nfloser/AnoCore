@@ -18,6 +18,11 @@ Each template must contain `{player.name}` and `{message}` exactly once, contain
 
 ## Tag ownership and priority
 
+Optional native CSS role prefixes are configured separately in `role-chat-tags.json`;
+see [role-chat-tags.md](role-chat-tags.md) for the backup-matched example, Founder
+override, file migration and authorization boundaries. They precede the formatted
+line and do not replace or grant access to the shared `chat.tag` slot.
+
 Modules register `chat.tag` providers with distinct integer priorities. The highest-priority provider that returns a value owns the displayed tag. Returning `null` means “not applicable” and falls back to the next provider; returning an empty string intentionally suppresses all lower-priority tags. The rank module owns priority `0`, leaving positive priorities for administrative, permission or temporary tags and negative priorities for fallbacks.
 
 Equal priorities are rejected, as is mixing exclusive and prioritized ownership for one placeholder. Disposing a registration or unloading its owner reveals the next applicable provider without disturbing other owners. Tag providers are evaluated while warming a session snapshot, never in the synchronous native chat hook.

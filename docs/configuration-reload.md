@@ -20,6 +20,7 @@ When AnoVeto starts enabled, it registers `anoveto` and `maps` with the shared r
 | --- | --- |
 | `chat-format` | `anoreloadconfig chat-format`: templates and colors publish together; stale prepared chat is immediately rejected and connected-player snapshots rebuild on the next one-second tick. Ordinary chat remains available while warming. |
 | `chat-tags` | `anoreloadconfig chat-tags`: validated tag IDs/text/permissions replace one compiled catalog. Selection and old menu callbacks check the current catalog. Removed selections fall back to rank tags; cached chat is immediately rejected, then rebuilt on the next one-second tick. |
+| `role-chat-tags` | `anoreloadconfig role-chat-tags`: enabled switch, exact CSS-group priorities, personal display overrides and fallback replace one immutable policy. Applies to the next formatted ordinary chat message; no permission mutation or snapshot rebuild. CSS admin/group files must separately be loaded by CSS. |
 | `playtime-notifications` | `anoreloadconfig playtime-notifications`: enabled/interval apply at the next durable checkpoint. Existing last-attempt timestamps and player opt-outs remain; no totals change. |
 | `anoveto`, `maps` | Active AnoVeto registration only; next vote gets the accepted snapshot. Current vote stays pinned; activation requires restart. |
 | `gameplay-xp` | Active module only; rewards, caps and policy version apply to the next checkpoint. Enabled, checkpoint interval and earn-start changes are rejected and require restart. Earned grants are never rescored. |

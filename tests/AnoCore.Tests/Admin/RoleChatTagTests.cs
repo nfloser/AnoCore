@@ -10,6 +10,20 @@ public sealed class RoleChatTagTests
     private static readonly PlayerId Player = new(76561198000015001);
 
     [TestMethod]
+    public void BackupExampleUsesExistingGroupsAndColorsWithoutPublishingPlayerIdentities()
+    {
+        var configuration = System.Text.Json.JsonSerializer.Deserialize<RoleChatTagConfiguration>(
+            File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "server-profile", "role-chat-tags.json")))!;
+        Assert.IsEmpty(RoleChatTagConfiguration.Validate(configuration));
+        Assert.IsEmpty(configuration.PlayerOverrides);
+        var policy = RoleChatTagPolicy.Compile(configuration);
+        Assert.AreEqual("\x0F[ADMIN]\x01 ", policy.Resolve(Player, ["#css/admin", "#css/host"], PlayerTeam.Unknown));
+        Assert.AreEqual("\x0E[HOST]\x01 ", policy.Resolve(Player, ["#css/host"], PlayerTeam.Unknown));
+        Assert.AreEqual("\x0C[OG]\x01 ", policy.Resolve(Player, ["#css/og"], PlayerTeam.Unknown));
+        Assert.AreEqual("\x04[ANOMEME]\x01 ", policy.Resolve(Player, ["#css/normal"], PlayerTeam.Unknown));
+    }
+
+    [TestMethod]
     public void GroupsUseExactMembershipAndStablePriorityRegardlessOfInputOrder()
     {
         var configuration = Enabled();

@@ -1,0 +1,129 @@
+# Rollen und Custom-Tags
+
+AnoCore liest für Chatpräfixe die **tatsächlich zugewiesenen CounterStrikeSharp-Gruppen**.
+K4-Zenith wird dafür nicht benötigt. Die Anzeige verändert keine Gruppen, Flags,
+Immunitäten oder AnoCore-Berechtigungen.
+
+## Dateien vom alten auf den neuen Server
+
+Die Pfade sind jeweils relativ zum CS2-Verzeichnis `game/csgo`:
+
+| Vom alten Server | Auf dem neuen Server | Inhalt |
+| --- | --- | --- |
+| `addons/counterstrikesharp/configs/admins.json` | derselbe Pfad | SteamID-Zuordnungen, Gruppen und direkte CSS-Flags |
+| `addons/counterstrikesharp/configs/admin_groups.json` | derselbe Pfad | CSS-Gruppen, Flags und Immunität |
+| `addons/counterstrikesharp/configs/admin_overrides.json`, **falls vorhanden** | derselbe Pfad | CSS-Befehlsüberschreibungen; im bereitgestellten Backup liegt nur eine Beispieldatei |
+| `cfg/MatchZy/admins.json` | derselbe Pfad, wenn MatchZy weiter genutzt wird | separate MatchZy-Adminliste; auch sie kann Befehlszugriff erlauben |
+| `addons/counterstrikesharp/plugins/K4-Zenith-CustomTags/tags.json` | **nicht direkt kopieren** | in die unten beschriebene AnoCore-Konfiguration übertragen |
+
+Vorhandene Zieldateien sichern und Zuordnungen gezielt zusammenführen, wenn sie
+bereits andere Admins enthalten. K4-DLLs, Zenith-Modulkonfigurationen und
+`predefined_tags.json` werden für diese Funktion nicht benötigt. `core.json`,
+DB-Zugangsdaten und MultiAddonManager-Einstellungen gehören nicht zu diesem Schritt.
+Nach Änderung der CSS-Dateien ist ein Serverneustart der verlässliche gemeinsame
+Anwendungspunkt. Die von CSS geladene Adminliste ist entscheidend, nicht allein
+der Inhalt einer noch nicht neu geladenen Datei.
+
+## AnoCore aktivieren
+
+Konfiguration: `addons/counterstrikesharp/plugins/AnoCore/config/role-chat-tags.json`.
+Beim ersten Start wird eine deaktivierte Konfiguration erzeugt (`Enabled: false`).
+Das geprüfte Beispiel liegt unter
+[`examples/server-profiles/anomeme/role-chat-tags.json`](../examples/server-profiles/anomeme/role-chat-tags.json).
+Es übernimmt die Gruppen, Texte und Farben des hochgeladenen Backups; Zeniths
+`MAGENTA` wird auf den vorhandenen nativen Farbwert `Purple` abgebildet.
+
+Diese optionale Datei **separat** übernehmen und prüfen. Das bestehende Offlinewerkzeug
+`tools/prepare_anomeme_profile.py` bereitet weiterhin die sieben Punkte-/Progressionsdateien
+vor und importiert weder Adminzuordnungen noch persönliche Tags.
+
+| Zuordnung | Präfix | Farbe | Priorität |
+| --- | --- | --- | --- |
+| persönliche Anzeigeüberschreibung | z. B. `[FOUNDER]` | z. B. `Red` | vor allen Gruppen |
+| `#css/admin` | `[ADMIN]` | `LightRed` | 400 |
+| `#css/dev` | `[DEV]` | `Yellow` | 300 |
+| `#css/host` | `[HOST]` | `Purple` | 200 |
+| `#css/og` | `[OG]` | `DarkBlue` | 100 |
+| `#css/normal` | `[ANOMEME]` | `Green` | 0 |
+| keine passende Gruppe | `[ANOMEME]` | `Green` | Standard |
+
+Mehrere Gruppen: die höchste Priorität gewinnt. Gruppennamen werden exakt und
+unter Beachtung der Groß-/Kleinschreibung verglichen. Root-Flags bedeuten hier
+keine zusätzliche Gruppenmitgliedschaft. Gleiche Prioritäten und doppelte Gruppen
+werden abgewiesen. Maximal 32 Gruppen und 32 persönliche Überschreibungen, Prioritäten
+zwischen -1000 und 1000, Texte mit 1–24 druckbaren Zeichen ohne Steuerzeichen oder
+geschweifte Klammern. Farben siehe [Chatformatierung](chat-formatting.md).
+
+Im Backup ist `[FOUNDER]` ein persönlicher Tag, keine eigene CSS-Gruppe. Trage die
+zugehörige SteamID64 aus deiner alten privaten `tags.json` als Schlüssel unter
+`PlayerOverrides` ein; der Wert ist `{ "Text": "[FOUNDER]", "Color": "Red" }`.
+Das öffentliche Beispiel enthält bewusst keine Spieleridentitäten. Alternativ
+kannst du eine echte Gruppe wie `#css/founder` in CSS definieren, ihr den Spieler
+zuordnen und eine Tagregel mit höherer Priorität konfigurieren. Eine rein optische
+Founder-Gruppe braucht keine zusätzlichen Flags.
+
+`DefaultTag: null` unterdrückt das Standardpräfix; `Enabled: false` deaktiviert alle
+Rollenpräfixe einschließlich persönlicher Überschreibungen. Alle Änderungen sind
+mit `css_anoreloadconfig role-chat-tags` in der Serverkonsole neu ladbar.
+Für den Chatbefehl benötigen Spieler `ano.core.reload`. Ungültige Änderungen lassen
+die letzte akzeptierte Konfiguration aktiv. Bereits geladene CSS-Gruppenänderungen
+wirken beim nächsten gewöhnlichen Chatbeitrag ohne Reconnect; es gibt keinen
+zusätzlichen Tag-Cache und keine Datenbankabfrage im nativen Chat-Hook.
+
+Das Rollenpräfix steht vor dem bestehenden Chatformat. Ränge und selbst gewählte
+Tags können weiterhin separat angezeigt werden und überschreiben die Rollenanzeige
+nicht. Für die schlichte Anzeige wie auf dem alten Server kannst du in
+`chat-format.json` die Vorlagen auf `{player.name}: {message}` und
+`(TEAM) {player.name}: {message}` setzen und `css_anoreloadconfig chat-format`
+ausführen. Namen/Nachrichten bleiben untrusted Daten: native Farbcodes werden
+entfernt, Platzhalter darin nicht ausgewertet. Farben der Rollenpräfixe werden
+vor dem restlichen Chatformat zurückgesetzt. Moderation, Teamempfänger und
+`!`-/`/`-Command-Weiterleitung bleiben im gemeinsamen Chatpfad.
+
+Nur wenn der gemeinsame Chat-Formatter erfolgreich geladen ist, werden Rollenpräfixe
+ausgegeben. Fehler beim Laden dieser optionalen Tagkonfiguration werden isoliert
+protokolliert und schalten keine anderen Module ab.
+
+## Rechte für Mapwechsel und Administration
+
+Die Gruppen aus dem Backup enthalten für Host und Dev `@css/map`,
+`@css/changemap` und `@css/config`; Admin hat `@css/root`. OG/Normal erhalten
+keine solchen Flags. Diese Definitionen beim Übertragen erhalten.
+MatchZys `.map` prüft in der referenzierten Implementierung `css_map`/`@css/map`;
+zusätzliche MatchZy-Adminlisten, Overrides und ihre Konfiguration können den Zugriff
+ebenfalls beeinflussen. Insbesondere `matchzy_everyone_is_admin` darf für diese
+Zugriffstrennung nicht aktiviert sein; Einträge ohne Flags in MatchZys eigener
+Adminliste erlauben in der referenzierten Version Vollzugriff. Prüfe deshalb Host, Dev/Admin **und** einen normalen Spieler
+mit der tatsächlich installierten MatchZy-Version. Das Tagsystem registriert keinen
+eigenen `.map`-Befehl und kann diese Fremdplugin-Zugriffe nicht beschränken.
+
+**AnoCore-eigene Befehle verwenden weiterhin das bestehende `ano.*`-Modell.**
+CSS-Dateien zu kopieren vergibt beispielsweise noch kein `ano.admin.kick` oder
+`ano.core.reload`. Dafür gelten die dokumentierten AnoCore-Rollen-/Grant-Befehle
+und deren Audit-/Immunitätsregeln in [authorization.md](authorization.md).
+Es gibt keine automatische Übertragung von `@css/root` in `ano.*`-Vollzugriff.
+Ein `[ADMIN]`-/`[HOST]`-/`[FOUNDER]`-Tag ist niemals ein Berechtigungsnachweis.
+
+## Native Abnahme
+
+Automatisierte Tests prüfen Prioritäten, persönliche/Standardpräfixe, deaktivierten
+Modus, Validierung, atomaren Reload, echte Format-/Teamrouting-Integration und
+Lookupfehler. Zusätzlich auf einem Testserver prüfen:
+
+1. Ohne K4-Zenith: Admin/Dev/Host/OG/Normal verbinden und Tags/Farben vergleichen.
+2. Zwei Gruppen zuweisen, Founder-Überschreibung ergänzen und wieder entfernen.
+3. CSS-Zuordnung tatsächlich neu laden; sofort neuen Chat senden und Entzug prüfen.
+4. Teamchat mit zwei Teams: genau eine Zeile, keine gegnerischen Empfänger.
+5. Gag/Command-Weiterleitung, Namen mit Steuerzeichen, ungültigen Reload,
+   `Enabled: false`, Reconnect, Plugin-Unload und Neustart prüfen.
+6. Separat `.map <Workshop-ID>` als Host und als Normal prüfen; AnoCore-Adminbefehle
+   ohne/mit explizitem `ano.*`-Grant prüfen. Tagkonfiguration darf Rechte nie ändern.
+
+Die CS2-/DatHost-Abnahme wurde in der Implementierungssitzung nicht durchgeführt.
+
+## Quellen
+
+- [CSS-Gruppen und Zuordnungen](https://docs.cssharp.dev/docs/admin-framework/defining-admin-groups.html)
+- [CSS-Flags](https://docs.cssharp.dev/docs/admin-framework/defining-admins.html)
+- [CSS AdminGroup: Root-Semantik von PlayerInGroup](https://github.com/roflmuffin/CounterStrikeSharp/blob/main/managed/CounterStrikeSharp.API/Modules/Admin/AdminGroup.cs)
+- [MatchZy Mapwechsel](https://github.com/shobhit-pathak/MatchZy/blob/dev/Utility.cs)

@@ -1,3 +1,16 @@
+## CSS role chat prefixes (#344)
+
+Optional role-chat-tags.json reads actual CSS groups in the existing server-thread
+chat route; never use PlayerInGroup for display because root privileges imply
+other memberships. Exact group names, unique bounded priorities, private Founder
+display override and fallback are compiled into immutable reloadable policy.
+Prefix colors reset; existing snapshot/session, moderation, command and team routing
+remain authoritative. No CSS flags/immunity mutation, permission bridge or K4 dependency.
+Default disabled; sanitized enabled example matches backup group tags/colors.
+Read docs/role-chat-tags.md for exact migration paths, independent ano.* authority,
+MatchZy caveats and manual native acceptance. Offline progression preparation still
+handles its seven files and does not import admin assignments/identities.
+
 ## Backup-matched operator profile (#338)
 
 Seven sanitized JSON templates and offline preparation tooling preserve the
