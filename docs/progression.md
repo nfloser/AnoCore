@@ -1043,3 +1043,29 @@ Acceptance: on CS2/DatHost verify a matching AK headshot, AWP no-scope and combi
 smoke/map condition advance; wrong weapon/map/team, unmatched booleans, old context-
 less facts, team/self kills and out-of-window events do not. Reconnect/restart and
 retry confirm one reward; existing ranks and action points remain unchanged.
+
+
+### Native fact coverage for server-configured progression (#340)
+
+Native enemy kills now emit the existing GrenadeKill, InfernoKill, ImpactKill,
+KnifeKill and TaserKill gameplay facts using the same weapon-family classifier
+as live rank scoring. Ordinary gun kills do not invent a weapon-family statistic;
+use CombatKills with weapon predicates for those missions. Victim identity enters
+the stable stat event ID so retries cannot duplicate progress. Team/self kills
+remain excluded. Facts are recorded directly, without replaying the live-rank
+weapon bonus.
+
+Bomb pickup/drop and hostage hurt now record gameplay facts through their native
+handlers as well as the existing independent rank path. Bomb explosion, other
+CT players on defuse and all-hostages-rescued emit eligible connected-team facts;
+the defuser is excluded from BombDefusedOthers. Those team objectives are excluded
+in FFA. Existing eligibility (warmup/minimum human players) still gates statistics.
+The new facts enable configured XP, achievements and challenges; they do not
+change configured competitive points. Existing rank team/objective awards retain
+their prior single path. No migration or retroactive generation occurs.
+
+PlaytimeInterval is currently a rank-only native policy interval; it is not a
+periodic progression gameplay fact. Leave its GameplayXp weight at zero. Actual
+playtime totals remain tracked separately. Native acceptance: one knife/taser/
+grenade-family enemy kill and one of each supported objective advances configured
+statistics/XP once, while live rank receives its existing award exactly once.
