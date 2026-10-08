@@ -40,6 +40,55 @@ public sealed class ChatMessageFormatterTests
     }
 
     [TestMethod]
+    public async Task ExternalCommandPolicyReloadsAtomicallyAndInvalidCandidateKeepsPreviousNames()
+    {
+        var store = new JsonConfigStore(_root);
+        var reloads = new ConfigReloadRegistry();
+        using var formatter = await ChatMessageFormatter.CreateAsync(store, new PlaceholderRegistry(), reloads: reloads);
+        Assert.IsTrue(formatter.IsPassthroughCommand(".map 123456789"));
+        var next = ChatFormatConfiguration.Default;
+        next.PassthroughCommands = [".custom"];
+        await store.SaveAsync("chat-format", next);
+        await reloads.ReloadAsync("chat-format");
+        Assert.IsFalse(formatter.IsPassthroughCommand(".map 123456789"));
+        Assert.IsTrue(formatter.IsPassthroughCommand(".CUSTOM argument"));
+        Assert.IsFalse(formatter.IsPassthroughCommand(".customx"));
+        next.PassthroughCommands = [".map", ".map;quit"];
+        await store.SaveAsync("chat-format", next);
+        await Assert.ThrowsAsync<Exception>(async () => await reloads.ReloadAsync("chat-format"));
+        Assert.IsTrue(formatter.IsPassthroughCommand(".custom"));
+        Assert.IsFalse(formatter.IsPassthroughCommand(".map 123456789"));
+    }
+
+    [TestMethod]
+    [DataRow(".map argument")]
+    [DataRow("map")]
+    [DataRow(".map;quit")]
+    [DataRow(".")]
+    [DataRow(".1map")]
+    public void ExternalCommandPolicyRejectsNonTokens(string command)
+    {
+        var configuration = ChatFormatConfiguration.Default;
+        configuration.PassthroughCommands = [command];
+        Assert.IsNotEmpty(ChatFormatConfiguration.Validate(configuration));
+    }
+
+    [TestMethod]
+    public void ExternalCommandPolicyRejectsNullDuplicateAndOversizedCatalogsButCanBeDisabled()
+    {
+        var configuration = ChatFormatConfiguration.Default;
+        configuration.PassthroughCommands = null!;
+        Assert.IsNotEmpty(ChatFormatConfiguration.Validate(configuration));
+        configuration.PassthroughCommands = [".map", ".MAP"];
+        Assert.IsNotEmpty(ChatFormatConfiguration.Validate(configuration));
+        configuration.PassthroughCommands = Enumerable.Range(0, 65).Select(index => $".cmd{index}").ToList();
+        Assert.IsNotEmpty(ChatFormatConfiguration.Validate(configuration));
+        configuration.PassthroughCommands = [];
+        Assert.IsEmpty(ChatFormatConfiguration.Validate(configuration));
+        Assert.IsFalse(configuration.IsPassthroughCommand(".map 123456789"));
+    }
+
+    [TestMethod]
     public async Task Format_LegacyRankTagUsesPrioritizedChatTag()
     {
         var store = new JsonConfigStore(_root);

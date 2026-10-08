@@ -1,3 +1,14 @@
+## External dot-command routing (#347)
+
+The existing say rewrite could suppress MatchZy's EventPlayerChat dispatch for
+.map/.ready commands. Chat-format PassthroughCommands now forwards a bounded exact
+dot-token allow-list before moderation/snapshots/tags/events; CSS/MatchZy retain all
+execution and authorization. Unknown dot text remains moderated. Default core
+map/practice/ready/pause/side tokens, empty opt-out, validated live reload and
+formatter-failure default fallback are documented in chat-formatting.md.
+Native listener ordering, no duplicate dispatch and permit/deny still require CS2.
+Role tags PR #346 merged with CI #788: all 1037 tests and packaging gates green.
+
 ## CSS role chat prefixes (#344)
 
 Optional role-chat-tags.json reads actual CSS groups in the existing server-thread

@@ -97,6 +97,13 @@ Adminliste erlauben in der referenzierten Version Vollzugriff. Prüfe deshalb Ho
 mit der tatsächlich installierten MatchZy-Version. Das Tagsystem registriert keinen
 eigenen `.map`-Befehl und kann diese Fremdplugin-Zugriffe nicht beschränken.
 
+Der gemeinsame Chatpfad reicht die exakt konfigurierten Punktbefehle durch,
+anstatt sie mit Tags neu auszugeben. `chat-format.json` enthält dafür
+`PassthroughCommands`, standardmäßig `.map`, `.prac`, `.ready`, `.unready`, `.pause`,
+`.unpause`, `.stay`, `.switch`. Weitere verwendete MatchZy-Befehle gezielt ergänzen
+und `css_anoreloadconfig chat-format` ausführen; Details und Grenzen stehen in
+[chat-formatting.md](chat-formatting.md). Das Durchreichen erteilt keine Rechte.
+
 **AnoCore-eigene Befehle verwenden weiterhin das bestehende `ano.*`-Modell.**
 CSS-Dateien zu kopieren vergibt beispielsweise noch kein `ano.admin.kick` oder
 `ano.core.reload`. Dafür gelten die dokumentierten AnoCore-Rollen-/Grant-Befehle

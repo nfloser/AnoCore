@@ -35,6 +35,8 @@ public sealed class NativeChatRouter
     // may supply a bounded in-memory group lookup; no async IO belongs here.
     public Func<PlayerSnapshot, string?>? RolePrefix { get; init; }
 
+    public Func<string, bool>? IsExternalCommand { get; init; }
+
     public NativeChatRouter(
         Func<PlayerId, ChatInterceptionDecision> moderation,
         IPlayerRegistry players,
@@ -59,7 +61,7 @@ public sealed class NativeChatRouter
         ArgumentNullException.ThrowIfNull(senderId);
 
         var input = message?.TrimStart() ?? string.Empty;
-        if (input.StartsWith('!') || input.StartsWith('/'))
+        if (input.StartsWith('!') || input.StartsWith('/') || IsExternalCommand?.Invoke(input) == true)
             return NativeChatRoute.PassThrough;
 
         if (string.IsNullOrWhiteSpace(input))
