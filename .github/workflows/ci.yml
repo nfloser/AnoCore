@@ -179,6 +179,9 @@ jobs:
           fi
           cp LICENSE.md NOTICE.md artifacts/
           cp docs/deployment.md artifacts/INSTALL.md
+          cp -R docs artifacts/docs
+          cp docs/quick-install.de.md artifacts/QUICK-INSTALL.de.md
+          cp docs/steam-addon.de.md artifacts/STEAM-ADDON.de.md
           mkdir -p artifacts/ui
           cp -R ui/AnoCore artifacts/ui/AnoCore
           git rev-parse HEAD > artifacts/BUILD-COMMIT.txt
