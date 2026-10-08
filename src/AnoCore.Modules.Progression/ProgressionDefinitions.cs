@@ -24,7 +24,10 @@ public sealed record XpBoostDefinition(
     DateTimeOffset StartsAtUtc,
     DateTimeOffset EndsAtUtc,
     decimal Multiplier,
-    ProgressionXpSourceMask EligibleSources = ProgressionXpSourceMask.Gameplay);
+    ProgressionXpSourceMask EligibleSources = ProgressionXpSourceMask.Gameplay)
+{
+    public string? Name { get; init; }
+}
 
 public sealed record XpBoostResolution(string? BoostId, decimal Multiplier);
 
@@ -105,6 +108,9 @@ public sealed class ProgressionDefinitionSnapshot
                 throw new ArgumentException(
                     "XP boost IDs must contain 1-64 printable characters without surrounding whitespace.",
                     nameof(boosts));
+            if (boost.Name is not null && (string.IsNullOrWhiteSpace(boost.Name) || boost.Name.Length > 128
+                || boost.Name != boost.Name.Trim() || boost.Name.Any(char.IsControl)))
+                throw new ArgumentException($"Boost '{boost.Id}'.Name requires 1-128 printable characters.", nameof(boosts));
             if (!identifiers.Add(boost.Id))
                 throw new ArgumentException("XP boost IDs must be unique.", nameof(boosts));
             if (boost.StartsAtUtc.Offset != TimeSpan.Zero || boost.EndsAtUtc.Offset != TimeSpan.Zero)

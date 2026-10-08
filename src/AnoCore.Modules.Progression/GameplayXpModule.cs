@@ -110,7 +110,7 @@ public sealed class GameplayXpModule : IDisposable
         var progress = next is null ? "Highest configured level reached" : string.Create(CultureInfo.InvariantCulture,
             $"{next.MinimumXp - state.LifetimeXp} XP to level {next.Level}");
         return CommandResult.Ok(string.Create(CultureInfo.InvariantCulture,
-            $"Level {state.Level.Level} | Lifetime XP: {state.LifetimeXp} | {progress} | Gameplay XP boost: {boost.Multiplier:0.####}x ({boost.BoostId ?? "none"}) at {at:yyyy-MM-dd HH:mm} UTC. Independent from rank points."));
+            $"Level {state.Level.Level} | Lifetime XP: {state.LifetimeXp} | {progress} | Gameplay XP boost: {boost.Multiplier:0.####}x ({_definitions.Boosts.FirstOrDefault(item => item.Id == boost.BoostId)?.Name ?? boost.BoostId ?? "none"}) at {at:yyyy-MM-dd HH:mm} UTC. Independent from rank points."));
     }
 
     private bool TryGetPolicy(out GameplayXpPolicy policy)
