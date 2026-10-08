@@ -14,7 +14,7 @@ Map start, map end and plugin unload discard the reference and the retry marker.
 All native access stays on the game thread. Existing missing-state defaults are
 preserved: ranks assume warmup, gameplay statistics assume non-warmup.
 
-The unit load fixture reads 10,001 times, changes warmup in the same tick and
+The unit load fixture reads 10,002 times, changes warmup in the same tick and
 requires only one entity lookup while the entity remains valid. It establishes
 lookup reduction, not measured native frame-time improvement.
 

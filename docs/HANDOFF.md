@@ -9,8 +9,11 @@
 - Combat write batching, mission predicates, Workshop images and battlepass are
   still open; historical completion below predates these scope additions.
 - Existing personal-dashboard work belongs to #322; preserve concurrent work.
-- Build/tests/format and exact-head CI gate merging this package. Native CS2
-  profiling and acceptance have not been run in this session.
+- PR #333: Release solution build passed (zero warnings/errors), all six new
+  cache tests passed, whitespace validation and plugin publish passed. Full local
+  suite: 833 passed, 155 skipped without MariaDB; six Named Pipe tests and
+  semantic formatting are blocked by local socket permissions. Exact-head CI
+  gates merge. Native CS2 profiling and acceptance have not been run here.
 
 # Remaining implementation packages completed — 2026-10-08
 
