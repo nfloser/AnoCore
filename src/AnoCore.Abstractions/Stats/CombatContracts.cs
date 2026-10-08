@@ -24,6 +24,7 @@ public sealed record CombatDeath
     public PlayerId? AssisterId { get; }
     public DateTimeOffset OccurredAtUtc { get; }
     public bool IsTeamKill { get; }
+    public CombatDeathContext? Context { get; init; }
 }
 
 public sealed record CombatTotals(long Kills, long Deaths, long Assists);

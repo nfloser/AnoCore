@@ -29,7 +29,7 @@ public sealed class MySqlChallengeRepositoryTests
         if (string.IsNullOrWhiteSpace(connection)) Assert.Inconclusive("ANOCORE_TEST_MYSQL is not configured.");
         _database = new MySqlDatabase(connection!);
         await DropAsync();
-        await new MigrationRunner(_database, [new CombatSchemaMigration006(), new CombatDetailSchemaMigration009(), new GameplayStatSchemaMigration010()]).ApplyPendingAsync();
+        await new MigrationRunner(_database, [new CombatSchemaMigration006(), new CombatDetailSchemaMigration009(), new GameplayStatSchemaMigration010(), new CombatDeathContextSchemaMigration020()]).ApplyPendingAsync();
         await ProgressionPersistenceBootstrap.EnsureReadyAsync(_database);
     }
 
@@ -368,6 +368,80 @@ public sealed class MySqlChallengeRepositoryTests
         Assert.AreEqual(20L, (await Repository.ReadAsync(Player, catalog, definition.Id, Start)).Progress);
     }
 
+    [TestMethod]
+    public async Task NativeKillPredicatesUseCommittedContextCombineAndExcludeLegacyUnknownEvidence()
+    {
+        var definition = Daily("awp-specialist", target: 2) with
+        {
+            CounterSource = ChallengeCounterSource.CombatKills,
+            Predicates = new()
+            {
+                Maps = ["de_mirage"],
+                Weapons = ["awp"],
+                Headshot = true,
+                NoScope = true,
+                ThroughSmoke = true,
+                AttackerBlind = false,
+                PenetrationMinimum = 1,
+                DistanceMinimumMeters = 30,
+                DistanceMaximumMeters = 50,
+                AttackerTeams = [PlayerTeam.CounterTerrorist],
+            },
+        };
+        var catalog = ChallengeCatalogSnapshot.Create([definition]);
+        var combat = new MySqlCombatRepository(_database);
+        var victim = new PlayerId(Player.SteamId64 + 1);
+        CombatDeathContext Context(string map = "de_mirage", string weapon = "awp", bool headshot = true,
+            bool noScope = true, bool smoke = true, int penetrations = 1, decimal? distance = 30,
+            PlayerTeam team = PlayerTeam.CounterTerrorist, bool blind = false)
+            => new(map, weapon, team, headshot, noScope, smoke, penetrations, distance, blind);
+        async Task RecordDeath(CombatDeathContext? context, bool teamKill = false, DateTimeOffset? at = null)
+            => await combat.RecordAsync(new(Guid.NewGuid(), victim, Player, null, at ?? Start, teamKill) { Context = context });
+        var accepted = new CombatDeath(Guid.NewGuid(), victim, Player, null, Start) { Context = Context() };
+        await combat.RecordAsync(accepted);
+        await combat.RecordAsync(accepted);
+        await RecordDeath(Context(distance: 50));
+        foreach (var rejected in new[] { Context(map: "de_dust2"), Context(weapon: "ak47"), Context(headshot: false),
+            Context(noScope: false), Context(smoke: false), Context(penetrations: 0), Context(distance: 29.9999m),
+            Context(distance: 50.0001m), Context(distance: null), Context(team: PlayerTeam.Terrorist), Context(blind: true) })
+            await RecordDeath(rejected);
+        await RecordDeath(null);
+        await RecordDeath(Context(), teamKill: true);
+        await RecordDeath(Context(), at: Start.AddDays(1));
+        Assert.AreEqual(2L, (await Repository.ReadAsync(Player, catalog, definition.Id, Start)).Progress);
+        Assert.IsTrue((await Repository.CompleteAsync(Player, catalog, definition.Id, Start, Xp)).Applied);
+        Assert.IsFalse((await new MySqlChallengeRepository(_database).CompleteAsync(Player, catalog, definition.Id, Start, Xp)).Applied);
+        Assert.AreEqual(100L, (await new MySqlProgressionGrantRepository(_database).ReadLifetimeAsync(Player)).LifetimeXp);
+    }
+
+    [TestMethod]
+    public async Task NativeContextConflictAndWriteFailureAreAtomicWithDeathAndAssistFacts()
+    {
+        var combat = new MySqlCombatRepository(_database);
+        var victim = new PlayerId(Player.SteamId64 + 1);
+        var attacker = new PlayerId(Player.SteamId64 + 2);
+        var context = new CombatDeathContext("de_mirage", "ak47", PlayerTeam.Terrorist, true, false, false, 0, 10);
+        var death = new CombatDeath(Guid.NewGuid(), victim, attacker, Player, Start) { Context = context };
+        await combat.RecordAsync(death);
+        await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () =>
+            await combat.RecordAsync(death with { Context = new("de_mirage", "awp", PlayerTeam.Terrorist, true, false, false, 0, 10) }));
+        var assist = Daily("filtered-assist", target: 100) with
+        { CounterSource = ChallengeCounterSource.CombatAssists, Predicates = new() { Weapons = ["ak47"], Headshot = true } };
+        var catalog = ChallengeCatalogSnapshot.Create([assist]);
+        Assert.AreEqual(1L, (await Repository.ReadAsync(Player, catalog, assist.Id, Start)).Progress);
+        await Sql("""
+            CREATE TRIGGER fail_death_context BEFORE INSERT ON ano_combat_death_context
+            FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'test context failure'
+            """);
+        var next = new CombatDeath(Guid.NewGuid(), victim, attacker, Player, Start) { Context = context };
+        await Assert.ThrowsAsync<Exception>(async () => await combat.RecordAsync(next));
+        var unfiltered = ChallengeCatalogSnapshot.Create([assist with { Predicates = new() }]);
+        Assert.AreEqual(1L, (await Repository.ReadAsync(Player, unfiltered, assist.Id, Start)).Progress);
+        await Sql("DROP TRIGGER fail_death_context");
+        await combat.RecordAsync(next);
+        Assert.AreEqual(2L, (await Repository.ReadAsync(Player, catalog, assist.Id, Start)).Progress);
+    }
+
     private async Task Record(DateTimeOffset at, int amount, PlayerId? player = null,
         GameplayStatKind kind = GameplayStatKind.HeadshotKill)
         => await new MySqlGameplayStatRepository(_database).RecordAsync(new(Guid.NewGuid(), player ?? Player,
@@ -386,6 +460,8 @@ public sealed class MySqlChallengeRepositoryTests
         foreach (var sql in new[]
         {
             "DROP TRIGGER IF EXISTS fail_challenge_completion",
+            "DROP TRIGGER IF EXISTS fail_death_context",
+            "DROP TABLE IF EXISTS ano_combat_death_context",
             "DROP TABLE IF EXISTS ano_progression_challenges",
             "DROP TABLE IF EXISTS ano_progression_achievements",
             "DROP TABLE IF EXISTS ano_progression_season_grants",

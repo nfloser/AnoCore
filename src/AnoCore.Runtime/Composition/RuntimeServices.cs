@@ -207,7 +207,7 @@ public sealed class RuntimeServices : IServiceProvider, IDisposable
         await new DatabaseStartupProbe(
             database,
             [new CoreSchemaMigration001(), new ModerationSchemaMigration002(), new AdminAuditSchemaMigration003(), new WarningSchemaMigration004(), new PlaytimeSchemaMigration005(), new CombatSchemaMigration006(), new RankAdjustmentSchemaMigration007(), new PlaytimeStateSchemaMigration008(), new CombatDetailSchemaMigration009(), new GameplayStatSchemaMigration010(),
-             new StatisticsResetSchemaMigration011(), new RankPointEventSchemaMigration018()])
+             new StatisticsResetSchemaMigration011(), new RankPointEventSchemaMigration018(), new CombatDeathContextSchemaMigration020()])
             .EnsureReadyAsync(cancellationToken).ConfigureAwait(false);
         var runtime = new RuntimeServices(
             database,

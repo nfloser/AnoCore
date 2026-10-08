@@ -101,7 +101,7 @@ public sealed class ChallengeCatalogSnapshot
             var copy = challenge with
             {
                 PrerequisiteIds = Array.AsReadOnly(prerequisites),
-                Predicates = challenge.Predicates?.Snapshot(challenge.CounterSource)
+                Predicates = challenge.Predicates?.SnapshotFor(challenge.Id, challenge.CounterSource)
                     ?? throw new ArgumentException("Challenge predicates cannot be null."),
             };
             normalized.Add(copy);

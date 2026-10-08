@@ -10,6 +10,39 @@ public sealed class ChallengeCatalogTests
         new(2027, 1, 4, 0, 0, 0, TimeSpan.Zero);
 
     [TestMethod]
+    public void NativePredicateSnapshotsRetainBooleanFalseTeamsAndDistanceBounds()
+    {
+        var teams = new List<AnoCore.Abstractions.Players.PlayerTeam> { AnoCore.Abstractions.Players.PlayerTeam.CounterTerrorist };
+        var definition = Daily("native", GameplayStatKind.HeadshotKill, 10) with
+        {
+            CounterSource = ChallengeCounterSource.CombatKills,
+            Predicates = new()
+            {
+                Maps = ["de_mirage"],
+                Weapons = ["awp"],
+                AttackerTeams = teams,
+                Headshot = true,
+                NoScope = true,
+                ThroughSmoke = true,
+                AttackerBlind = false,
+                PenetrationMinimum = 1,
+                DistanceMinimumMeters = 30,
+                DistanceMaximumMeters = 50
+            },
+        };
+        var snapshot = ChallengeCatalogSnapshot.Create([definition]).Get("native");
+        teams.Clear();
+        Assert.AreEqual(1, snapshot.Predicates.AttackerTeams.Count);
+        Assert.AreEqual(false, snapshot.Predicates.AttackerBlind);
+        Assert.AreEqual(30m, snapshot.Predicates.DistanceMinimumMeters);
+        Assert.IsTrue(snapshot.Predicates.HasFilters);
+        Assert.ThrowsExactly<NotSupportedException>(() => ((IList<AnoCore.Abstractions.Players.PlayerTeam>)snapshot.Predicates.AttackerTeams).Clear());
+        var restored = System.Text.Json.JsonSerializer.Deserialize<ChallengeDefinition>(System.Text.Json.JsonSerializer.Serialize(snapshot))!;
+        Assert.AreEqual(snapshot.Predicates.NoScope, restored.Predicates.NoScope);
+        Assert.AreEqual(snapshot.Predicates.DistanceMaximumMeters, restored.Predicates.DistanceMaximumMeters);
+    }
+
+    [TestMethod]
     public void PredicatesAreImmutableValidatedAndPreservedByRecurringJsonSnapshots()
     {
         var maps = new List<string> { "de_dust2" };
@@ -41,7 +74,11 @@ public sealed class ChallengeCatalogTests
         void Reject(ChallengePredicates predicates, ChallengeCounterSource source = ChallengeCounterSource.GameplayStat)
             => Assert.ThrowsExactly<ArgumentException>(() => ChallengeCatalogSnapshot.Create(
                 [definition with { CounterSource = source, Predicates = predicates }]));
-        Reject(new() { Maps = ["de_dust2"] }, ChallengeCounterSource.CombatKills);
+        Reject(new() { NoScope = true });
+        Reject(new() { Headshot = true }, ChallengeCounterSource.DamageHealth);
+        Reject(new() { AttackerTeams = [AnoCore.Abstractions.Players.PlayerTeam.Unknown] }, ChallengeCounterSource.CombatKills);
+        Reject(new() { DistanceMinimumMeters = 50, DistanceMaximumMeters = 10 }, ChallengeCounterSource.CombatKills);
+        Reject(new() { PenetrationMinimum = 33 }, ChallengeCounterSource.CombatKills);
         Reject(new() { Weapons = ["ak47"] });
         Reject(new() { Hitgroups = [1] });
         Reject(new() { Maps = [" DE_DUST2 "] });

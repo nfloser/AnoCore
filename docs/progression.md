@@ -862,8 +862,8 @@ with at most 128 characters for maps and 64 for weapons. Use `ak47`, not
 | CounterSource | Value | Supported predicates |
 | --- | --- | --- |
 | GameplayStat | 0 | Maps |
-| CombatKills | 1 | None: death ledger has no map/weapon/context |
-| CombatAssists | 2 | None: death ledger has no map/weapon/context |
+| CombatKills | 1 | Maps, Weapons and native death conditions (see below) |
+| CombatAssists | 2 | Maps, Weapons and native death conditions; conditions refer to the killing attacker |
 | UtilityDamage | 3 | Maps, Weapons (utility only), Hitgroups |
 | DamageHealth | 4 | Maps, Weapons, Hitgroups |
 
@@ -907,9 +907,9 @@ version or rewards cannot pay an already completed occurrence again. Changes to
 an uncompleted occurrence re-evaluate its existing window facts under the new
 filters; define a new ID/window if separate progress is intended.
 
-Team side (T/CT), kill weapon/map, scoped/airborne/blind/distance context are not
-stored in these ledgers, so this package does not offer them or infer them from
-current player state. They require a separately designed durable event extension.
+The native death-context extension below enables weapon/map/team and supported
+kill conditions for newly recorded facts. Older deaths without context remain
+eligible only for unfiltered counters. No historical context is inferred.
 
 Native acceptance: configure one map-filtered gameplay mission and one weapon/
 hitgroup damage mission; verify other maps/weapons/hitgroups and team/self damage
@@ -974,3 +974,72 @@ Acceptance on CS2/DatHost: preserve a player's earned XP, restart once to migrat
 verify the new file copied the old curve/boosts, then change one level boundary
 and scheduled boost label and restart. Confirm unchanged XP, updated level/label,
 one-time rewards, and unchanged competitive rank points without Workshop changes.
+
+
+### Combined native kill conditions (#330 / #335)
+
+Migration 020 adds an optional death-context ledger keyed by the existing combat
+event ID. Native composition snapshots map, weapon, attacker team and the actual
+CounterStrikeSharp player_death values once on the game thread. Death and context
+commit in the same transaction; conflicting context replays roll back. The old
+CombatDeath constructor remains valid, with optional Context added for callers
+that have evidence. No automatic backfill occurs. Context-less SDK callers keep
+recording unfiltered facts. Explicit same-ID enrichment with genuine evidence is
+accepted, but changing an already stored context is rejected. Null context on a
+legacy replay does not erase evidence. Foreign keys are deliberately absent to
+retain legacy table lifecycle compatibility; queries join only existing deaths.
+
+Native source: [CounterStrikeSharp EventPlayerDeath generated API](https://github.com/roflmuffin/CounterStrikeSharp/blob/main/managed/CounterStrikeSharp.API/Generated/GameEvents/EventPlayerDeath.g.cs).
+Distance is already in meters. Finite distances in 0-10000 are stored at four
+decimal places; invalid/unavailable distance is NULL, not a guessed zero. Native
+penetration counts are bounded to 0-32. No reflection, JSON interpretation,
+predicate processing or damage recalculation runs in the gameplay handler.
+
+The Predicates object supports these additional fields for CombatKills (1) and
+CombatAssists (2): Headshot, NoScope, ThroughSmoke, AttackerBlind (optional booleans;
+false is a real constraint, omitted/null means unrestricted), PenetrationMinimum
+(0-32), DistanceMinimumMeters/DistanceMaximumMeters (inclusive 0-10000 bounds, four
+decimal places), AttackerTeams ([2] = T, [3] = CT, [2,3] = either). They combine
+with Maps and Weapons. Assist conditions describe the killing attacker's kill,
+not the assister's weapon/team. Hitgroups remain damage-only. No new conditions
+are inferred from present player state. Unknown/misspelled predicate properties
+are rejected by JSON parsing; validation errors identify the challenge ID and
+Predicates property. The bounded immutable snapshot is compiled at load/start;
+only parametrized durable reads evaluate it at checkpoints.
+
+Example in challenges.json / Recurring:
+
+```json
+{
+  "Id": "weekly.mirage-awp-specialist",
+  "Version": 1,
+  "Name": "Mirage: Scope optional",
+  "WindowKind": 1,
+  "Statistic": 16,
+  "CounterSource": 1,
+  "Target": 5,
+  "RewardXp": 250,
+  "PrerequisiteIds": [],
+  "Predicates": {
+    "Maps": ["de_mirage"],
+    "Weapons": ["awp"],
+    "NoScope": true,
+    "ThroughSmoke": true
+  }
+}
+```
+
+For AK headshots use Weapons ["ak47"], Headshot true, Target 10; for wallbangs
+use PenetrationMinimum 1. Add AttackerTeams, distance bounds or other booleans
+as needed. These are real supported JSON fields; earlier Event/Conditions/Window
+sketches were design ideas, not this schema. Use CounterSource, Predicates and
+WindowKind as above. Daily/weekly templates use Recurring; dated/season definitions
+use Predefined with StartsAtUtc/EndsAtUtc. Keep stable IDs/windows for one-time
+rewards; changing an uncompleted rule re-evaluates raw facts, not frozen progress.
+Old facts without a context row or with NULL distance do not satisfy requested
+context/distance conditions. Unfiltered counters remain backwards compatible.
+
+Acceptance: on CS2/DatHost verify a matching AK headshot, AWP no-scope and combined
+smoke/map condition advance; wrong weapon/map/team, unmatched booleans, old context-
+less facts, team/self kills and out-of-window events do not. Reconnect/restart and
+retry confirm one reward; existing ranks and action points remain unchanged.

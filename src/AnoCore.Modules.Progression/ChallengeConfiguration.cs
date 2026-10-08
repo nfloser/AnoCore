@@ -63,7 +63,7 @@ public sealed class ChallengeScheduleSnapshot
             return item with
             {
                 PrerequisiteIds = Array.AsReadOnly(prerequisites),
-                Predicates = item.Predicates?.Snapshot(item.CounterSource)
+                Predicates = item.Predicates?.SnapshotFor(item.Id, item.CounterSource)
                     ?? throw new ArgumentException("Challenge predicates cannot be null."),
             };
         }).ToArray();
