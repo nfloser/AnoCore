@@ -15,6 +15,8 @@ See [architecture](docs/architecture.md), [player lifecycle](docs/player-lifecyc
 
 ## Install and verify
 
+[Schnellinstallation: Windows + DatHost](docs/quick-install.de.md) · [Steam-Addon, Overlay und Logo](docs/steam-addon.de.md)
+
 [Deployment instructions](docs/deployment.md) explain the CI development package, prerequisites, rollback and server checks.
 
 Use `!anostatus` in chat or `css_anostatus` in the server console to confirm that the plugin responds and reports tracked humans. The command reports `starting`, `not configured`, `startup failed` or `ready` and the number of optional modules. `ready` means shared services initialized successfully, not that every gameplay feature is complete.
