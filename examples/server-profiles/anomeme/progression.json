@@ -1,0 +1,205 @@
+{
+  "Levels": [
+    {
+      "Level": 1,
+      "MinimumXp": 0
+    },
+    {
+      "Level": 2,
+      "MinimumXp": 500
+    },
+    {
+      "Level": 3,
+      "MinimumXp": 1100
+    },
+    {
+      "Level": 4,
+      "MinimumXp": 1800
+    },
+    {
+      "Level": 5,
+      "MinimumXp": 2600
+    },
+    {
+      "Level": 6,
+      "MinimumXp": 3500
+    },
+    {
+      "Level": 7,
+      "MinimumXp": 4500
+    },
+    {
+      "Level": 8,
+      "MinimumXp": 5600
+    },
+    {
+      "Level": 9,
+      "MinimumXp": 6800
+    },
+    {
+      "Level": 10,
+      "MinimumXp": 8100
+    },
+    {
+      "Level": 11,
+      "MinimumXp": 9500
+    },
+    {
+      "Level": 12,
+      "MinimumXp": 11000
+    },
+    {
+      "Level": 13,
+      "MinimumXp": 12600
+    },
+    {
+      "Level": 14,
+      "MinimumXp": 14300
+    },
+    {
+      "Level": 15,
+      "MinimumXp": 16100
+    },
+    {
+      "Level": 16,
+      "MinimumXp": 18000
+    },
+    {
+      "Level": 17,
+      "MinimumXp": 20000
+    },
+    {
+      "Level": 18,
+      "MinimumXp": 22100
+    },
+    {
+      "Level": 19,
+      "MinimumXp": 24300
+    },
+    {
+      "Level": 20,
+      "MinimumXp": 26600
+    },
+    {
+      "Level": 21,
+      "MinimumXp": 29000
+    },
+    {
+      "Level": 22,
+      "MinimumXp": 31500
+    },
+    {
+      "Level": 23,
+      "MinimumXp": 34100
+    },
+    {
+      "Level": 24,
+      "MinimumXp": 36800
+    },
+    {
+      "Level": 25,
+      "MinimumXp": 39600
+    },
+    {
+      "Level": 26,
+      "MinimumXp": 42500
+    },
+    {
+      "Level": 27,
+      "MinimumXp": 45500
+    },
+    {
+      "Level": 28,
+      "MinimumXp": 48600
+    },
+    {
+      "Level": 29,
+      "MinimumXp": 51800
+    },
+    {
+      "Level": 30,
+      "MinimumXp": 55100
+    },
+    {
+      "Level": 31,
+      "MinimumXp": 58500
+    },
+    {
+      "Level": 32,
+      "MinimumXp": 62000
+    },
+    {
+      "Level": 33,
+      "MinimumXp": 65600
+    },
+    {
+      "Level": 34,
+      "MinimumXp": 69300
+    },
+    {
+      "Level": 35,
+      "MinimumXp": 73100
+    },
+    {
+      "Level": 36,
+      "MinimumXp": 77000
+    },
+    {
+      "Level": 37,
+      "MinimumXp": 81000
+    },
+    {
+      "Level": 38,
+      "MinimumXp": 85100
+    },
+    {
+      "Level": 39,
+      "MinimumXp": 89300
+    },
+    {
+      "Level": 40,
+      "MinimumXp": 93600
+    },
+    {
+      "Level": 41,
+      "MinimumXp": 98000
+    },
+    {
+      "Level": 42,
+      "MinimumXp": 102500
+    },
+    {
+      "Level": 43,
+      "MinimumXp": 107100
+    },
+    {
+      "Level": 44,
+      "MinimumXp": 111800
+    },
+    {
+      "Level": 45,
+      "MinimumXp": 116600
+    },
+    {
+      "Level": 46,
+      "MinimumXp": 121500
+    },
+    {
+      "Level": 47,
+      "MinimumXp": 126500
+    },
+    {
+      "Level": 48,
+      "MinimumXp": 131600
+    },
+    {
+      "Level": 49,
+      "MinimumXp": 136800
+    },
+    {
+      "Level": 50,
+      "MinimumXp": 142100
+    }
+  ],
+  "Boosts": []
+}

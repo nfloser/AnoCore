@@ -76,7 +76,7 @@ remain shared configuration. `LivePolicy` has these optional controls:
 | DynamicMultipliers | false | Kill rewards use victim/attacker point ratio; death penalties use attacker/victim ratio. Each operand is at least one. |
 | MinimumDynamicMultiplier / MaximumDynamicMultiplier | 0.25 / 4; positive ordered range ≤4 | Clamp ratios; truncate final signed result toward zero. |
 | VipMultiplier / VipPermission | 1 / ano.ranks.vip; multiplier 1–10 | Permission-gated positive awards only; penalties are never VIP multiplied. Permission failures use base awards. |
-| StreakWindowSeconds / StreakPoints | 30 / empty; 1–600 s, counts 2–64, bonus 1–1000 | Consecutive eligible kills separated by strictly less than the window; each configured exact count awards its bonus once. |
+| StreakWindowSeconds / StreakPoints | 30 / empty; 0–600 s, counts 2–64, bonus 1–1000 | Zero means no time limit within the same round/session; positive values require kills separated by strictly less than the window. Each configured exact count awards its bonus once. |
 
 Death batches combine attacker/victim/valid assister rewards atomically. Supported
 special bonuses reuse GameplayPoints for first blood, headshot, no-scope,

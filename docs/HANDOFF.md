@@ -1,3 +1,16 @@
+## Backup-matched operator profile (#338)
+
+Seven sanitized JSON templates and offline preparation tooling preserve the
+provided Zenith currentValue scoring and 18 rank thresholds. Positive independent
+XP/reward proposals stay separate. Existing earn-start/shared curve/boosts/seasons
+and matching definition IDs are preserved during preparation; no live config/DB
+is overwritten or imported. Zero streak window now means round-only without a
+time limit, matching the backup. Existing finite-window behavior remains tested.
+CI also runs Python helper protection tests and ships profile/helper in artifacts.
+Read docs/anomeme-server-profile.md before applying; source-mode/old-player scores
+require explicit migration and are never automatically reinterpreted.
+Native facts PR #341 merged with CI #783 / 1026 tests green.
+
 ## Native progression fact coverage (#340)
 
 Mirrored existing weapon-family/objective native evidence into durable gameplay

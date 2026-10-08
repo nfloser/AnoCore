@@ -1069,3 +1069,7 @@ periodic progression gameplay fact. Leave its GameplayXp weight at zero. Actual
 playtime totals remain tracked separately. Native acceptance: one knife/taser/
 grenade-family enemy kill and one of each supported objective advances configured
 statistics/XP once, while live rank receives its existing award exactly once.
+
+
+Für das bestehende ANOMEME-Serverprofil, Backup-Punktewerte, neue Level-/XP-
+Vorschläge und Offline-Vorbereitung siehe [anomeme-server-profile.md](anomeme-server-profile.md).

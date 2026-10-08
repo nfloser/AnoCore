@@ -33,3 +33,7 @@ Thumbs.db
 # CounterStrikeSharp deployment output
 publish/
 deploy/
+
+# Python operator helper caches
+__pycache__/
+*.pyc

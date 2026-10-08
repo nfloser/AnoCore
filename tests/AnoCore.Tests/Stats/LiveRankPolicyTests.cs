@@ -87,7 +87,7 @@ public sealed class LiveRankPolicyTests
         {
             new() { MinimumPlayers = 0 }, new() { VipMultiplier = 11 }, new() { MinimumDynamicMultiplier = 0 },
             new() { MaximumDynamicMultiplier = 5 }, new() { MinimumDynamicMultiplier = 2, MaximumDynamicMultiplier = 1 },
-            new() { StreakWindowSeconds = 0 }, new() { DistanceThresholdMeters = -1 },
+            new() { StreakWindowSeconds = -1 }, new() { DistanceThresholdMeters = -1 },
             new() { StreakPoints = new() { [1] = 5 } }, new() { WeaponPoints = new() { ["bad;key"] = 1 } },
             new() { WeaponPoints = null! }, new() { StreakPoints = null! }, new() { VipPermission = "bad" },
         })
