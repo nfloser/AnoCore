@@ -52,7 +52,9 @@ CounterStrikeSharp-specific command and menu code lives only in `AnoCore.Plugin`
 
 `!anomenu` opens the enabled feature menus and read views from one entry point.
 Protected destinations and the administration command reference are permission-filtered.
-Existing `!anostatsmenu`, `!anoranks`, `!anoprogression`, `!anochatmenu` and
+`!anopersonalstatsmenu` opens own totals; `!anostatsmenu` opens server rankings.
+The filtered own detail view is `!anostatdetails [map] [weapon]`; see
+[statistics-menus.md](statistics-menus.md). Existing `!anoranks`, `!anoprogression`, `!anochatmenu` and
 `!anosettingsmenu` still open their own logical pages. Set `PanoramaMenusEnabled`
 in `config/core.json` only after the compiled shared Workshop addon is automatically
 mounted for joining clients; see [Custom HUD deployment](custom-hud.md#shared-player-menu).

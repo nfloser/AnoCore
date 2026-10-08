@@ -1,3 +1,20 @@
+## Split personal statistics and server rankings (#343)
+
+GameplayStatsModule owns an additive StatisticsMenuModule when its repository
+provides IStatisticsMenuRepository. anopersonalstatsmenu is the compact own view;
+anostatsmenu is now a category selector and deterministic bounded server-wide
+leaderboards with offline profile joins, sample minimums and requester marking.
+The filtered old view moves to anostatdetails. Both menus use plain titles and
+the compatible optional SuppressPageIndicator metadata. Async reads guard the
+session, current request and exact currently expected menu; disposal/reconnect
+cleanup applies to both the new and retained detail menus.
+Native HS% uses only effective kills with persisted death context, avoiding false
+historical body-kill assumptions. Ranks use the enabled module's existing source,
+baseline, weights/adjustments/floor unchanged, including the backup EventLedger.
+Migration 021 adds a restart-safe covering gameplay index; no new aggregate truth
+store or N+1 profile loading. Read statistics-menus.md for commands/thresholds.
+Native two-presenter acceptance remains manually skipped.
+
 ## AnoVeto genuine map previews (#331)
 
 The current native API has no dynamic image-source setter and the custom-HUD
@@ -12,6 +29,7 @@ ships the matching local resources using the existing addon delivery workflow.
 No server-thread HTTP, live config/scoring changes, K4 dependency or SDK break.
 Read anoveto-map-previews.md. Native compilation/delivery/two-client acceptance is
 still manually skipped and #331 remains open for that gate.
+PR #349 merged; CI #792 passed all 1054 .NET + 14 Python tests and every gate.
 
 ## External dot-command routing (#347)
 
