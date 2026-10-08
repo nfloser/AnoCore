@@ -8,7 +8,8 @@ Plugin startup creates and validates the engine-independent formatter from `conf
   "TeamTemplate": "(TEAM) {rank.tag} {player.name}: {message}",
   "RankColor": "None",
   "NameColor": "None",
-  "MessageColor": "None"
+  "MessageColor": "None",
+  "PassthroughCommands": [".map", ".prac", ".ready", ".unready", ".pause", ".unpause", ".stay", ".switch"]
 }
 ```
 
@@ -58,5 +59,28 @@ Plugin activation creates a `ChatFormatSnapshotLifecycle` and bootstraps already
 The CounterStrikeSharp `say` / `say_team` pre-listener now routes ordinary human-player messages through `NativeChatRouter`. Chat commands beginning with `!` or `/` pass through unchanged so CounterStrikeSharp can dispatch registered `css_` commands. For ordinary messages the router applies the synchronous moderation decision, validates the tracked sender session, formats from the warmed snapshot and returns an explicit recipient set. Public messages target all tracked connected humans; team messages target only tracked connected players whose current team matches the sender.
 
 The adapter suppresses the original chat command and prints the one formatted line to the selected valid native clients. A blocked sender or missing/stale warmed snapshot is suppressed without a database lookup or fallback leak. If chat formatting did not compose at startup, allowed native chat continues unchanged while moderation remains active.
+
+`PassthroughCommands` additionally preserves exact external dot commands, including
+MatchZy's `.map` and `.ready`, before formatting, role-tag lookup or ordinary-chat
+moderation. Matching is case-insensitive and requires a whole first token: `.mapx`
+and `.map;quit` do not match `.map`. Up to 64 unique `.name` tokens are accepted;
+names contain 1–32 ASCII letters/digits/underscores and start with a letter.
+An empty list disables this additional passthrough. Missing fields in old configs
+receive the defaults above. Additional MatchZy commands such as `.restore` or
+`.forcepause` must be explicitly added if used. Unlisted dot text remains ordinary,
+moderated chat. Valid `chat-format` reloads change the command list immediately;
+invalid candidates retain the previous list. If the formatter cannot compose,
+the native adapter uses the default list so core external commands remain reachable.
+
+AnoCore does not execute or authorize these forwarded commands and does not emit
+`PlayerChatAcceptedEvent` for them. The original native command/event proceeds to
+CSS/MatchZy, whose permission checks still decide access. Like existing `!`/`/`
+commands, listed commands remain available to gagged players; only list tokens
+intended for external command dispatch. MatchZy handles dot commands through
+[`EventPlayerChat`](https://github.com/shobhit-pathak/MatchZy/blob/dev/MatchZy.cs);
+rewriting the original `say` into a printed chat line cannot substitute for that
+dispatch. Native acceptance must verify both dot-trigger configurations, installed
+plugin ordering, public/team input, no duplicate execution, permitted/denied `.map`
+and ordinary muted dot text. No native acceptance was run for this change.
 
 This is compile- and unit-tested routing behavior. Real `say` argument shape, listener ordering, public/team visibility, named colors and rank-tag presentation still require the documented CS2/DatHost live acceptance before the draft stack can be merged.
