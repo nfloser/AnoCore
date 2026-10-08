@@ -90,6 +90,7 @@ public sealed class RoleChatTagTests
             var reloads = new ConfigReloadRegistry();
             await store.SaveAsync("role-chat-tags", Enabled());
             using var module = await RoleChatTagModule.CreateAsync(store, reloads);
+            Assert.IsTrue(module.Enabled);
             Assert.AreEqual("\x0F[ADMIN]\x01 ", module.Resolve(Player, ["#css/admin"], PlayerTeam.Unknown));
             var next = Enabled();
             next.Groups.Clear();
@@ -101,7 +102,14 @@ public sealed class RoleChatTagTests
             await store.SaveAsync("role-chat-tags", next);
             await Assert.ThrowsAsync<Exception>(async () => await reloads.ReloadAsync("role-chat-tags"));
             Assert.AreEqual("[NEW] ", module.Resolve(Player, [], PlayerTeam.Unknown));
+            next.DefaultTag = new("[NEW]", "None");
+            next.Enabled = false;
+            await store.SaveAsync("role-chat-tags", next);
+            await reloads.ReloadAsync("role-chat-tags");
+            Assert.IsFalse(module.Enabled);
+            Assert.IsNull(module.Resolve(Player, ["#css/admin"], PlayerTeam.Unknown));
             module.Dispose();
+            Assert.IsFalse(module.Enabled);
             Assert.IsEmpty(reloads.Configurations);
             Assert.IsNull(module.Resolve(Player, [], PlayerTeam.Unknown));
         }

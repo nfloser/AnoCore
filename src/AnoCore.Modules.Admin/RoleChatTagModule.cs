@@ -13,6 +13,8 @@ public sealed class RoleChatTagModule : IDisposable
 
     private RoleChatTagModule(RoleChatTagPolicy initial) => _initial = initial;
 
+    public bool Enabled => Volatile.Read(ref _disposed) == 0 && (_reload?.Current ?? _initial).Enabled;
+
     public static async Task<RoleChatTagModule> CreateAsync(
         IConfigStore configuration, IConfigReloadRegistry? reloads = null,
         CancellationToken cancellationToken = default)

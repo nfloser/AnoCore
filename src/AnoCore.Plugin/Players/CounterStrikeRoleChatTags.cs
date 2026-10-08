@@ -11,6 +11,7 @@ public static class CounterStrikeRoleChatTags
     // PlayerInGroup treats domain-root permissions as membership in other groups.
     public static string? Resolve(RoleChatTagModule module, PlayerSnapshot player)
     {
+        if (!module.Enabled) return null;
         var data = AdminManager.GetPlayerAdminData(new SteamID(player.Id.SteamId64));
         return module.Resolve(player.Id, data is null ? Array.Empty<string>() : data.Groups, player.Team);
     }

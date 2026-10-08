@@ -75,6 +75,8 @@ public sealed class RoleChatTagPolicy
     private readonly RoleChatTagGroup[] _groups;
     private readonly Dictionary<ulong, RoleChatTagAppearance> _overrides;
 
+    public bool Enabled => _enabled;
+
     private RoleChatTagPolicy(RoleChatTagConfiguration configuration)
     {
         _enabled = configuration.Enabled;
