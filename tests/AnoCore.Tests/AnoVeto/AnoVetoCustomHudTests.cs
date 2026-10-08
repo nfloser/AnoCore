@@ -18,6 +18,17 @@ public sealed class AnoVetoCustomHudTests
     private static readonly DateTimeOffset Now = new(2026, 9, 17, 15, 0, 0, TimeSpan.Zero);
 
     [TestMethod]
+    public void PreviewClass_UsesWorkshopIdentityAndStableDefaultMapHash()
+    {
+        Assert.AreEqual("ano_preview_w_123", AnoVetoMapPreview.GetClass(new MapDefinition("Custom", "workshop/custom", 123)));
+        Assert.AreEqual("ano_preview_m_f99f33e2882aa01d", AnoVetoMapPreview.GetClass(new MapDefinition("Dust II", "de_dust2")));
+        Assert.AreEqual(AnoVetoMapPreview.GetClass(new MapDefinition("A", "de_dust2")),
+            AnoVetoMapPreview.GetClass(new MapDefinition("Renamed", "de_dust2")));
+        Assert.AreNotEqual(AnoVetoMapPreview.GetClass(new MapDefinition("A", "de_dust2")),
+            AnoVetoMapPreview.GetClass(new MapDefinition("A", "de_Dust2")));
+    }
+
+    [TestMethod]
     public async Task Show_RendersEightClickableMapsAndCapturesInput()
     {
         var hud = new RecordingHudService();
@@ -37,6 +48,7 @@ public sealed class AnoVetoCustomHudTests
         for (var index = 0; index < 8; index++)
         {
             Assert.AreEqual($"Map {index + 1:00}", hud.Text[(PlayerA, $"ano_veto_map_{index}_text", "text")]);
+            Assert.IsTrue(hud.Classes[(PlayerA, $"ano_veto_map_{index}_image", AnoVetoMapPreview.GetClass(new MapDefinition("unused", $"de_map{index + 1:00}")))]);
         }
     }
 
@@ -57,6 +69,32 @@ public sealed class AnoVetoCustomHudTests
         var secondVote = await coordinator.CastAsync(PlayerA, maps[4].MapId, Now.AddSeconds(1));
         Assert.IsFalse(secondVote.Accepted);
         Assert.AreEqual(AnoVetoFailure.AlreadyVoted, secondVote.Failure);
+    }
+
+    [TestMethod]
+    public async Task NextVote_ReplacesPreviousImagesPerPlayerAndClearsOnClose()
+    {
+        var hud = new RecordingHudService();
+        var random = new ReversibleRandomSource();
+        var coordinator = CreateCoordinator(random: random);
+        Assert.IsTrue((await coordinator.CreateAsync(Manager, [Manager, PlayerA], Now)).Accepted);
+        using var controller = new AnoVetoHudController(hud, coordinator);
+        Assert.IsTrue(controller.Show(PlayerA));
+        var first = AnoVetoMapPreview.GetClass(new MapDefinition("First", "de_map01"));
+        var last = AnoVetoMapPreview.GetClass(new MapDefinition("Last", "de_map08"));
+        Assert.IsTrue(hud.Classes[(PlayerA, "ano_veto_map_0_image", first)]);
+        Assert.IsTrue((await coordinator.CancelAsync(Manager, Now.AddSeconds(1))).Accepted);
+        random.Reverse = true;
+        Assert.IsTrue((await coordinator.CreateAsync(Manager, [Manager, PlayerA], Now.AddSeconds(2))).Accepted);
+        Assert.IsTrue(controller.Show(PlayerA));
+        Assert.IsTrue(controller.Show(Manager));
+        Assert.IsFalse(hud.Classes[(PlayerA, "ano_veto_map_0_image", first)]);
+        Assert.IsTrue(hud.Classes[(PlayerA, "ano_veto_map_0_image", last)]);
+        controller.Hide(PlayerA);
+        Assert.IsFalse(hud.Classes[(PlayerA, "ano_veto_map_0_image", last)]);
+        Assert.IsTrue(hud.Classes[(Manager, "ano_veto_map_0_image", last)]);
+        controller.HideAll();
+        Assert.IsFalse(hud.Classes[(Manager, "ano_veto_map_0_image", last)]);
     }
 
     [TestMethod]
@@ -96,7 +134,7 @@ public sealed class AnoVetoCustomHudTests
         Assert.IsFalse(coordinator.TryGetStatus(out _));
     }
 
-    private static AnoVetoCoordinator CreateCoordinator(int minimumVotes = 1)
+    private static AnoVetoCoordinator CreateCoordinator(int minimumVotes = 1, IAnoVetoRandomSource? random = null)
     {
         var permissions = new AllowManagerPermissions();
         return new AnoVetoCoordinator(
@@ -104,7 +142,7 @@ public sealed class AnoVetoCustomHudTests
                 .Select(index => new MapDefinition($"Map {index:00}", $"de_map{index:00}"))),
             new VoteService(permissions),
             new NoOpMapChanger(),
-            new StableRandomSource(),
+            random ?? new StableRandomSource(),
             new AnoVetoOptions(TimeSpan.FromSeconds(30), minimumVotes, VoteTieBreakPolicy.OptionOrder));
     }
 
@@ -115,6 +153,7 @@ public sealed class AnoVetoCustomHudTests
         public CustomHudDefinition? Definition { get; private set; }
         public HashSet<PlayerId> VisiblePlayers { get; } = [];
         public Dictionary<(PlayerId Player, string Panel, string Variable), string> Text { get; } = [];
+        public Dictionary<(PlayerId Player, string Panel, string Class), bool> Classes { get; } = [];
 
         public IDisposable Register(ModuleId owner, CustomHudDefinition definition, CustomHudClickHandler? clickHandler = null)
         {
@@ -170,7 +209,10 @@ public sealed class AnoVetoCustomHudTests
         }
 
         public bool SetClass(PlayerId playerId, CustomHudId hudId, string panelId, string className, bool enabled)
-            => Definition?.Id == hudId;
+        {
+            Classes[(playerId, panelId, className)] = enabled;
+            return Definition?.Id == hudId;
+        }
 
         public async ValueTask ClickAsync(PlayerId playerId, string buttonId)
         {
@@ -201,6 +243,13 @@ public sealed class AnoVetoCustomHudTests
     private sealed class StableRandomSource : IAnoVetoRandomSource
     {
         public IReadOnlyList<T> Select<T>(IReadOnlyList<T> source, int count) => source.Take(count).ToArray();
+    }
+
+    private sealed class ReversibleRandomSource : IAnoVetoRandomSource
+    {
+        public bool Reverse { get; set; }
+        public IReadOnlyList<T> Select<T>(IReadOnlyList<T> source, int count)
+            => (Reverse ? source.Reverse() : source).Take(count).ToArray();
     }
 
     private sealed class FixedTimeProvider(DateTimeOffset now) : TimeProvider

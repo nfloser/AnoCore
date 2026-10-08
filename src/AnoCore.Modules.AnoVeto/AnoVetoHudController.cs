@@ -16,6 +16,8 @@ public sealed class AnoVetoHudController : IDisposable
     private readonly ICustomHudService _hud;
     private readonly AnoVetoCoordinator _coordinator;
     private readonly TimeProvider _timeProvider;
+    private readonly object _previewGate = new();
+    private readonly Dictionary<(PlayerId Player, int Index), string> _previewClasses = [];
     private IDisposable? _registration;
 
     public AnoVetoHudController(
@@ -55,6 +57,19 @@ public sealed class AnoVetoHudController : IDisposable
 
         for (var index = 0; index < maps.Count; index++)
         {
+            var panelId = $"ano_veto_map_{index}_image";
+            var previewClass = AnoVetoMapPreview.GetClass(maps[index]);
+            lock (_previewGate)
+            {
+                if (_previewClasses.TryGetValue((playerId, index), out var previous))
+                {
+                    _hud.SetClass(playerId, HudId, panelId, previous, false);
+                }
+
+                _hud.SetClass(playerId, HudId, panelId, previewClass, true);
+                _previewClasses[(playerId, index)] = previewClass;
+            }
+
             _hud.SetText(
                 playerId,
                 HudId,
@@ -75,15 +90,38 @@ public sealed class AnoVetoHudController : IDisposable
     }
 
     public bool Hide(PlayerId playerId)
-        => _hud.Hide(playerId, HudId);
+    {
+        var hidden = _hud.Hide(playerId, HudId);
+        ClearPreviews(playerId);
+        return hidden;
+    }
 
     public void HideAll()
-        => _hud.HideAll(HudId);
+    {
+        _hud.HideAll(HudId);
+        ClearPreviews(null);
+    }
+
+    private void ClearPreviews(PlayerId? playerId)
+    {
+        lock (_previewGate)
+        {
+            foreach (var pair in _previewClasses.Where(pair => playerId is null || pair.Key.Player == playerId).ToArray())
+            {
+                _hud.SetClass(pair.Key.Player, HudId, $"ano_veto_map_{pair.Key.Index}_image", pair.Value, false);
+                _previewClasses.Remove(pair.Key);
+            }
+        }
+    }
 
     public void Dispose()
     {
         HideAll();
         Interlocked.Exchange(ref _registration, null)?.Dispose();
+        lock (_previewGate)
+        {
+            _previewClasses.Clear();
+        }
     }
 
     private async ValueTask HandleClickAsync(CustomHudClickContext context)

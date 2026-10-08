@@ -1,3 +1,18 @@
+## AnoVeto genuine map previews (#331)
+
+The current native API has no dynamic image-source setter and the custom-HUD
+validator rejects scripts. Static local texture classes now select artwork by
+Workshop ID or a stable exact MapId hash, independently per player, with previous
+vote classes cleared. Neutral cards remain valid when no artwork was prepared.
+Offline prepare_veto_previews.py resolves bounded cached app-730 Steam metadata
+and genuine previews, validates HTTPS CDN URLs/redirects, normalizes bounded images,
+preserves configured identity, supports explicit standard-map artwork and offline
+reuse, and publishes a new output directory. build.ps1 -PreviewSource compiles and
+ships the matching local resources using the existing addon delivery workflow.
+No server-thread HTTP, live config/scoring changes, K4 dependency or SDK break.
+Read anoveto-map-previews.md. Native compilation/delivery/two-client acceptance is
+still manually skipped and #331 remains open for that gate.
+
 ## External dot-command routing (#347)
 
 The existing say rewrite could suppress MatchZy's EventPlayerChat dispatch for

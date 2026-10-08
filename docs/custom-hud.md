@@ -37,6 +37,11 @@ AnoVeto registers `panorama/layout/custom_game/anocore/ano_veto.xml` with eight 
 
 After a successful ballot the HUD closes for that player. Completion, cancellation and expiry hide it for everyone and release input capture.
 
+Map cards support genuine Workshop previews prepared as local addon textures and
+selected through per-player classes. The native API does not dynamically set
+Image.src. See [anoveto-map-previews.md](anoveto-map-previews.md) for cached Steam
+metadata, preparation, build/delivery and neutral missing-image behavior.
+
 ## Client resources
 
 The plugin can create and update the server entity, but the Panorama XML/CSS must be compiled with CS2 Workshop Tools and delivered to clients. Source assets live under `ui/AnoCore`; `ui/AnoCore/build.ps1` compiles the current AnoVeto layout into the `anomeme_ui` addon by default.

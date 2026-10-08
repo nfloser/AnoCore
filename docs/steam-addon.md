@@ -1,5 +1,10 @@
 # Steam Workshop addon: overlay and logo
 
+For AnoVeto map pictures, first prepare the configured map catalog using
+[anoveto-map-previews.md](anoveto-map-previews.md), then add -PreviewSource to
+the build command. The addon must contain the compiled preview textures and
+stylesheet as well as the layout; missing previews display neutral cards.
+
 This guide covers the Windows build for `anomeme_ui` and updates to the existing ANOMEME Workshop item. Source assets and logo belong in the repository; use a revision containing the dashboard assets when building that UI.
 
 ## Repository files
