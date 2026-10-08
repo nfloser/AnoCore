@@ -1,12 +1,12 @@
-using System.Text.RegularExpressions;
 using System.Globalization;
 using System.Net;
+using System.Text.RegularExpressions;
 using AnoCore.Abstractions.Commands;
 using AnoCore.Abstractions.Events;
 using AnoCore.Abstractions.Menus;
 using AnoCore.Abstractions.Modules;
-using AnoCore.Abstractions.Players;
 using AnoCore.Abstractions.Players.Events;
+using AnoCore.Abstractions.Players;
 
 namespace AnoCore.Modules.Progression;
 
