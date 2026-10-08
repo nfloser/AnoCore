@@ -15,6 +15,19 @@ public sealed class LiveRankScoringServiceTests
     private static readonly PlayerId Victim = new(76561198000280101);
 
     [TestMethod]
+    public async Task ZeroStreakWindowKeepsRoundStreakAcrossLongGapsButResetsForNextRound()
+    {
+        var setup = await Setup();
+        using var service = Service(setup, streakWindow: 0);
+        await service.RecordDeathAsync(Death(setup.Players));
+        await service.RecordDeathAsync(Death(setup.Players, Now.AddMinutes(2)));
+        Assert.AreEqual(9L, setup.Events.Points(Attacker));
+        var next = Death(setup.Players, Now.AddMinutes(3));
+        await service.RecordDeathAsync(next with { Context = next.Context with { RoundKey = "round-2" } });
+        Assert.AreEqual(11L, setup.Events.Points(Attacker));
+    }
+
+    [TestMethod]
     public async Task Replays_DoNotRecalculatePointsOrAdvanceKillstreakAndFailureCanRetry()
     {
         var setup = await Setup();
@@ -209,13 +222,13 @@ public sealed class LiveRankScoringServiceTests
         public void Dispose() => Disposed = true;
     }
 
-    private static LiveRankScoringService Service(SetupResult setup, decimal vip = 1, IRankPointEventSink? presentation = null, int playtime = 0, int firstBlood = 0) => new(
+    private static LiveRankScoringService Service(SetupResult setup, decimal vip = 1, IRankPointEventSink? presentation = null, int playtime = 0, int firstBlood = 0, int streakWindow = 30) => new(
         new RankConfiguration
         {
             Source = RankScoreSource.EventLedger,
             Thresholds = [new("Recruit", 0), new("Promoted", 1)],
             GameplayPoints = new() { [GameplayStatKind.BombPlanted] = 5, [GameplayStatKind.PlaytimeInterval] = 3, [GameplayStatKind.BombExploded] = 5, [GameplayStatKind.FirstBlood] = firstBlood },
-            LivePolicy = new() { StreakPoints = new() { [2] = 5 }, VipMultiplier = vip, PlaytimeIntervalSeconds = playtime },
+            LivePolicy = new() { StreakPoints = new() { [2] = 5 }, StreakWindowSeconds = streakWindow, VipMultiplier = vip, PlaytimeIntervalSeconds = playtime },
         }, setup.Events, new Scores(setup.Events), setup.Players, setup.Permissions, setup.Sinks, setup.Sinks, setup.Errors.Add, presentation);
 
     private static RankDeathInput Death(PlayerRegistry players, DateTimeOffset? at = null)

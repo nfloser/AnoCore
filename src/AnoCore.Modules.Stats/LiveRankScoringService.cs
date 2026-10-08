@@ -97,7 +97,7 @@ public sealed class LiveRankScoringService : IDisposable
                 && _streaks.TryGetValue(attacker.Id, out var streak)
                 && streak.Session == attacker.SessionId && streak.RoundKey == captured.Context.RoundKey
                 && captured.Context.OccurredAtUtc >= streak.At
-                && captured.Context.OccurredAtUtc - streak.At < _policy.StreakWindow)
+                && (_policy.StreakWindow == TimeSpan.Zero || captured.Context.OccurredAtUtc - streak.At < _policy.StreakWindow))
                 streakCount = Math.Min(65, streak.Count + 1);
             if (validKill && captured.Context.FirstBloodAvailable && _firstBloodRound != captured.Context.RoundKey
                 && !captured.Specials.Contains(GameplayStatKind.FirstBlood))

@@ -35,7 +35,7 @@ public sealed class LiveRankConfiguration
             || value.MinimumPlayers is < 1 or > 64 || value.TeamKillPenalty is < 0 or > 1000
             || value.TeamKillAssistPenalty is < 0 or > 1000 || value.TeamKillFlashAssistPenalty is < 0 or > 1000
             || value.SuicidePenalty is < 0 or > 1000 || value.DistanceBonus is < 0 or > 1000
-            || value.DistanceThresholdMeters is < 0 or > 10000 || value.StreakWindowSeconds is < 1 or > 600
+            || value.DistanceThresholdMeters is < 0 or > 10000 || value.StreakWindowSeconds is < 0 or > 600
             || value.VipMultiplier is < 1 or > 10 || value.MinimumDynamicMultiplier is <= 0 or > 4
             || value.MaximumDynamicMultiplier < value.MinimumDynamicMultiplier || value.MaximumDynamicMultiplier > 4)
             errors.Add("Live rank numeric policy is outside its supported bounds.");
