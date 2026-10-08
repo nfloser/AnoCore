@@ -1,78 +1,61 @@
 # AnoCore
 
-AnoCore ist ein modulares CS2-Serverplugin für Community-Server, regelmäßige Spielrunden
-und organisierte Matches. Es verbindet Spielerstatistiken, ein separates Rangsystem,
-Level und Challenges, Moderation sowie Map-Abstimmungen und Turnierverwaltung.
+AnoCore is a modular CS2 server plugin for community servers, regular game nights and organized matches. It combines player statistics, competitive ranks, levels and challenges, moderation, map voting and tournament management.
 
-![ANOMEME-Dashboard – Designvorschau mit Beispieldaten](docs/images/dashboard-example.png)
+![ANOMEME dashboard — design preview with example data](docs/images/dashboard-example.png)
 
-*Beispielbild einer Designvorschau, kein Ingame-Screenshot. Spielerwerte sind fiktiv.
-Schrift, Abstände und Navigation können vom aktuellen CS2-Stand abweichen;
-die aktuelle Version trennt Back von Prev/Next page. Das Dashboard benötigt einen Build mit Dashboard-Anbindung.*
+*Design preview, not an in-game screenshot. Player values are fictional. Fonts, spacing and navigation may differ from the current CS2 implementation; the current version separates Back from Prev/Next page. The dashboard requires a build containing the dashboard integration.*
 
-## Was kannst du damit machen?
+## What can you do with it?
 
-| Bereich | Möglichkeiten |
+| Area | Capabilities |
 | --- | --- |
-| Spielerprofil | Persönliche Statistiken, Kills/Deaths/Assists, Spielzeit und Rangwerte ansehen |
-| Ränge und Bewertung | Rangpunkte und Ranglisten führen; mit AnoRating verbundene Spieler vergleichen, um Teams manuell zusammenzustellen |
-| Fortschritt | Level und XP, permanente Achievements, zeitlich definierte Challenges und geplante XP-Boosts; getrennt von Wettbewerbsrangpunkten |
-| Seasons | Aktuelle Season, Season-Rangliste und vergangene Seasons ansehen |
-| Community | Persönliche Benachrichtigungen einstellen und berechtigte Chat-Tags auswählen |
-| Map-Abstimmung | Abstimmungen starten und über das native Panorama-Veto-Fenster bedienen |
-| Turniere | Zwei Teams mit SteamID-Rostern und Captains konfigurieren; BO1/BO3/BO5, Ready-Phase, Map-Serie, Messerrundenentscheidung, Seitenwahl, Pause und Serienstand verwalten |
-| Administration | Berechtigungsgesteuerte Spieler-/Serveraktionen, Rollen, Moderation, Warnungen und Audit-Protokolle |
-| Schnittstellen | Module über das SDK erweitern; optionale authentifizierte Management-Anbindung und konfigurierbare Moderations-Webhooks nutzen |
+| Player profile | View personal statistics, kills/deaths/assists, playtime and rank information |
+| Ranks and ratings | Maintain rank points and leaderboards; compare connected players with AnoRating to help balance teams manually |
+| Progression | Levels and XP, permanent achievements, scheduled challenges and XP boosts, independent of competitive rank points |
+| Seasons | View the current season, its leaderboard and previous seasons |
+| Community | Customize personal notifications and select authorized chat tags |
+| Map voting | Start votes and interact with the native Panorama veto window |
+| Tournaments | Configure two SteamID-based rosters and captains; manage BO1/BO3/BO5, readiness, map series, knife-round decisions, side selection, pauses and series scores |
+| Administration | Permission-controlled player/server actions, roles, moderation, warnings and audit records |
+| Integrations | Extend modules through the SDK; use the optional authenticated management connection and configurable moderation webhooks |
 
-Typische Nutzung: Ein Community-Server speichert gemeinsame Stats und langfristigen Fortschritt.
-Für wöchentliche Spielabende lassen sich Challenges und XP-Boosts konfigurieren.
-Bei organisierten Matches hinterlegt der Betreiber Teams und steuert den Matchablauf.
-AnoRating unterstützt dabei die manuelle Teamaufteilung; es ist kein automatischer Teambalancer.
-Leetify ist eine optionale externe Ergänzung mit eigener API-Konfiguration.
+A community server can retain shared statistics and long-term progression. Regular game nights can use challenges and scheduled XP boosts. For organized matches, operators configure teams and control the match lifecycle. AnoRating assists manual team selection; it is not an automatic team balancer. Leetify is an optional external integration with separate API configuration.
 
-**Entwicklungs- und Teststand:** Automatisierte Tests ersetzen keinen CS2-Servertest.
-Turnieraktionen wie Messergewinner und Map-Sieger werden über die dokumentierten Befehle gemeldet;
-eine vollständige automatische Turnierplattform wird hier nicht versprochen. Funktionen und Menüpunkte
-hängen von aktivierten Modulen, Berechtigungen und dem installierten Build ab. Kein Battlepass.
-Siehe [Abnahmematrix](docs/functional-acceptance.md) und [Serverprüfungen](docs/full-system-test.md).
+**Development and testing status:** Automated checks do not replace CS2 server acceptance tests. Tournament events such as knife-round winners and map winners are reported through documented commands; this is not a fully automatic tournament platform. Available features and menus depend on enabled modules, permissions and the installed build. No battle pass is included. See the [acceptance matrix](docs/functional-acceptance.md) and [server test plan](docs/full-system-test.md).
 
-## Installieren
+## Installation
 
-1. [Quick Installation Guide: Windows und DatHost](docs/quick-install.de.md)
-2. [Server und Datenbank einrichten](docs/server-setup.de.md)
-3. [Steam-Addon mit Logo bauen und hochladen](docs/steam-addon.de.md)
-4. [Addon und MultiAddonManager verbinden](docs/server-setup.de.md#addon-und-multiaddonmanager)
+1. [Quick installation: Windows and DatHost](docs/quick-install.md)
+2. [Server and database setup](docs/server-setup.md)
+3. [Build and upload the Steam addon with its logo](docs/steam-addon.md)
+4. [Connect the addon through MultiAddonManager](docs/server-setup.md#addon-and-multiaddonmanager)
 
-Das Serverplugin liefert Logik und persönliche Daten. Das Workshop-Addon liefert die Oberfläche.
-MultiAddonManager kümmert sich um die Bereitstellung und das Mounten des Addons.
-Für das native Dashboard müssen Plugin und UI zusammenpassen.
+The server plugin supplies logic and personal data. The Workshop addon supplies the interface. MultiAddonManager handles addon delivery and mounting. Plugin and UI versions must match for the native dashboard.
 
-## Die wichtigsten Befehle
+## Essential commands
 
-Im Spielchat mit `!` eingeben. Adminbefehle erfordern passende Rechte.
+Enter commands in game chat with `!`. Administrative commands require the appropriate permissions.
 
-| Befehl | Funktion |
+| Command | Purpose |
 | --- | --- |
-| `!anomenu` | Spieleroberfläche öffnen; Dashboard im dafür integrierten Build |
-| `!anocommands` | Tatsächlich registrierte Befehle und deren Verwendung anzeigen |
-| `!anostatsmenu` / `!anoranks` | Statistiken beziehungsweise Rangansicht |
-| `!anoprogression` / `!anolevel` / `!anoxp` | Fortschritt, Level und XP |
-| `!anochallenges` / `!anoachievements` | Challenges und Achievements |
-| `!anoseason` / `!anoseasons` / `!anoseasontopcurrent` | Season, Historie und aktuelle Season-Rangliste |
-| `!anorating` | Bewertung der verbundenen Spieler |
-| `!anosettingsmenu` / `!anochatmenu` | Persönliche Einstellungen und Chat-Tags |
-| `!anoveto create` / `!anoveto` | Map-Abstimmung starten beziehungsweise erneut öffnen |
-| `!anotournamentstatus` / `!anoready` | Matchstatus beziehungsweise Bereitschaft melden |
-| `!anostatus` | Pluginstart und Modulstatus prüfen |
+| `!anomenu` | Open the player interface; dashboard in builds containing that integration |
+| `!anocommands` | List commands actually registered on the server and their usage |
+| `!anostatsmenu` / `!anoranks` | Statistics or rank view |
+| `!anoprogression` / `!anolevel` / `!anoxp` | Progression, level and XP |
+| `!anochallenges` / `!anoachievements` | Challenges and achievements |
+| `!anoseason` / `!anoseasons` / `!anoseasontopcurrent` | Season, history and current season leaderboard |
+| `!anorating` | Ratings of connected players |
+| `!anosettingsmenu` / `!anochatmenu` | Personal settings and chat tags |
+| `!anoveto create` / `!anoveto` | Start a map vote or reopen it |
+| `!anotournamentstatus` / `!anoready` | Match status or mark yourself ready |
+| `!anostatus` | Check plugin startup and module status |
 
-Weitere Details: [Turniere](docs/tournament.md), [Challenges und XP](docs/progression.md),
-[Moderation](docs/moderation-commands.md), [Konfigurations-Reload](docs/configuration-reload.md),
-[Management-Schnittstelle](docs/management-api.md) und [Modul-SDK](docs/module-sdk.md).
+Details: [tournaments](docs/tournament.md), [challenges and XP](docs/progression.md), [moderation](docs/moderation-commands.md), [configuration reload](docs/configuration-reload.md), [management interface](docs/management-api.md) and [module SDK](docs/module-sdk.md).
 
-## Entwicklung
+## Development
 
-.NET 10 SDK; CounterStrikeSharp API 374 oder neuer mit kompatiblem .NET-10-Host.
-Build-Abhängigkeit: CounterStrikeSharp.API 1.0.376.
+.NET 10 SDK; CounterStrikeSharp API 374 or newer with a compatible .NET 10 host. The build dependency is CounterStrikeSharp.API 1.0.376.
 
 ```bash
 dotnet restore AnoCore.sln
@@ -81,8 +64,8 @@ dotnet test AnoCore.sln -c Release --no-build
 dotnet format AnoCore.sln --verify-no-changes --no-restore
 ```
 
-[Architektur](docs/architecture.md) · [Mitwirken](CONTRIBUTING.md) · [Projektregeln](AGENTS.md) · [Deployment](docs/deployment.md)
+[Architecture](docs/architecture.md) · [Contributing](CONTRIBUTING.md) · [Project rules](AGENTS.md) · [Deployment](docs/deployment.md)
 
-## Lizenz
+## License
 
-GNU GPL v3.0. Copyright- und Herkunftshinweise stehen in [NOTICE.md](NOTICE.md) und [LICENSE.md](LICENSE.md).
+GNU GPL v3.0. Copyright and attribution notices are preserved in [NOTICE.md](NOTICE.md) and [LICENSE.md](LICENSE.md).
