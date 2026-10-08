@@ -1,3 +1,20 @@
+# New combat performance and progression work — 2026-10-08
+
+- New accepted issues: #329 combat performance/batched writes, #330 challenge
+  predicates, #331 real Workshop preview metadata, #332 default-hidden battlepass.
+- `perf/329-game-rules-cache`: first #329 package shares validated GameRules
+  lookup across rank/stat eligibility, reads warmup live and clears the reference
+  on map start/end/unload. Missing/failed reads retry next tick. See
+  `docs/combat-performance.md` for native acceptance and remaining packages.
+- Combat write batching, mission predicates, Workshop images and battlepass are
+  still open; historical completion below predates these scope additions.
+- Existing personal-dashboard work belongs to #322; preserve concurrent work.
+- PR #333: Release solution build passed (zero warnings/errors), all six new
+  cache tests passed, whitespace validation and plugin publish passed. Full local
+  suite: 833 passed, 155 skipped without MariaDB; six Named Pipe tests and
+  semantic formatting are blocked by local socket permissions. Exact-head CI
+  gates merge. Native CS2 profiling and acceptance have not been run here.
+
 # Remaining implementation packages completed — 2026-10-08
 
 - #314 / PR #318: audited role definitions, assignments and UTC-expiring VIP authority; CI #750 green, merged.
