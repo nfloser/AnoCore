@@ -127,9 +127,23 @@ public sealed class MySqlChallengeRepository : IChallengeRepository
                  AND occurred_at_utc >= @start AND occurred_at_utc < @end
                      AND occurred_at_utc <= @at
                 """;
-            AppendValues(count, "map_name", "map", definition.Predicates.Maps);
-            AppendValues(count, "weapon", "weapon", definition.Predicates.Weapons);
-            AppendValues(count, "hitgroup", "hitgroup", definition.Predicates.Hitgroups);
+            var predicates = definition.Predicates;
+            var deathContext = definition.CounterSource is ChallengeCounterSource.CombatKills or ChallengeCounterSource.CombatAssists
+                && predicates.HasFilters;
+            if (deathContext)
+                count.CommandText = count.CommandText.Replace("FROM ano_combat_deaths", "FROM ano_combat_deaths d JOIN ano_combat_death_context c ON c.event_id = d.event_id", StringComparison.Ordinal);
+            var contextPrefix = deathContext ? "c." : "";
+            AppendValues(count, contextPrefix + "map_name", "map", predicates.Maps);
+            AppendValues(count, contextPrefix + "weapon", "weapon", predicates.Weapons);
+            AppendValues(count, "hitgroup", "hitgroup", predicates.Hitgroups);
+            AppendValues(count, "c.attacker_team", "attackerteam", predicates.AttackerTeams.Select(value => (int)value).ToArray());
+            AppendCondition(count, "c.headshot", "headshot", "=", predicates.Headshot);
+            AppendCondition(count, "c.no_scope", "noscope", "=", predicates.NoScope);
+            AppendCondition(count, "c.through_smoke", "smoke", "=", predicates.ThroughSmoke);
+            AppendCondition(count, "c.attacker_blind", "blind", "=", predicates.AttackerBlind);
+            AppendCondition(count, "c.penetrations", "penetrations", ">=", predicates.PenetrationMinimum);
+            AppendCondition(count, "c.distance_meters", "distanceMin", ">=", predicates.DistanceMinimumMeters);
+            AppendCondition(count, "c.distance_meters", "distanceMax", "<=", predicates.DistanceMaximumMeters);
             Add(count, "@player", playerId.SteamId64);
             Add(count, "@kind", (byte)definition.Statistic);
             Add(count, "@start", definition.StartsAtUtc.UtcDateTime);
@@ -188,6 +202,14 @@ public sealed class MySqlChallengeRepository : IChallengeRepository
     {
         var utc = value.ToUniversalTime();
         return new DateTimeOffset(utc.Ticks - utc.Ticks % TimeSpan.TicksPerMicrosecond, TimeSpan.Zero);
+    }
+
+    private static void AppendCondition<T>(DbCommand command, string column, string name, string comparison, T? value)
+        where T : struct
+    {
+        if (value is null) return;
+        command.CommandText += " AND " + column + " " + comparison + " @" + name;
+        Add(command, "@" + name, value.Value);
     }
 
     private static void AppendValues<T>(DbCommand command, string column, string prefix, IReadOnlyList<T> values)

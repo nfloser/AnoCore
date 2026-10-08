@@ -54,8 +54,54 @@ public sealed class MySqlCombatRepository : ICombatDetailRepository, ICombatDeta
                 throw new InvalidOperationException("Combat event id conflicts with a different death.");
             }
 
+            await reader.DisposeAsync().ConfigureAwait(false);
+            if (death.Context is { } context)
+                await WriteDeathContextAsync(connection, transaction, death.EventId, context, token).ConfigureAwait(false);
             return true;
         }, cancellationToken: cancellationToken).ConfigureAwait(false);
+    }
+
+    private static async ValueTask WriteDeathContextAsync(DbConnection connection, DbTransaction transaction,
+        Guid eventId, CombatDeathContext context, CancellationToken token)
+    {
+        await using var insert = connection.CreateCommand();
+        insert.Transaction = transaction;
+        insert.CommandText = """
+            INSERT INTO ano_combat_death_context
+                (event_id, map_name, weapon, attacker_team, headshot, no_scope, through_smoke,
+                 penetrations, distance_meters, attacker_blind)
+            VALUES (@id, @map, @weapon, @team, @headshot, @noscope, @smoke, @penetrations, @distance, @blind)
+            ON DUPLICATE KEY UPDATE event_id = event_id
+            """;
+        Add(insert, "@id", eventId.ToString("D"));
+        Add(insert, "@map", context.MapName);
+        Add(insert, "@weapon", context.Weapon);
+        Add(insert, "@team", (byte)context.AttackerTeam);
+        Add(insert, "@headshot", context.Headshot);
+        Add(insert, "@noscope", context.NoScope);
+        Add(insert, "@smoke", context.ThroughSmoke);
+        Add(insert, "@penetrations", context.Penetrations);
+        Add(insert, "@distance", context.DistanceMeters is { } distance ? distance : DBNull.Value);
+        Add(insert, "@blind", context.AttackerBlind);
+        await insert.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+        await using var verify = connection.CreateCommand();
+        verify.Transaction = transaction;
+        verify.CommandText = """
+            SELECT map_name, weapon, attacker_team, headshot, no_scope, through_smoke,
+                penetrations, distance_meters, attacker_blind
+            FROM ano_combat_death_context WHERE event_id = @id FOR UPDATE
+            """;
+        Add(verify, "@id", eventId.ToString("D"));
+        await using var reader = await verify.ExecuteReaderAsync(token).ConfigureAwait(false);
+        if (!await reader.ReadAsync(token).ConfigureAwait(false)
+            || reader.GetString(0) != context.MapName || reader.GetString(1) != context.Weapon
+            || Convert.ToInt32(reader.GetValue(2), CultureInfo.InvariantCulture) != (int)context.AttackerTeam
+            || reader.GetBoolean(3) != context.Headshot || reader.GetBoolean(4) != context.NoScope
+            || reader.GetBoolean(5) != context.ThroughSmoke
+            || Convert.ToInt32(reader.GetValue(6), CultureInfo.InvariantCulture) != context.Penetrations
+            || (reader.IsDBNull(7) ? (decimal?)null : reader.GetDecimal(7)) != context.DistanceMeters
+            || reader.GetBoolean(8) != context.AttackerBlind)
+            throw new InvalidOperationException("Combat event id conflicts with different native death context.");
     }
 
     public ValueTask<CombatTotals> ReadAsync(PlayerId playerId,

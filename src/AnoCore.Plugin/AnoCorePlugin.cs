@@ -1926,7 +1926,14 @@ public sealed class AnoCorePlugin : BasePlugin
             var eventId = CombatEventIdentity.Create(_combatServerInstance, Server.MapName,
                 CombatMapEpoch(), Server.TickCount, victim.Id);
             var death = new AnoCore.Abstractions.Stats.CombatDeath(eventId, victim.Id,
-                attacker?.Id, assister?.Id, DateTimeOffset.UtcNow, teamKill);
+                attacker?.Id, assister?.Id, DateTimeOffset.UtcNow, teamKill)
+            {
+                Context = new CombatDeathContext(Server.MapName, CombatDetailKey(@event.Weapon, "world", 64),
+                    attacker?.Team ?? PlayerTeam.Unknown, @event.Headshot, @event.Noscope, @event.Thrusmoke,
+                    Math.Clamp(@event.Penetrated, 0, 32),
+                    float.IsFinite(@event.Distance) && @event.Distance is >= 0 and <= 10000 ? (decimal)@event.Distance : null,
+                    @event.Attackerblind),
+            };
             Observe(combat.RecordAsync(death).AsTask(), "combat_death");
 
             var validKill = attacker is not null
