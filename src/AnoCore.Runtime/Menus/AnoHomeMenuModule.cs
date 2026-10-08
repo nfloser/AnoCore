@@ -19,7 +19,8 @@ public sealed class AnoHomeMenuModule : IDisposable
     private static readonly (string Name, string Label, bool Menu, bool Paged)[] Destinations =
     [
         ("anoadminmenu", "Administration actions", true, false),
-        ("anostatsmenu", "Statistics", true, false),
+        ("anopersonalstatsmenu", "Personal Stats", true, false),
+        ("anostatsmenu", "Stats", true, false),
         ("anoranks", "Ranks", true, false),
         ("anoprogression", "Progression", true, false),
         ("anochallenges", "Challenges", false, true),

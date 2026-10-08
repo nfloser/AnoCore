@@ -19,6 +19,32 @@ public sealed class PanoramaMenuTests
     private static readonly DateTimeOffset Now = DateTimeOffset.Parse("2026-10-07T16:00:00Z");
 
     [TestMethod]
+    public async Task SuppressedPageIndicatorKeepsPlainStatsTitleAndNativeNavigation()
+    {
+        var events = new AnoEventBus();
+        var players = new PlayerRegistry(events);
+        await players.ConnectAsync(new(Player, "Player", PlayerTeam.Terrorist, true, Now));
+        var menus = new MenuService();
+        var hud = new TestCustomHudService();
+        var next = false;
+        var definition = new MenuDefinition(new("ano.test.stats"), "Stats",
+            [new("value", "#1 Name: 100", _ => ValueTask.CompletedTask, keepOpen: true),
+             new("next", "Next page", _ => { next = true; return ValueTask.CompletedTask; }, keepOpen: true)])
+        { SuppressPageIndicator = true };
+        using var registered = menus.Register(new("test"), definition);
+        menus.Open(Player, definition.Id);
+        using var presenter = new PanoramaMenuPresenter(hud, menus, players, new CommandRegistry(new Permissions()), events);
+        Assert.IsTrue(presenter.Open(Player));
+        Assert.AreEqual("Stats", hud.Text(Player, PanoramaMenuPresenter.HudId, "ano_menu_title"));
+        Assert.AreEqual(string.Empty, hud.Text(Player, PanoramaMenuPresenter.HudId, "ano_menu_page"));
+        Assert.IsTrue(hud.Class(Player, PanoramaMenuPresenter.HudId, "ano_menu_previous", "disabled"));
+        Assert.IsFalse(hud.Class(Player, PanoramaMenuPresenter.HudId, "ano_menu_next", "disabled"));
+        await hud.ClickAsync(Player, PanoramaMenuPresenter.HudId, "ano_menu_next");
+        Assert.IsTrue(next);
+        Assert.IsFalse(new MenuDefinition(new("ano.test.default"), "Default", []).SuppressPageIndicator);
+    }
+
+    [TestMethod]
     public async Task SourcePaginationUsesFooterWithoutDuplicateRows()
     {
         var events = new AnoEventBus();

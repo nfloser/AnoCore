@@ -1,3 +1,4 @@
+using AnoCore.Abstractions.Persistence;
 using AnoCore.Abstractions.Players;
 using AnoCore.Abstractions.Stats;
 using AnoCore.Modules.Stats;
@@ -31,7 +32,7 @@ public sealed class MySqlGameplayStatRepositoryTests
             new PlaytimeSchemaMigration005(), new CombatSchemaMigration006(),
             new RankAdjustmentSchemaMigration007(), new PlaytimeStateSchemaMigration008(),
             new CombatDetailSchemaMigration009(), new GameplayStatSchemaMigration010(),
-            new StatisticsResetSchemaMigration011()])
+            new StatisticsResetSchemaMigration011(), new CombatDeathContextSchemaMigration020(), new StatisticsLeaderboardIndexMigration021()])
             .ApplyPendingAsync();
     }
 
@@ -170,6 +171,141 @@ public sealed class MySqlGameplayStatRepositoryTests
         Assert.AreEqual(3L, dust.Single().Count);
     }
 
+    [TestMethod]
+    public async Task StatisticsMenu_RatesRequireSamplesAndTiesUseStableOfflinePlayerIdentity()
+    {
+        var combat = new MySqlCombatRepository(_database);
+        var second = new PlayerId(Player.SteamId64 + 1);
+        var shortSample = new PlayerId(Player.SteamId64 + 2);
+        var victim = new PlayerId(Player.SteamId64 + 10);
+        var profiles = new MySqlPlayerRepository(_database);
+        foreach (var player in new[] { Player, second, shortSample })
+        {
+            await profiles.UpsertAsync(new PlayerProfile(player, "Offline " + player.SteamId64, Now, Now));
+            var count = player == shortSample ? 49 : 50;
+            for (var index = 0; index < count; index++)
+                await combat.RecordAsync(new CombatDeath(Guid.NewGuid(), victim, player, null, Now)
+                {
+                    Context = new("de_dust2", "weapon_ak47", PlayerTeam.Terrorist,
+                        index % 2 == 0, false, false, 0, null),
+                });
+            for (var index = 0; index < 20; index++)
+                await combat.RecordAsync(new CombatDeath(Guid.NewGuid(), player, null, null, Now));
+        }
+        var repository = new MySqlStatisticsMenuRepository(_database);
+        foreach (var category in new[] { StatisticsCategory.KillDeathRatio, StatisticsCategory.HeadshotPercentage })
+        {
+            var all = await repository.GetTopAsync(category, 10, 0);
+            Assert.AreEqual(2, all.Count);
+            Assert.AreEqual(Player, all[0].PlayerId);
+            Assert.AreEqual(second, all[1].PlayerId);
+            Assert.IsNotNull(all[1].DisplayName);
+            var next = await repository.GetTopAsync(category, 1, 1);
+            Assert.AreEqual(second, next.Single().PlayerId);
+            Assert.AreEqual(2, next.Single().Position);
+            Assert.AreEqual(category == StatisticsCategory.KillDeathRatio ? 2.5m : 50m, next.Single().Value);
+        }
+        var own = await repository.ReadPersonalAsync(Player);
+        Assert.AreEqual(50L, own.Combat.Kills);
+        Assert.AreEqual(20L, own.Combat.Deaths);
+        Assert.AreEqual(25L, own.Headshots);
+        Assert.AreEqual(50L, own.NativeKills);
+    }
+
+    [TestMethod]
+    public async Task StatisticsMenu_MatchMinimumAndGameplayCategoriesRespectResets()
+    {
+        var gameplay = new MySqlGameplayStatRepository(_database);
+        var second = new PlayerId(Player.SteamId64 + 1);
+        var shortSample = new PlayerId(Player.SteamId64 + 2);
+        foreach (var player in new[] { Player, second, shortSample })
+        {
+            await gameplay.RecordAsync(new(Guid.NewGuid(), player, Now, "de_nuke", GameplayStatKind.MatchWon, player == shortSample ? 9 : 8));
+            if (player != shortSample)
+                await gameplay.RecordAsync(new(Guid.NewGuid(), player, Now, "de_nuke", GameplayStatKind.MatchLost, 2));
+            foreach (var kind in new[] { GameplayStatKind.RoundWon, GameplayStatKind.Mvp, GameplayStatKind.BombPlanted,
+                         GameplayStatKind.BombDefused, GameplayStatKind.GrenadeKill, GameplayStatKind.KnifeKill })
+                await gameplay.RecordAsync(new(Guid.NewGuid(), player, Now, "de_nuke", kind, 3));
+        }
+        var repository = new MySqlStatisticsMenuRepository(_database);
+        var rates = await repository.GetTopAsync(StatisticsCategory.MatchWinPercentage, 10, 0);
+        Assert.AreEqual(2, rates.Count);
+        Assert.AreEqual(Player, rates[0].PlayerId);
+        Assert.AreEqual(80m, rates[0].Value);
+        foreach (var category in new[] { StatisticsCategory.RoundWins, StatisticsCategory.Mvp, StatisticsCategory.BombPlants,
+                     StatisticsCategory.BombDefuses, StatisticsCategory.GrenadeKills, StatisticsCategory.KnifeKills })
+            Assert.AreEqual(3m, (await repository.GetTopAsync(category, 10, 0)).First().Value);
+        var own = await repository.ReadPersonalAsync(Player);
+        Assert.AreEqual(8L, own.MatchWins);
+        Assert.AreEqual(2L, own.MatchLosses);
+        Assert.AreEqual(3L, own.Mvp);
+        await new MySqlStatisticsResetAdministrationService(_database).ResetAsync(Player, null, "statistics menu test", Now.AddSeconds(1));
+        Assert.AreEqual(0L, (await repository.ReadPersonalAsync(Player)).MatchWins);
+        Assert.AreEqual(second, (await repository.GetTopAsync(StatisticsCategory.MatchWinPercentage, 10, 0)).Single().PlayerId);
+    }
+
+    [TestMethod]
+    public async Task StatisticsMenu_HeadshotDenominatorExcludesHistoricalUnknownContextAndTeamKills()
+    {
+        var combat = new MySqlCombatRepository(_database);
+        var victim = new PlayerId(Player.SteamId64 + 10);
+        for (var index = 0; index < 50; index++)
+            await combat.RecordAsync(new(Guid.NewGuid(), victim, Player, null, Now));
+        await combat.RecordAsync(new(Guid.NewGuid(), victim, Player, null, Now)
+        {
+            Context = new("de_dust2", "weapon_ak47", PlayerTeam.Terrorist, true, false, false, 0, null),
+        });
+        await combat.RecordAsync(new(Guid.NewGuid(), victim, Player, null, Now, isTeamKill: true)
+        {
+            Context = new("de_dust2", "weapon_ak47", PlayerTeam.Terrorist, true, false, false, 0, null),
+        });
+        var repository = new MySqlStatisticsMenuRepository(_database);
+        var own = await repository.ReadPersonalAsync(Player);
+        Assert.AreEqual(51L, own.Combat.Kills);
+        Assert.AreEqual(1L, own.NativeKills);
+        Assert.AreEqual(1L, own.Headshots);
+        Assert.IsEmpty(await repository.GetTopAsync(StatisticsCategory.HeadshotPercentage, 10, 0));
+        await new MySqlStatisticsResetAdministrationService(_database).ResetAsync(Player, null, "statistics menu test", Now.AddSeconds(1));
+        Assert.AreEqual(0L, (await repository.ReadPersonalAsync(Player)).NativeKills);
+    }
+
+    [TestMethod]
+    public async Task StatisticsMenu_DelegatesCountsAndPlaytimeAndBoundsPagination()
+    {
+        var victim = new PlayerId(Player.SteamId64 + 1);
+        var assister = new PlayerId(Player.SteamId64 + 2);
+        await new MySqlCombatRepository(_database).RecordAsync(new(Guid.NewGuid(), victim, Player, assister, Now));
+        var playtime = new MySqlPlaytimeRepository(_database);
+        var session = PlayerSessionId.New();
+        await playtime.OpenAsync(Player, session, Now);
+        await playtime.AdvanceAsync(Player, session, Now.AddMinutes(30), close: true);
+        var repository = new MySqlStatisticsMenuRepository(_database);
+        foreach (var category in new[] { StatisticsCategory.Kills, StatisticsCategory.Deaths, StatisticsCategory.Assists })
+            Assert.AreEqual(1m, (await repository.GetTopAsync(category, 10, 0)).Single().Value);
+        Assert.AreEqual(1800m, (await repository.GetTopAsync(StatisticsCategory.Playtime, 10, 0)).Single().Value);
+        Assert.AreEqual(TimeSpan.FromMinutes(30), (await repository.ReadPersonalAsync(Player)).Playtime);
+        await Assert.ThrowsExactlyAsync<ArgumentOutOfRangeException>(async () => await repository.GetTopAsync(StatisticsCategory.Kills, 101, 0));
+        await Assert.ThrowsExactlyAsync<ArgumentOutOfRangeException>(async () => await repository.GetTopAsync(StatisticsCategory.Kills, 5, 10001));
+        await Assert.ThrowsExactlyAsync<ArgumentOutOfRangeException>(async () => await repository.GetTopAsync((StatisticsCategory)99, 5, 0));
+    }
+
+    [TestMethod]
+    public async Task StatisticsMenu_IndexIsRestartSafeAndEmptyPersonalSnapshotIsDefined()
+    {
+        await _database.WithConnectionAsync(async (connection, token) =>
+        {
+            await new StatisticsLeaderboardIndexMigration021().ApplyAsync(connection, token);
+            await new StatisticsLeaderboardIndexMigration021().ApplyAsync(connection, token);
+            await using var inspect = connection.CreateCommand();
+            inspect.CommandText = "SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema = DATABASE() AND table_name = 'ano_gameplay_stats' AND index_name = 'ix_ano_gameplay_stats_kind_player_time'";
+            Assert.AreEqual(4L, Convert.ToInt64(await inspect.ExecuteScalarAsync(token)));
+            return true;
+        });
+        var repository = new MySqlStatisticsMenuRepository(_database);
+        Assert.AreEqual(new PersonalStatistics(new(0, 0, 0), TimeSpan.Zero, 0, 0, 0, 0, 0, 0), await repository.ReadPersonalAsync(Player));
+        foreach (var category in Enum.GetValues<StatisticsCategory>()) Assert.IsEmpty(await repository.GetTopAsync(category, 5, 0));
+    }
+
     private async Task DropAsync()
     {
         await _database.WithConnectionAsync(async (connection, token) =>
@@ -185,6 +321,7 @@ public sealed class MySqlGameplayStatRepositoryTests
                 await dropView.ExecuteNonQueryAsync(token);
             }
             foreach (var table in new[] {
+                "ano_combat_death_context",
                 "ano_statistics_resets", "ano_gameplay_stats", "ano_combat_damage", "ano_combat_weapon_fire",
                 "ano_rank_adjustments", "ano_playtime_segments", "ano_combat_deaths",
                 "ano_playtime_sessions", "ano_admin_warnings", "ano_admin_action_audit",

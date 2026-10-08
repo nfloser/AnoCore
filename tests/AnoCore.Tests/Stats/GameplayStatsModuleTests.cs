@@ -207,7 +207,7 @@ public sealed class GameplayStatsModuleTests
             combat, menus, events);
 
         var result = await commands.ExecuteAsync(
-            "!anostatsmenu de_dust2 weapon_ak47", Player);
+            "!anostatdetails de_dust2 weapon_ak47", Player);
         Assert.IsTrue(result.Success);
         Assert.AreEqual("de_dust2", gameplay.LastFilter?.MapName);
         Assert.AreEqual("de_dust2", combat.LastDetailFilter?.MapName);
@@ -222,7 +222,7 @@ public sealed class GameplayStatsModuleTests
 
         Assert.IsTrue(menus.TryGetOpenMenu(Player, out var second));
         Assert.IsNotNull(second);
-        StringAssert.Contains(second.Title, "page 2");
+        Assert.AreEqual("Personal Stats", second.Title);
         Assert.IsFalse((await menus.SelectAsync(Player, staleData.Id)).Accepted);
 
         await players.ConnectAsync(new PlayerConnection(
@@ -231,7 +231,7 @@ public sealed class GameplayStatsModuleTests
 
         module.Dispose();
         Assert.AreEqual(CommandFailureReason.NotFound,
-            (await commands.ExecuteAsync("!anostatsmenu", Player)).FailureReason);
+            (await commands.ExecuteAsync("!anostatdetails", Player)).FailureReason);
     }
 
     [TestMethod]
@@ -252,7 +252,7 @@ public sealed class GameplayStatsModuleTests
             commands, players, new FakeRepository(), GameplayStatsConfiguration.Default,
             combat, menus, events);
 
-        var pending = commands.ExecuteAsync("!anostatsmenu", Player).AsTask();
+        var pending = commands.ExecuteAsync("!anostatdetails", Player).AsTask();
         await combat.ReadStarted.Task;
         await players.ConnectAsync(new PlayerConnection(
             Player, "Replacement", PlayerTeam.CounterTerrorist, true, Now.AddSeconds(1)));
@@ -278,6 +278,31 @@ public sealed class GameplayStatsModuleTests
         await module.RecordAsync(value);
 
         Assert.AreSame(value, repository.LastRecorded);
+    }
+
+    [TestMethod]
+    public async Task DetailReadCannotReplaceAnotherMenuInTheSameSession()
+    {
+        var events = new AnoEventBus();
+        var players = new PlayerRegistry(events);
+        await players.ConnectAsync(new(Player, "Player", PlayerTeam.Terrorist, true, Now));
+        var commands = new CommandRegistry(new AllowAll());
+        var menus = new MenuService();
+        var combat = new FakeCombatRepository
+        {
+            ReadStarted = new(TaskCreationOptions.RunContinuationsAsynchronously),
+            ReleaseRead = new(TaskCreationOptions.RunContinuationsAsynchronously),
+        };
+        using var module = new GameplayStatsModule(commands, players, new FakeRepository(), combat: combat, menus: menus, events: events);
+        var pending = commands.ExecuteAsync("anostatdetails", Player).AsTask();
+        await combat.ReadStarted.Task;
+        var other = new MenuDefinition(new("ano.other"), "Other", []);
+        using var registered = menus.Register(new("other"), other);
+        menus.Open(Player, other.Id);
+        combat.ReleaseRead.SetResult(true);
+        Assert.IsFalse((await pending).Success);
+        menus.TryGetOpenMenu(Player, out var current);
+        Assert.AreSame(other, current);
     }
 
     private sealed class FakeRepository : IGameplayStatRepository
