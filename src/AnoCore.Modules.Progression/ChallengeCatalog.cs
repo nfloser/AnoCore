@@ -8,6 +8,7 @@ public enum ChallengeCounterSource
     CombatKills,
     CombatAssists,
     UtilityDamage,
+    DamageHealth,
 }
 
 public enum ChallengeWindowKind
@@ -40,6 +41,7 @@ public sealed record ChallengeDefinition(
     IReadOnlyList<string> PrerequisiteIds)
 {
     public ChallengeCounterSource CounterSource { get; init; }
+    public ChallengePredicates Predicates { get; init; } = new();
 }
 
 public sealed record ChallengeEvaluation(
@@ -99,6 +101,8 @@ public sealed class ChallengeCatalogSnapshot
             var copy = challenge with
             {
                 PrerequisiteIds = Array.AsReadOnly(prerequisites),
+                Predicates = challenge.Predicates?.Snapshot(challenge.CounterSource)
+                    ?? throw new ArgumentException("Challenge predicates cannot be null."),
             };
             normalized.Add(copy);
             byId[copy.Id] = copy;
