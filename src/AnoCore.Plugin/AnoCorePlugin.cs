@@ -691,15 +691,26 @@ public sealed class AnoCorePlugin : BasePlugin
                     "AnoVeto configuration/composition failed; AnoCore will continue without AnoVeto.");
             }
 
+            ProgressionDefinitionSnapshot? sharedProgression = null;
+            try
+            {
+                sharedProgression = await ProgressionConfiguration.LoadAsync(configuration, timeout.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
+            catch (Exception exception)
+            {
+                Logger.LogError(exception, "Shared progression configuration failed; progression modules remain disabled.");
+            }
+
             try
             {
                 var achievementConfiguration = await configuration.LoadAsync("achievements",
-                    () => new AchievementConfiguration(), AchievementConfiguration.Validate, timeout.Token).ConfigureAwait(false);
-                if (achievementConfiguration.Enabled)
+                    () => new AchievementConfiguration(), AchievementConfiguration.ValidateCatalog, timeout.Token).ConfigureAwait(false);
+                if (achievementConfiguration.Enabled && sharedProgression is not null)
                 {
                     var database = (IDatabase)created.GetService(typeof(IDatabase))!;
                     await ProgressionPersistenceBootstrap.EnsureReadyAsync(database, timeout.Token).ConfigureAwait(false);
-                    createdAchievements = new AchievementModule(achievementConfiguration.Snapshot(), players,
+                    createdAchievements = new AchievementModule(achievementConfiguration.Snapshot(sharedProgression), players,
                         created.GameplayStats, new MySqlAchievementRepository(database),
                         new MySqlProgressionGrantRepository(database), created.Commands,
                         exception => Logger.LogError(exception, "Achievement checkpoint failed."),
@@ -721,13 +732,11 @@ public sealed class AnoCorePlugin : BasePlugin
             {
                 var challengeConfiguration = await configuration.LoadAsync("challenges",
                     () => new ChallengeConfiguration(), ChallengeConfiguration.Validate, timeout.Token).ConfigureAwait(false);
-                if (challengeConfiguration.Enabled)
+                if (challengeConfiguration.Enabled && sharedProgression is not null)
                 {
-                    var xpConfiguration = await configuration.LoadAsync("achievements",
-                        () => new AchievementConfiguration(), AchievementConfiguration.Validate, timeout.Token).ConfigureAwait(false);
                     var database = (IDatabase)created.GetService(typeof(IDatabase))!;
                     await ProgressionPersistenceBootstrap.EnsureReadyAsync(database, timeout.Token).ConfigureAwait(false);
-                    createdChallenges = new ChallengeModule(challengeConfiguration.Snapshot(), xpConfiguration.Snapshot().Xp,
+                    createdChallenges = new ChallengeModule(challengeConfiguration.Snapshot(), sharedProgression,
                         players, new MySqlChallengeRepository(database), created.Commands,
                         reportError: exception => Logger.LogError(exception, "Challenge checkpoint failed."),
                         settings: created.Settings, toggles: created.ToggleCatalog, messages: created.Messages, events: events);
@@ -748,13 +757,11 @@ public sealed class AnoCorePlugin : BasePlugin
             {
                 var gameplayXpConfiguration = await configuration.LoadAsync("gameplay-xp",
                     () => new GameplayXpConfiguration(), GameplayXpConfiguration.Validate, timeout.Token).ConfigureAwait(false);
-                if (gameplayXpConfiguration.Enabled)
+                if (gameplayXpConfiguration.Enabled && sharedProgression is not null)
                 {
-                    var xpConfiguration = await configuration.LoadAsync("achievements",
-                        () => new AchievementConfiguration(), AchievementConfiguration.Validate, timeout.Token).ConfigureAwait(false);
                     var database = (IDatabase)created.GetService(typeof(IDatabase))!;
                     await ProgressionPersistenceBootstrap.EnsureReadyAsync(database, timeout.Token).ConfigureAwait(false);
-                    createdGameplayXp = new GameplayXpModule(gameplayXpConfiguration.Snapshot(), xpConfiguration.Snapshot().Xp,
+                    createdGameplayXp = new GameplayXpModule(gameplayXpConfiguration.Snapshot(), sharedProgression,
                         players, new MySqlGameplayXpRepository(database), new MySqlProgressionGrantRepository(database), created.Commands,
                         exception => Logger.LogError(exception, "Gameplay XP checkpoint failed."), events: events,
                         reloads: created.ConfigReloads, configuration: configuration);
@@ -775,13 +782,11 @@ public sealed class AnoCorePlugin : BasePlugin
             {
                 var seasonConfiguration = await configuration.LoadAsync("seasons",
                     () => new SeasonConfiguration(), SeasonConfiguration.Validate, timeout.Token).ConfigureAwait(false);
-                if (seasonConfiguration.Enabled)
+                if (seasonConfiguration.Enabled && sharedProgression is not null)
                 {
-                    var xpConfiguration = await configuration.LoadAsync("achievements",
-                        () => new AchievementConfiguration(), AchievementConfiguration.Validate, timeout.Token).ConfigureAwait(false);
                     var database = (IDatabase)created.GetService(typeof(IDatabase))!;
                     await ProgressionPersistenceBootstrap.EnsureReadyAsync(database, timeout.Token).ConfigureAwait(false);
-                    createdSeasons = await SeasonModule.CreateAsync(seasonConfiguration.Snapshot(), xpConfiguration.Snapshot().Xp,
+                    createdSeasons = await SeasonModule.CreateAsync(seasonConfiguration.Snapshot(), sharedProgression,
                         players, new MySqlSeasonRepository(database), new MySqlSeasonProgressionRepository(database),
                         new MySqlSeasonRewardRepository(database), created.Commands, DateTimeOffset.UtcNow,
                         reportError: exception => Logger.LogError(exception, "Season reward checkpoint failed."),

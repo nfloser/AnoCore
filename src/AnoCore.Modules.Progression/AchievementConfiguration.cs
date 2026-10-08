@@ -30,13 +30,18 @@ public sealed class AchievementConfiguration
             [new(1, 5, 100), new(2, 25, 200), new(3, 50, 300)]),
     ];
 
-    public AchievementCatalogSnapshot Snapshot()
+    public AchievementCatalogSnapshot Snapshot() => SnapshotCore(null);
+
+    public AchievementCatalogSnapshot Snapshot(ProgressionDefinitionSnapshot xp)
+        => SnapshotCore(xp ?? throw new ArgumentNullException(nameof(xp)));
+
+    private AchievementCatalogSnapshot SnapshotCore(ProgressionDefinitionSnapshot? xp)
     {
         if (CheckpointSeconds is < 10 or > 600)
             throw new ArgumentException("Achievement checkpoints must be between 10 and 600 seconds.");
         if (Achievements is null || Achievements.Count is < 1 or > 32)
             throw new ArgumentException("Define between 1 and 32 achievements.");
-        if (Levels is null || Boosts is null)
+        if (xp is null && (Levels is null || Boosts is null))
             throw new ArgumentException("XP levels and boosts cannot be null.");
         var ids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var snapshot = new List<NamedAchievement>();
@@ -76,8 +81,19 @@ public sealed class AchievementConfiguration
         }
 
         return new AchievementCatalogSnapshot(CheckpointSeconds,
-            ProgressionDefinitionSnapshot.Create(Levels, Boosts),
+            xp ?? ProgressionDefinitionSnapshot.Create(Levels, Boosts),
             ordered.AsReadOnly());
+    }
+
+    public static IReadOnlyCollection<string> ValidateCatalog(AchievementConfiguration configuration)
+    {
+        try
+        {
+            ArgumentNullException.ThrowIfNull(configuration);
+            _ = configuration.Snapshot(ProgressionDefinitionSnapshot.Create([new(1, 0)]));
+            return [];
+        }
+        catch (ArgumentException exception) { return [exception.Message]; }
     }
 
     public static IReadOnlyCollection<string> Validate(AchievementConfiguration configuration)
