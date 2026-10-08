@@ -1,0 +1,6 @@
+{
+  "Enabled": false,
+  "CheckpointSeconds": 30,
+  "BatchSize": 100,
+  "Seasons": []
+}

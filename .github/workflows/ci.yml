@@ -55,6 +55,9 @@ jobs:
       - name: Test
         run: dotnet test AnoCore.sln --configuration Release --no-build --verbosity normal
 
+      - name: Test offline server profile preparation
+        run: python3 -m unittest discover -s tests/operator -p 'test_*.py'
+
       - name: Verify formatting
         run: dotnet format AnoCore.sln --verify-no-changes --no-restore
 
@@ -194,6 +197,9 @@ jobs:
           cp docs/deployment.md artifacts/INSTALL.md
           cp docs/player-dashboard.md artifacts/DASHBOARD.md
           cp -R docs artifacts/docs
+          mkdir -p artifacts/examples artifacts/tools
+          cp -R examples/server-profiles artifacts/examples/server-profiles
+          cp tools/prepare_anomeme_profile.py artifacts/tools/prepare_anomeme_profile.py
           cp docs/quick-install.md artifacts/QUICK-INSTALL.md
           cp docs/steam-addon.md artifacts/STEAM-ADDON.md
           mkdir -p artifacts/ui

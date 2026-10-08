@@ -1,0 +1,102 @@
+{
+  "Enabled": true,
+  "CheckpointSeconds": 30,
+  "Achievements": [
+    {
+      "Id": "anomeme.headshots",
+      "Version": 1,
+      "Name": "Kopfsache",
+      "Statistic": 15,
+      "Tiers": [
+        {
+          "Tier": 1,
+          "Target": 25,
+          "RewardXp": 100
+        },
+        {
+          "Tier": 2,
+          "Target": 100,
+          "RewardXp": 300
+        },
+        {
+          "Tier": 3,
+          "Target": 500,
+          "RewardXp": 1000
+        }
+      ],
+      "Prerequisites": []
+    },
+    {
+      "Id": "anomeme.wins",
+      "Version": 1,
+      "Name": "Rundensammler",
+      "Statistic": 8,
+      "Tiers": [
+        {
+          "Tier": 1,
+          "Target": 25,
+          "RewardXp": 100
+        },
+        {
+          "Tier": 2,
+          "Target": 100,
+          "RewardXp": 300
+        },
+        {
+          "Tier": 3,
+          "Target": 500,
+          "RewardXp": 1000
+        }
+      ],
+      "Prerequisites": []
+    },
+    {
+      "Id": "anomeme.plants",
+      "Version": 1,
+      "Name": "Bombenleger",
+      "Statistic": 2,
+      "Tiers": [
+        {
+          "Tier": 1,
+          "Target": 10,
+          "RewardXp": 100
+        },
+        {
+          "Tier": 2,
+          "Target": 50,
+          "RewardXp": 300
+        },
+        {
+          "Tier": 3,
+          "Target": 200,
+          "RewardXp": 1000
+        }
+      ],
+      "Prerequisites": []
+    },
+    {
+      "Id": "anomeme.knives",
+      "Version": 1,
+      "Name": "Nahkampf",
+      "Statistic": 33,
+      "Tiers": [
+        {
+          "Tier": 1,
+          "Target": 5,
+          "RewardXp": 100
+        },
+        {
+          "Tier": 2,
+          "Target": 25,
+          "RewardXp": 300
+        },
+        {
+          "Tier": 3,
+          "Target": 100,
+          "RewardXp": 1000
+        }
+      ],
+      "Prerequisites": []
+    }
+  ]
+}

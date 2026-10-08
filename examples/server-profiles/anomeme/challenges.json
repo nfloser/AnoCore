@@ -1,0 +1,138 @@
+{
+  "Enabled": true,
+  "CheckpointSeconds": 30,
+  "Recurring": [
+    {
+      "Id": "anomeme.daily.wins",
+      "Version": 1,
+      "Name": "Drei Rundensiege",
+      "WindowKind": 0,
+      "Statistic": 8,
+      "CounterSource": 0,
+      "Target": 3,
+      "RewardXp": 50,
+      "PrerequisiteIds": [],
+      "Predicates": {}
+    },
+    {
+      "Id": "anomeme.daily.mvp",
+      "Version": 1,
+      "Name": "Spieler der Runde",
+      "WindowKind": 0,
+      "Statistic": 6,
+      "CounterSource": 0,
+      "Target": 1,
+      "RewardXp": 25,
+      "PrerequisiteIds": [],
+      "Predicates": {}
+    },
+    {
+      "Id": "anomeme.weekly.ak-headshots",
+      "Version": 1,
+      "Name": "AK: Kopfsache",
+      "WindowKind": 1,
+      "Statistic": 15,
+      "CounterSource": 1,
+      "Target": 10,
+      "RewardXp": 150,
+      "PrerequisiteIds": [],
+      "Predicates": {
+        "Weapons": [
+          "ak47"
+        ],
+        "Headshot": true
+      }
+    },
+    {
+      "Id": "anomeme.weekly.awp-noscopes",
+      "Version": 1,
+      "Name": "AWP: Scope optional",
+      "WindowKind": 1,
+      "Statistic": 16,
+      "CounterSource": 1,
+      "Target": 5,
+      "RewardXp": 200,
+      "PrerequisiteIds": [],
+      "Predicates": {
+        "Weapons": [
+          "awp"
+        ],
+        "NoScope": true
+      }
+    },
+    {
+      "Id": "anomeme.weekly.mirage-smoke",
+      "Version": 1,
+      "Name": "Mirage: Nebeljäger",
+      "WindowKind": 1,
+      "Statistic": 18,
+      "CounterSource": 1,
+      "Target": 5,
+      "RewardXp": 250,
+      "PrerequisiteIds": [],
+      "Predicates": {
+        "Maps": [
+          "de_mirage"
+        ],
+        "Weapons": [
+          "awp"
+        ],
+        "NoScope": true,
+        "ThroughSmoke": true
+      }
+    },
+    {
+      "Id": "anomeme.weekly.wallbang",
+      "Version": 1,
+      "Name": "Durch die Wand",
+      "WindowKind": 1,
+      "Statistic": 17,
+      "CounterSource": 1,
+      "Target": 10,
+      "RewardXp": 150,
+      "PrerequisiteIds": [],
+      "Predicates": {
+        "PenetrationMinimum": 1
+      }
+    },
+    {
+      "Id": "anomeme.weekly.long-range",
+      "Version": 1,
+      "Name": "Auf Distanz",
+      "WindowKind": 1,
+      "Statistic": 15,
+      "CounterSource": 1,
+      "Target": 10,
+      "RewardXp": 100,
+      "PrerequisiteIds": [],
+      "Predicates": {
+        "DistanceMinimumMeters": 30
+      }
+    },
+    {
+      "Id": "anomeme.weekly.utility",
+      "Version": 1,
+      "Name": "Utility macht Schaden",
+      "WindowKind": 1,
+      "Statistic": 1,
+      "CounterSource": 3,
+      "Target": 500,
+      "RewardXp": 100,
+      "PrerequisiteIds": [],
+      "Predicates": {}
+    },
+    {
+      "Id": "anomeme.weekly.objectives",
+      "Version": 1,
+      "Name": "Bombenleger",
+      "WindowKind": 1,
+      "Statistic": 2,
+      "CounterSource": 0,
+      "Target": 10,
+      "RewardXp": 100,
+      "PrerequisiteIds": [],
+      "Predicates": {}
+    }
+  ],
+  "Predefined": []
+}

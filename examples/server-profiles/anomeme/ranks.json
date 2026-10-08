@@ -1,0 +1,168 @@
+{
+  "KillPoints": 2,
+  "AssistPoints": 1,
+  "DeathPenalty": 2,
+  "StartingPoints": 1000,
+  "Source": "EventLedger",
+  "Scoreboard": {
+    "SyncScore": false,
+    "RankMode": "Competitive"
+  },
+  "LivePolicy": {
+    "WarmupPoints": false,
+    "MinimumPlayers": 8,
+    "IncludeBots": false,
+    "FreeForAll": false,
+    "TeamKillPenalty": 6,
+    "TeamKillAssistPenalty": 3,
+    "TeamKillFlashAssistPenalty": 2,
+    "SuicidePenalty": 5,
+    "WeaponPoints": {},
+    "DistanceThresholdMeters": 0,
+    "DistanceBonus": 0,
+    "DynamicMultipliers": false,
+    "MinimumDynamicMultiplier": 0.25,
+    "MaximumDynamicMultiplier": 4,
+    "VipMultiplier": 1,
+    "VipPermission": "ano.ranks.vip",
+    "PlaytimeIntervalSeconds": 0,
+    "StreakWindowSeconds": 0,
+    "StreakPoints": {
+      "3": 1,
+      "4": 1,
+      "5": 3
+    }
+  },
+  "GameplayPoints": {
+    "GrenadeThrown": 0,
+    "BombPlanted": 1,
+    "BombDefused": 1,
+    "HostageRescued": 1,
+    "HostageKilled": 0,
+    "Mvp": 1,
+    "RoundPlayed": 0,
+    "RoundWon": 2,
+    "RoundLost": -2,
+    "RoundTerrorist": 0,
+    "RoundCounterTerrorist": 0,
+    "MatchWon": 0,
+    "MatchLost": 0,
+    "FirstBlood": 0,
+    "HeadshotKill": 1,
+    "NoScopeKill": 1,
+    "PenetratedKill": 0,
+    "ThroughSmokeKill": 0,
+    "FlashedKill": 0,
+    "DominatedKill": 0,
+    "RevengeKill": 0,
+    "FlashAssist": 1,
+    "PlaytimeInterval": 1,
+    "BombDropped": 0,
+    "BombPickedUp": 0,
+    "BombExploded": 1,
+    "BombDefusedOthers": 1,
+    "HostageHurt": 0,
+    "HostagesRescuedAll": 1,
+    "GrenadeKill": 0,
+    "InfernoKill": 0,
+    "ImpactKill": 10,
+    "KnifeKill": 3,
+    "TaserKill": 5
+  },
+  "NotifyPointChanges": true,
+  "RoundPointSummaries": false,
+  "NotifyRankChanges": true,
+  "NotifyAdministrativeRankChanges": true,
+  "Thresholds": [
+    {
+      "Name": "STARTER",
+      "MinimumPoints": 0,
+      "Tag": "[STARTER]"
+    },
+    {
+      "Name": "HARMLESS BOT",
+      "MinimumPoints": 1200,
+      "Tag": "[HARMLESS BOT]"
+    },
+    {
+      "Name": "EASY BOT",
+      "MinimumPoints": 1400,
+      "Tag": "[EASY BOT]"
+    },
+    {
+      "Name": "NORMAL BOT",
+      "MinimumPoints": 1600,
+      "Tag": "[NORMAL BOT]"
+    },
+    {
+      "Name": "HARD BOT",
+      "MinimumPoints": 1800,
+      "Tag": "[HARD BOT]"
+    },
+    {
+      "Name": "EXPERT BOT",
+      "MinimumPoints": 2000,
+      "Tag": "[EXPERT BOT]"
+    },
+    {
+      "Name": "HEIZER",
+      "MinimumPoints": 2300,
+      "Tag": "[HEIZER]"
+    },
+    {
+      "Name": "MACHER",
+      "MinimumPoints": 2700,
+      "Tag": "[MACHER]"
+    },
+    {
+      "Name": "DRÜCKER",
+      "MinimumPoints": 3200,
+      "Tag": "[DRÜCKER]"
+    },
+    {
+      "Name": "EIERLEGER",
+      "MinimumPoints": 3800,
+      "Tag": "[EIERLEGER]"
+    },
+    {
+      "Name": "INTERNPRO",
+      "MinimumPoints": 4500,
+      "Tag": "[INTERNPRO]"
+    },
+    {
+      "Name": "INTERNBOSS",
+      "MinimumPoints": 5300,
+      "Tag": "[INTERNBOSS]"
+    },
+    {
+      "Name": "INTERNKING",
+      "MinimumPoints": 6200,
+      "Tag": "[INTERNKING]"
+    },
+    {
+      "Name": "INTERNGOTT",
+      "MinimumPoints": 7200,
+      "Tag": "[INTERNGOTT]"
+    },
+    {
+      "Name": "LEBENDE LEGENDE",
+      "MinimumPoints": 8500,
+      "Tag": "[LEBENDE LEGENDE]"
+    },
+    {
+      "Name": "LIFEGAMER",
+      "MinimumPoints": 10000,
+      "Tag": "[LIFEGAMER]"
+    },
+    {
+      "Name": "GOTTKÖNIG",
+      "MinimumPoints": 12000,
+      "Tag": "[GOTTKÖNIG]"
+    },
+    {
+      "Name": "GOAT",
+      "MinimumPoints": 15000,
+      "Tag": "[GOAT]"
+    }
+  ]
+}
