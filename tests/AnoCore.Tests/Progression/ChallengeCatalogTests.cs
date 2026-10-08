@@ -10,6 +10,57 @@ public sealed class ChallengeCatalogTests
         new(2027, 1, 4, 0, 0, 0, TimeSpan.Zero);
 
     [TestMethod]
+    public void PredicatesAreImmutableValidatedAndPreservedByRecurringJsonSnapshots()
+    {
+        var maps = new List<string> { "de_dust2" };
+        var weapons = new List<string> { "ak47" };
+        var hitgroups = new List<int> { 1 };
+        var template = new RecurringChallengeTemplate("weekly.damage", 1, "Damage", ChallengeWindowKind.Weekly,
+            GameplayStatKind.HeadshotKill, 100, 20, [])
+        {
+            CounterSource = ChallengeCounterSource.DamageHealth,
+            Predicates = new() { Maps = maps, Weapons = weapons, Hitgroups = hitgroups },
+        };
+        var snapshot = new ChallengeConfiguration { Recurring = [template] }.Snapshot();
+        maps.Clear(); weapons.Clear(); hitgroups.Clear();
+        var occurrence = snapshot.ResolveAt(Monday).Challenges.Single();
+        CollectionAssert.AreEqual(new[] { "de_dust2" }, occurrence.Predicates.Maps.ToArray());
+        CollectionAssert.AreEqual(new[] { "ak47" }, occurrence.Predicates.Weapons.ToArray());
+        CollectionAssert.AreEqual(new[] { 1 }, occurrence.Predicates.Hitgroups.ToArray());
+        Assert.ThrowsExactly<NotSupportedException>(() => ((IList<string>)occurrence.Predicates.Maps).Clear());
+        var restored = System.Text.Json.JsonSerializer.Deserialize<ChallengeDefinition>(
+            System.Text.Json.JsonSerializer.Serialize(occurrence))!;
+        CollectionAssert.AreEqual(occurrence.Predicates.Weapons.ToArray(), restored.Predicates.Weapons.ToArray());
+        Assert.IsEmpty(Daily("legacy", GameplayStatKind.Mvp, 1).Predicates.Maps);
+    }
+
+    [TestMethod]
+    public void PredicatesRejectUnsupportedEvidenceMalformedValuesAndUnboundedLists()
+    {
+        var definition = Daily("test", GameplayStatKind.Mvp, 1);
+        void Reject(ChallengePredicates predicates, ChallengeCounterSource source = ChallengeCounterSource.GameplayStat)
+            => Assert.ThrowsExactly<ArgumentException>(() => ChallengeCatalogSnapshot.Create(
+                [definition with { CounterSource = source, Predicates = predicates }]));
+        Reject(new() { Maps = ["de_dust2"] }, ChallengeCounterSource.CombatKills);
+        Reject(new() { Weapons = ["ak47"] });
+        Reject(new() { Hitgroups = [1] });
+        Reject(new() { Maps = [" DE_DUST2 "] });
+        Reject(new() { Maps = ["de_dust2", "de_dust2"] });
+        Reject(new() { Maps = Enumerable.Range(0, 17).Select(i => $"map{i}").ToArray() });
+        Reject(new() { Maps = null! });
+        Reject(new() { Hitgroups = [256] }, ChallengeCounterSource.DamageHealth);
+        Reject(new() { Hitgroups = [1, 1] }, ChallengeCounterSource.UtilityDamage);
+        Reject(new() { Weapons = ["weapon_ak47"] }, ChallengeCounterSource.DamageHealth);
+        Reject(new() { Weapons = ["ak47"] }, ChallengeCounterSource.UtilityDamage);
+        Reject(null!);
+        Reject(new() { Maps = ["de_dust2' OR 1=1"] });
+        Assert.ThrowsExactly<System.Text.Json.JsonException>(() =>
+            System.Text.Json.JsonSerializer.Deserialize<ChallengePredicates>("{\"Team\":\"CT\"}"));
+        var valid = ChallengeCatalogSnapshot.Create([definition with { Predicates = new() { Maps = ["de_dust2"] } }]);
+        Assert.AreEqual("de_dust2", valid.Get("test").Predicates.Maps.Single());
+    }
+
+    [TestMethod]
     public void CounterSourcesAreValidatedAndPreservedAcrossRecurringAndJsonSnapshots()
     {
         var template = new RecurringChallengeTemplate("weekly.kills", 1, "Weekly kills", ChallengeWindowKind.Weekly,

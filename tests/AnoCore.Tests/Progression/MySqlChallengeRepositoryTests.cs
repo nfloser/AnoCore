@@ -302,6 +302,72 @@ public sealed class MySqlChallengeRepositoryTests
         Assert.AreEqual(50L, completed.Evaluation.Progress);
     }
 
+    [TestMethod]
+    public async Task MapPredicateIsExactAndFiltersDurableGameplayEvents()
+    {
+        var definition = Daily(target: 2) with { Predicates = new() { Maps = ["de_dust2"] } };
+        var catalog = ChallengeCatalogSnapshot.Create([definition]);
+        var stats = new MySqlGameplayStatRepository(_database);
+        foreach (var map in new[] { "de_dust2", "de_mirage", "DE_DUST2" })
+            await stats.RecordAsync(new(Guid.NewGuid(), Player, Start, map, GameplayStatKind.HeadshotKill, 1));
+        Assert.AreEqual(1L, (await Repository.ReadAsync(Player, catalog, definition.Id, Start)).Progress);
+        await Record(Start, 1);
+        Assert.IsTrue((await Repository.CompleteAsync(Player, catalog, definition.Id, Start, Xp)).Applied);
+    }
+
+    [TestMethod]
+    public async Task DamagePredicatesCombineListsAndRetainReplaySafeRewards()
+    {
+        var definition = Daily("damage", target: 30) with
+        {
+            CounterSource = ChallengeCounterSource.DamageHealth,
+            Predicates = new() { Maps = ["de_dust2", "de_mirage"], Weapons = ["ak47", "m4a1"], Hitgroups = [1, 2] },
+        };
+        var catalog = ChallengeCatalogSnapshot.Create([definition]);
+        var combat = new MySqlCombatRepository(_database);
+        var victim = new PlayerId(Player.SteamId64 + 1);
+        async Task Damage(string map, string weapon, int hitgroup, bool team = false, PlayerId? target = null,
+            DateTimeOffset? at = null)
+            => await combat.RecordDamageAsync(new(Guid.NewGuid(), target ?? victim, Player,
+                at ?? Start, map, weapon, hitgroup, 10, 99, team));
+        var accepted = new CombatDamageEvent(Guid.NewGuid(), victim, Player, Start, "de_dust2", "ak47", 1, 10, 99);
+        await combat.RecordDamageAsync(accepted);
+        await combat.RecordDamageAsync(accepted);
+        await Damage("de_mirage", "m4a1", 2);
+        await Damage("de_dust2", "ak47", 2);
+        await Damage("de_nuke", "ak47", 1);
+        await Damage("de_dust2", "awp", 1);
+        await Damage("de_dust2", "AK47", 1);
+        await Damage("de_dust2", "ak47", 3);
+        await Damage("de_dust2", "ak47", 1, team: true);
+        await Damage("de_dust2", "ak47", 1, target: Player);
+        await Damage("de_dust2", "ak47", 1, at: Start.AddDays(1));
+        var first = await Repository.CompleteAsync(Player, catalog, definition.Id, Start, Xp);
+        Assert.IsTrue(first.Applied);
+        Assert.AreEqual(30L, first.Evaluation.Progress);
+        var changed = ChallengeCatalogSnapshot.Create([definition with
+            { Version = 2, Predicates = new() { Weapons = ["awp"] }, RewardXp = 999 }]);
+        Assert.IsFalse((await new MySqlChallengeRepository(_database).CompleteAsync(
+            Player, changed, definition.Id, Start, Xp)).Applied);
+        Assert.AreEqual(100L, (await new MySqlProgressionGrantRepository(_database).ReadLifetimeAsync(Player)).LifetimeXp);
+    }
+
+    [TestMethod]
+    public async Task UtilityPredicatesNarrowExistingUtilityCounter()
+    {
+        var definition = Daily("filtered-utility", target: 100) with
+        {
+            CounterSource = ChallengeCounterSource.UtilityDamage,
+            Predicates = new() { Maps = ["de_dust2"], Weapons = ["hegrenade"] },
+        };
+        var catalog = ChallengeCatalogSnapshot.Create([definition]);
+        var combat = new MySqlCombatRepository(_database);
+        var victim = new PlayerId(Player.SteamId64 + 1);
+        foreach (var (map, weapon) in new[] { ("de_dust2", "hegrenade"), ("de_dust2", "inferno"), ("de_mirage", "hegrenade") })
+            await combat.RecordDamageAsync(new(Guid.NewGuid(), victim, Player, Start, map, weapon, 0, 20, 0));
+        Assert.AreEqual(20L, (await Repository.ReadAsync(Player, catalog, definition.Id, Start)).Progress);
+    }
+
     private async Task Record(DateTimeOffset at, int amount, PlayerId? player = null,
         GameplayStatKind kind = GameplayStatKind.HeadshotKill)
         => await new MySqlGameplayStatRepository(_database).RecordAsync(new(Guid.NewGuid(), player ?? Player,

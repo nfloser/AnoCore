@@ -6,6 +6,7 @@ public sealed record RecurringChallengeTemplate(string Id, int Version, string N
     GameplayStatKind Statistic, long Target, long RewardXp, IReadOnlyList<string> PrerequisiteIds)
 {
     public ChallengeCounterSource CounterSource { get; init; }
+    public ChallengePredicates Predicates { get; init; } = new();
 }
 
 public sealed class ChallengeConfiguration
@@ -62,6 +63,8 @@ public sealed class ChallengeScheduleSnapshot
             return item with
             {
                 PrerequisiteIds = Array.AsReadOnly(prerequisites),
+                Predicates = item.Predicates?.Snapshot(item.CounterSource)
+                    ?? throw new ArgumentException("Challenge predicates cannot be null."),
             };
         }).ToArray();
         if (recurring.Any(item => item.WindowKind is not ChallengeWindowKind.Daily and not ChallengeWindowKind.Weekly))
@@ -86,7 +89,7 @@ public sealed class ChallengeScheduleSnapshot
             var end = start.AddDays(item.WindowKind == ChallengeWindowKind.Daily ? 1 : 7);
             definitions.Add(new(item.Id, item.Version, item.Name, item.WindowKind, item.Statistic,
                 item.Target, item.RewardXp, start, end, item.PrerequisiteIds)
-            { CounterSource = item.CounterSource });
+            { CounterSource = item.CounterSource, Predicates = item.Predicates });
         }
         return ChallengeCatalogSnapshot.Create(definitions);
     }

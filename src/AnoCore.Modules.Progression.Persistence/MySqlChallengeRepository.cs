@@ -117,11 +117,19 @@ public sealed class MySqlChallengeRepository : IChallengeRepository
                     WHERE attacker_steam_id = @player AND attacker_steam_id <> victim_steam_id
                         AND is_team_damage = FALSE AND weapon IN ('hegrenade', 'inferno', 'molotov', 'incgrenade')
                     """,
+                ChallengeCounterSource.DamageHealth => """
+                    SELECT COALESCE(SUM(damage_health), 0) FROM ano_combat_damage
+                    WHERE attacker_steam_id = @player AND attacker_steam_id <> victim_steam_id
+                        AND is_team_damage = FALSE
+                    """,
                 _ => throw new ArgumentOutOfRangeException(nameof(definition)),
             } + """
                  AND occurred_at_utc >= @start AND occurred_at_utc < @end
                      AND occurred_at_utc <= @at
                 """;
+            AppendValues(count, "map_name", "map", definition.Predicates.Maps);
+            AppendValues(count, "weapon", "weapon", definition.Predicates.Weapons);
+            AppendValues(count, "hitgroup", "hitgroup", definition.Predicates.Hitgroups);
             Add(count, "@player", playerId.SteamId64);
             Add(count, "@kind", (byte)definition.Statistic);
             Add(count, "@start", definition.StartsAtUtc.UtcDateTime);
@@ -180,6 +188,16 @@ public sealed class MySqlChallengeRepository : IChallengeRepository
     {
         var utc = value.ToUniversalTime();
         return new DateTimeOffset(utc.Ticks - utc.Ticks % TimeSpan.TicksPerMicrosecond, TimeSpan.Zero);
+    }
+
+    private static void AppendValues<T>(DbCommand command, string column, string prefix, IReadOnlyList<T> values)
+    {
+        if (values.Count == 0) return;
+        // Column and parameter prefixes are fixed internally; every configured value is bound.
+        var names = Enumerable.Range(0, values.Count).Select(index => "@" + prefix + index).ToArray();
+        command.CommandText += " AND " + (typeof(T) == typeof(string) ? "BINARY " : "")
+            + column + " IN (" + string.Join(", ", names) + ")";
+        for (var index = 0; index < values.Count; index++) Add(command, names[index], values[index]!);
     }
 
     private static void Add(DbCommand command, string name, object value)
