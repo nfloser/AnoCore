@@ -1,3 +1,14 @@
+## Native kill condition package (#330 / #335)
+
+Death context is now captured from native player_death fields and committed with
+its base event via migration 020. Optional ABI-compatible Context and immutable
+Predicates support map/weapon/team/headshot/noscope/smoke/blind/penetration/distance.
+Legacy facts are not backfilled. Old unfiltered counters retain behavior.
+Tests cover bounds, snapshots, combined evidence/exclusion, conflicting replay,
+atomic context failure/retry and filtered assists. Native acceptance remains manual.
+Shared progression PR #337 is merged with CI #779 / 1020 tests green.
+Battlepass remains cancelled; operator presets follow separately.
+
 ## Shared progression configuration (#335)
 
 Shared progression.json owns lifetime levels and scheduled boosts for all four
