@@ -132,6 +132,86 @@ public sealed class VoteServiceTests
         Assert.AreEqual(VoteOperationFailure.AlreadyExists, duplicate.Failure);
     }
 
+    [TestMethod]
+    public async Task RandomTieBreak_SelectsOnlyTopTiedOptionsAndKeepsFinalResult()
+    {
+        var service = new VoteService(new AllowAllPermissions());
+        var definition = new VoteDefinition(new VoteId("ano.random"), "Random vote",
+            [new VoteOption("a", "A"), new VoteOption("b", "B"), new VoteOption("c", "C")],
+            [PlayerOne, PlayerTwo], new VotePolicy(TimeSpan.FromSeconds(30), 1, (VoteTieBreakPolicy)2));
+        await service.CreateAsync(Manager, definition, Start);
+        await service.CastAsync(definition.Id, PlayerOne, "a", Start.AddSeconds(1));
+        await service.CastAsync(definition.Id, PlayerTwo, "b", Start.AddSeconds(2));
+
+        var result = service.FinalizeIfAllEligibleVoted(definition.Id, Start.AddSeconds(3));
+
+        Assert.IsNotNull(result);
+        Assert.AreEqual(VoteOutcome.Completed, result.Outcome);
+        Assert.IsTrue(result.WinningOptionId is "a" or "b");
+        Assert.IsNull(service.FinalizeIfAllEligibleVoted(definition.Id, Start.AddSeconds(4)));
+        Assert.HasCount(0, service.FinalizeExpired(Start.AddSeconds(30)));
+        Assert.IsTrue(service.TryGet(definition.Id, out var snapshot));
+        Assert.AreEqual(VoteState.Completed, snapshot!.State);
+    }
+
+    [TestMethod]
+    [DataRow(0, "a")]
+    [DataRow(1, "b")]
+    public async Task RandomTieBreak_CanChooseEachTiedOptionOnExpiry(int index, string expected)
+    {
+        var random = new FixedRandom(index);
+        var service = new VoteService(new AllowAllPermissions(), random);
+        var definition = new VoteDefinition(new VoteId("ano.random"), "Random vote",
+            [new VoteOption("c", "No votes"), new VoteOption("a", "A"), new VoteOption("b", "B")],
+            [PlayerOne, PlayerTwo, Outsider], new VotePolicy(TimeSpan.FromSeconds(30), 1, VoteTieBreakPolicy.Random));
+        await service.CreateAsync(Manager, definition, Start);
+        await service.CastAsync(definition.Id, PlayerOne, "a", Start.AddSeconds(1));
+        await service.CastAsync(definition.Id, PlayerTwo, "b", Start.AddSeconds(2));
+
+        var result = service.FinalizeExpired(Start.AddSeconds(30)).Single();
+
+        Assert.AreEqual(expected, result.WinningOptionId);
+        Assert.AreEqual(2, random.LastMaximum);
+        Assert.AreEqual(1, random.Calls);
+        service.FinalizeExpired(Start.AddSeconds(31));
+        await service.CloseAsync(Manager, definition.Id, Start.AddSeconds(32));
+        Assert.AreEqual(1, random.Calls);
+    }
+
+    [TestMethod]
+    [DataRow(0, 1, VoteOutcome.QuorumNotMet, null)]
+    [DataRow(1, 2, VoteOutcome.QuorumNotMet, null)]
+    [DataRow(1, 1, VoteOutcome.Completed, "b")]
+    public async Task RandomTieBreak_DoesNotDrawWithoutTieOrQuorum(int votes, int minimum,
+        VoteOutcome expectedOutcome, string? expectedWinner)
+    {
+        var random = new FixedRandom(0);
+        var service = new VoteService(new AllowAllPermissions(), random);
+        var definition = new VoteDefinition(new VoteId("ano.random"), "Random vote",
+            [new VoteOption("a", "A"), new VoteOption("b", "B")], [PlayerOne, PlayerTwo],
+            new VotePolicy(TimeSpan.FromSeconds(30), minimum, VoteTieBreakPolicy.Random));
+        await service.CreateAsync(Manager, definition, Start);
+        if (votes > 0) await service.CastAsync(definition.Id, PlayerOne, "b", Start.AddSeconds(1));
+
+        var closed = await service.CloseAsync(Manager, definition.Id, Start.AddSeconds(2));
+
+        Assert.AreEqual(expectedOutcome, closed.Result!.Outcome);
+        Assert.AreEqual(expectedWinner, closed.Result.WinningOptionId);
+        Assert.AreEqual(0, random.Calls);
+    }
+
+    private sealed class FixedRandom(int index) : Random
+    {
+        public int Calls { get; private set; }
+        public int LastMaximum { get; private set; }
+        public override int Next(int maxValue)
+        {
+            Calls++;
+            LastMaximum = maxValue;
+            return index;
+        }
+    }
+
     private static VoteDefinition CreateDefinition(TimeSpan? duration = null, int minimumVotes = 1)
         => new(
             new VoteId("ano.test"),
