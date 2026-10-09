@@ -154,7 +154,7 @@ public sealed class VoteServiceTests
         Assert.AreEqual(VoteState.Completed, snapshot!.State);
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DataRow(0, "a")]
     [DataRow(1, "b")]
     public async Task RandomTieBreak_CanChooseEachTiedOptionOnExpiry(int index, string expected)
@@ -178,7 +178,7 @@ public sealed class VoteServiceTests
         Assert.AreEqual(1, random.Calls);
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DataRow(0, 1, VoteOutcome.QuorumNotMet, null)]
     [DataRow(1, 2, VoteOutcome.QuorumNotMet, null)]
     [DataRow(1, 1, VoteOutcome.Completed, "b")]
