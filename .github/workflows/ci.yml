@@ -214,7 +214,7 @@ jobs:
           cp -R docs artifacts/docs
           mkdir -p artifacts/examples artifacts/tools
           cp -R examples/server-profiles artifacts/examples/server-profiles
-          cp tools/prepare_anomeme_profile.py artifacts/tools/prepare_anomeme_profile.py
+          cp tools/prepare_anomeme_profile.py tools/prepare_css_profile.py artifacts/tools/
           cp tools/prepare_veto_previews.py tools/veto-preview-requirements.txt artifacts/tools/
           cp docs/quick-install.md artifacts/QUICK-INSTALL.md
           cp docs/steam-addon.md artifacts/STEAM-ADDON.md

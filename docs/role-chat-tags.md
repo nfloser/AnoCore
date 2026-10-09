@@ -158,3 +158,46 @@ Manuell prüfen: Host, Dev und Root erstellen/abbrechen; OG/Normal werden dabei
 abgewiesen, können aber an einer aktiven Abstimmung teilnehmen. Vor Ausführung
 entzogene Flags, Reconnect und Plugin-Unload dürfen keine Operation nachholen.
 Die CS2-/DatHost-Abnahme bleibt offen und wurde nicht durch Unit-Tests ersetzt.
+
+## Drei passende Dateien offline vorbereiten (#354)
+
+Das neue Werkzeug übernimmt die tatsächlichen Präfixe und Farben der alten
+`K4-Zenith-CustomTags/tags.json`, einschließlich privater SteamID-Overrides wie
+Founder. Es hängt `@anocore/team` und `@anocore/veto` an die vorhandenen Dev-/Host-
+Flags an. Alle anderen Gruppenfelder, Flags und Immunitäten bleiben erhalten.
+Es benötigt die **aktuelle** `admin_groups.json` des Zielservers; die
+`admins.json` mit Spielerzuordnungen wird weder erzeugt noch verändert.
+
+Im entpackten AnoCore-Paket oder Repository mit installiertem Python ausführen:
+
+```powershell
+python tools/prepare_css_profile.py --tags "C:\Serverbackup\addons\counterstrikesharp\plugins\K4-Zenith-CustomTags\tags.json" --groups "C:\Zielserver\admin_groups.json" --output "C:\AnoCore-Rollen"
+```
+
+Der Ausgabeordner muss neu sein. Quelldateien werden nicht überschrieben. Das
+Werkzeug schreibt keine Datenbankverbindung, `core.json`, Workshop- oder
+MultiAddonManager-Konfiguration. Die erzeugte `chat-format.json` zeigt nur den
+Rollentag vor dem Namen; zusätzliche Rangtags entfallen damit in der Chatanzeige.
+Die üblichen MatchZy-Punktbefehle bleiben durchgereicht. Zusätzliche eigene
+`PassthroughCommands` vor dem Installieren übernehmen.
+
+| Erzeugte Datei | Ziel relativ zu `game/csgo` |
+| --- | --- |
+| `role-chat-tags.json` | `addons/counterstrikesharp/plugins/AnoCore/config/role-chat-tags.json` |
+| `chat-format.json` | `addons/counterstrikesharp/plugins/AnoCore/config/chat-format.json` |
+| `admin_groups.json` | `addons/counterstrikesharp/configs/admin_groups.json` |
+
+Alle drei Ergebnisse vor dem Kopieren prüfen und vorhandene Zieldateien sichern.
+Der private Founder-Eintrag bleibt in der Ausgabe; diese Datei nicht ins öffentliche
+Repository hochladen. Nach dem Gruppenwechsel neu starten. Bei späteren reinen
+Anzeigeänderungen reichen die getrennten Konsolenbefehle
+`css_anoreloadconfig role-chat-tags` und `css_anoreloadconfig chat-format`.
+
+Unterstützt werden die fünf dokumentierten Gruppen, `all`, bis zu 32 private
+SteamID-Overrides und genau ein führender nativer Farbplatzhalter pro Präfix.
+`MAGENTA` entspricht `Purple`. Nicht unterstützte Selektoren, zusätzliche
+Namens-/Nachrichtenfarben, Clantags oder Auswahlkonfigurationen werden abgewiesen,
+weil sie eine explizite Migration benötigen. Doppelte JSON-Schlüssel, beschädigte
+Flags und fehlende Dev-/Host-Gruppen verhindern jede Ausgabe. JSON-Kommentare und
+UTF-8-BOM sind unterstützt; jede Eingabedatei ist auf 1 MiB begrenzt. Fehlerausgaben
+enthalten keine privaten Spieleridentitäten.

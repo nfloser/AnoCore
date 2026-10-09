@@ -1,3 +1,14 @@
+## Backup-matched CSS profile preparation (#354) — 2026-10-09
+
+Separate offline prepare_css_profile.py prepares three files from old CustomTags
+and CURRENT destination CSS groups: role-chat-tags, chat-format and admin_groups.
+Imports private Founder overrides only into the operator output, preserves group
+fields/flags/immunity, appends scoped team/veto flags to existing dev/host groups.
+Bounded JSONC/BOM parsing rejects duplicate keys, unsupported appearance/selectors
+and malformed operators before output. New-directory only; sources stay read-only.
+Four Python regressions pass; CI packages the helper alongside existing tools.
+Native installation/acceptance remains manual. No private identity in repository.
+
 ## Scoped CSS AnoVeto authority (#352) — 2026-10-09
 
 Native AnoVeto receives a private, fixed-VoteId vote service; create/cancel/close
