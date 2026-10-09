@@ -1,5 +1,6 @@
 using AnoCore.Abstractions.Messaging;
 using AnoCore.Abstractions.Players;
+using AnoCore.Modules.Admin;
 using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
 
@@ -22,7 +23,7 @@ public sealed class CounterStrikeMessageTransport(IPlayerRegistry players) : IMe
                 switch (request.Channel)
                 {
                     case MessageChannel.Chat:
-                        player.PrintToChat(request.Text);
+                        player.PrintToChat(NativeChatText.Prepare(request.Text));
                         break;
                     case MessageChannel.Center:
                         player.PrintToCenter(request.Text);
@@ -135,6 +136,7 @@ public sealed class CounterStrikeMessageTransport(IPlayerRegistry players) : IMe
             .Where(player =>
                 player.IsValid
                 && !player.IsBot
+                && !player.IsHLTV
                 && player.SteamID != 0
                 && expected.Contains(player.SteamID))
             .ToList();

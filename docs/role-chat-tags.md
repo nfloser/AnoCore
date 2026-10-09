@@ -4,6 +4,9 @@ AnoCore liest für Chatpräfixe die **tatsächlich zugewiesenen CounterStrikeSha
 K4-Zenith wird dafür nicht benötigt. Die Anzeige verändert keine Gruppen, Flags,
 Immunitäten oder AnoCore-Berechtigungen.
 
+Für farbige Begrüßungen und automatisch gesendete Hinweise siehe
+[Server-Infotexte](server-info.md); diese sind unabhängig von Rollenpräfixen.
+
 ## Native Farbausgabe (#361)
 
 Die native Chat-Ausgabe setzt ein führendes Leerzeichen vor die bereits formatierte

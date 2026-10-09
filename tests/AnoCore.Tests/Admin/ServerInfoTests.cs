@@ -12,6 +12,21 @@ namespace AnoCore.Tests.Admin;
 public sealed class ServerInfoTests
 {
     [TestMethod]
+    public void BackupProfileHasValidColoredMessagesAndAnoCoreCommandHints()
+    {
+        var profile = System.Text.Json.JsonSerializer.Deserialize<ServerInfoConfiguration>(
+            File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "server-profile", "server-info.json")))!;
+        Assert.IsEmpty(ServerInfoConfiguration.Validate(profile));
+        Assert.IsTrue(profile.Enabled);
+        Assert.AreEqual(10, profile.WelcomeDelaySeconds);
+        Assert.AreEqual(180, profile.IntervalSeconds);
+        Assert.IsTrue(profile.WelcomeMessages.Any(line => line.Contains("{map.name}")));
+        Assert.IsTrue(profile.WelcomeMessages.Any(line => line.Contains("{playtime.total}")));
+        Assert.IsTrue(profile.InfoMessages.SelectMany(block => block).Any(line => line.Contains("!anocommands")));
+        Assert.IsFalse(profile.InfoMessages.SelectMany(block => block).Any(line => line.Contains("!rank ")));
+    }
+
+    [TestMethod]
     public async Task WelcomeIsPrivateSessionBoundAndInfoRotatesWithoutCatchupBurst()
     {
         var root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
@@ -20,9 +35,11 @@ public sealed class ServerInfoTests
             var store = new JsonConfigStore(root);
             await store.SaveAsync("server-info", new ServerInfoConfiguration
             {
-                Enabled = true, WelcomeDelaySeconds = 3, IntervalSeconds = 30,
+                Enabled = true,
+                WelcomeDelaySeconds = 3,
+                IntervalSeconds = 30,
                 WelcomeMessages = ["{Green}Hi {Red}{player.name} {map.name} {playtime.total}"],
-                InfoMessages = [["{Yellow}one"], ["{Purple}two"]],
+                InfoMessages = [["{Yellow}one {map.name}"], ["{Purple}two"]],
             });
             var players = new PlayerRegistry(new AnoEventBus());
             var now = DateTimeOffset.UtcNow;
@@ -42,8 +59,9 @@ public sealed class ServerInfoTests
             StringAssert.Contains(welcome.Text, "2d 3h 4m");
             await service.TickAsync(now.AddSeconds(4), "map");
             Assert.AreEqual(1, messages.Sent.Count);
-            await service.TickAsync(now.AddSeconds(30), "map");
+            await service.TickAsync(now.AddSeconds(30), "changed_map");
             StringAssert.StartsWith(messages.Sent[^1].Text, "\x09one");
+            StringAssert.Contains(messages.Sent[^1].Text, "changed_map");
             await service.TickAsync(now.AddHours(1), "map");
             Assert.AreEqual(3, messages.Sent.Count);
             StringAssert.StartsWith(messages.Sent[^1].Text, "\x0Etwo");
@@ -90,8 +108,51 @@ public sealed class ServerInfoTests
             await store.SaveAsync("server-info", new ServerInfoConfiguration { IntervalSeconds = 1 });
             await Assert.ThrowsExactlyAsync<ConfigValidationException>(
                 () => reloads.ReloadAsync("server-info").AsTask());
+            await players.DisconnectAsync(replacement.Id, replacement.SessionId, now.AddSeconds(14));
+            await players.ConnectAsync(new PlayerConnection(old.Id, "Third session",
+                PlayerTeam.Terrorist, true, now.AddSeconds(14)));
+            await service.TickAsync(now.AddSeconds(15), "map");
+            Assert.AreEqual(2, messages.Sent.Count); // invalid reload preserved the enabled policy
             service.Dispose();
             Assert.IsFalse(reloads.Configurations.Any(c => c.Name == "server-info"));
+        }
+        finally { Directory.Delete(root, true); }
+    }
+
+    [TestMethod]
+    public async Task DatabaseFailureFallsBackAndUnloadCancelsPendingWelcome()
+    {
+        var root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        try
+        {
+            var store = new JsonConfigStore(root);
+            await store.SaveAsync("server-info", new ServerInfoConfiguration
+            { Enabled = true, WelcomeDelaySeconds = 0, WelcomeMessages = ["{playtime.total}", "{Green}Hi"], InfoMessages = [] });
+            var players = new PlayerRegistry(new AnoEventBus());
+            var now = DateTimeOffset.UtcNow;
+            await players.ConnectAsync(new PlayerConnection(new PlayerId(76561198000012641), "Nille",
+                PlayerTeam.Terrorist, true, now));
+            var messages = new Messages();
+            using (var service = await ServerInfoService.CreateAsync(store, players, messages,
+                new Playtime { Read = () => throw new InvalidOperationException("Database offline") },
+                onFailure: _ => throw new InvalidOperationException("Diagnostics failed")))
+            {
+                await service.TickAsync(now, "map");
+                Assert.AreEqual(2, messages.Sent.Count);
+                StringAssert.Contains(messages.Sent[0].Text, "nicht verfügbar");
+            }
+            messages.Sent.Clear();
+            var read = new TaskCompletionSource<PlaytimeTotals>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            using var pending = await ServerInfoService.CreateAsync(store, players, messages,
+                new Playtime { Read = () => { started.TrySetResult(); return new(read.Task); } });
+            var task = pending.TickAsync(now, "map").AsTask();
+            await started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            await pending.TickAsync(now, "map"); // overlapping timer callback must not start another send
+            pending.Dispose();
+            read.SetResult(new(TimeSpan.Zero, TimeSpan.Zero));
+            await task;
+            Assert.AreEqual(0, messages.Sent.Count);
         }
         finally { Directory.Delete(root, true); }
     }

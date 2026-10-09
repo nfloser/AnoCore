@@ -14,7 +14,7 @@ AnoCore is a modular CS2 server plugin for community servers, regular game night
 | Ranks and ratings | Maintain rank points and leaderboards; compare connected players with AnoRating to help balance teams manually |
 | Progression | Levels and XP, permanent achievements, scheduled challenges and XP boosts, independent of competitive rank points |
 | Seasons | View the current season, its leaderboard and previous seasons |
-| Community | Customize personal notifications and select authorized chat tags |
+| Community | Customize personal notifications, select authorized chat tags, and configure [colored welcome messages and rotating server information](docs/server-info.md) |
 | Map voting | Start votes and interact with the native Panorama veto window |
 | Tournaments | Configure two SteamID-based rosters and captains; manage BO1/BO3/BO5, readiness, map series, knife-round decisions, side selection, pauses and series scores |
 | Administration | Permission-controlled player/server actions, roles, moderation, warnings and audit records |
