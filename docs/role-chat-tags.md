@@ -4,6 +4,20 @@ AnoCore liest für Chatpräfixe die **tatsächlich zugewiesenen CounterStrikeSha
 K4-Zenith wird dafür nicht benötigt. Die Anzeige verändert keine Gruppen, Flags,
 Immunitäten oder AnoCore-Berechtigungen.
 
+## Native Farbausgabe (#361)
+
+Die native Chat-Ausgabe setzt ein führendes Leerzeichen vor die bereits formatierte
+Zeile, entsprechend der Konvention in K4-Zenith (`src/Core/Events.cs`). Farbzeichen
+und der Reset nach dem Rollenpräfix bleiben erhalten. Die Bereinigung von
+Spielernamen und Nachrichten erfolgt weiterhin vor dieser Ausgabe.
+
+Server-Abnahme nach Austausch des Plugin-Builds und Neustart: normale Nachrichten
+im öffentlichen und Teamchat senden. `[DEV]` soll gelb, `[HOST]` lila,
+`[ANOMEME]` grün und der persönliche `[FOUNDER]` rot erscheinen. Namen und
+Nachricht bleiben bei `NameColor`/`MessageColor: None` unverändert. Teamchat darf
+nur die bisherigen Empfänger erreichen; Befehle und Gag-Verhalten ebenfalls
+prüfen. Unit-Tests prüfen die Ausgabezeichen, nicht das Rendering im CS2-Client.
+
 ## Dateien vom alten auf den neuen Server
 
 Die Pfade sind jeweils relativ zum CS2-Verzeichnis `game/csgo`:

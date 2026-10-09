@@ -83,6 +83,7 @@ public sealed class CounterStrikeChatModerationAdapter : IDisposable
         var recipients = route.Recipients
             .Select(id => id.SteamId64)
             .ToHashSet();
+        var nativeText = NativeChatText.Prepare(route.FormattedMessage);
         foreach (var recipient in Utilities.GetPlayers())
         {
             if (recipient.IsValid
@@ -90,7 +91,7 @@ public sealed class CounterStrikeChatModerationAdapter : IDisposable
                 && !recipient.IsHLTV
                 && recipients.Contains(recipient.SteamID))
             {
-                recipient.PrintToChat(route.FormattedMessage);
+                recipient.PrintToChat(nativeText);
             }
         }
 
