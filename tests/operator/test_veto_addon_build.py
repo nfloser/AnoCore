@@ -73,7 +73,45 @@ target.write_bytes(source.read_bytes())
 
     def run_build(self, *args):
         return subprocess.run([PWSH, "-NoProfile", "-File", str(ROOT / "ui/AnoCore/build.ps1"),
-                               "-Cs2", str(self.cs2), *args], capture_output=True, text=True, timeout=45)
+                               "-Cs2", str(self.cs2), *args], capture_output=True, text=True, timeout=90)
+
+    def add_preview_catalog(self, count):
+        previews = self.style / "previews"
+        previews.mkdir()
+        rules = []
+        for index in range(1, count + 1):
+            name = f"ano_preview_w_{index}"
+            (previews / f"{name}.vtex").write_text("fixture descriptor")
+            (previews / f"{name}.png").write_bytes(b"fixture image")
+            rules.append(f'.{name} {{ background-image: url("s2r://panorama/styles/custom_game/anocore/previews/{name}.vtex"); }}')
+        css = "\n".join(rules) + "\n"
+        (self.style / "ano_veto_previews.css").write_text(css)
+        return css
+
+    def test_existing_catalog_over_128_rebuilds_without_erasing_images(self):
+        css = self.add_preview_catalog(129)
+        result = self.run_build()
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertEqual(css, (self.style / "ano_veto_previews.css").read_text())
+        self.assertIn("Map preview textures: 129", result.stdout)
+        game = self.cs2 / "game/csgo_addons/anomeme_ui/panorama/styles/custom_game/anocore/previews"
+        self.assertEqual(129, len(list(game.glob("*.vtex_c"))))
+
+    def test_explicit_lower_limit_reports_count_without_replacing_mapping(self):
+        css = self.add_preview_catalog(129)
+        result = self.run_build("-MaxPreviewTextures", "128")
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn("129", result.stderr)
+        self.assertIn("128", result.stderr)
+        self.assertEqual(css, (self.style / "ano_veto_previews.css").read_text())
+
+    def test_default_limit_remains_bounded(self):
+        css = self.add_preview_catalog(1025)
+        result = self.run_build()
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn("1025", result.stderr)
+        self.assertIn("1024", result.stderr)
+        self.assertEqual(css, (self.style / "ano_veto_previews.css").read_text())
 
     def add_existing_preview(self):
         css = '.ano_preview_w_123 { background-image: url("s2r://panorama/styles/custom_game/anocore/previews/ano_preview_w_123.vtex"); }\n'

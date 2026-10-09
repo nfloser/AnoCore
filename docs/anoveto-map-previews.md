@@ -28,7 +28,7 @@ Sources checked for #331:
 Use the **same AnoCore maps.json** loaded by the server. Do not substitute a list
 of Workshop IDs for maps.json: configured map IDs and names must be retained.
 The tool accepts its case-insensitive Maps/DisplayName/MapId/WorkshopId properties,
-checks duplicate identities, and bounds one build to 128 maps.
+checks duplicate identities, and bounds one preparation invocation to 128 maps.
 
 From the repository root or the extracted development package:
 
@@ -85,6 +85,12 @@ build before the mapping is replaced; supply the original prepared directory.
 Use `-ClearPreviews` only when deliberately resetting the mapping to neutral.
 It cannot be combined with `-PreviewSource`. The console reports the number of
 map preview textures compiled; a pictured catalog should not report zero.
+The retained addon can contain more images than one preparation invocation.
+Addon compilation accepts up to 1,024 unique preview textures by default. For a
+larger retained catalog, pass `-MaxPreviewTextures 2048` (validated range:
+128..4096). Limit failures report the actual count and keep the existing mapping.
+This does not increase the preparer's per-invocation network/image budget or the
+eight maps displayed in an active vote.
 The existing -InstallLocalClient option includes preview resources for a local
 development test. Normal players need the rebuilt addon through the existing
 Workshop delivery path; see [steam-addon.md](steam-addon.md). Plugin installation

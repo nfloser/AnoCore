@@ -2,6 +2,8 @@ param(
     [string]$Cs2 = "",
     [string]$Addon = "anomeme_ui",
     [string]$PreviewSource = "",
+    [ValidateRange(128, 4096)]
+    [int]$MaxPreviewTextures = 1024,
     [switch]$ClearPreviews,
     [switch]$InstallLocalClient
 )
@@ -83,7 +85,9 @@ if (-not $PreviewSource -and -not $ClearPreviews -and $previewText -notmatch '\.
 }
 $textureMatches = [regex]::Matches($previewText, 's2r://panorama/styles/custom_game/anocore/previews/(ano_preview_(?:w_[0-9]+|m_[0-9a-f]{16}))\.vtex')
 $textureNames = @($textureMatches | ForEach-Object { $_.Groups[1].Value } | Sort-Object -Unique)
-if ($textureNames.Count -gt 128) { throw "Preview stylesheet exceeds the 128-map build limit." }
+if ($textureNames.Count -gt $MaxPreviewTextures) {
+    throw "Preview stylesheet contains $($textureNames.Count) textures; the build limit is $MaxPreviewTextures. Use -MaxPreviewTextures <count> (maximum 4096) for a larger retained addon catalog."
+}
 if ($previewText -match '\.ano_preview_' -and $textureNames.Count -eq 0) {
     throw "Preview mapping is invalid. Supply the original prepared directory with -PreviewSource."
 }
