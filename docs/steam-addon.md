@@ -15,8 +15,8 @@ This guide covers the Windows build for `anomeme_ui` and updates to the existing
 | Texture descriptor | `ui/AnoCore/styles/custom_game/anocore/anomeme_banner.vtex` |
 | Menu layout | `ui/AnoCore/layout/custom_game/anocore/menu.xml` |
 | Menu styling | `ui/AnoCore/styles/custom_game/anocore/menu.css` |
-| Veto layout | `ui/AnoCore/layout/custom_game/anocore/ano_veto.xml` |
-| Veto styling | `ui/AnoCore/styles/custom_game/anocore/ano_veto.css` |
+| Veto layout | `ui/AnoCore/layout/custom_game/anocore/ano_veto_cards.xml` |
+| Veto styling | `ui/AnoCore/styles/custom_game/anocore/ano_veto_cards.css` |
 | Build script | `ui/AnoCore/build.ps1` |
 
 Keep existing panel/button IDs: the server plugin uses them. The dashboard build copies the PNG and descriptor into the addon and creates the `.vtex_c` resource used by the menu.

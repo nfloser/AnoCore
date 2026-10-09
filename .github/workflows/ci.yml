@@ -111,8 +111,8 @@ jobs:
           import pathlib
           import xml.etree.ElementTree as ET
 
-          layout = pathlib.Path("ui/AnoCore/layout/custom_game/anocore/ano_veto.xml")
-          style = pathlib.Path("ui/AnoCore/styles/custom_game/anocore/ano_veto.css")
+          layout = pathlib.Path("ui/AnoCore/layout/custom_game/anocore/ano_veto_cards.xml")
+          style = pathlib.Path("ui/AnoCore/styles/custom_game/anocore/ano_veto_cards.css")
           build = pathlib.Path("ui/AnoCore/build.ps1")
 
           for path in (layout, style, build):
@@ -143,7 +143,7 @@ jobs:
               raise SystemExit(f"AnoVeto Panorama layout missing ids: {missing}")
 
           text = layout.read_text(encoding="utf-8")
-          if "ano_veto.vcss_c" not in text:
+          if "ano_veto_cards.vcss_c" not in text:
               raise SystemExit("AnoVeto layout does not reference its compiled stylesheet")
           if "ano_veto_previews.vcss_c" not in text or not (style.parent / "ano_veto_previews.css").is_file():
               raise SystemExit("AnoVeto layout lacks its static preview stylesheet")

@@ -33,7 +33,7 @@ This supports both kinds of UI:
 
 ## AnoVeto
 
-AnoVeto registers `panorama/layout/custom_game/anocore/ano_veto.xml` with eight map button IDs plus a Close button. `!anoveto create` starts the existing shared vote session and opens the HUD for eligible players. Bare `!anoveto` reopens the active HUD. A map click is translated back into the existing `AnoVetoCoordinator` and shared `IVoteService`; the HUD layer does not own vote semantics.
+AnoVeto registers `panorama/layout/custom_game/anocore/ano_veto_cards.xml` with eight map button IDs plus a Close button. `!anoveto create` starts the existing shared vote session and opens the HUD for eligible players. Bare `!anoveto` reopens the active HUD. A map click is translated back into the existing `AnoVetoCoordinator` and shared `IVoteService`; the HUD layer does not own vote semantics.
 
 After a successful ballot the HUD closes for that player. Completion, cancellation and expiry hide it for everyone and release input capture.
 
