@@ -5,7 +5,6 @@ using AnoCore.Abstractions.Persistence;
 using AnoCore.Abstractions.Placeholders;
 using AnoCore.Abstractions.Players;
 using AnoCore.Abstractions.Stats;
-using AnoCore.Abstractions.Voting;
 using AnoCore.Modules.Admin;
 using AnoCore.Modules.AnoVeto;
 using AnoCore.Modules.Progression;
@@ -690,8 +689,11 @@ public sealed class AnoCorePlugin : BasePlugin
 
             try
             {
-                var votes = created.GetService(typeof(IVoteService)) as IVoteService
-                    ?? throw new InvalidOperationException("AnoCore runtime did not provide the shared vote service.");
+                var votes = new SessionBoundVetoVoteService(
+                    created.Players,
+                    action => Server.NextWorldUpdate(action),
+                    CounterStrikeVetoAuthorization.HasPermission,
+                    () => ReferenceEquals(_runtime, created) && createdAnoVeto?.IsActive == true);
                 createdAnoVeto = await AnoVetoModuleRuntime.CreateAsync(
                     configuration,
                     created.Commands,

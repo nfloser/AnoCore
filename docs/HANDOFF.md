@@ -1,3 +1,15 @@
+## Scoped CSS AnoVeto authority (#352) — 2026-10-09
+
+Native AnoVeto receives a private, fixed-VoteId vote service; create/cancel/close
+capture the current player session and queue CSS @anocore/veto authorization plus
+in-memory mutation in one world-update callback. Runtime identity, loaded flags
+and reconnect are checked immediately before mutation. Participation remains
+permission-free for eligible players, and the shared vote service/standalone module
+retain ano.vote.manage. No global CSS bridge or native aliases are introduced.
+Append @anocore/veto beside @anocore/team to existing dev/host groups; root uses CSS
+semantics. Tests cover scoped rights, denied participation management, revocation,
+reconnect, unload, cancellation and lookup failure. Native acceptance is manual.
+
 ## Split personal statistics and server rankings (#343)
 
 GameplayStatsModule owns an additive StatisticsMenuModule when its repository
