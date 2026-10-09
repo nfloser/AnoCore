@@ -31,6 +31,8 @@ public sealed class AnoVetoModuleRuntime : IDisposable
 
     public AnoVetoCoordinator Coordinator { get; }
 
+    public bool IsActive => Volatile.Read(ref _controller) is not null;
+
     public static ValueTask<AnoVetoModuleRuntime?> CreateAsync(
         IConfigStore configuration,
         IAnoCommandRegistry commands,

@@ -236,7 +236,9 @@ public sealed class AnoVetoModuleRuntimeTests
             var stillActive = await commands.ExecuteAsync("!anoveto create", Manager);
             Assert.IsTrue(stillActive.Success, stillActive.Message);
 
+            Assert.IsTrue(module.IsActive);
             module.Dispose();
+            Assert.IsFalse(module.IsActive);
             Assert.HasCount(0, reloads.Configurations);
         }
         finally
