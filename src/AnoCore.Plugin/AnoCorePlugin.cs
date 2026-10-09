@@ -714,11 +714,14 @@ public sealed class AnoCorePlugin : BasePlugin
 
             try
             {
+                // Startup clears its ownership locals after handing them to pending
+                // fields. Keep the identity by value; inspect the active module.
+                var vetoRuntime = created;
                 var votes = new SessionBoundVetoVoteService(
                     created.Players,
                     action => Server.NextWorldUpdate(action),
                     CounterStrikeVetoAuthorization.HasPermission,
-                    () => ReferenceEquals(_runtime, created) && createdAnoVeto?.IsActive == true);
+                    () => ReferenceEquals(_runtime, vetoRuntime) && _anoVeto?.IsActive == true);
                 createdAnoVeto = await AnoVetoModuleRuntime.CreateAsync(
                     configuration,
                     created.Commands,
