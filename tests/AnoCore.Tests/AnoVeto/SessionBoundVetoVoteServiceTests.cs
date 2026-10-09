@@ -57,7 +57,7 @@ public sealed class SessionBoundVetoVoteServiceTests
     public async Task Scope_CancellationAndLookupFailureCannotCreateVotes()
     {
         var fixture = await Fixture.CreateAsync();
-        var other = new VoteDefinition(new VoteId("ano.other"), "Other", [new VoteOption("one", "One")],
+        var other = new VoteDefinition(new VoteId("ano.other"), "Other", [new VoteOption("one", "One"), new VoteOption("two", "Two")],
             [Host], new VotePolicy(TimeSpan.FromSeconds(30), 1, VoteTieBreakPolicy.OptionOrder));
         Assert.AreEqual(VoteOperationFailure.Forbidden, (await fixture.Run(fixture.Votes.CreateAsync(Host, other, Now))).Failure);
         using var cancellation = new CancellationTokenSource();
