@@ -2,6 +2,7 @@ param(
     [string]$Cs2 = "",
     [string]$Addon = "anomeme_ui",
     [string]$PreviewSource = "",
+    [switch]$ClearPreviews,
     [switch]$InstallLocalClient
 )
 
@@ -43,36 +44,83 @@ $layoutDir = Join-Path $contentRoot "panorama\layout\custom_game\anocore"
 $styleDir = Join-Path $contentRoot "panorama\styles\custom_game\anocore"
 New-Item -ItemType Directory -Force -Path $layoutDir, $styleDir | Out-Null
 
-# Custom HUDs expose class changes, not dynamic Image.src or JavaScript.
-# Prepare genuine Workshop previews offline, then compile them into the addon.
+# Rebuilds retain existing prepared images. Only -ClearPreviews resets to neutral.
+if ($PreviewSource -and $ClearPreviews) {
+    throw "Use PreviewSource or ClearPreviews, not both."
+}
+$previewStyleTarget = Join-Path $styleDir "ano_veto_previews.css"
 $previewCss = Join-Path $src "styles\custom_game\anocore\ano_veto_previews.css"
+$previewAssets = Join-Path $styleDir "previews"
 if ($PreviewSource) {
     $PreviewSource = (Resolve-Path $PreviewSource).Path
     $previewCss = Join-Path $PreviewSource "ano_veto_previews.css"
+    $previewAssets = Join-Path $PreviewSource "previews"
     if (-not (Test-Path $previewCss) -or -not (Test-Path (Join-Path $PreviewSource "manifest.json"))) {
         throw "PreviewSource must be an output directory from prepare_veto_previews.py."
     }
-    $previewDir = Join-Path $styleDir "previews"
-    New-Item -ItemType Directory -Force -Path $previewDir | Out-Null
-    foreach ($asset in Get-ChildItem (Join-Path $PreviewSource "previews") -File) {
-        if ($asset.Extension -in @(".png", ".vtex")) {
-            Copy-Item $asset.FullName (Join-Path $previewDir $asset.Name) -Force
+} elseif (-not $ClearPreviews -and (Test-Path $previewStyleTarget)) {
+    $previewCss = $previewStyleTarget
+    Write-Output "Retaining existing map preview mapping from the addon content folder."
+}
+
+$previewText = Get-Content $previewCss -Raw
+$recoverMapping = $false
+if (-not $PreviewSource -and -not $ClearPreviews -and $previewText -notmatch '\.ano_preview_' -and (Test-Path $previewAssets)) {
+    # Older builds could replace the CSS with a neutral file while leaving real
+    # prepared PNG/VTEX sources intact. Recover only their exact generated keys.
+    $preparedKeys = @(Get-ChildItem $previewAssets -Filter "*.vtex" -File |
+        Where-Object { $_.BaseName -match '^ano_preview_(?:w_[0-9]+|m_[0-9a-f]{16})$' } |
+        ForEach-Object { $_.BaseName } | Sort-Object -Unique)
+    if ($preparedKeys.Count -gt 0) {
+        $rules = @("/* Recovered from existing prepared addon textures. */")
+        foreach ($key in $preparedKeys) {
+            $rules += ".$key { background-image: url(`"s2r://panorama/styles/custom_game/anocore/previews/$key.vtex`"); }"
         }
+        $previewText = ($rules -join "`n") + "`n"
+        $recoverMapping = $true
+        Write-Output "Recovering map preview mapping from existing prepared textures."
     }
-    foreach ($texture in Get-ChildItem (Join-Path $PreviewSource "previews") -Filter "*.vtex" -File) {
-        & $compiler -i (Join-Path $previewDir $texture.Name) -f -r
-        if ($LASTEXITCODE -ne 0) { throw "Failed to compile map preview $($texture.Name)" }
-        $compiled = Join-Path $Cs2 "game\csgo_addons\$Addon\panorama\styles\custom_game\anocore\previews\$($texture.BaseName).vtex_c"
-        if (-not (Test-Path $compiled)) { throw "Compiled map preview missing: $compiled" }
-        if ($InstallLocalClient) {
-            $clientPreviewDir = Join-Path $Cs2 "game\csgo\panorama\styles\custom_game\anocore\previews"
-            New-Item -ItemType Directory -Force -Path $clientPreviewDir | Out-Null
-            Copy-Item $compiled (Join-Path $clientPreviewDir "$($texture.BaseName).vtex_c") -Force
+}
+$textureMatches = [regex]::Matches($previewText, 's2r://panorama/styles/custom_game/anocore/previews/(ano_preview_(?:w_[0-9]+|m_[0-9a-f]{16}))\.vtex')
+$textureNames = @($textureMatches | ForEach-Object { $_.Groups[1].Value } | Sort-Object -Unique)
+if ($textureNames.Count -gt 128) { throw "Preview stylesheet exceeds the 128-map build limit." }
+if ($previewText -match '\.ano_preview_' -and $textureNames.Count -eq 0) {
+    throw "Preview mapping is invalid. Supply the original prepared directory with -PreviewSource."
+}
+# Check before replacing any mapping, so a failed rebuild cannot erase it.
+foreach ($name in $textureNames) {
+    foreach ($extension in @(".png", ".vtex")) {
+        if (-not (Test-Path (Join-Path $previewAssets "$name$extension"))) {
+            throw "Missing preview source $name$extension. Supply -PreviewSource with the original prepared directory, or explicitly use -ClearPreviews."
         }
     }
 }
-$previewStyleTarget = Join-Path $styleDir "ano_veto_previews.css"
-Copy-Item $previewCss $previewStyleTarget -Force
+$previewDir = Join-Path $styleDir "previews"
+if ($textureNames.Count -gt 0) { New-Item -ItemType Directory -Force -Path $previewDir | Out-Null }
+foreach ($name in $textureNames) {
+    foreach ($extension in @(".png", ".vtex")) {
+        $asset = Join-Path $previewAssets "$name$extension"
+        $target = Join-Path $previewDir "$name$extension"
+        if ([IO.Path]::GetFullPath($asset) -ne [IO.Path]::GetFullPath($target)) {
+            Copy-Item $asset $target -Force
+        }
+    }
+    & $compiler -i (Join-Path $previewDir "$name.vtex") -f -r
+    if ($LASTEXITCODE -ne 0) { throw "Failed to compile map preview $name" }
+    $compiled = Join-Path $Cs2 "game\csgo_addons\$Addon\panorama\styles\custom_game\anocore\previews\$name.vtex_c"
+    if (-not (Test-Path $compiled)) { throw "Compiled map preview missing: $compiled" }
+    if ($InstallLocalClient) {
+        $clientPreviewDir = Join-Path $Cs2 "game\csgo\panorama\styles\custom_game\anocore\previews"
+        New-Item -ItemType Directory -Force -Path $clientPreviewDir | Out-Null
+        Copy-Item $compiled (Join-Path $clientPreviewDir "$name.vtex_c") -Force
+    }
+}
+Write-Output "Map preview textures: $($textureNames.Count)"
+if ($recoverMapping) {
+    Set-Content $previewStyleTarget $previewText -Encoding UTF8
+} elseif ([IO.Path]::GetFullPath($previewCss) -ne [IO.Path]::GetFullPath($previewStyleTarget)) {
+    Copy-Item $previewCss $previewStyleTarget -Force
+}
 & $compiler -i $previewStyleTarget -f -r
 if ($LASTEXITCODE -ne 0) { throw "Failed to compile map preview stylesheet" }
 $compiledPreviewStyle = Join-Path $Cs2 "game\csgo_addons\$Addon\panorama\styles\custom_game\anocore\ano_veto_previews.vcss_c"
@@ -97,7 +145,7 @@ if ($InstallLocalClient) {
     Copy-Item $logo (Join-Path $clientStyleDir "anomeme_banner.vtex_c") -Force
 }
 
-foreach ($name in @("ano_veto", "menu")) {
+foreach ($name in @("ano_veto_cards", "ano_veto", "menu")) {
     $layoutTarget = Join-Path $layoutDir "$name.xml"
     $styleTarget = Join-Path $styleDir "$name.css"
     Copy-Item (Join-Path $src "layout\custom_game\anocore\$name.xml") $layoutTarget -Force

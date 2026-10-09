@@ -8,7 +8,7 @@ public sealed class AnoVetoHudController : IDisposable
 {
     private static readonly ModuleId Owner = new("ano.veto");
     public static readonly CustomHudId HudId = new("ano.veto");
-    public const string LayoutResource = "panorama/layout/custom_game/anocore/ano_veto.xml";
+    public const string LayoutResource = "panorama/layout/custom_game/anocore/ano_veto_cards.xml";
 
     private const string RootPanelId = "ano_veto_root";
     private const string CloseButtonId = "ano_veto_close";
@@ -52,7 +52,7 @@ public sealed class AnoVetoHudController : IDisposable
             return false;
         }
 
-        _hud.SetText(playerId, HudId, "ano_veto_title", "CHOOSE THE NEXT MAP");
+        _hud.SetText(playerId, HudId, "ano_veto_title", "Choose the next map");
         _hud.SetText(playerId, HudId, "ano_veto_status", "Click one map to cast your vote");
 
         for (var index = 0; index < maps.Count; index++)

@@ -1,5 +1,6 @@
 """Exercise the actual PowerShell build with a fake compiler, not Valve rendering."""
 import os
+import re
 import shutil
 import subprocess
 import tempfile
@@ -12,6 +13,25 @@ PWSH = shutil.which("pwsh")
 
 
 class VetoLayoutTests(unittest.TestCase):
+    def test_eight_cards_and_footer_fit_inside_the_window(self):
+        css = (ROOT / "ui/AnoCore/styles/custom_game/anocore/ano_veto_cards.css").read_text()
+
+        def pixels(selector, property_name, default=0):
+            block = re.search(re.escape(selector) + r"\s*\{([^}]+)\}", css).group(1)
+            value = re.search(r"(?:^|\s)" + re.escape(property_name) + r":\s*(\d+)px", block)
+            return int(value.group(1)) if value else default
+
+        width = pixels(".ano-window", "width") - 2 * pixels(".ano-window", "padding") - 4
+        height = pixels(".ano-window", "height") - 2 * pixels(".ano-window", "padding") - 4
+        card_width = pixels(".ano-map", "width") + pixels(".ano-map", "margin-right")
+        self.assertLessEqual(4 * card_width, width)
+        self.assertLess(width, 5 * card_width)
+        self.assertLessEqual(2 * (pixels(".ano-map", "height") + pixels(".ano-map", "margin-bottom")),
+                             pixels(".ano-map-grid", "height"))
+        used_height = sum(pixels(s, "height") + pixels(s, "margin-top") + pixels(s, "margin-bottom")
+                          for s in (".ano-banner", ".ano-header", ".ano-map-grid", ".ano-footer"))
+        self.assertLessEqual(used_height, height)
+
     def test_card_layout_is_loaded_with_previews_and_all_click_targets(self):
         controller = (ROOT / "src/AnoCore.Modules.AnoVeto/AnoVetoHudController.cs").read_text()
         self.assertIn('anocore/ano_veto_cards.xml"', controller)
@@ -79,6 +99,14 @@ target.write_bytes(source.read_bytes())
         result = self.run_build()
         self.assertNotEqual(0, result.returncode)
         self.assertEqual(css, (self.style / "ano_veto_previews.css").read_text())
+
+    def test_rebuild_recovers_mapping_erased_by_an_older_build(self):
+        self.add_existing_preview()
+        (self.style / "ano_veto_previews.css").write_text("/* neutral */")
+        result = self.run_build()
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertIn(".ano_preview_w_123", (self.style / "ano_veto_previews.css").read_text())
+        self.assertIn("Recovering map preview mapping", result.stdout)
 
     def test_neutral_first_build_and_explicit_reset(self):
         result = self.run_build()

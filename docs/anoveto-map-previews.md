@@ -75,7 +75,16 @@ does not invent or bundle third-party map previews.
 ```
 
 The build compiles the generated .vtex descriptors and preview stylesheet before
-the AnoVeto layout. Without PreviewSource it compiles the neutral stylesheet.
+the AnoVeto layout. Without PreviewSource, it retains and recompiles an existing
+preview mapping from the addon's content folder. Only a first build without any
+mapping uses the neutral stylesheet. If an earlier build erased the mapping but
+left the original generated PNG/VTEX sources, the build recovers CSS rules from
+their exact Workshop-ID/map-hash filenames. It never guesses images by map name.
+Missing referenced PNG/VTEX sources stop the
+build before the mapping is replaced; supply the original prepared directory.
+Use `-ClearPreviews` only when deliberately resetting the mapping to neutral.
+It cannot be combined with `-PreviewSource`. The console reports the number of
+map preview textures compiled; a pictured catalog should not report zero.
 The existing -InstallLocalClient option includes preview resources for a local
 development test. Normal players need the rebuilt addon through the existing
 Workshop delivery path; see [steam-addon.md](steam-addon.md). Plugin installation
@@ -85,6 +94,43 @@ Rebuild/re-upload when changing Workshop IDs, exact non-Workshop map IDs or
 artwork. A maps live reload still pins the current vote's map snapshot; the next
 vote uses the new catalog. An unprepared new map correctly shows no image until
 the matching addon is delivered.
+
+## Updating an existing addon after the old vote overlay
+
+The native map vote is AnoVeto, not a hosted StrawPoll page. The updated plugin
+loads `ano_veto_cards.xml`; this separate resource avoids requesting the old
+`ano_veto.xml` from a previously compiled or cached addon. Its black/green
+ANOMEME layout reserves space for eight image cards in two rows and a complete
+footer. The button/image/text IDs and authoritative vote behavior are unchanged.
+The old resources remain packaged for older plugin compatibility.
+
+1. Install the matching new plugin binaries while preserving the server config.
+2. Extract the matching source package. Open PowerShell in the folder containing
+   `ui`, then run:
+
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File .\ui\AnoCore\build.ps1 -Addon anomeme_ui
+   ```
+
+   Existing prepared preview sources in the addon are retained. If they are
+   incomplete or were overwritten by an earlier build, rerun with
+   `-PreviewSource "C:\your-original-preview-build"`. Having texture files in the
+   compiled game folder alone cannot restore a missing CSS identity mapping.
+3. Confirm the output includes `ano_veto_cards.vxml_c`,
+   `ano_veto_cards.vcss_c`, `ano_veto_previews.vcss_c`, the ANOMEME logo and the
+   matching `previews/*.vtex_c` textures. The layout and mapping are required
+   alongside the images.
+4. Re-upload the **content** of the existing Workshop UI item. Preserve its ID
+   in MultiAddonManager; restart the server and CS2 after upload/download.
+5. Start a fresh `!anoveto create`. Confirm the banner, green card borders,
+   all eight map names, matching pictures and unclipped footer. Test a second
+   vote with another order and a second client. An old blue list means the new
+   plugin/addon pair is not being loaded; new green cards without pictures mean
+   the mapping, source catalog identities or texture delivery needs checking.
+
+The build integration tests use a fake resourcecompiler to verify copying,
+preservation, failure handling and local-client delivery. They do not replace
+Valve resource compilation or a real-client rendering test.
 
 ## Verification status and manual acceptance
 
