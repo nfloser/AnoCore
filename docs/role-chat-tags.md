@@ -134,3 +134,27 @@ Die CS2-/DatHost-Abnahme wurde in der Implementierungssitzung nicht durchgeführ
 - [CSS-Flags](https://docs.cssharp.dev/docs/admin-framework/defining-admins.html)
 - [CSS AdminGroup: Root-Semantik von PlayerInGroup](https://github.com/roflmuffin/CounterStrikeSharp/blob/main/managed/CounterStrikeSharp.API/Modules/Admin/AdminGroup.cs)
 - [MatchZy Mapwechsel](https://github.com/shobhit-pathak/MatchZy/blob/dev/Utility.cs)
+
+## AnoVeto mit denselben Host-/Dev-Gruppen (#352)
+
+Im CS2-Plugin verwenden `!anoveto create` und `!anoveto cancel` jetzt ausschließlich
+CSS `@anocore/veto`. Ergänze dieses Flag in den bestehenden `#css/dev`- und
+`#css/host`-Gruppen neben `@anocore/team`; vorhandene Flags, Zuordnungen und
+Immunität bleiben erhalten. Admin mit `@css/root` erhält den Zugriff über CSS.
+OG/Normal bekommen keines dieser Flags. `!anoveto` und die Abstimmung eines
+berechtigten Teilnehmers benötigen kein Managementflag.
+
+Die Prüfung erfolgt im Server-Update mit der beim Aufruf erfassten Spielersitzung,
+aktuellen CSS-Rechten und aktivem Runtime. Entzug, Reconnect, Unload oder ein
+fehlgeschlagener CSS-Lookup verhindern die vorgemerkte Managementoperation.
+AnoVeto besitzt dafür einen separaten, auf seinen festen VoteId beschränkten
+Vote-Service. Andere Votes und SDK-Integrationen verwenden unverändert
+`ano.vote.manage`; es gibt keine globale Berechtigungsbrücke. Temporäre
+AnoCore-Workaround-Grants allein autorisieren das native AnoVeto nicht mehr.
+CSS-Änderungen tatsächlich laden (verlässlich: Serverneustart); ein Rollenpräfix
+allein ist kein Recht. Die Konsole bleibt für AnoVeto wie zuvor ausgeschlossen.
+
+Manuell prüfen: Host, Dev und Root erstellen/abbrechen; OG/Normal werden dabei
+abgewiesen, können aber an einer aktiven Abstimmung teilnehmen. Vor Ausführung
+entzogene Flags, Reconnect und Plugin-Unload dürfen keine Operation nachholen.
+Die CS2-/DatHost-Abnahme bleibt offen und wurde nicht durch Unit-Tests ersetzt.

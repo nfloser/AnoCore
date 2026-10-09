@@ -690,8 +690,11 @@ public sealed class AnoCorePlugin : BasePlugin
 
             try
             {
-                var votes = created.GetService(typeof(IVoteService)) as IVoteService
-                    ?? throw new InvalidOperationException("AnoCore runtime did not provide the shared vote service.");
+                var votes = new SessionBoundVetoVoteService(
+                    created.Players,
+                    action => Server.NextWorldUpdate(action),
+                    CounterStrikeVetoAuthorization.HasPermission,
+                    () => ReferenceEquals(_runtime, created));
                 createdAnoVeto = await AnoVetoModuleRuntime.CreateAsync(
                     configuration,
                     created.Commands,
