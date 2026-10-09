@@ -100,7 +100,22 @@ public sealed class NativeChatRouter
 
         try
         {
-            formatted = string.Concat(RolePrefix?.Invoke(sender), formatted);
+            // CS2 normally supplies the channel label. Intercepted messages must restore it
+            // before the role tag rather than placing the tag ahead of the channel.
+            var rolePrefix = RolePrefix?.Invoke(sender) ?? string.Empty;
+            if (isTeamMessage)
+            {
+                if (formatted.StartsWith("(TEAM) ", StringComparison.Ordinal))
+                    formatted = formatted["(TEAM) ".Length..];
+                else if (formatted.StartsWith("[TEAM] ", StringComparison.Ordinal))
+                    formatted = formatted["[TEAM] ".Length..];
+            }
+            else if (formatted.StartsWith("[ALL] ", StringComparison.Ordinal))
+            {
+                formatted = formatted["[ALL] ".Length..];
+            }
+
+            formatted = string.Concat(isTeamMessage ? "[TEAM] " : "[ALL] ", rolePrefix, formatted);
         }
         catch (Exception exception)
         {
