@@ -87,7 +87,7 @@ die letzte akzeptierte Konfiguration aktiv. Bereits geladene CSS-Gruppenänderun
 wirken beim nächsten gewöhnlichen Chatbeitrag ohne Reconnect; es gibt keinen
 zusätzlichen Tag-Cache und keine Datenbankabfrage im nativen Chat-Hook.
 
-Das Rollenpräfix steht vor dem bestehenden Chatformat. Ränge und selbst gewählte
+Bei abgefangenen Nachrichten steht das Chatkanal-Präfix vor dem Rollenpräfix: `[ALL] [DEV] Name: Text` beziehungsweise `[TEAM] [DEV] Name: Text`. Das native `(TEAM)`-Template-Präfix wird zur Vermeidung doppelter Labels entfernt. Commands werden weiterhin nativ durchgereicht. Das Rollenpräfix steht vor dem übrigen Chatformat. Ränge und selbst gewählte
 Tags können weiterhin separat angezeigt werden und überschreiben die Rollenanzeige
 nicht. Für die schlichte Anzeige wie auf dem alten Server kannst du in
 `chat-format.json` die Vorlagen auf `{player.name}: {message}` und

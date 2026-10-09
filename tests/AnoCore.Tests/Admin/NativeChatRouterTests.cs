@@ -24,7 +24,7 @@ public sealed class NativeChatRouterTests
         var route = router.Route(sender.Id, "hello", false);
 
         Assert.IsTrue(route.ShouldIntercept);
-        Assert.AreEqual("[R] Player: hello", route.FormattedMessage);
+        Assert.AreEqual("[ALL] [R] Player: hello", route.FormattedMessage);
         CollectionAssert.AreEquivalent(
             new[] { sender.Id, teammate.Id, opponent.Id },
             route.Recipients.ToArray());
@@ -44,7 +44,7 @@ public sealed class NativeChatRouterTests
         CollectionAssert.AreEquivalent(
             new[] { sender.Id, teammate.Id },
             route.Recipients.ToArray());
-        Assert.AreEqual("(TEAM) [R] Player: team", route.FormattedMessage);
+        Assert.AreEqual("[TEAM] [R] Player: team", route.FormattedMessage);
     }
 
     [TestMethod]
@@ -223,7 +223,7 @@ public sealed class NativeChatRouterTests
                 throw new InvalidOperationException("diagnostics");
             });
         var route = router.Route(sender.Id, "hello", false);
-        Assert.AreEqual("[R] Player: hello", route.FormattedMessage);
+        Assert.AreEqual("[ALL] [R] Player: hello", route.FormattedMessage);
         release.SetResult();
         await reported.Task.WaitAsync(TimeSpan.FromSeconds(5));
     }
@@ -255,15 +255,15 @@ public sealed class NativeChatRouterTests
                 RolePrefix = player => policy.Resolve(player.Id, groups, player.Team),
             };
             var first = router.Route(sender.Id, "hello\x04 {chat.tag}", true);
-            StringAssert.StartsWith(first.FormattedMessage!, "\x0E[HOST]\x01 (TEAM)");
+            StringAssert.StartsWith(first.FormattedMessage!, "[TEAM] \x0E[HOST]\x01 ");
             StringAssert.Contains(first.FormattedMessage!, "Nils  {rank.tag}: hello  {chat.tag}");
             var nativeText = NativeChatText.Prepare(first.FormattedMessage!);
-            StringAssert.StartsWith(nativeText, " \x0E[HOST]\x01 (TEAM)");
+            StringAssert.StartsWith(nativeText, " [TEAM] \x0E[HOST]\x01 ");
             Assert.IsFalse(nativeText.Contains('\x07'));
             Assert.IsFalse(nativeText.Contains('\x04'));
             CollectionAssert.AreEquivalent(new[] { sender.Id, teammate.Id }, first.Recipients.ToArray());
             groups.Clear(); // no reconnect/snapshot refresh needed when CSS removes a role
-            StringAssert.StartsWith(router.Route(sender.Id, "next", false).FormattedMessage!, "\x04[ANOMEME]\x01 ");
+            StringAssert.StartsWith(router.Route(sender.Id, "next", false).FormattedMessage!, "[ALL] \x04[ANOMEME]\x01 ");
         }
         finally { if (Directory.Exists(root)) Directory.Delete(root, true); }
     }
