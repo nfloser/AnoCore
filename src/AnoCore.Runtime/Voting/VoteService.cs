@@ -10,10 +10,17 @@ public sealed class VoteService : IVoteService
 
     private readonly object _gate = new();
     private readonly IPermissionEvaluator _permissions;
+    private readonly Random _random;
     private readonly Dictionary<VoteId, Session> _sessions = [];
 
     public VoteService(IPermissionEvaluator permissions)
-        => _permissions = permissions ?? throw new ArgumentNullException(nameof(permissions));
+        : this(permissions, Random.Shared) { }
+
+    public VoteService(IPermissionEvaluator permissions, Random random)
+    {
+        _permissions = permissions ?? throw new ArgumentNullException(nameof(permissions));
+        _random = random ?? throw new ArgumentNullException(nameof(random));
+    }
 
     public async ValueTask<VoteOperationResult> CreateAsync(
         PlayerId caller,
@@ -35,7 +42,7 @@ public sealed class VoteService : IVoteService
                 return VoteOperationResult.Reject(VoteOperationFailure.AlreadyExists);
             }
 
-            _sessions[definition.Id] = new Session(definition, now);
+            _sessions[definition.Id] = new Session(definition, now, _random);
             return VoteOperationResult.Success();
         }
     }
@@ -191,8 +198,11 @@ public sealed class VoteService : IVoteService
 
     private sealed class Session
     {
-        public Session(VoteDefinition definition, DateTimeOffset openedAt)
+        private readonly Random _random;
+
+        public Session(VoteDefinition definition, DateTimeOffset openedAt, Random random)
         {
+            _random = random;
             Definition = definition;
             OpenedAt = openedAt;
             Deadline = openedAt + definition.Policy.Duration;
@@ -244,6 +254,11 @@ public sealed class VoteService : IVoteService
                 {
                     outcome = VoteOutcome.Completed;
                     winner = tied[0].Id;
+                }
+                else if (Definition.Policy.TieBreakPolicy == VoteTieBreakPolicy.Random)
+                {
+                    outcome = VoteOutcome.Completed;
+                    winner = tied[_random.Next(tied.Length)].Id;
                 }
                 else
                 {
