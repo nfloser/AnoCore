@@ -13,7 +13,7 @@ public static class CounterStrikeVetoAuthorization
     public static bool HasPermission(PlayerSnapshot player)
     {
         var controller = Utilities.GetPlayers().FirstOrDefault(value => value is
-            { IsValid: true, IsBot: false, IsHLTV: false, Connected: PlayerConnectedState.Connected }
+        { IsValid: true, IsBot: false, IsHLTV: false, Connected: PlayerConnectedState.Connected }
             && value.SteamID == player.Id.SteamId64);
         return controller is not null && AdminManager.PlayerHasPermissions(controller, SessionBoundVetoVoteService.RequiredFlag);
     }

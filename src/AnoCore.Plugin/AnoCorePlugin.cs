@@ -5,7 +5,6 @@ using AnoCore.Abstractions.Persistence;
 using AnoCore.Abstractions.Placeholders;
 using AnoCore.Abstractions.Players;
 using AnoCore.Abstractions.Stats;
-using AnoCore.Abstractions.Voting;
 using AnoCore.Modules.Admin;
 using AnoCore.Modules.AnoVeto;
 using AnoCore.Modules.Progression;

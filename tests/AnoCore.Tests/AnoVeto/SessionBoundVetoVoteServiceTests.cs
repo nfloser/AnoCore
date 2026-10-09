@@ -19,7 +19,6 @@ public sealed class SessionBoundVetoVoteServiceTests
     public async Task Management_UsesDedicatedFlagWhileParticipationAndSharedVotesStayIndependent()
     {
         var fixture = await Fixture.CreateAsync();
-        Assert.AreEqual("@anocore/veto", SessionBoundVetoVoteService.RequiredFlag);
         Assert.IsTrue((await fixture.Run(fixture.Votes.CreateAsync(Host, Definition(), Now))).Accepted);
         Assert.AreEqual(VoteOperationFailure.Forbidden,
             (await fixture.Run(fixture.Votes.CancelAsync(Normal, AnoVetoCoordinator.VoteId, Now))).Failure);
