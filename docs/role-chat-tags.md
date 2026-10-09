@@ -168,6 +168,21 @@ AnoCore-Workaround-Grants allein autorisieren das native AnoVeto nicht mehr.
 CSS-Änderungen tatsächlich laden (verlässlich: Serverneustart); ein Rollenpräfix
 allein ist kein Recht. Die Konsole bleibt für AnoVeto wie zuvor ausgeschlossen.
 
+### Ablehnung trotz korrektem Veto-Flag (#367)
+
+Der erste Stand von #352 enthielt einen Fehler in der Start-Komposition:
+Die Aktivitätsprüfung griff auf lokale Variablen zu, die bei der Übergabe an
+das Plugin geleert wurden. Dadurch wurden auch korrekt berechtigte Dev-/Host-
+Spieler vor der CSS-Prüfung abgelehnt. #367 behält die Runtime-Identität stabil
+und prüft das tatsächlich aktive Modul; Austausch und Unload sperren alte Dienste.
+Zum Aktualisieren alle ausgelieferten DLLs unter
+`addons/counterstrikesharp/plugins/AnoCore/` ersetzen und den Server vollständig
+stoppen/starten. Bestehende Konfiguration und Spielerzuordnungen beibehalten.
+`css_plugins list` in der Serverkonsole bestätigt das Laden, aber `0.1.0-dev`
+identifiziert den Build nicht eindeutig; dafür `BUILD-COMMIT.txt` des Pakets prüfen.
+Native Abnahme: Dev/Host können erstellen und abbrechen; OG/Normal dürfen
+nicht verwalten, berechtigte Teilnehmer können weiterhin abstimmen.
+
 Manuell prüfen: Host, Dev und Root erstellen/abbrechen; OG/Normal werden dabei
 abgewiesen, können aber an einer aktiven Abstimmung teilnehmen. Vor Ausführung
 entzogene Flags, Reconnect und Plugin-Unload dürfen keine Operation nachholen.
