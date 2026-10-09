@@ -1,0 +1,104 @@
+{
+  "Enabled": true,
+  "WelcomeDelaySeconds": 10,
+  "IntervalSeconds": 180,
+  "WelcomeMessages": [
+    "{LIME}Willkommen auf dem ANOMEME INTERNS 1 Server {RED}{player.name}",
+    "{LIME}Aktuelle Map: {RED}{map.name}",
+    "{LIME}Unser TeamSpeak3 Server: {RED}anomeme.com",
+    "{LIME}Unsere Socials: {RED}linktr.ee/anomeme",
+    "{LIME}Steam Gruppe: {RED}steamcommunity.com/groups/anom3m3",
+    "{LIME}Du willst Teil der Community werden? Frag uns nach unserer {RED}WhatsApp Community{LIME} - jeder ist willkommen {RED}#ANOMEMELOVE <3",
+    "{YELLOW}+ ANOMEME + {Silver}Deine gespeicherte Spielzeit: {YELLOW}{playtime.total}",
+    "{WHITE}[{GREEN}ANOMEME{WHITE}] {LIME}Moin {RED}{player.name}{LIME}!",
+    "{WHITE}[{GREEN}ANOMEME{WHITE}] {LIME}Wichtige Commands: {RED}!anorank !anoranks !anotopranks !anostatsmenu !anoplaytime",
+    "{WHITE}[{GREEN}ANOMEME{WHITE}] {LIME}Alle Spieler-Commands: {RED}!anocommands",
+    "{WHITE}[{GREEN}ANOMEME{WHITE}] {LIME}Viel Spaß beim Daddeln!"
+  ],
+  "InfoMessages": [
+    [
+      "{WHITE}[{GREEN}ANOMEME{WHITE}] {LIME}Alle unsere Socials: {RED}linktr.ee/anomeme"
+    ],
+    [
+      "{WHITE}[{GREEN}ANOMEME{WHITE}] {LIME}Wichtige Commands: {RED}!anorank !anoranks !anotopranks !anostatsmenu !anoplaytime"
+    ],
+    [
+      "{WHITE}[{GREEN}ANOMEME{WHITE}] {LIME}Joint dem ANOMEME TeamSpeak: {RED}anomeme.com"
+    ],
+    [
+      "{WHITE}[{GREEN}ANOMEME{WHITE}] {LIME}Alle Spieler-Commands: {RED}!anocommands"
+    ],
+    [
+      "{WHITE}[{GREEN}ANOMEME{WHITE}] {LIME}Unser ANOMEME Discord Server: {RED}bit.ly/3JV2gTm"
+    ],
+    [
+      "{WHITE}[{GREEN}ANOMEME{WHITE}] {LIME}Wichtige Commands: {RED}!anorank !anoranks !anotopranks !anostatsmenu !anoplaytime"
+    ],
+    [
+      "{WHITE}[{GREEN}ANOMEME{WHITE}] {LIME}Join der Community! ANOMEME WhatsApp: {RED}bit.ly/38P6SNL"
+    ],
+    [
+      "{WHITE}[{GREEN}ANOMEME{WHITE}] {LIME}Alle Spieler-Commands: {RED}!anocommands"
+    ],
+    [
+      "{WHITE}[{GREEN}ANOMEME{WHITE}] {LIME}Die komplette CS2 Map-Sammlung: {RED}bit.ly/3Ms2lRQ"
+    ],
+    [
+      "{WHITE}[{GREEN}ANOMEME{WHITE}] {LIME}Wichtige Commands: {RED}!anorank !anoranks !anotopranks !anostatsmenu !anoplaytime"
+    ],
+    [
+      "{WHITE}[{GREEN}ANOMEME{WHITE}] {LIME}Unser ANOMEME YouTube Kanal: {RED}bit.ly/3rtVa1q"
+    ],
+    [
+      "{WHITE}[{GREEN}ANOMEME{WHITE}] {LIME}Alle Spieler-Commands: {RED}!anocommands"
+    ],
+    [
+      "{WHITE}[{GREEN}ANOMEME{WHITE}] {LIME}Willst auch in ein Video? Schick uns Clips: {RED}bit.ly/47aQ2TA"
+    ],
+    [
+      "{WHITE}[{GREEN}ANOMEME{WHITE}] {LIME}Wichtige Commands: {RED}!anorank !anoranks !anotopranks !anostatsmenu !anoplaytime"
+    ],
+    [
+      "{WHITE}[{GREEN}ANOMEME{WHITE}] {LIME}Demos der letzten 50 Interns zum Download: {RED}bit.ly/3Z7x8ek"
+    ],
+    [
+      "{WHITE}[{GREEN}ANOMEME{WHITE}] {LIME}Alle Spieler-Commands: {RED}!anocommands"
+    ],
+    [
+      "{WHITE}[{GREEN}ANOMEME{WHITE}] {LIME}Wir sind regelmäßig live auf Twitch: {RED}bit.ly/3vqeL3J"
+    ],
+    [
+      "{WHITE}[{GREEN}ANOMEME{WHITE}] {LIME}Wichtige Commands: {RED}!anorank !anoranks !anotopranks !anostatsmenu !anoplaytime"
+    ],
+    [
+      "{WHITE}[{GREEN}ANOMEME{WHITE}] {LIME}Die offizielle ANOMEME Steam Gruppe: {RED}bit.ly/414Qek6"
+    ],
+    [
+      "{WHITE}[{GREEN}ANOMEME{WHITE}] {LIME}Alle Spieler-Commands: {RED}!anocommands"
+    ],
+    [
+      "{WHITE}[{GREEN}ANOMEME{WHITE}] {LIME}Folgt uns auf Instagram: {RED}bit.ly/3MKaoci"
+    ],
+    [
+      "{WHITE}[{GREEN}ANOMEME{WHITE}] {LIME}Wichtige Commands: {RED}!anorank !anoranks !anotopranks !anostatsmenu !anoplaytime"
+    ],
+    [
+      "{WHITE}[{GREEN}ANOMEME{WHITE}] {LIME}Checkt unsere TikTok Seite aus: {RED}bit.ly/3zbghg3"
+    ],
+    [
+      "{WHITE}[{GREEN}ANOMEME{WHITE}] {LIME}Alle Spieler-Commands: {RED}!anocommands"
+    ],
+    [
+      "{WHITE}[{GREEN}ANOMEME{WHITE}] {LIME}ANOMEME Snapchat Gruppe: {RED}bit.ly/3uMe8Cw"
+    ],
+    [
+      "{WHITE}[{GREEN}ANOMEME{WHITE}] {LIME}Wichtige Commands: {RED}!anorank !anoranks !anotopranks !anostatsmenu !anoplaytime"
+    ],
+    [
+      "{WHITE}[{GREEN}ANOMEME{WHITE}] {LIME}ANOMEME-EVENTS: {RED}LAN / MAJOR / COLOGNE! Mach mit!"
+    ],
+    [
+      "{WHITE}[{GREEN}ANOMEME{WHITE}] {LIME}Alle Spieler-Commands: {RED}!anocommands"
+    ]
+  ]
+}

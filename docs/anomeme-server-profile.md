@@ -5,6 +5,11 @@ Werte aus dem bereitgestellten Server-Backup vom 08.10.2026 (Zenith Ranks/Stats
 und `ranks.jsonc`). Es enthält keine Zugangsdaten oder Spielerdaten. Es ist ein
 Vorschlag für AnoCore-Konfigurationsdateien und wird nicht automatisch installiert.
 
+Begrüßungen und automatische Chat-Hinweise sind separat als `server-info.json`
+vorbereitet. Installation, Farben, Platzhalter und Reload siehe
+[Begrüßungen und automatische Infotexte](server-info.md). Diese Datei wird separat
+kopiert und gehört nicht zum Progressions-Merge des Vorbereitungsskripts.
+
 ## Eure Rangpunkte bleiben eure Rangpunkte
 
 | Aktion / Regel | Rangwert aus dem Backup |

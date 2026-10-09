@@ -66,6 +66,7 @@ public sealed class AnoCorePlugin : BasePlugin
     private ChatMessageFormatter? _pendingChatFormatter;
     private SelectableChatTagModule? _pendingChatTags;
     private RoleChatTagModule? _pendingRoleChatTags;
+    private ServerInfoService? _pendingServerInfo;
     private ProtectedServerControlPolicy? _pendingProtectedServerControlPolicy;
     private RuntimeServices? _runtime;
     private ManagementPipeServer? _managementPipe;
@@ -104,6 +105,8 @@ public sealed class AnoCorePlugin : BasePlugin
     private ChatMessageFormatter? _chatFormatter;
     private SelectableChatTagModule? _chatTags;
     private RoleChatTagModule? _roleChatTags;
+    private ServerInfoService? _serverInfo;
+    private CounterStrikeSharp.API.Modules.Timers.Timer? _serverInfoTimer;
     private ChatFormatSnapshotLifecycle? _chatFormatSnapshots;
     private CombatModule? _combat;
     private CombatDetailBuffer? _combatDetailBuffer;
@@ -246,8 +249,12 @@ public sealed class AnoCorePlugin : BasePlugin
             _chatFormatSnapshots = null;
             _chatTags?.Dispose();
             _roleChatTags?.Dispose();
+            _serverInfo?.Dispose();
+            _serverInfoTimer?.Kill();
+            _serverInfoTimer = null;
             _chatTags = null;
             _roleChatTags = null;
+            _serverInfo = null;
             _rankScoreboard?.Dispose();
             _rankScoreboard = null;
             _liveRankScoring?.Dispose();
@@ -292,8 +299,10 @@ public sealed class AnoCorePlugin : BasePlugin
             _pendingChatFormatter = null;
             _pendingChatTags?.Dispose();
             _pendingRoleChatTags?.Dispose();
+            _pendingServerInfo?.Dispose();
             _pendingChatTags = null;
             _pendingRoleChatTags = null;
+            _pendingServerInfo = null;
 
             _pendingAnoVeto?.Dispose();
             _pendingAnoVeto = null;
@@ -399,6 +408,7 @@ public sealed class AnoCorePlugin : BasePlugin
         ChatMessageFormatter? createdChatFormatter = null;
         SelectableChatTagModule? createdChatTags = null;
         RoleChatTagModule? createdRoleChatTags = null;
+        ServerInfoService? createdServerInfo = null;
         try
         {
             var configuration = new JsonConfigStore(Path.Combine(ModuleDirectory, "config"));
@@ -659,6 +669,21 @@ public sealed class AnoCorePlugin : BasePlugin
 
             try
             {
+                createdServerInfo = await ServerInfoService.CreateAsync(configuration, players,
+                    created.Messages, created.Playtime, created.ConfigReloads,
+                    exception => Logger.LogError(exception, "Server info message failed."),
+                    timeout.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
+            catch (Exception exception)
+            {
+                createdServerInfo?.Dispose();
+                createdServerInfo = null;
+                Logger.LogError(exception, "Server info composition failed; continuing without automatic messages.");
+            }
+
+            try
+            {
                 var placeholders = created.GetService(typeof(IPlaceholderRegistry))
                     as IPlaceholderRegistry
                     ?? throw new InvalidOperationException(
@@ -864,6 +889,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 _pendingChatFormatter = createdChatFormatter;
                 _pendingChatTags = createdChatTags;
                 _pendingRoleChatTags = createdRoleChatTags;
+                _pendingServerInfo = createdServerInfo;
                 _pendingProtectedServerControlPolicy = protectedServerControlPolicy;
                 created = null;
                 createdManagementPipe = null;
@@ -879,6 +905,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 createdChatFormatter = null;
                 createdChatTags = null;
                 createdRoleChatTags = null;
+                createdServerInfo = null;
                 Server.NextWorldUpdate(() => ActivateRuntime(cancellationToken));
             }
         }
@@ -895,6 +922,7 @@ public sealed class AnoCorePlugin : BasePlugin
             createdSeasons?.Dispose();
             createdChatTags?.Dispose();
             createdRoleChatTags?.Dispose();
+            createdServerInfo?.Dispose();
             createdChatFormatter?.Dispose();
             created?.Dispose();
         }
@@ -911,6 +939,7 @@ public sealed class AnoCorePlugin : BasePlugin
             createdSeasons?.Dispose();
             createdChatTags?.Dispose();
             createdRoleChatTags?.Dispose();
+            createdServerInfo?.Dispose();
             createdChatFormatter?.Dispose();
             created?.Dispose();
             lock (_startupGate)
@@ -937,8 +966,10 @@ public sealed class AnoCorePlugin : BasePlugin
                     _pendingChatFormatter = null;
                     _pendingChatTags?.Dispose();
                     _pendingRoleChatTags?.Dispose();
+                    _pendingServerInfo?.Dispose();
                     _pendingChatTags = null;
                     _pendingRoleChatTags = null;
+                    _pendingServerInfo = null;
                     _pendingAnoVeto?.Dispose();
                     _pendingAnoVeto = null;
                     _pendingManagementPipe?.Dispose();
@@ -1006,6 +1037,7 @@ public sealed class AnoCorePlugin : BasePlugin
             var chatFormatter = _pendingChatFormatter;
             var chatTags = _pendingChatTags;
             var roleChatTags = _pendingRoleChatTags;
+            var serverInfo = _pendingServerInfo;
             _pendingRuntime = null;
             _pendingManagementPipe = null;
             _pendingAnoVeto = null;
@@ -1020,6 +1052,7 @@ public sealed class AnoCorePlugin : BasePlugin
             _pendingChatFormatter = null;
             _pendingChatTags = null;
             _pendingRoleChatTags = null;
+            _pendingServerInfo = null;
             var protectedServerControlPolicy = _pendingProtectedServerControlPolicy
                 ?? ProtectedServerControlPolicy.Create(
                     new ProtectedServerControlConfiguration());
@@ -1076,6 +1109,7 @@ public sealed class AnoCorePlugin : BasePlugin
             CounterStrikeSharp.API.Modules.Timers.Timer? rankScoreboardTimer = null;
             CounterStrikeSharp.API.Modules.Timers.Timer? rankPlaytimeTimer = null;
             CounterStrikeSharp.API.Modules.Timers.Timer? playtimeTimer = null;
+            CounterStrikeSharp.API.Modules.Timers.Timer? serverInfoTimer = null;
             CounterStrikeSharp.API.Modules.Timers.Timer? achievementTimer = null;
             CounterStrikeSharp.API.Modules.Timers.Timer? challengeTimer = null;
             CounterStrikeSharp.API.Modules.Timers.Timer? gameplayXpTimer = null;
@@ -1392,6 +1426,11 @@ public sealed class AnoCorePlugin : BasePlugin
                     }, TimerFlags.REPEAT);
                 }
 
+                if (serverInfo is not null)
+                    serverInfoTimer = AddTimer(1.0f,
+                        () => Observe(serverInfo.TickAsync(DateTimeOffset.UtcNow, Server.MapName,
+                            cancellationToken).AsTask(), "server_info"), TimerFlags.REPEAT);
+
                 if (playtime is not null)
                     playtimeTimer = AddTimer(5.0f,
                         () => Observe(playtime.CheckpointOnlineAsync(DateTimeOffset.UtcNow).AsTask(),
@@ -1485,6 +1524,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 _chatFormatter = chatFormatter;
                 _chatTags = chatTags;
                 _roleChatTags = roleChatTags;
+                _serverInfo = serverInfo;
                 _combat = combat;
                 _combatDetailBuffer = combatDetails;
                 combatDetails?.Start(exception => Logger.LogError(exception,
@@ -1495,6 +1535,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 _rankScoreboardTimer = rankScoreboardTimer;
                 _rankPlaytimeTimer = rankPlaytimeTimer;
                 _playtimeTimer = playtimeTimer;
+                _serverInfoTimer = serverInfoTimer;
                 _achievementTimer = achievementTimer;
                 _challengeTimer = challengeTimer;
                 _gameplayXpTimer = gameplayXpTimer;
@@ -1527,6 +1568,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 rankScoreboardTimer?.Kill();
                 rankPlaytimeTimer?.Kill();
                 playtimeTimer?.Kill();
+                serverInfoTimer?.Kill();
                 achievementTimer?.Kill();
                 challengeTimer?.Kill();
                 gameplayXpTimer?.Kill();
@@ -1566,6 +1608,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 tournamentTeamEnforcement?.Dispose();
                 chatTags?.Dispose();
                 roleChatTags?.Dispose();
+                serverInfo?.Dispose();
                 combat?.Dispose();
                 if (combatDetails is not null)
                 {
