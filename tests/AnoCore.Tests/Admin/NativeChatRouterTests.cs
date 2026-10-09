@@ -257,6 +257,10 @@ public sealed class NativeChatRouterTests
             var first = router.Route(sender.Id, "hello\x04 {chat.tag}", true);
             StringAssert.StartsWith(first.FormattedMessage!, "\x0E[HOST]\x01 (TEAM)");
             StringAssert.Contains(first.FormattedMessage!, "Nils  {rank.tag}: hello  {chat.tag}");
+            var nativeText = NativeChatText.Prepare(first.FormattedMessage!);
+            StringAssert.StartsWith(nativeText, " \x0E[HOST]\x01 (TEAM)");
+            Assert.IsFalse(nativeText.Contains('\x07'));
+            Assert.IsFalse(nativeText.Contains('\x04'));
             CollectionAssert.AreEquivalent(new[] { sender.Id, teammate.Id }, first.Recipients.ToArray());
             groups.Clear(); // no reconnect/snapshot refresh needed when CSS removes a role
             StringAssert.StartsWith(router.Route(sender.Id, "next", false).FormattedMessage!, "\x04[ANOMEME]\x01 ");
