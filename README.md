@@ -6,6 +6,28 @@ AnoCore is a modular CS2 server plugin for community servers, regular game night
 
 *Design preview, not an in-game screenshot. Player values are fictional. Fonts, spacing and navigation may differ from the current CS2 implementation; the current version separates Back from Prev/Next page. The dashboard requires a build containing the dashboard integration.*
 
+## In-game screenshots
+
+These screenshots show the AnoCore and ANOMEME interface running inside Counter-Strike 2. The displayed player statistics, challenges, map choices and available actions depend on server configuration and the installed build.
+
+### Map voting
+
+![ANOMEME map voting interface with eight map previews](docs/images/map-vote-ingame.png)
+
+*Map selection in the native in-game veto window, including map preview images.*
+
+### Player dashboard
+
+![AnoCore player dashboard with profile, statistics and weekly challenges](docs/images/dashboard-ingame.png)
+
+*Personal overview of rank, progression, gameplay statistics and active challenges.*
+
+### Main menu
+
+![AnoCore in-game main menu listing player features](docs/images/main-menu-ingame.png)
+
+*Navigation to statistics, ranks, progression, challenges, achievements and AnoRating.*
+
 ## What can you do with it?
 
 | Area | Capabilities |
