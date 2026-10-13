@@ -28,7 +28,7 @@ public sealed class AnoHomeMenuModule : IDisposable
         ("anorating", "AnoRating", false, false),
         ("anosettingsmenu", "Settings", true, false),
         ("anochatmenu", "Chat tags", true, false),
-        ("anotournamentstatus", "Tournament status", false, false),
+        ("anotournament", "Tournament", true, false),
     ];
     private readonly object _gate = new();
     private readonly IAnoCommandRegistry _commands;
@@ -171,6 +171,12 @@ public sealed class AnoHomeMenuModule : IDisposable
         // The registry rechecks permissions at execution, including after revocation.
         var result = await _commands.ExecuteAsync("!" + view.Name + (view.Paged ? " " + page : ""),
             player.Id, linked.Token).ConfigureAwait(false);
+        if (view.Name == "anotournament" && result.Success)
+        {
+            // The dedicated fullscreen HUD replaces the compact home overlay.
+            _menus.Close(player.Id);
+            return;
+        }
         if (view.Menu && result.Success) return;
         var lines = (result.Message ?? "No data available.").Split('|', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).ToList();
         if (view.Paged && result.Success && lines.Count > 0)
