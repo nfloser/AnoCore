@@ -119,8 +119,12 @@ public sealed class TournamentGroupCrossingTests
                 .Select(j => 76561198064900000UL + (ulong)(i * 10 + j)).ToList();
             return new TournamentEventTeamDefinition
             {
-                Id = $"team-{i}", Name = $"Team {i}", Tag = $"T{i}",
-                CaptainSteamId = roster[0], Starters = roster, InitialSeed = i,
+                Id = $"team-{i}",
+                Name = $"Team {i}",
+                Tag = $"T{i}",
+                CaptainSteamId = roster[0],
+                Starters = roster,
+                InitialSeed = i,
             };
         }).ToList();
         return new TournamentEventDefinition
