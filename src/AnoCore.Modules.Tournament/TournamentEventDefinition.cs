@@ -119,7 +119,7 @@ public sealed class TournamentEventDefinition
 
     internal static TournamentGroupDefinition ResolveGroup(TournamentEventDefinition definition, string id)
     {
-        var groups = definition.Groups.Count == 0
+        List<TournamentGroupDefinition> groups = definition.Groups.Count == 0
             ? [new TournamentGroupDefinition
             {
                 Id = "main", Name = "Main", TeamIds = definition.Teams.Select(team => team.Id).ToList(),
