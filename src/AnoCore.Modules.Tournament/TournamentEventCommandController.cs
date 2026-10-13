@@ -33,6 +33,10 @@ public sealed class TournamentEventCommandController : IDisposable
         _registrations.Add(registry.Register(Owner,
             new("anotournamenteventbracket", "Show playoff pairings and champion."), BracketAsync));
         _registrations.Add(registry.Register(Owner,
+            new("anotournamenteventnext", "Preview unplayed event fixtures ready for CS2 assignment.",
+                arguments: [new("page", CommandArgumentKind.Int32, "Fixture list page.", required: false)]),
+            NextFixturesAsync));
+        _registrations.Add(registry.Register(Owner,
             new("anotournamenteventplayoffresult", "Confirm one playoff winner.", Manage, arguments:
                 [new("match", CommandArgumentKind.String, "Stable playoff match id."),
                  new("winner", CommandArgumentKind.String, "Winning team id."),
@@ -53,6 +57,31 @@ public sealed class TournamentEventCommandController : IDisposable
                     new("home_rounds", CommandArgumentKind.Int32, "Total rounds won by home."),
                     new("away_rounds", CommandArgumentKind.Int32, "Total rounds won by away."),
                 ]), ConfirmAsync));
+    }
+
+    private async ValueTask<CommandResult> NextFixturesAsync(CommandContext context)
+    {
+        ThrowIfDisposed();
+        var page = context.TryGet<int>("page", out var requested) ? requested : 1;
+        if (page < 1)
+            return CommandResult.Fail(CommandFailureReason.InvalidInput, "Page must be at least 1.");
+        var active = await _repository.LoadActiveAsync(context.CancellationToken).ConfigureAwait(false);
+        if (active is null)
+            return CommandResult.Ok("[ANO] No shared tournament event is active.");
+        var options = TournamentFixtureMatchPlanner.Plan(
+            active.Definition, active.ConfirmedResults, active.PlayoffResults);
+        const int pageSize = 6;
+        var pages = Math.Max(1, (options.Count + pageSize - 1) / pageSize);
+        if (page > pages)
+            return CommandResult.Fail(CommandFailureReason.InvalidInput,
+                $"Fixture page must be between 1 and {pages}.");
+        if (options.Count == 0)
+            return CommandResult.Ok("[ANO] No unplayed event fixtures are ready for assignment.");
+        return CommandResult.Ok($"[ANO] Next fixtures {page} / {pages} ({options.Count} open)"
+            + " | " + string.Join(" | ", options.Skip((page - 1) * pageSize).Take(pageSize)
+                .Select(option => $"{option.Stage} {option.SourceId}: "
+                    + $"{option.Match.TeamA.Name} vs {option.Match.TeamB.Name} "
+                    + $"BO{option.Match.BestOf} MatchId={option.Match.MatchId}")));
     }
 
     private async ValueTask<CommandResult> BracketAsync(CommandContext context)
