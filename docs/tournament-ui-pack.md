@@ -76,7 +76,10 @@ Selected team IDs survive standings reordering.
 
 The knockout display now projects persisted confirmed playoff winners, resolved
 next-round pairings, ready/waiting states and champion through the same compiled
-slots. Result-only changes never require Workshop republishing. With `tournament-servers.json` enabled, shared expiring heartbeats project
+slots. The view uses the configured Single/Double Elimination plan, including
+Upper/Lower brackets, loser-of-match references, grand final and optional reset.
+Group/match pages project the deterministic Round Robin or **incremental Swiss**
+schedule; a disabled group stage shows no fictitious table or fixtures. Result-only changes never require Workshop republishing. With `tournament-servers.json` enabled, shared expiring heartbeats project
 server identity, player session and actual AnoTournament readiness. Presence
 changes refresh the roster independently of event revisions. Multiple reported
 sessions are labeled explicitly instead of assuming readiness. Without that
