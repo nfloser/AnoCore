@@ -27,6 +27,15 @@ CounterStrikeSharp, MySQL access and Valve Workshop assets.
 - Stage BestOf defaults are BO1 for groups and BO3 for playoffs unless
   the event explicitly overrides them.
 
+## Read-only operator preview
+
+The registered `css_anotournamenteventnext [page]` command uses this planner
+to list up to six assignable pairings at a time. Each row includes the
+stable source fixture ID, group/playoff stage, names, BO format and the
+deterministic CS2 match GUID. Pages are 1-based; the command does **not**
+reserve a server, create live gameplay, bypass permissions or mutate results.
+The same event may be previewed from any server sharing the database.
+
 ## Safety boundary
 
 **A planned fixture is not a live server reservation and does not mean
