@@ -115,3 +115,46 @@ See the follow-up issues for actual server integration and acceptance gates.
   AnoVeto paths remain unchanged.
 - Real multiplayer sync, configured event import, UI interaction and
   tournament operations require additional integration/test-server validation.
+
+## Authoritative shared event storage (migration 022)
+
+The new `MySqlTournamentEventRepository` stores a validated event definition
+and confirmed fixture results in `ano_tournament_events` and keeps an
+independent active-event pointer in `ano_tournament_event_runtime`. This is
+**separate** from the existing single-active-live-match pointer: no existing
+AnoMatch recovery table is changed.
+
+All servers configured with the same MySQL connection can load the active
+event and read its standings from the same revision. An event save performs
+one conditional SQL update `WHERE revision = expected` inside a transaction;
+a stale write throws `TournamentEventConcurrencyException` and never
+overwrites a newer result. Every event read revalidates its JSON state.
+A new result can only refer to a deterministic scheduled fixture ID.
+
+Event admins use the fixed `config/tournament-event.json` import document.
+Start by copying `examples/server-profiles/anomeme/tournament-event.json`,
+replacing all synthetic SteamIDs, editing names and groups, and setting
+`Enabled: true`. The file is only imported on explicit command; the database
+is authoritative thereafter. No arbitrary filesystem paths are accepted.
+
+Operator commands (console, or player with `ano.tournament.manage`):
+
+```text
+css_anotournamenteventload
+css_anotournamenteventstatus
+css_anotournamenteventstandings main
+css_anotournamenteventresult <fixture-id> <home-maps> <away-maps> <home-rounds> <away-rounds>
+```
+
+The values for `fixture-id` must come from the generated schedule (for
+example `main:r1:m1:legends:raiders`); do not guess opponent ordering.
+Result confirmation is one-way in this increment: corrections must be
+implemented through a separately reviewed and audited operation, rather
+than silently overwriting a confirmed result.
+
+**Not yet provided by this persistence layer:** automatically capturing
+CounterStrikeSharp/MatchZy wins, server-scoped concurrent live-match leases,
+shared player presence/ready heartbeat, GUI controls and live Panorama
+projection. Those remain tracked under #379–#382. Until the complete UI
+and game adapters are validated on DatHost, this is not production-ready
+tournament automation.
