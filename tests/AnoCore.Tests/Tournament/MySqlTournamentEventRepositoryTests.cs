@@ -152,6 +152,43 @@ public sealed class MySqlTournamentEventRepositoryTests
         Assert.AreEqual(3L, (await repository.LoadAsync(definition.Id))!.Revision);
     }
 
+    [TestMethod]
+    public async Task SwissAndDoubleEliminationSurviveReloadAndFreezeRecordedRules()
+    {
+        var definition = Definition("extended-format-storage");
+        definition.GroupFormat = TournamentGroupFormat.Swiss;
+        definition.PlayoffFormat = TournamentPlayoffFormat.DoubleElimination;
+        definition.PlayoffQualifiersPerGroup = 2;
+        definition.GroupBestOf = 1;
+        definition.PlayoffBestOf = 3;
+        var writer = new MySqlTournamentEventRepository(_database);
+        var current = await writer.CreateAsync(definition);
+        var results = new List<TournamentGroupResult>();
+        while (!TournamentSchedules.IsComplete(definition, "main", results))
+        {
+            foreach (var fixture in TournamentSchedules.Generate(definition, "main", results).Last().Fixtures)
+                results.Add(new(fixture.Id, 1, 0, 13, 4));
+            current = await writer.SaveAsync(definition.Id, current.Revision, definition, results);
+        }
+        var playoffs = new List<TournamentBracketResult>();
+        var reader = new MySqlTournamentEventRepository(new MySqlDatabase(Environment.GetEnvironmentVariable("ANOCORE_TEST_MYSQL")!));
+        while (true)
+        {
+            current = (await reader.LoadAsync(definition.Id))!;
+            Assert.AreEqual(TournamentGroupFormat.Swiss, current.Definition.GroupFormat);
+            var progress = TournamentEventPlayoffs.Progress(current.Definition, current.ConfirmedResults, current.PlayoffResults)!;
+            if (progress.ChampionTeamId is not null) break;
+            var match = progress.Matches.First(match => match.IsReady);
+            playoffs.Add(new(match.Id, match.AwayTeamId!, 2, 1));
+            await writer.SavePlayoffsAsync(definition.Id, current.Revision, playoffs);
+        }
+        Assert.IsTrue(playoffs.Any(result => result.MatchId == "grand-final-reset"));
+        var revision = current.Revision;
+        definition.GrandFinalReset = false;
+        await Assert.ThrowsExactlyAsync<ArgumentException>(async () => await writer.SaveAsync(definition.Id, revision, definition, results));
+        Assert.AreEqual(revision, (await reader.LoadAsync(definition.Id))!.Revision);
+    }
+
     private static TournamentEventDefinition Definition(string id)
     {
         var teams = Enumerable.Range(1, 3).Select(i =>

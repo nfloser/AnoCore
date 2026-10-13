@@ -6,11 +6,15 @@ public sealed record TournamentBracketEntrant(string TeamId, int Seed);
 /// <summary>A bracket slot is either a known team, a winner dependency, or an opening bye.</summary>
 public sealed record TournamentBracketSlot(string? TeamId, string? FromMatchId)
 {
+    public bool FromLoser { get; init; }
     public bool HasValue => TeamId is not null || FromMatchId is not null;
 }
 
 public sealed record TournamentBracketMatch(
-    string Id, int Round, TournamentBracketSlot Home, TournamentBracketSlot Away);
+    string Id, int Round, TournamentBracketSlot Home, TournamentBracketSlot Away)
+{
+    public string Bracket { get; init; } = "upper";
+}
 
 public sealed record TournamentBracketRound(
     int Number, IReadOnlyList<TournamentBracketMatch> Matches);

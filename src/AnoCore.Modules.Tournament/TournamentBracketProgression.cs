@@ -6,7 +6,9 @@ public sealed record TournamentBracketResult(string MatchId, string WinnerTeamId
 public sealed record TournamentBracketMatchProgress(
     string Id, int Round, string? HomeTeamId, string? AwayTeamId, string? WinnerTeamId)
 {
-    public bool IsReady => HomeTeamId is not null && AwayTeamId is not null && WinnerTeamId is null;
+    public bool IsEnabled { get; init; } = true;
+    public string Bracket { get; init; } = "upper";
+    public bool IsReady => IsEnabled && HomeTeamId is not null && AwayTeamId is not null && WinnerTeamId is null;
 }
 
 public sealed record TournamentBracketProgressSnapshot(
