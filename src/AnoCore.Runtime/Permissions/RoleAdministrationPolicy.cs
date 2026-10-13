@@ -5,6 +5,23 @@ namespace AnoCore.Runtime.Permissions;
 
 public static class RoleAdministrationPolicy
 {
+    public static async ValueTask<AuthorizationState> SetupAdministratorAsync(AuthorizationState state,
+        PlayerId? actor, PlayerId target, DateTimeOffset now)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        ArgumentNullException.ThrowIfNull(target);
+        if (actor is not null) throw new UnauthorizedAccessException("Administrator setup is console-only.");
+        var role = new AuthorizationRole(new("anocore_admin"), 400, [],
+            [new("ano.admin.*", PermissionEffect.Allow), new("ano.tournament.*", PermissionEffect.Allow)], []);
+        var existing = state.Roles.SingleOrDefault(value => value.Id == role.Id);
+        if (existing is not null && (existing.Immunity != role.Immunity || existing.Parents.Count != 0
+            || existing.Tags.Count != 0 || !existing.Rules.OrderBy(rule => rule.Pattern, StringComparer.Ordinal)
+                .SequenceEqual(role.Rules.OrderBy(rule => rule.Pattern, StringComparer.Ordinal))))
+            throw new ArgumentException("Role anocore_admin already has a different policy. Inspect it with anoroles and use explicit role administration.");
+        var prepared = existing is null ? new AuthorizationState(state.Roles.Append(role).ToArray(), state.Players) : state;
+        return await ChangeAsync(prepared, null, target, role.Id, null, false, now);
+    }
+
     public static async ValueTask<AuthorizationState> ChangeAsync(AuthorizationState state, PlayerId? actor,
         PlayerId target, RoleId role, DateTimeOffset? expiresAtUtc, bool revoke, DateTimeOffset now)
     {
