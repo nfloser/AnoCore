@@ -42,7 +42,7 @@ public sealed class MySqlTournamentAssignmentRepository(IDatabase database) : IT
             await using (var native = Command(connection, transaction, "SELECT active_match_id FROM ano_tournament_server_runtime WHERE server_id=@server"))
             {
                 Add(native, "@server", serverId);
-                if (await native.ExecuteScalarAsync(token).ConfigureAwait(false) is string) return null;
+                if (await native.ExecuteScalarAsync(token).ConfigureAwait(false) is { } nativeId && nativeId is not DBNull) return null;
             }
             var open = new List<TournamentMatchAssignment>();
             await using (var read = Command(connection, transaction, "SELECT " + Columns + " FROM ano_tournament_assignments WHERE state IN ('pending','dispatched') AND (event_id=@event OR server_id=@server) FOR UPDATE"))
@@ -204,14 +204,14 @@ public sealed class MySqlTournamentAssignmentRepository(IDatabase database) : IT
         JsonSerializer.Deserialize<List<TournamentGroupResult>>(reader.GetString(1))!, reader.GetInt64(3))
     { PlayoffResults = JsonSerializer.Deserialize<List<TournamentBracketResult>>(reader.GetString(2))! };
     private static TournamentMatchAssignment ReadAssignment(DbDataReader reader) => new(reader.GetInt64(0), reader.GetString(1), reader.GetString(2),
-        reader.GetBoolean(3), reader.GetString(4), reader.GetString(5), reader.GetString(6), Guid.Parse(reader.GetString(7)), reader.GetInt32(8),
+        reader.GetBoolean(3), reader.GetString(4), reader.GetString(5), reader.GetString(6), ReadGuid(reader, 7), reader.GetInt32(8),
         JsonSerializer.Deserialize<List<string>>(reader.GetString(9))!, reader.GetString(10));
     private static async ValueTask<IReadOnlyList<TournamentPlayerPresence>> RequireLease(DbConnection connection, DbTransaction transaction, string server, Guid instance, CancellationToken token)
     {
         await using var read = Command(connection, transaction, "SELECT instance_id,players_json FROM ano_tournament_server_presence WHERE server_id=@server AND expires_at_utc>UTC_TIMESTAMP(6) FOR UPDATE");
         Add(read, "@server", server);
         await using var reader = await read.ExecuteReaderAsync(token).ConfigureAwait(false);
-        if (!await reader.ReadAsync(token).ConfigureAwait(false) || Guid.Parse(reader.GetString(0)) != instance)
+        if (!await reader.ReadAsync(token).ConfigureAwait(false) || ReadGuid(reader, 0) != instance)
             throw new TournamentServerIdentityConflictException(server);
         return JsonSerializer.Deserialize<List<TournamentPlayerPresence>>(reader.GetString(1))!;
     }
@@ -227,6 +227,8 @@ public sealed class MySqlTournamentAssignmentRepository(IDatabase database) : IT
         Add(insert, "@id", id); Add(insert, "@action", action); Add(insert, "@detail", detail);
         await insert.ExecuteNonQueryAsync(token).ConfigureAwait(false);
     }
+    private static Guid ReadGuid(DbDataReader reader, int ordinal) => reader.GetValue(ordinal) is Guid guid
+        ? guid : Guid.Parse(Convert.ToString(reader.GetValue(ordinal), System.Globalization.CultureInfo.InvariantCulture)!);
     private static string Hash(string token) => Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
     private static DbCommand Command(DbConnection connection, DbTransaction? transaction, string sql)
     { var command = connection.CreateCommand(); command.Transaction = transaction; command.CommandText = sql; return command; }
