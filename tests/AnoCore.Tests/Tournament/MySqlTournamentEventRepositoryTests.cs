@@ -101,6 +101,35 @@ public sealed class MySqlTournamentEventRepositoryTests
         Assert.AreEqual(definition.Id, (await repository.LoadActiveAsync())!.Definition.Id);
     }
 
+    [TestMethod]
+    public async Task PlayoffsShareRevisionAndSurviveGroupWritesAndRestart()
+    {
+        var definition = Definition("shared-playoff-storage");
+        var writer = new MySqlTournamentEventRepository(_database);
+        await writer.CreateAsync(definition);
+        var entries = TournamentEventPlayoffs.Entrants(definition);
+        var opening = TournamentBracketProgression.Calculate(entries, []).Matches.Single(match => match.IsReady);
+        var result = new TournamentBracketResult(opening.Id, opening.HomeTeamId!, 1, 0);
+        var saved = await writer.SavePlayoffsAsync(definition.Id, 1, [result]);
+        Assert.AreEqual(2L, saved.Revision);
+        var reader = new MySqlTournamentEventRepository(new MySqlDatabase(Environment.GetEnvironmentVariable("ANOCORE_TEST_MYSQL")!));
+        var loaded = (await reader.LoadAsync(definition.Id))!;
+        Assert.HasCount(1, loaded.PlayoffResults);
+        Assert.IsTrue(TournamentBracketProgression.Calculate(entries, loaded.PlayoffResults).Matches.Last().IsReady);
+        await Assert.ThrowsExactlyAsync<TournamentEventConcurrencyException>(async () =>
+            await reader.SaveAsync(definition.Id, 1, definition, []));
+        var updated = await reader.SaveAsync(definition.Id, 2, definition, []);
+        Assert.HasCount(1, updated.PlayoffResults);
+        Assert.HasCount(1, (await writer.LoadAsync(definition.Id))!.PlayoffResults);
+        await Assert.ThrowsExactlyAsync<ArgumentException>(async () =>
+            await writer.SavePlayoffsAsync(definition.Id, 3, [result, result]));
+        Assert.AreEqual(3L, (await reader.LoadAsync(definition.Id))!.Revision);
+        definition.Teams[0].InitialSeed = 2;
+        definition.Teams[1].InitialSeed = 1;
+        await Assert.ThrowsExactlyAsync<ArgumentException>(async () => await writer.SaveAsync(definition.Id, 3, definition, []));
+        Assert.AreEqual(3L, (await reader.LoadAsync(definition.Id))!.Revision);
+    }
+
     private static TournamentEventDefinition Definition(string id)
     {
         var teams = Enumerable.Range(1, 3).Select(i =>

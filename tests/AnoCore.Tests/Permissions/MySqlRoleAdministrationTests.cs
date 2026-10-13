@@ -43,6 +43,20 @@ public sealed class MySqlRoleAdministrationTests
     }
 
     [TestMethod]
+    public async Task AdministratorSetupPersistsAndAuditsOneAtomicGrant()
+    {
+        var service = new MySqlRoleAdministration(_database, _authorization);
+        await service.SetupAdministratorAsync(null, First);
+        Assert.IsTrue(await _authorization.HasPermissionAsync(First, new("ano.tournament.manage")));
+        var restarted = new AuthorizationService(_store);
+        await restarted.ReloadAsync();
+        Assert.IsTrue(await restarted.HasPermissionAsync(First, new("ano.admin.menu")));
+        Assert.HasCount(1, await new MySqlAdminAuditRepository(_database).GetTargetHistoryAsync(First));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(async () => await service.SetupAdministratorAsync(First, Second));
+        Assert.IsFalse(await _authorization.HasPermissionAsync(Second, new("ano.admin.menu")));
+    }
+
+    [TestMethod]
     public async Task ConcurrentGrantsPersistBothTargetsAndAuditAndSurviveRestart()
     {
         var service = new MySqlRoleAdministration(_database, _authorization);

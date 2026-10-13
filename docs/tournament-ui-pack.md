@@ -69,8 +69,9 @@ older revision cannot overwrite a newer one. Switching active event IDs
 resets the client's selected page and team. The Workshop addon is not
 recompiled when only database data changes.
 
-For now, the knockout display is a **seeded bracket plan**, not automatic
-completed-playoff advancement. Roster presence is intentionally labeled
+The knockout display now projects persisted confirmed playoff winners, resolved
+next-round pairings, ready/waiting states and champion through the same compiled
+slots. Result-only changes never require Workshop republishing. Roster presence is intentionally labeled
 **local server only** until shared heartbeats and ready states are
 implemented. The existing single-active-match runtime has not yet been
 replaced with server-scoped match leases. MatchZy/CS2 result ingestion,

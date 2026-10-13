@@ -192,10 +192,12 @@ public sealed class TournamentPanoramaPresenter : IDisposable
         var fixtures = definition is null ? [] : groups.SelectMany(group =>
             TournamentRoundRobin.Generate(definition, group.Id).SelectMany(round => round.Fixtures)).ToArray();
         var fixturePages = Math.Max(1, (fixtures.Length + 15) / 16);
-        var bracket = definition is null ? null : TournamentSingleElimination.Generate(
-            definition.Teams.OrderBy(team => team.InitialSeed ?? int.MaxValue)
-                .ThenBy(team => team.Id, StringComparer.Ordinal)
-                .Select((team, index) => new TournamentBracketEntrant(team.Id, index + 1)).ToArray());
+        var entrants = definition is null ? [] : TournamentEventPlayoffs.Entrants(definition);
+        var bracket = definition is null ? null : TournamentSingleElimination.Generate(entrants);
+        var progress = definition is null ? null : TournamentBracketProgression.Calculate(entrants, eventState!.PlayoffResults);
+        var winners = progress?.Matches.Where(match => match.WinnerTeamId is not null)
+            .ToDictionary(match => match.Id, match => match.WinnerTeamId!, StringComparer.Ordinal)
+            ?? new Dictionary<string, string>(StringComparer.Ordinal);
         var bracketMatches = bracket?.Rounds.SelectMany(round => round.Matches).ToArray() ?? [];
         var pageCount = state.View switch
         {
@@ -215,7 +217,7 @@ public sealed class TournamentPanoramaPresenter : IDisposable
             : state.View switch
             {
                 "table" => groups[state.Page].Name,
-                "bracket" => "Gesetzter K.-o.-Baum (Planung, Ergebnisse folgen)",
+                "bracket" => "K.-o.-Baum · bestätigte Sieger und nächste Paarungen",
                 "matches" => "Gruppenspiele und bestätigte Ergebnisse",
                 "teams" => "Teams und registrierte Spieler",
                 _ => "Turnierübersicht",
@@ -231,6 +233,8 @@ public sealed class TournamentPanoramaPresenter : IDisposable
             ? new[] { "Kein Turnier aktiv", "0 Teams", "0 Spiele", "0 Ergebnisse" }
             : new[] { $"{definition.Teams.Count} Teams", $"{groups.Count} Gruppen",
                 $"{fixtures.Length} Gruppenspiele", $"{eventState!.ConfirmedResults.Count} Ergebnisse" };
+        if (progress?.ChampionTeamId is { } champion)
+            summaries[3] = "Turniersieger: " + definition!.Teams.Single(team => team.Id == champion).Name;
         for (var i = 0; i < 4; i++)
             Set(player, $"ano_tournament_summary_{i}", summaries[i]);
 
@@ -263,7 +267,8 @@ public sealed class TournamentPanoramaPresenter : IDisposable
             _hud.SetClass(player, HudId, $"ano_tournament_match_{i}", "hidden", !show);
             Set(player, $"ano_tournament_match_{i}_text", show
                 ? $"R{bracketMatches[index].Round} · " +
-                    $"{Source(bracketMatches[index].Home, names)} vs {Source(bracketMatches[index].Away, names)}"
+                    $"{Source(bracketMatches[index].Home, names, winners)} vs {Source(bracketMatches[index].Away, names, winners)}" +
+                    MatchStatus(bracketMatches[index].Id, progress!, eventState!.PlayoffResults, names)
                 : string.Empty);
             var fixtureShow = index < fixtures.Length;
             if (fixtureShow)
@@ -319,7 +324,8 @@ public sealed class TournamentPanoramaPresenter : IDisposable
                 var match = bracketMatches[selectedIndex];
                 Set(player, "ano_tournament_team_name", "Match " + match.Id);
                 Set(player, "ano_tournament_team_status",
-                    Source(match.Home, names) + " vs " + Source(match.Away, names));
+                    Source(match.Home, names, winners) + " vs " + Source(match.Away, names, winners) +
+                    MatchStatus(match.Id, progress!, eventState!.PlayoffResults, names));
                 Set(player, "ano_tournament_roster_0", "K.-o.-Runde " + match.Round);
                 for (var i = 1; i < 7; i++)
                     Set(player, $"ano_tournament_roster_{i}", string.Empty);
@@ -330,9 +336,20 @@ public sealed class TournamentPanoramaPresenter : IDisposable
         state.Dirty = false;
     }
 
-    private static string Source(TournamentBracketSlot slot, IReadOnlyDictionary<string, string> names)
+    private static string Source(TournamentBracketSlot slot, IReadOnlyDictionary<string, string> names, IReadOnlyDictionary<string, string> winners)
         => slot.TeamId is { } id ? names.GetValueOrDefault(id, id)
-            : slot.FromMatchId is { } match ? "Sieger " + match : "Freilos";
+            : slot.FromMatchId is { } match
+                ? winners.TryGetValue(match, out var winner) ? names.GetValueOrDefault(winner, winner) : "Sieger " + match
+                : "Freilos";
+
+    private static string MatchStatus(string id, TournamentBracketProgressSnapshot progress,
+        IReadOnlyList<TournamentBracketResult> results, IReadOnlyDictionary<string, string> names)
+    {
+        var match = progress.Matches.Single(value => value.Id == id);
+        var result = results.FirstOrDefault(value => value.MatchId == id);
+        return result is not null ? $" · Sieger {names.GetValueOrDefault(result.WinnerTeamId, result.WinnerTeamId)} {result.WinnerMaps}:{result.LoserMaps}"
+            : match.IsReady ? " · bereit" : " · wartet";
+    }
 
     private void Set(PlayerId player, string id, string? value)
     {

@@ -56,3 +56,41 @@ MSTest covers every count 3–10, unique seeded slots and match IDs,
 seed #1/#2 separation, appropriate opening byes, total contest count
 `N - 1`, dependency ordering, reproducibility and invalid seeds.
 Live CS2/DatHost and Workshop UI acceptance comes with #381.
+
+## Confirmed-result progression
+
+`TournamentBracketProgression.Calculate(entrants, results)` rebuilds the generated
+single-elimination graph in round order. Each match reports resolved home/away
+team IDs, its confirmed winner and whether it is ready to play. The final winner
+is the champion; byes advance known teams without inventing results.
+
+Results use stable match IDs, winner team IDs and winner/loser map totals (decisive,
+nonnegative, at most three winner maps for BO1/BO3/BO5). Unknown or duplicate
+matches, nonparticipant winners and results with unresolved dependencies are
+rejected. Input order is irrelevant; changing an upstream winner invalidates
+incompatible downstream results rather than silently transferring them.
+
+This is a domain snapshot for future persistence, presenter and match-capture
+integration. It does not yet persist playoff results or start a live CS2 match.
+
+## Shared playoff results and operator commands
+
+The shared event store now retains playoff results beside group results.
+Migration 23 initializes existing events with an empty playoff result list.
+Both writes use the event revision: concurrent group/playoff edits reject stale
+writes, and a group import preserves and revalidates recorded playoff results.
+
+```text
+css_anotournamenteventbracket
+css_anotournamenteventplayoffresult r1-m1 team-2 2 0
+```
+
+The first command shows stable match IDs, resolved participants, waiting/ready
+pairings and the champion. The second confirms winner/loser map totals, requires
+`ano.tournament.manage`, and records request/completion audit entries. It rejects
+duplicates, premature finals and unrelated winners. Completion-audit failure
+reports that the result was saved; do not submit it again.
+
+Playoff seeds currently come from `InitialSeed`, then stable team IDs for unseeded
+teams. Automatic group qualification and format-specific BO limits are separate
+stage policy; this command does not assert group completion or start a CS2 match.

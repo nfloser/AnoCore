@@ -93,13 +93,38 @@ public sealed class TournamentPanoramaPresenterTests
         Assert.AreEqual(0, hud.VisiblePlayers(TournamentPanoramaPresenter.HudId).Count);
     }
 
+    [TestMethod]
+    public async Task PersistedPlayoffWinnerUpdatesFinalAndChampionWithoutChangingResources()
+    {
+        var bus = new AnoEventBus();
+        var players = new PlayerRegistry(bus);
+        await players.ConnectAsync(new(Viewer, "Viewer", PlayerTeam.Terrorist, true, DateTimeOffset.UtcNow));
+        var repository = new MemoryEvents(Definition());
+        var hud = new TestCustomHudService();
+        var commands = new CommandRegistry(new Allow());
+        using var presenter = new TournamentPanoramaPresenter(hud, repository, players, commands, bus);
+        await commands.ExecuteAsync("!anotournament", Viewer);
+        await hud.ClickAsync(Viewer, TournamentPanoramaPresenter.HudId, "ano_tournament_tab_bracket");
+        repository.PlayoffResults = [new("r1-m1", "team-2", 1, 0)];
+        repository.Revision++;
+        await presenter.RefreshOpenAsync();
+        var final = hud.Text(Viewer, TournamentPanoramaPresenter.HudId, "ano_tournament_match_1_text")!;
+        StringAssert.Contains(final, "Squad 1 vs Squad 2");
+        StringAssert.Contains(final, "bereit");
+        repository.PlayoffResults = [.. repository.PlayoffResults, new("r2-m1", "team-1", 2, 1)];
+        repository.Revision++;
+        await presenter.RefreshOpenAsync();
+        StringAssert.Contains(hud.Text(Viewer, TournamentPanoramaPresenter.HudId, "ano_tournament_summary_3")!, "Squad 1");
+    }
+
     private sealed class MemoryEvents(TournamentEventDefinition definition)
         : ITournamentEventRepository
     {
         public TournamentEventDefinition Definition { get; } = definition;
         public long Revision { get; set; } = 1;
+        public IReadOnlyList<TournamentBracketResult> PlayoffResults { get; set; } = [];
         public ValueTask<TournamentStoredEvent?> LoadActiveAsync(CancellationToken cancellationToken = default)
-            => ValueTask.FromResult<TournamentStoredEvent?>(new(Definition, [], Revision));
+            => ValueTask.FromResult<TournamentStoredEvent?>(new TournamentStoredEvent(Definition, [], Revision) { PlayoffResults = PlayoffResults });
         public ValueTask<TournamentStoredEvent?> LoadAsync(string eventId, CancellationToken cancellationToken = default)
             => LoadActiveAsync(cancellationToken);
         public ValueTask<TournamentStoredEvent> CreateAsync(TournamentEventDefinition definition,
