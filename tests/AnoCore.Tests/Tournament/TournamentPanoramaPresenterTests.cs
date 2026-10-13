@@ -117,6 +117,37 @@ public sealed class TournamentPanoramaPresenterTests
         StringAssert.Contains(hud.Text(Viewer, TournamentPanoramaPresenter.HudId, "ano_tournament_summary_3")!, "Squad 1");
     }
 
+    [TestMethod]
+    public async Task RemotePresenceAndReadyRefreshWithoutAnEventRevisionChange()
+    {
+        var bus = new AnoEventBus();
+        var players = new PlayerRegistry(bus);
+        await players.ConnectAsync(new(Viewer, "Viewer", PlayerTeam.Terrorist, true, DateTimeOffset.UtcNow));
+        var repository = new MemoryEvents(Definition());
+        var remotePlayer = new TournamentPlayerPresence(repository.Definition.Teams[0].Starters[0], Guid.NewGuid(), "Remote", Guid.NewGuid(), false);
+        var presence = new Presence { States = [new("server-b", Guid.NewGuid(), [remotePlayer], DateTimeOffset.UtcNow.AddSeconds(30))] };
+        var hud = new TestCustomHudService();
+        var commands = new CommandRegistry(new Allow());
+        using var presenter = new TournamentPanoramaPresenter(hud, repository, players, commands, bus, presence);
+        await commands.ExecuteAsync("!anotournament", Viewer);
+        StringAssert.Contains(hud.Text(Viewer, TournamentPanoramaPresenter.HudId, "ano_tournament_roster_0")!, "server-b");
+        StringAssert.Contains(hud.Text(Viewer, TournamentPanoramaPresenter.HudId, "ano_tournament_roster_0")!, "Nicht bereit");
+        presence.States = [presence.States[0] with { Players = [remotePlayer with { IsReady = true }] }];
+        await presenter.RefreshOpenAsync();
+        StringAssert.Contains(hud.Text(Viewer, TournamentPanoramaPresenter.HudId, "ano_tournament_roster_0")!, "Bereit für");
+        presence.States = [];
+        await presenter.RefreshOpenAsync();
+        StringAssert.Contains(hud.Text(Viewer, TournamentPanoramaPresenter.HudId, "ano_tournament_roster_0")!, "Offline");
+        Assert.AreEqual(1L, repository.Revision);
+    }
+
+    private sealed class Presence : ITournamentPresenceRepository
+    {
+        public IReadOnlyList<TournamentServerPresence> States { get; set; } = [];
+        public ValueTask PublishAsync(string serverId, Guid instanceId, IReadOnlyCollection<TournamentPlayerPresence> players, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public ValueTask<IReadOnlyList<TournamentServerPresence>> LoadOnlineAsync(CancellationToken cancellationToken = default) => ValueTask.FromResult(States);
+    }
+
     private sealed class MemoryEvents(TournamentEventDefinition definition)
         : ITournamentEventRepository
     {

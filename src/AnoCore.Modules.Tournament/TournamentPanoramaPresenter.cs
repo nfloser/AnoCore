@@ -19,17 +19,20 @@ public sealed class TournamentPanoramaPresenter : IDisposable
     private readonly ICustomHudService _hud;
     private readonly ITournamentEventRepository _events;
     private readonly IPlayerRegistry _players;
+    private readonly ITournamentPresenceRepository? _presence;
+    private long _readSequence;
     private readonly object _gate = new();
     private readonly Dictionary<PlayerId, State> _open = [];
     private readonly List<IDisposable> _registrations = [];
     private bool _disposed;
 
     public TournamentPanoramaPresenter(ICustomHudService hud, ITournamentEventRepository events,
-        IPlayerRegistry players, IAnoCommandRegistry commands, IAnoEventBus eventBus)
+        IPlayerRegistry players, IAnoCommandRegistry commands, IAnoEventBus eventBus, ITournamentPresenceRepository? presence = null)
     {
         _hud = hud ?? throw new ArgumentNullException(nameof(hud));
         _events = events ?? throw new ArgumentNullException(nameof(events));
         _players = players ?? throw new ArgumentNullException(nameof(players));
+        _presence = presence;
         ArgumentNullException.ThrowIfNull(commands);
         ArgumentNullException.ThrowIfNull(eventBus);
 
@@ -74,7 +77,9 @@ public sealed class TournamentPanoramaPresenter : IDisposable
             ids = _open.Keys.ToArray();
         }
         if (ids.Length == 0) return;
+        var readSequence = Interlocked.Increment(ref _readSequence);
         var active = await _events.LoadActiveAsync(cancellationToken).ConfigureAwait(false);
+        var presence = _presence is null ? null : await _presence.LoadOnlineAsync(cancellationToken).ConfigureAwait(false);
         foreach (var id in ids)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -82,7 +87,7 @@ public sealed class TournamentPanoramaPresenter : IDisposable
             {
                 if (_disposed || !_open.TryGetValue(id, out var state)) continue;
                 if (!IsCurrent(state)) { Close(id); continue; }
-                Render(state, active);
+                Render(state, active, presence, readSequence);
             }
         }
     }
@@ -93,7 +98,9 @@ public sealed class TournamentPanoramaPresenter : IDisposable
             || player is not { IsConnected: true })
             return CommandResult.Fail(CommandFailureReason.Forbidden,
                 "A connected CS2 player is required.");
+        var readSequence = Interlocked.Increment(ref _readSequence);
         var active = await _events.LoadActiveAsync(context.CancellationToken).ConfigureAwait(false);
+        var presence = _presence is null ? null : await _presence.LoadOnlineAsync(context.CancellationToken).ConfigureAwait(false);
         lock (_gate)
         {
             if (_disposed || !IsCurrent(player))
@@ -104,7 +111,7 @@ public sealed class TournamentPanoramaPresenter : IDisposable
                 state = new State(player);
                 _open[player.Id] = state;
             }
-            Render(state, active, force: true);
+            Render(state, active, presence, readSequence, force: true);
             _hud.Show(player.Id, HudId);
         }
         return CommandResult.Ok("[ANO] Tournament overview opened.");
@@ -162,14 +169,21 @@ public sealed class TournamentPanoramaPresenter : IDisposable
         await RefreshOpenAsync(context.CancellationToken).ConfigureAwait(false);
     }
 
-    private void Render(State state, TournamentStoredEvent? eventState, bool force = false)
+    private void Render(State state, TournamentStoredEvent? eventState,
+        IReadOnlyList<TournamentServerPresence>? presence, long readSequence, bool force = false)
     {
+        if (readSequence < state.RenderedReadSequence) return;
+        state.RenderedReadSequence = readSequence;
+        var presenceKey = presence is null ? "local" : string.Join("|", presence.OrderBy(server => server.ServerId, StringComparer.Ordinal)
+            .SelectMany(server => server.Players.OrderBy(p => p.SteamId).Select(p =>
+                $"{server.ServerId}:{server.InstanceId}:{p.SteamId}:{p.SessionId}:{p.Name}:{p.MatchId}:{p.IsReady}")));
         var revision = eventState?.Revision ?? 0;
         var eventId = eventState?.Definition.Id;
         if (string.Equals(state.RenderedEventId, eventId, StringComparison.Ordinal)
             && revision < state.RenderedRevision) return;
         if (!force && !state.Dirty && state.RenderedRevision == revision
-            && string.Equals(state.RenderedEventId, eventId, StringComparison.Ordinal)) return;
+            && string.Equals(state.RenderedEventId, eventId, StringComparison.Ordinal)
+            && state.RenderedPresenceKey == presenceKey) return;
         if (state.RenderedEventId is not null
             && !string.Equals(state.RenderedEventId, eventId, StringComparison.Ordinal))
         {
@@ -303,7 +317,7 @@ public sealed class TournamentPanoramaPresenter : IDisposable
         Set(player, "ano_tournament_team_status", selected is null
             ? "Warte auf Anmeldung"
             : $"{selected.Tag} · {selected.Starters.Count} Starter · " +
-                $"{selected.Substitutes.Count} Ersatz · Präsenz nur lokaler Server");
+                $"{selected.Substitutes.Count} Ersatz · " + (presence is null ? "Präsenz nur lokaler Server" : "Serverübergreifende Präsenz"));
         var roster = selected is null
             ? []
             : selected.Starters.Concat(selected.Substitutes).Take(7).ToArray();
@@ -312,9 +326,14 @@ public sealed class TournamentPanoramaPresenter : IDisposable
             var steam = i < roster.Length ? roster[i] : 0UL;
             var online = steam != 0 && _players.TryGet(new PlayerId(steam), out var other)
                 && other is { IsConnected: true };
+            var remote = presence?.SelectMany(server => server.Players.Where(p => p.SteamId == steam)
+                .Select(p => (server.ServerId, Player: p))).ToArray();
+            var status = remote is null ? online ? "Online hier" : "Nicht auf diesem Server"
+                : remote.Length == 0 ? "Offline" : remote.Length > 1 ? "Online · mehrere Server/Sessions"
+                : $"{remote[0].Player.Name} · Online auf {remote[0].ServerId} · " +
+                    (remote[0].Player.IsReady ? "Bereit für " + remote[0].Player.MatchId?.ToString("N")[..8] : "Nicht bereit");
             Set(player, $"ano_tournament_roster_{i}", steam == 0 ? "" :
-                $"{(i < 5 ? "Starter" : "Ersatz")} {i + 1}: {steam} " +
-                (online ? "· Online hier" : "· Nicht auf diesem Server"));
+                $"{(i < 5 ? "Starter" : "Ersatz")} {i + 1}: {steam} · {status}");
         }
         if (state.View == "bracket" && state.SelectedMatchRow is { } selectedRow)
         {
@@ -331,6 +350,7 @@ public sealed class TournamentPanoramaPresenter : IDisposable
                     Set(player, $"ano_tournament_roster_{i}", string.Empty);
             }
         }
+        state.RenderedPresenceKey = presenceKey;
         state.RenderedEventId = eventId;
         state.RenderedRevision = revision;
         state.Dirty = false;
@@ -399,6 +419,8 @@ public sealed class TournamentPanoramaPresenter : IDisposable
         public int? SelectedTeamRow { get; set; }
         public int? SelectedTableRow { get; set; }
         public int? SelectedMatchRow { get; set; }
+        public long RenderedReadSequence { get; set; }
+        public string? RenderedPresenceKey { get; set; }
         public string? RenderedEventId { get; set; }
         public long RenderedRevision { get; set; } = -1;
         public bool Dirty { get; set; } = true;

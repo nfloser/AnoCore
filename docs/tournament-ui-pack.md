@@ -71,9 +71,11 @@ recompiled when only database data changes.
 
 The knockout display now projects persisted confirmed playoff winners, resolved
 next-round pairings, ready/waiting states and champion through the same compiled
-slots. Result-only changes never require Workshop republishing. Roster presence is intentionally labeled
-**local server only** until shared heartbeats and ready states are
-implemented. The existing single-active-match runtime has not yet been
+slots. Result-only changes never require Workshop republishing. With `tournament-servers.json` enabled, shared expiring heartbeats project
+server identity, player session and actual AnoTournament readiness. Presence
+changes refresh the roster independently of event revisions. Multiple reported
+sessions are labeled explicitly instead of assuming readiness. Without that
+configuration, presence remains labeled **local server only**. The existing single-active-match runtime has not yet been
 replaced with server-scoped match leases. MatchZy/CS2 result ingestion,
 Swiss and double elimination also require separate implementations.
 Do not treat those items as complete.
