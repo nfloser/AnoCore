@@ -165,3 +165,37 @@ crossing/reseeding and native Workshop/DatHost acceptance. Shared presence,
 server-scoped ownership, playoff persistence and group qualification are already
 implemented; the Panorama viewer remains a draft until native acceptance.
 This is not yet production-ready tournament automation.
+
+## Stage formats and scheduling
+
+Events now select `GroupFormat` (`"RoundRobin"` or `"Swiss"`) and
+`PlayoffFormat` (`"SingleElimination"` or `"DoubleElimination"`). Existing JSON
+without these fields retains its original round-robin/single-elimination behavior.
+`GroupStageEnabled` and `PlayoffsEnabled` both default to true; set one false for
+an event consisting only of a group league or only of playoffs. Qualification
+requires both stages. Disabling a stage rejects results for that stage.
+
+`TournamentSchedules.Generate` is the authoritative group schedule. Swiss starts
+with seeded upper-half versus lower-half pairings, then minimizes point differences
+without repeating opponents. The next round becomes visible only when every real
+fixture of the current round is confirmed. Odd groups award one bye worth
+`WinPoints`, with no invented map result or game played; the lowest-ranked eligible
+team receives the bye and no team receives a second bye while another has none.
+`SwissRounds` defaults to ceil(log2(group size)); configured rounds may not exceed
+ceil(group size / 2), the bounded rematch-free policy for this implementation.
+`Buchholz` can be added to the existing tiebreaker list; it sums the current points
+of played opponents. The standings expose bye counts separately.
+
+Double elimination sends upper-bracket losers into a generated lower bracket.
+A team is eliminated on its second loss. `GrandFinalReset` defaults to true:
+if the lower-bracket finalist wins the grand final, a reset match becomes ready;
+if the undefeated finalist wins, the reset stays disabled. Setting the policy false
+makes the first grand final decisive. Results for an inactive reset are rejected.
+All participant slots and progression derive from confirmed results, including
+loser references; no UI or operator needs to edit the bracket after a result.
+
+Optional `GroupBestOf` / `PlayoffBestOf` accept 1, 3 or 5 and require decisive
+series scores of 1, 2 or 3 winning maps respectively. Omitting them preserves the
+legacy manually entered result policy. After the first playoff result, format,
+reset, BestOf and Swiss-round policies and qualified seeds cannot be changed.
+These additions do not themselves start a CS2 match or ingest MatchZy events.

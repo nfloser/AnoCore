@@ -61,8 +61,9 @@ public sealed class TournamentEventCommandController : IDisposable
         var active = await _repository.LoadActiveAsync(context.CancellationToken).ConfigureAwait(false);
         if (active is null) return CommandResult.Ok("[ANO] No active shared tournament.");
         var progress = TournamentEventPlayoffs.Progress(active.Definition, active.ConfirmedResults, active.PlayoffResults);
-        if (progress is null) return CommandResult.Ok("[ANO] Playoffs wait for all group fixtures to be confirmed.");
-        return CommandResult.Ok("[ANO] " + string.Join(" | ", progress.Matches.Select(match =>
+        if (progress is null) return CommandResult.Ok(active.Definition.PlayoffsEnabled
+            ? "[ANO] Playoffs wait for all group fixtures to be confirmed." : "[ANO] Playoffs are disabled for this event.");
+        return CommandResult.Ok("[ANO] " + string.Join(" | ", progress.Matches.Where(match => match.IsEnabled).Select(match =>
             $"{match.Id}: {match.HomeTeamId ?? "pending"} vs {match.AwayTeamId ?? "pending"}" +
             (match.WinnerTeamId is not null ? $" -> {match.WinnerTeamId}" : match.IsReady ? " [ready]" : " [waiting]")))
             + (progress.ChampionTeamId is null ? "" : $" | Champion: {progress.ChampionTeamId}"));

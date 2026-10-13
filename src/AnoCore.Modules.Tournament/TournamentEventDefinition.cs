@@ -9,6 +9,14 @@ public sealed class TournamentEventDefinition
     public string Id { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public int TeamSize { get; set; } = 5;
+    public bool GroupStageEnabled { get; set; } = true;
+    public bool PlayoffsEnabled { get; set; } = true;
+    public TournamentGroupFormat GroupFormat { get; set; }
+    public TournamentPlayoffFormat PlayoffFormat { get; set; }
+    public int? SwissRounds { get; set; }
+    public int? GroupBestOf { get; set; }
+    public int? PlayoffBestOf { get; set; }
+    public bool GrandFinalReset { get; set; } = true;
     public int? PlayoffQualifiersPerGroup { get; set; }
     public int MaxSubstitutes { get; set; } = 2;
     public List<TournamentEventTeamDefinition> Teams { get; set; } = [];
@@ -101,6 +109,20 @@ public sealed class TournamentEventDefinition
                 errors.Add("Every tournament team must belong to exactly one group.");
         }
 
+        if (!definition.GroupStageEnabled && !definition.PlayoffsEnabled)
+            errors.Add("At least one tournament stage must be enabled.");
+        if (definition.PlayoffQualifiersPerGroup is not null && (!definition.GroupStageEnabled || !definition.PlayoffsEnabled))
+            errors.Add("Group qualification requires both stages to be enabled.");
+        if (!Enum.IsDefined(definition.GroupFormat) || !Enum.IsDefined(definition.PlayoffFormat))
+            errors.Add("Unsupported group or playoff format.");
+        if (definition.GroupBestOf is { } groupBo && groupBo is not (1 or 3 or 5)
+            || definition.PlayoffBestOf is { } playoffBo && playoffBo is not (1 or 3 or 5))
+            errors.Add("Stage BestOf must be 1, 3 or 5 when specified.");
+        var sizes = definition.Groups is { Count: > 0 }
+            ? definition.Groups.Select(group => group?.TeamIds?.Count ?? 0).ToArray() : [teams.Count];
+        if (definition.SwissRounds is { } swissRounds && (swissRounds < 1 || sizes.Any(size => swissRounds > (size + 1) / 2)))
+            errors.Add("SwissRounds exceeds the rematch-free bound for a group; use at most ceil(group size / 2).");
+
         if (definition.PlayoffQualifiersPerGroup is { } qualifiers)
         {
             var capacities = definition.Groups is { Count: > 0 }
@@ -182,6 +204,7 @@ public enum TournamentTiebreaker
     MapsWon,
     RoundsWon,
     InitialSeed,
+    Buchholz,
 }
 
 public sealed class TournamentStandingsRules
@@ -271,6 +294,8 @@ public sealed record TournamentTeamStanding(
     int RoundsAgainst,
     int PointsBehindLeader)
 {
+    public int Buchholz { get; init; }
+    public int Byes { get; init; }
     public int MapDifference => MapsFor - MapsAgainst;
     public int RoundDifference => RoundsFor - RoundsAgainst;
 }
@@ -281,11 +306,18 @@ public static class TournamentStandings
         TournamentEventDefinition definition, string groupId,
         IReadOnlyCollection<TournamentGroupResult> results, int legs = 1)
     {
+        var rounds = definition.GroupFormat == TournamentGroupFormat.Swiss
+            ? TournamentSchedules.Generate(definition, groupId, results)
+            : TournamentRoundRobin.Generate(definition, groupId, legs);
+        return CalculateScheduled(definition, groupId, results, rounds);
+    }
+
+    internal static IReadOnlyList<TournamentTeamStanding> CalculateScheduled(TournamentEventDefinition definition,
+        string groupId, IReadOnlyCollection<TournamentGroupResult> results, IReadOnlyList<TournamentGroupRound> rounds)
+    {
         ArgumentNullException.ThrowIfNull(results);
         TournamentEventDefinition.RequireValid(definition);
-        var fixtures = TournamentRoundRobin.Generate(definition, groupId, legs)
-            .SelectMany(round => round.Fixtures)
-            .ToDictionary(fixture => fixture.Id, StringComparer.Ordinal);
+        var fixtures = rounds.SelectMany(round => round.Fixtures).ToDictionary(fixture => fixture.Id, StringComparer.Ordinal);
         var group = TournamentEventDefinition.ResolveGroup(definition, groupId);
         var stats = group.TeamIds.ToDictionary(id => id, _ => new MutableStanding(),
             StringComparer.OrdinalIgnoreCase);
@@ -303,6 +335,9 @@ public static class TournamentStandings
                 (!rules.AllowDraws && result.HomeMaps == result.AwayMaps))
                 throw new ArgumentException("Invalid or drawn tournament match result.", nameof(results));
 
+            if (definition.GroupBestOf is { } bestOf && (Math.Max(result.HomeMaps, result.AwayMaps) != bestOf / 2 + 1
+                || Math.Min(result.HomeMaps, result.AwayMaps) >= bestOf / 2 + 1))
+                throw new ArgumentException("Group result does not complete the configured BestOf series.", nameof(results));
             var home = stats[fixture.HomeTeamId];
             var away = stats[fixture.AwayTeamId];
             home.Games++;
@@ -334,11 +369,21 @@ public static class TournamentStandings
             }
         }
 
+        if (definition.GroupFormat == TournamentGroupFormat.Swiss)
+            foreach (var round in rounds.Where(round => round.ByeTeamId is not null))
+                stats[round.ByeTeamId!].Points += rules.WinPoints;
         var teams = definition.Teams.ToDictionary(team => team.Id, StringComparer.OrdinalIgnoreCase);
         var rows = stats.Select(pair => new TournamentTeamStanding(
             pair.Key, pair.Value.Games, pair.Value.Wins, pair.Value.Draws,
             pair.Value.Losses, pair.Value.Points, pair.Value.MapsFor, pair.Value.MapsAgainst,
             pair.Value.RoundsFor, pair.Value.RoundsAgainst, 0)).ToList();
+        rows = rows.Select(row => row with
+        {
+            Byes = definition.GroupFormat == TournamentGroupFormat.Swiss ? rounds.Count(round => round.ByeTeamId == row.TeamId) : 0,
+            Buchholz = results.Select(result => fixtures[result.FixtureId])
+                .Where(fixture => fixture.HomeTeamId == row.TeamId || fixture.AwayTeamId == row.TeamId)
+                .Sum(fixture => stats[fixture.HomeTeamId == row.TeamId ? fixture.AwayTeamId : fixture.HomeTeamId].Points),
+        }).ToList();
         rows.Sort((a, b) =>
         {
             var comparison = b.Points.CompareTo(a.Points);
@@ -347,6 +392,7 @@ public static class TournamentStandings
             {
                 comparison = criterion switch
                 {
+                    TournamentTiebreaker.Buchholz => b.Buchholz.CompareTo(a.Buchholz),
                     TournamentTiebreaker.MapDifference => b.MapDifference.CompareTo(a.MapDifference),
                     TournamentTiebreaker.RoundDifference => b.RoundDifference.CompareTo(a.RoundDifference),
                     TournamentTiebreaker.MapsWon => b.MapsFor.CompareTo(a.MapsFor),

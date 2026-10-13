@@ -103,6 +103,11 @@ public sealed class MySqlTournamentEventRepository : ITournamentEventRepository
                         ?? throw new InvalidDataException("Missing previous event definition.");
                     var previousGroups = JsonSerializer.Deserialize<List<TournamentGroupResult>>(reader.GetString(3))
                         ?? throw new InvalidDataException("Missing previous group results.");
+                    if (previous.GroupStageEnabled != definition.GroupStageEnabled || previous.PlayoffsEnabled != definition.PlayoffsEnabled
+                        || previous.PlayoffFormat != definition.PlayoffFormat || previous.GrandFinalReset != definition.GrandFinalReset
+                        || previous.PlayoffBestOf != definition.PlayoffBestOf || previous.GroupFormat != definition.GroupFormat
+                        || previous.GroupBestOf != definition.GroupBestOf || previous.SwissRounds != definition.SwissRounds)
+                        throw new ArgumentException("Cannot change stage rules after confirmed playoffs.", nameof(definition));
                     var before = TournamentEventPlayoffs.ResolveEntrants(previous, previousGroups);
                     var after = TournamentEventPlayoffs.ResolveEntrants(definition, results);
                     if (before is null || after is null || !before.SequenceEqual(after))
