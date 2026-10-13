@@ -33,8 +33,14 @@ public sealed class AnoVetoTournamentMapSelectionTests
             Guid.NewGuid(), 7, TournamentBestOf.Three, Manager, [Manager]);
 
         await source.StartAsync(request);
-        var cast = await coordinator.CastAsync(
+        var first = await coordinator.CastAsync(
             Manager, "de_map2", new DateTimeOffset(2026, 10, 4, 19, 0, 1, TimeSpan.Zero));
+        Assert.AreEqual(AnoVetoOutcome.None, first.Outcome);
+        Assert.IsTrue(coordinator.TryGetStatus(out _));
+        Assert.IsTrue((await coordinator.CastAsync(Manager, "de_map3",
+            new DateTimeOffset(2026, 10, 4, 19, 0, 2, TimeSpan.Zero))).Accepted);
+        var cast = await coordinator.CastAsync(Manager, "de_map4",
+            new DateTimeOffset(2026, 10, 4, 19, 0, 3, TimeSpan.Zero));
         Assert.AreEqual(AnoVetoOutcome.MapSelected, cast.Outcome);
 
         var result = await source.CompleteAsync(Manager);
