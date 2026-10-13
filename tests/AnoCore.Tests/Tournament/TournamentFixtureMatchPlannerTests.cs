@@ -126,6 +126,24 @@ public sealed class TournamentFixtureMatchPlannerTests
     }
 
     [TestMethod]
+    public void SeededPlayoffsWithoutQualificationStillWaitForEnabledGroupStage()
+    {
+        var definition = Definition(4);
+        Assert.IsNull(definition.PlayoffQualifiersPerGroup);
+        Assert.IsTrue(definition.PlayoffsEnabled);
+        var initial = TournamentFixtureMatchPlanner.Plan(definition, [], []);
+        Assert.AreEqual(6, initial.Count);
+        Assert.IsTrue(initial.All(item => item.Stage == "group"));
+
+        var results = TournamentRoundRobin.Generate(definition, "main")
+            .SelectMany(round => round.Fixtures)
+            .Select(fixture => new TournamentGroupResult(fixture.Id, 1, 0, 13, 6)).ToArray();
+        var after = TournamentFixtureMatchPlanner.Plan(definition, results, []);
+        Assert.AreEqual(2, after.Count);
+        Assert.IsTrue(after.All(item => item.Stage == "playoff"));
+    }
+
+    [TestMethod]
     public void ConflictingInputAndDisabledStagesAreRejectedOrNotScheduled()
     {
         var definition = Definition(3);
