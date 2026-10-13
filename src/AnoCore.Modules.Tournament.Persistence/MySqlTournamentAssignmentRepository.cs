@@ -32,6 +32,8 @@ public sealed class MySqlTournamentAssignmentRepository(IDatabase database) : IT
                 if (!await reader.ReadAsync(token).ConfigureAwait(false)) return null;
                 stored = ReadStored(reader);
             }
+            await RequireConsistentBestOfAsync(connection, transaction, stored.Definition,
+                configuration, token).ConfigureAwait(false);
             var players = await RequireLease(connection, transaction, serverId, instanceId, token).ConfigureAwait(false);
             var online = players.Select(player => player.SteamId).ToHashSet();
             await using (var cooldown = Command(connection, transaction, "SELECT assignment_id FROM ano_tournament_assignments WHERE server_id=@server AND state IN ('completed','canceled') AND updated_at_utc>UTC_TIMESTAMP(6)-INTERVAL 30 SECOND LIMIT 1"))
@@ -206,6 +208,36 @@ public sealed class MySqlTournamentAssignmentRepository(IDatabase database) : IT
     private static TournamentMatchAssignment ReadAssignment(DbDataReader reader) => new(reader.GetInt64(0), reader.GetString(1), reader.GetString(2),
         reader.GetBoolean(3), reader.GetString(4), reader.GetString(5), reader.GetString(6), ReadGuid(reader, 7), reader.GetInt32(8),
         JsonSerializer.Deserialize<List<string>>(reader.GetString(9))!, reader.GetString(10));
+    /// <summary>
+    /// An event may be played by different servers at different times. Event-level
+    /// stage BO settings win over local defaults, and historical assignments
+    /// fence out servers whose defaults would silently change the event format.
+    /// ClaimNextAsync already holds the event-row transaction lock here.
+    /// </summary>
+    private static async ValueTask RequireConsistentBestOfAsync(
+        DbConnection connection, DbTransaction transaction,
+        TournamentEventDefinition definition, TournamentMatchZyConfiguration configuration,
+        CancellationToken token)
+    {
+        await using var read = Command(connection, transaction,
+            "SELECT is_playoff,best_of FROM ano_tournament_assignments WHERE event_id=@event GROUP BY is_playoff,best_of");
+        Add(read, "@event", definition.Id);
+        await using var reader = await read.ExecuteReaderAsync(token).ConfigureAwait(false);
+        while (await reader.ReadAsync(token).ConfigureAwait(false))
+        {
+            var isPlayoff = reader.GetBoolean(0);
+            var historicalBestOf = reader.GetInt32(1);
+            var expectedBestOf = isPlayoff
+                ? definition.PlayoffBestOf ?? configuration.DefaultPlayoffBestOf
+                : definition.GroupBestOf ?? configuration.DefaultGroupBestOf;
+            if (historicalBestOf != expectedBestOf)
+                throw new InvalidOperationException(
+                    $"Tournament '{definition.Id}' already has {(isPlayoff ? "playoff" : "group")} " +
+                    $"assignments using BO{historicalBestOf}, but this server expects BO{expectedBestOf}. " +
+                    "Use matching tournament-matchzy settings on every server.");
+        }
+    }
+
     private static async ValueTask<IReadOnlyList<TournamentPlayerPresence>> RequireLease(DbConnection connection, DbTransaction transaction, string server, Guid instance, CancellationToken token)
     {
         await using var read = Command(connection, transaction, "SELECT instance_id,players_json FROM ano_tournament_server_presence WHERE server_id=@server AND expires_at_utc>UTC_TIMESTAMP(6) FOR UPDATE");
