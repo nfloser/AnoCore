@@ -20,6 +20,7 @@ public static class TournamentEventPresets
         definition.PlayoffFormat = preset == TournamentEventPreset.DoubleElimination ? TournamentPlayoffFormat.DoubleElimination : TournamentPlayoffFormat.SingleElimination;
         definition.GroupBestOf = 1; definition.PlayoffBestOf = 3; definition.SwissRounds = null; definition.GrandFinalReset = true;
         definition.PlayoffQualifiersPerGroup = null;
+        definition.CrossGroupOpeningPairings = false;
         if (preset == TournamentEventPreset.Groups)
         {
             var ids = TournamentEventPlayoffs.Entrants(definition).Select(entry => entry.TeamId).ToArray();
@@ -27,6 +28,7 @@ public static class TournamentEventPresets
             definition.Groups = Enumerable.Range(0, groups).Select(index => new TournamentGroupDefinition
             { Id = $"group-{index + 1}", Name = $"Group {index + 1}", TeamIds = ids.Where((_, i) => i % groups == index).ToList() }).ToList();
             definition.PlayoffQualifiersPerGroup = 2;
+            definition.CrossGroupOpeningPairings = groups >= 2;
         }
         if (preset == TournamentEventPreset.Swiss) definition.Standings.Tiebreakers = [TournamentTiebreaker.Buchholz, TournamentTiebreaker.MapDifference, TournamentTiebreaker.InitialSeed];
         TournamentEventDefinition.RequireValid(definition);

@@ -89,7 +89,11 @@ public static class TournamentEventPlayoffs
         var ranked = groups.Select(group => TournamentStandings.Calculate(definition, group,
             groupResults.Where(result => result.FixtureId.StartsWith(group + ":", StringComparison.Ordinal)).ToArray())).ToArray();
         var qualified = Enumerable.Range(0, count).SelectMany(position => ranked.Select(rows => rows[position].TeamId));
-        return qualified.Select((id, index) => new TournamentBracketEntrant(id, index + 1)).ToArray();
+        var entrants = qualified.Select((id, index) => new TournamentBracketEntrant(id, index + 1)).ToArray();
+        if (!definition.CrossGroupOpeningPairings) return entrants;
+        var teamGroups = definition.Groups.SelectMany(group => group.TeamIds.Select(id => (id, group.Id)))
+            .ToDictionary(item => item.id, item => item.Id, StringComparer.Ordinal);
+        return TournamentGroupCrossing.Arrange(entrants, teamGroups);
     }
 
     public static TournamentBracketProgressSnapshot? Progress(TournamentEventDefinition definition,

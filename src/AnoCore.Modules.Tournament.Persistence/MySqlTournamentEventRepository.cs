@@ -106,7 +106,8 @@ public sealed class MySqlTournamentEventRepository : ITournamentEventRepository
                     if (previous.GroupStageEnabled != definition.GroupStageEnabled || previous.PlayoffsEnabled != definition.PlayoffsEnabled
                         || previous.PlayoffFormat != definition.PlayoffFormat || previous.GrandFinalReset != definition.GrandFinalReset
                         || previous.PlayoffBestOf != definition.PlayoffBestOf || previous.GroupFormat != definition.GroupFormat
-                        || previous.GroupBestOf != definition.GroupBestOf || previous.SwissRounds != definition.SwissRounds)
+                        || previous.GroupBestOf != definition.GroupBestOf || previous.SwissRounds != definition.SwissRounds
+                        || previous.CrossGroupOpeningPairings != definition.CrossGroupOpeningPairings)
                         throw new ArgumentException("Cannot change stage rules after confirmed playoffs.", nameof(definition));
                     var before = TournamentEventPlayoffs.ResolveEntrants(previous, previousGroups);
                     var after = TournamentEventPlayoffs.ResolveEntrants(definition, results);
