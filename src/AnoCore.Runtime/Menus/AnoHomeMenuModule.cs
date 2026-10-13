@@ -29,6 +29,7 @@ public sealed class AnoHomeMenuModule : IDisposable
         ("anosettingsmenu", "Settings", true, false),
         ("anochatmenu", "Chat tags", true, false),
         ("anotournament", "Tournament", true, false),
+        ("anoarcadetest", "AnoCasino · Test", true, false),
         ("anotournamentstatus", "Tournament status", false, false),
     ];
     private readonly object _gate = new();
