@@ -118,6 +118,24 @@ public sealed class TournamentEventCommandControllerTests
         Assert.HasCount(0, repository.Current.ConfirmedResults);
     }
 
+    [TestMethod]
+    public async Task FixturePreviewUsesTheSameConfiguredBestOfAsMatchZyClaims()
+    {
+        var registry = new CommandRegistry(new DenyAll());
+        using var controller = new TournamentEventCommandController(
+            new Config(), registry, new Repository(), new Audit(),
+            new TournamentMatchZyConfiguration
+            {
+                Enabled = true,
+                ResultBaseUrl = "https://example.org",
+                DefaultGroupBestOf = 3,
+                DefaultPlayoffBestOf = 5,
+            });
+        var preview = await registry.ExecuteAsync("!anotournamenteventnext", new PlayerId(123));
+        Assert.IsTrue(preview.Success);
+        StringAssert.Contains(preview.Message!, "BO3");
+    }
+
     private sealed class Repository : ITournamentEventRepository
     {
         public int Writes;
