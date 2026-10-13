@@ -101,6 +101,11 @@ public sealed class AnoCorePlugin : BasePlugin
     private TournamentSpectatorEnforcement? _tournamentSpectatorEnforcement;
     private TournamentCommandController? _tournamentCommands;
     private TournamentEventCommandController? _tournamentEventCommands;
+    private TournamentServerConfiguration _tournamentServerConfiguration = new();
+    private readonly Guid _tournamentServerInstance = Guid.NewGuid();
+    private bool _tournamentServerLeaseAcquired;
+    private TournamentPresencePublisher? _tournamentPresence;
+    private CounterStrikeSharp.API.Modules.Timers.Timer? _tournamentPresenceTimer;
     private TournamentMapSelectionCommandController? _tournamentMapSelectionCommands;
     private CounterStrikeSharp.API.Modules.Timers.Timer? _chatPolicyTimer;
     private ChatMessageFormatter? _chatFormatter;
@@ -268,6 +273,10 @@ public sealed class AnoCorePlugin : BasePlugin
             _tournamentMapSelectionCommands = null;
             _tournamentCommands?.Dispose();
             _tournamentCommands = null;
+            _tournamentPresenceTimer?.Kill();
+            _tournamentPresenceTimer = null;
+            _tournamentPresence?.Dispose();
+            _tournamentPresence = null;
             _tournamentEventCommands?.Dispose();
             _tournamentEventCommands = null;
             _tournamentSpectatorEnforcement?.Dispose();
@@ -424,6 +433,17 @@ public sealed class AnoCorePlugin : BasePlugin
             _panoramaMenusEnabled = settings.PanoramaMenusEnabled;
             try
             {
+                _tournamentServerConfiguration = await configuration.LoadAsync("tournament-servers", () => new TournamentServerConfiguration(),
+                    TournamentServerConfiguration.Validate, cancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
+            catch (Exception exception)
+            {
+                _tournamentServerConfiguration = new();
+                Logger.LogError(exception, "Tournament server identity rejected; shared presence is disabled.");
+            }
+            try
+            {
                 _webhookPolicy = await configuration.LoadAsync("moderation-webhooks", () => new ModerationWebhookConfiguration(),
                     ModerationWebhookConfiguration.Validate, cancellationToken).ConfigureAwait(false);
             }
@@ -506,9 +526,17 @@ public sealed class AnoCorePlugin : BasePlugin
                         "AnoCore runtime did not provide the shared database service.");
                 await TournamentPersistenceBootstrap.EnsureReadyAsync(database, timeout.Token)
                     .ConfigureAwait(false);
+                if (_tournamentServerConfiguration.Enabled)
+                {
+                    await new MySqlTournamentPresenceRepository(database).PublishAsync(
+                        _tournamentServerConfiguration.ServerId, _tournamentServerInstance, [], timeout.Token).ConfigureAwait(false);
+                    _tournamentServerLeaseAcquired = true;
+                }
                 createdTournamentMatch = await TournamentMatchRuntime.CreateAsync(
                     new TournamentRecoveryService(
-                        new MySqlTournamentMatchRepository(database)),
+                        new MySqlTournamentMatchRepository(database,
+                            _tournamentServerConfiguration.Enabled ? _tournamentServerConfiguration.ServerId : null,
+                            _tournamentServerConfiguration.Enabled ? _tournamentServerInstance : null)),
                     timeout.Token).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -1088,6 +1116,8 @@ public sealed class AnoCorePlugin : BasePlugin
             TournamentSpectatorEnforcement? tournamentSpectatorEnforcement = null;
             TournamentCommandController? tournamentCommands = null;
             TournamentEventCommandController? tournamentEventCommands = null;
+            TournamentPresencePublisher? tournamentPresence = null;
+            CounterStrikeSharp.API.Modules.Timers.Timer? tournamentPresenceTimer = null;
             TournamentMapSelectionCommandController? tournamentMapSelectionCommands = null;
             IDisposable? messageTransportRegistration = null;
             LevelNotificationService? levelNotifications = null;
@@ -1282,6 +1312,20 @@ public sealed class AnoCorePlugin : BasePlugin
                     ?? throw new InvalidOperationException("AnoCore runtime has no shared database.");
                 var eventConfig = runtime.GetService(typeof(IConfigStore)) as IConfigStore
                     ?? throw new InvalidOperationException("AnoCore runtime has no configuration store.");
+                if (_tournamentServerConfiguration.Enabled && _tournamentServerLeaseAcquired)
+                {
+                    var publisher = new TournamentPresencePublisher(new MySqlTournamentPresenceRepository(eventDatabase),
+                        _tournamentServerConfiguration.ServerId, _tournamentServerInstance);
+                    tournamentPresence = publisher;
+                    void PublishPresence()
+                    {
+                        var online = runtime.Players.OnlinePlayers.ToArray();
+                        var match = tournamentMatch?.CurrentSession?.Machine.Snapshot();
+                        Observe(publisher.PublishAsync(online, match, cancellationToken).AsTask(), "tournament_presence");
+                    }
+                    tournamentPresenceTimer = AddTimer(TournamentPresenceValidation.HeartbeatSeconds, PublishPresence, TimerFlags.REPEAT);
+                    PublishPresence();
+                }
                 tournamentEventCommands = new TournamentEventCommandController(
                     eventConfig, runtime.Commands,
                     new MySqlTournamentEventRepository(eventDatabase), runtime.AdminAudit);
@@ -1296,7 +1340,9 @@ public sealed class AnoCorePlugin : BasePlugin
                         ?? throw new InvalidOperationException(
                             "AnoCore runtime did not provide the shared configuration service.");
                     var recovery = new TournamentRecoveryService(
-                        new MySqlTournamentMatchRepository(database));
+                        new MySqlTournamentMatchRepository(database,
+                            _tournamentServerConfiguration.Enabled ? _tournamentServerConfiguration.ServerId : null,
+                            _tournamentServerConfiguration.Enabled ? _tournamentServerInstance : null));
                     tournamentSpectatorPolicies = new TournamentSpectatorPolicySource();
                     tournamentCommands = new TournamentCommandController(
                         tournamentConfiguration,
@@ -1535,6 +1581,8 @@ public sealed class AnoCorePlugin : BasePlugin
                 _tournamentSpectatorEnforcement = tournamentSpectatorEnforcement;
                 _tournamentCommands = tournamentCommands;
                 _tournamentEventCommands = tournamentEventCommands;
+                _tournamentPresence = tournamentPresence;
+                _tournamentPresenceTimer = tournamentPresenceTimer;
                 _tournamentMapSelectionCommands = tournamentMapSelectionCommands;
                 _chatFormatter = chatFormatter;
                 _chatTags = chatTags;
@@ -1618,6 +1666,8 @@ public sealed class AnoCorePlugin : BasePlugin
                 seasons?.Dispose();
                 tournamentMapSelectionCommands?.Dispose();
                 tournamentCommands?.Dispose();
+                tournamentPresenceTimer?.Kill();
+                tournamentPresence?.Dispose();
                 tournamentEventCommands?.Dispose();
                 tournamentSpectatorEnforcement?.Dispose();
                 tournamentSpectatorPolicies?.Dispose();

@@ -10,8 +10,19 @@ public sealed class MySqlTournamentMatchRepository : ITournamentMatchRepository
 {
     private readonly IDatabase _database;
 
-    public MySqlTournamentMatchRepository(IDatabase database)
-        => _database = database ?? throw new ArgumentNullException(nameof(database));
+    private readonly string? _serverId;
+    private readonly Guid? _instanceId;
+    private string RuntimeTable => _serverId is null ? "ano_tournament_runtime" : "ano_tournament_server_runtime";
+    private string RuntimeWhere => _serverId is null ? "singleton_id = 1" : "server_id = @server";
+
+    public MySqlTournamentMatchRepository(IDatabase database, string? serverId = null, Guid? instanceId = null)
+    {
+        _database = database ?? throw new ArgumentNullException(nameof(database));
+        if (serverId is not null && (!TournamentPresenceValidation.ValidServerId(serverId) || instanceId is null || instanceId == Guid.Empty))
+            throw new ArgumentException("Scoped tournament repositories require a valid server ID and live instance.");
+        _serverId = serverId;
+        _instanceId = instanceId;
+    }
 
     public ValueTask<TournamentStoredMatch> StoreAsync(
         TournamentMatchConfiguration configuration,
@@ -26,6 +37,23 @@ public sealed class MySqlTournamentMatchRepository : ITournamentMatchRepository
             // The singleton runtime row is also the store/replacement mutex. This keeps
             // concurrent creates/replacements deterministic even before a match row exists.
             await LockRuntimeAsync(connection, transaction, token).ConfigureAwait(false);
+            {
+                await using var ownership = connection.CreateCommand();
+                ownership.Transaction = transaction;
+                ownership.CommandText = "SELECT server_id FROM ano_tournament_server_runtime WHERE active_match_id = @match" + (_serverId is null ? "" : " AND server_id <> @server") + " FOR UPDATE";
+                if (_serverId is not null) Add(ownership, "@server", _serverId); Add(ownership, "@match", configuration.MatchId.ToString("D"));
+                if (await ownership.ExecuteScalarAsync(token).ConfigureAwait(false) is not null)
+                    throw new InvalidOperationException("This live match belongs to another tournament server.");
+            }
+            if (_serverId is not null)
+            {
+                await using var legacy = connection.CreateCommand();
+                legacy.Transaction = transaction;
+                legacy.CommandText = "SELECT active_match_id FROM ano_tournament_runtime WHERE singleton_id = 1 AND active_match_id = @match FOR UPDATE";
+                Add(legacy, "@match", configuration.MatchId.ToString("D"));
+                if (await legacy.ExecuteScalarAsync(token).ConfigureAwait(false) is not null)
+                    throw new InvalidOperationException("This match is still active in legacy singleton mode; deactivate it before scoped activation.");
+            }
 
             var currentRevision = await ReadRevisionAsync(
                 connection, transaction, configuration.MatchId, token).ConfigureAwait(false);
@@ -82,6 +110,8 @@ public sealed class MySqlTournamentMatchRepository : ITournamentMatchRepository
         RequireMatchId(matchId);
         return _database.InTransactionAsync(async (connection, transaction, token) =>
         {
+            if (_serverId is not null && await ReadActiveAsync(connection, transaction, true, token).ConfigureAwait(false) != matchId)
+                throw new InvalidOperationException("This server does not own the active match.");
             var stored = await ReadStoredAsync(
                 connection, transaction, matchId, forUpdate: true, token).ConfigureAwait(false)
                 ?? throw new KeyNotFoundException($"Tournament match {matchId:D} was not found.");
@@ -123,11 +153,8 @@ public sealed class MySqlTournamentMatchRepository : ITournamentMatchRepository
 
             await using var clear = connection.CreateCommand();
             clear.Transaction = transaction;
-            clear.CommandText = """
-                UPDATE ano_tournament_runtime
-                SET active_match_id = NULL
-                WHERE singleton_id = 1 AND active_match_id = @match
-                """;
+            clear.CommandText = $"UPDATE {RuntimeTable} SET active_match_id = NULL WHERE {RuntimeWhere} AND active_match_id = @match";
+            if (_serverId is not null) Add(clear, "@server", _serverId);
             Add(clear, "@match", matchId.ToString("D"));
             if (await clear.ExecuteNonQueryAsync(token).ConfigureAwait(false) != 1)
                 throw new InvalidOperationException("Active tournament pointer changed unexpectedly.");
@@ -348,14 +375,14 @@ public sealed class MySqlTournamentMatchRepository : ITournamentMatchRepository
         return value is null or DBNull ? null : Convert.ToInt64(value);
     }
 
-    private static async ValueTask LockRuntimeAsync(
+    private async ValueTask LockRuntimeAsync(
         DbConnection connection,
         DbTransaction transaction,
         CancellationToken token)
         => _ = await ReadActiveAsync(connection, transaction, forUpdate: true, token)
             .ConfigureAwait(false);
 
-    private static async ValueTask<Guid?> ReadActiveAsync(
+    private async ValueTask<Guid?> ReadActiveAsync(
         DbConnection connection,
         DbTransaction transaction,
         bool forUpdate,
@@ -363,18 +390,16 @@ public sealed class MySqlTournamentMatchRepository : ITournamentMatchRepository
     {
         await using var command = connection.CreateCommand();
         command.Transaction = transaction;
-        command.CommandText = """
-            SELECT active_match_id
-            FROM ano_tournament_runtime
-            WHERE singleton_id = 1
-            """ + (forUpdate ? " FOR UPDATE" : string.Empty);
+        await EnsureServerLeaseAsync(connection, transaction, forUpdate, token).ConfigureAwait(false);
+        command.CommandText = $"SELECT active_match_id FROM {RuntimeTable} WHERE {RuntimeWhere}" + (forUpdate ? " FOR UPDATE" : string.Empty);
+        if (_serverId is not null) Add(command, "@server", _serverId);
         var value = await command.ExecuteScalarAsync(token).ConfigureAwait(false);
         return value is null or DBNull
             ? null
             : Guid.Parse(Convert.ToString(value, System.Globalization.CultureInfo.InvariantCulture)!);
     }
 
-    private static async ValueTask SetActiveAsync(
+    private async ValueTask SetActiveAsync(
         DbConnection connection,
         DbTransaction transaction,
         Guid matchId,
@@ -382,14 +407,30 @@ public sealed class MySqlTournamentMatchRepository : ITournamentMatchRepository
     {
         await using var command = connection.CreateCommand();
         command.Transaction = transaction;
-        command.CommandText = """
-            UPDATE ano_tournament_runtime
-            SET active_match_id = @match
-            WHERE singleton_id = 1
-            """;
+        command.CommandText = $"UPDATE {RuntimeTable} SET active_match_id = @match WHERE {RuntimeWhere}";
+        if (_serverId is not null) Add(command, "@server", _serverId);
         Add(command, "@match", matchId.ToString("D"));
         if (await command.ExecuteNonQueryAsync(token).ConfigureAwait(false) != 1)
             throw new InvalidOperationException("Tournament runtime singleton is missing.");
+    }
+
+    private async ValueTask EnsureServerLeaseAsync(DbConnection connection, DbTransaction transaction, bool forUpdate, CancellationToken token)
+    {
+        if (_serverId is null) return;
+        await using (var lease = connection.CreateCommand())
+        {
+            lease.Transaction = transaction;
+            lease.CommandText = "SELECT instance_id FROM ano_tournament_server_presence WHERE server_id = @server AND expires_at_utc > UTC_TIMESTAMP(6)" + (forUpdate ? " FOR UPDATE" : "");
+            Add(lease, "@server", _serverId);
+            var owner = await lease.ExecuteScalarAsync(token).ConfigureAwait(false);
+            if (owner is not string text || Guid.Parse(text) != _instanceId)
+                throw new TournamentServerIdentityConflictException(_serverId);
+        }
+        await using var seed = connection.CreateCommand();
+        seed.Transaction = transaction;
+        seed.CommandText = "INSERT INTO ano_tournament_server_runtime (server_id, active_match_id) VALUES (@server, NULL) ON DUPLICATE KEY UPDATE server_id = server_id";
+        Add(seed, "@server", _serverId);
+        await seed.ExecuteNonQueryAsync(token).ConfigureAwait(false);
     }
 
     private static void EnsureRevision(TournamentStoredMatch stored, long expectedRevision)

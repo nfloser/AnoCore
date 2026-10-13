@@ -10,7 +10,7 @@ public static class TournamentPersistenceBootstrap
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(database);
-        await new MigrationRunner(database, [new TournamentSchemaMigration012(), new TournamentEventSchemaMigration022(), new TournamentPlayoffSchemaMigration023()])
+        await new MigrationRunner(database, [new TournamentSchemaMigration012(), new TournamentEventSchemaMigration022(), new TournamentPlayoffSchemaMigration023(), new TournamentPresenceSchemaMigration024(), new TournamentServerMatchSchemaMigration025()])
             .ApplyPendingAsync(cancellationToken)
             .ConfigureAwait(false);
     }
