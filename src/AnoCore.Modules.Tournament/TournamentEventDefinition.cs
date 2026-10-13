@@ -18,6 +18,7 @@ public sealed class TournamentEventDefinition
     public int? PlayoffBestOf { get; set; }
     public bool GrandFinalReset { get; set; } = true;
     public int? PlayoffQualifiersPerGroup { get; set; }
+    public bool CrossGroupOpeningPairings { get; set; }
     public int MaxSubstitutes { get; set; } = 2;
     public List<TournamentEventTeamDefinition> Teams { get; set; } = [];
     public List<TournamentGroupDefinition> Groups { get; set; } = [];
@@ -113,6 +114,10 @@ public sealed class TournamentEventDefinition
             errors.Add("At least one tournament stage must be enabled.");
         if (definition.PlayoffQualifiersPerGroup is not null && (!definition.GroupStageEnabled || !definition.PlayoffsEnabled))
             errors.Add("Group qualification requires both stages to be enabled.");
+        if (definition.CrossGroupOpeningPairings && (!definition.GroupStageEnabled
+            || !definition.PlayoffsEnabled || definition.PlayoffQualifiersPerGroup is null
+            || definition.Groups is not { Count: >= 2 }))
+            errors.Add("CrossGroupOpeningPairings needs at least two configured groups and group-to-playoff qualification.");
         if (!Enum.IsDefined(definition.GroupFormat) || !Enum.IsDefined(definition.PlayoffFormat))
             errors.Add("Unsupported group or playoff format.");
         if (definition.GroupBestOf is { } groupBo && groupBo is not (1 or 3 or 5)
