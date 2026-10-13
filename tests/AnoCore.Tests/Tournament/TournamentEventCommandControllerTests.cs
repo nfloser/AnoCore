@@ -47,6 +47,28 @@ public sealed class TournamentEventCommandControllerTests
         StringAssert.Contains(status.Message!, "r2-m1: team-1 vs team-2 [ready]");
     }
 
+    [TestMethod]
+    public async Task NextFixturesIsPublicReadOnlyAndUsesDeterministicMatchIds()
+    {
+        var repository = new Repository();
+        var audit = new Audit();
+        var registry = new CommandRegistry(new DenyAll());
+        using var controller = new TournamentEventCommandController(new Config(), registry, repository, audit);
+
+        var first = await registry.ExecuteAsync("!anotournamenteventnext", new PlayerId(123));
+        Assert.IsTrue(first.Success);
+        StringAssert.Contains(first.Message!, "1 / 1");
+        StringAssert.Contains(first.Message!, "group");
+        StringAssert.Contains(first.Message!, "Team");
+        var expected = TournamentFixtureMatchPlanner.Plan(repository.Current.Definition, [], [])[0].Match.MatchId;
+        StringAssert.Contains(first.Message!, expected);
+
+        var invalid = await registry.ExecuteAsync("!anotournamenteventnext 0", new PlayerId(123));
+        Assert.IsFalse(invalid.Success);
+        Assert.AreEqual(0, audit.Actions.Count);
+        Assert.HasCount(0, repository.Current.ConfirmedResults);
+    }
+
     private sealed class Repository : ITournamentEventRepository
     {
         public TournamentStoredEvent Current { get; private set; } = new(Definition(), [], 1);
