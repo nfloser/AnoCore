@@ -105,17 +105,24 @@ public sealed class AnoVetoCoordinatorTests
     }
 
     [TestMethod]
-    public async Task CastAsync_SameSteamIdCannotVoteTwice()
+    public async Task CastAsync_AcceptsThreeDifferentMapsForOneSteamId()
     {
         var harness = CreateHarness(8, minimumVotes: 1);
         var created = await harness.Coordinator.CreateAsync(Manager, [PlayerA, PlayerB], Now);
 
-        var first = await harness.Coordinator.CastAsync(PlayerA, created.Maps[0].MapId, Now.AddSeconds(1));
-        var second = await harness.Coordinator.CastAsync(new PlayerId(PlayerA.SteamId64), created.Maps[1].MapId, Now.AddSeconds(2));
+        Assert.IsTrue((await harness.Coordinator.CastAsync(PlayerA, created.Maps[0].MapId, Now.AddSeconds(1))).Accepted);
+        Assert.AreEqual(AnoVetoFailure.AlreadyVoted,
+            (await harness.Coordinator.CastAsync(new PlayerId(PlayerA.SteamId64), created.Maps[0].MapId, Now.AddSeconds(2))).Failure);
+        Assert.IsTrue((await harness.Coordinator.CastAsync(new PlayerId(PlayerA.SteamId64), created.Maps[1].MapId, Now.AddSeconds(3))).Accepted);
+        Assert.IsTrue((await harness.Coordinator.CastAsync(PlayerA, created.Maps[2].MapId, Now.AddSeconds(4))).Accepted);
+        Assert.AreEqual(AnoVetoFailure.AlreadyVoted,
+            (await harness.Coordinator.CastAsync(PlayerA, created.Maps[3].MapId, Now.AddSeconds(5))).Failure);
 
-        Assert.IsTrue(first.Accepted);
-        Assert.IsFalse(second.Accepted);
-        Assert.AreEqual(AnoVetoFailure.AlreadyVoted, second.Failure);
+        Assert.IsTrue(harness.Coordinator.TryGetPlayerSelections(PlayerA, out var selections, out var limit));
+        Assert.AreEqual(3, limit);
+        CollectionAssert.AreEqual(created.Maps.Take(3).Select(map => map.MapId).ToArray(),
+            selections.Select(map => map.MapId).ToArray());
+        Assert.IsTrue(harness.Coordinator.TryGetStatus(out _));
     }
 
     private static Harness CreateHarness(int mapCount, int minimumVotes, TimeSpan? duration = null)
