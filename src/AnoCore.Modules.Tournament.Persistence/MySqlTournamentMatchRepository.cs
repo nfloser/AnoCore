@@ -423,7 +423,7 @@ public sealed class MySqlTournamentMatchRepository : ITournamentMatchRepository
             lease.CommandText = "SELECT instance_id FROM ano_tournament_server_presence WHERE server_id = @server AND expires_at_utc > UTC_TIMESTAMP(6)" + (forUpdate ? " FOR UPDATE" : "");
             Add(lease, "@server", _serverId);
             var owner = await lease.ExecuteScalarAsync(token).ConfigureAwait(false);
-            if (owner is not string text || Guid.Parse(text) != _instanceId)
+            if (owner is null or DBNull || Guid.Parse(Convert.ToString(owner, System.Globalization.CultureInfo.InvariantCulture)!) != _instanceId)
                 throw new TournamentServerIdentityConflictException(_serverId);
         }
         await using var seed = connection.CreateCommand();

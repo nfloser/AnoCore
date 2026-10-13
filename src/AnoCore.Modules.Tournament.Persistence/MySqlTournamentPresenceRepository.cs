@@ -37,7 +37,7 @@ public sealed class MySqlTournamentPresenceRepository(IDatabase database) : ITou
                 Add(read, "@id", serverId);
                 await using var reader = await read.ExecuteReaderAsync(token).ConfigureAwait(false);
                 if (!await reader.ReadAsync(token).ConfigureAwait(false)) throw new InvalidDataException("Missing server lease.");
-                if (Guid.Parse(reader.GetString(0)) != instanceId && Convert.ToBoolean(reader.GetValue(1)))
+                if (Guid.Parse(Convert.ToString(reader.GetValue(0), System.Globalization.CultureInfo.InvariantCulture)!) != instanceId && Convert.ToBoolean(reader.GetValue(1)))
                     throw new TournamentServerIdentityConflictException(serverId);
             }
             await using var update = connection.CreateCommand();
@@ -65,7 +65,7 @@ public sealed class MySqlTournamentPresenceRepository(IDatabase database) : ITou
             while (await reader.ReadAsync(token).ConfigureAwait(false))
             {
                 var id = reader.GetString(0);
-                var instance = Guid.Parse(reader.GetString(1));
+                var instance = Guid.Parse(Convert.ToString(reader.GetValue(1), System.Globalization.CultureInfo.InvariantCulture)!);
                 var players = JsonSerializer.Deserialize<List<TournamentPlayerPresence>>(reader.GetString(2))
                     ?? throw new InvalidDataException("Missing presence snapshot.");
                 TournamentPresenceValidation.RequireValid(id, instance, players);
