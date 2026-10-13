@@ -59,6 +59,33 @@ public sealed class RoleAdministrationTests
             [new(Player, [], [], [new(new("missing"), Now.AddDays(1))])]));
     }
 
+    [TestMethod]
+    public async Task AdministratorSetupIsIdempotentAndIncludesTournamentManagement()
+    {
+        var state = await RoleAdministrationPolicy.SetupAdministratorAsync(Policy(), null, Player, Now);
+        state = await RoleAdministrationPolicy.SetupAdministratorAsync(state, null, Player, Now);
+        Assert.HasCount(1, state.Roles.Where(role => role.Id.Value == "anocore_admin"));
+        Assert.HasCount(1, state.Players.Single(p => p.PlayerId == Player).Roles);
+        var service = new AuthorizationService(new Store(state), state);
+        Assert.IsTrue(await service.HasPermissionAsync(Player, new("ano.admin.menu")));
+        Assert.IsTrue(await service.HasPermissionAsync(Player, new("ano.tournament.manage")));
+        Assert.IsFalse(await service.HasPermissionAsync(Player, new("ano.unrelated.manage")));
+        Assert.AreEqual(400, await service.GetImmunityAsync(Player));
+        Assert.HasCount(4, Policy().Roles);
+    }
+
+    [TestMethod]
+    public async Task AdministratorSetupRejectsPlayersAndConflictingExistingDefinitions()
+    {
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(async () =>
+            await RoleAdministrationPolicy.SetupAdministratorAsync(Policy(), Admin, Player, Now));
+        var conflicting = new AuthorizationState(
+            [new(new("anocore_admin"), 0, [], [], [])], []);
+        await Assert.ThrowsAsync<ArgumentException>(async () =>
+            await RoleAdministrationPolicy.SetupAdministratorAsync(conflicting, null, Player, Now));
+        Assert.IsEmpty(conflicting.Players);
+    }
+
     public static AuthorizationState Policy() => new([
         new(new("vip"), 1, [], [new("ano.stats.*", PermissionEffect.Allow)], ["vip"]),
         new(new("helper"), 0, [], [], []),

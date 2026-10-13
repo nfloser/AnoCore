@@ -28,6 +28,7 @@ public sealed class AnoHomeMenuModule : IDisposable
         ("anorating", "AnoRating", false, false),
         ("anosettingsmenu", "Settings", true, false),
         ("anochatmenu", "Chat tags", true, false),
+        ("anotournament", "Tournament", true, false),
         ("anotournamentstatus", "Tournament status", false, false),
     ];
     private readonly object _gate = new();
@@ -142,6 +143,8 @@ public sealed class AnoHomeMenuModule : IDisposable
         foreach (var view in Destinations)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            if (view.Name == "anotournamentstatus" && descriptors.ContainsKey("anotournament"))
+                continue;
             if (!descriptors.TryGetValue(view.Name, out var descriptor)
                 || !await Allowed(player, descriptor, cancellationToken).ConfigureAwait(false)) continue;
             options.Add(new(view.Name, view.Label, context => Current(player) && context.PlayerId == player.Id
@@ -171,6 +174,12 @@ public sealed class AnoHomeMenuModule : IDisposable
         // The registry rechecks permissions at execution, including after revocation.
         var result = await _commands.ExecuteAsync("!" + view.Name + (view.Paged ? " " + page : ""),
             player.Id, linked.Token).ConfigureAwait(false);
+        if (view.Name == "anotournament" && result.Success)
+        {
+            // The dedicated fullscreen HUD replaces the compact home overlay.
+            _menus.Close(player.Id);
+            return;
+        }
         if (view.Menu && result.Success) return;
         var lines = (result.Message ?? "No data available.").Split('|', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).ToList();
         if (view.Paged && result.Success && lines.Count > 0)

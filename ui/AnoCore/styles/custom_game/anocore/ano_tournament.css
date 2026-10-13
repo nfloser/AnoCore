@@ -1,0 +1,89 @@
+/* AnoTournament: one stable Workshop layout. Server owns all event-specific data. */
+.ano-hud-host { width: 100%; height: 100%; overflow: noclip; }
+.ano-tournament-overlay { width: 100%; height: 100%; visibility: collapse; opacity: 0; overflow: noclip; }
+.ano-tournament-overlay.shown { visibility: visible; opacity: 1; }
+.ano-tournament-backdrop { width: 4000px; height: 2400px; horizontal-align: center; vertical-align: center; background-color: #08130eea; }
+.ano-tournament-window {
+    width: 92%; height: 88%; max-width: 1800px; max-height: 1080px;
+    horizontal-align: center; vertical-align: center; flow-children: down;
+    padding: 20px; background-color: #070b09fa; border: 2px solid #318347ff;
+    border-radius: 6px; box-shadow: #000000b0 0px 12px 40px 0px;
+}
+.ano-tournament-header { width: 100%; height: 100px; flow-children: right; border-bottom: 1px solid #31553b; }
+.ano-tournament-identity { width: fill-parent-flow(1); height: 94px; flow-children: down; }
+.ano-tournament-banner {
+    width: 160px; height: 26px; background-image: url("s2r://panorama/styles/custom_game/anocore/anomeme_banner.vtex");
+    background-size: cover; background-position: 50% 50%; background-repeat: no-repeat;
+}
+.ano-title { color: #effaf1; font-size: 30px; font-weight: bold; text-overflow: shrink; margin-top: 4px; }
+.ano-status { color: #9cbba6; font-size: 16px; text-overflow: shrink; margin-top: 4px; }
+.ano-close { width: 116px; height: 40px; background-color: #18241cff; border: 1px solid #5b8d61ff; }
+.ano-close Label, .ano-tab Label, .ano-nav Label { color: #effaf1; font-size: 16px; horizontal-align: center; vertical-align: center; }
+.ano-close:hover, .ano-tab:hover, .ano-nav:hover { background-color: #285e34ff; }
+.ano-tournament-tabs { width: 100%; height: 52px; flow-children: right; padding-top: 8px; border-bottom: 1px solid #224c30ff; }
+.ano-tab { width: 18%; height: 38px; margin-right: 10px; background-color: #142019ff; border: 1px solid #284e31ff; border-radius: 3px; }
+.ano-tournament-overlay.view-overview #ano_tournament_tab_overview,
+.ano-tournament-overlay.view-table #ano_tournament_tab_table,
+.ano-tournament-overlay.view-bracket #ano_tournament_tab_bracket,
+.ano-tournament-overlay.view-matches #ano_tournament_tab_matches,
+.ano-tournament-overlay.view-teams #ano_tournament_tab_teams { background-color: #28713cff; border: 1px solid #7bd88fff; }
+.ano-tournament-context { width: 100%; height: 66px; flow-children: down; padding-top: 10px; }
+.ano-section-title { color: #f5fff8ff; font-size: 24px; font-weight: bold; }
+.ano-section-detail { color: #92ad99ff; font-size: 15px; text-overflow: shrink; }
+.ano-tournament-content { width: 100%; height: fill-parent-flow(1); min-height: 200px; flow-children: right; }
+.ano-main-scroll { width: fill-parent-flow(1); height: 100%; overflow: squish scroll; flow-children: down; padding-right: 16px; }
+.ano-tournament-detail {
+    width: 310px; height: 100%; padding: 16px; flow-children: down;
+    background-color: #101b14ff; border-left: 2px solid #2c6136ff;
+}
+.ano-view { width: 100%; height: fit-children; flow-children: down; visibility: collapse; }
+.ano-tournament-overlay.view-overview #ano_tournament_view_overview,
+.ano-tournament-overlay.view-table #ano_tournament_view_table,
+.ano-tournament-overlay.view-bracket #ano_tournament_view_bracket,
+.ano-tournament-overlay.view-matches #ano_tournament_view_matches,
+.ano-tournament-overlay.view-teams #ano_tournament_view_teams { visibility: visible; }
+.ano-summary-grid { width: 100%; flow-children: right-wrap; }
+.ano-summary-card {
+    width: 46%; height: 110px; margin: 8px;
+    padding: 16px; background-color: #14271aff; border-left: 3px solid #39a453ff;
+}
+.ano-summary-text { color: #dff1e3ff; font-size: 20px; text-overflow: shrink; vertical-align: center; }
+.ano-hint { color: #8aa797ff; font-size: 15px; margin-top: 10px; margin-bottom: 10px; text-overflow: shrink; }
+.ano-table-header { width: 100%; height: 36px; flow-children: right; background-color: #14301aff; padding: 4px; }
+.ano-table-header Label { width: 50%; color: #a9c3b2ff; font-size: 14px; vertical-align: center; }
+.ano-table-row {
+    width: 100%; height: 48px; flow-children: right; margin-bottom: 5px;
+    background-color: #101d15ff; border-left: 3px solid #265b34ff; padding: 5px;
+}
+.ano-table-row:hover, .ano-team-row:hover, .ano-match-card:hover { background-color: #254f30ff; }
+.ano-table-row.hidden, .ano-team-row.hidden, .ano-match-card.hidden { visibility: collapse; }
+.ano-table-name { width: 49%; color: #eaf6ecff; font-size: 18px; vertical-align: center; text-overflow: shrink; }
+.ano-table-stats { width: 51%; color: #c1dac7ff; font-size: 15px; vertical-align: center; text-overflow: shrink; }
+.ano-bracket-grid { width: 100%; flow-children: right-wrap; }
+.ano-match-card {
+    width: 46%; height: 100px; margin: 7px; padding: 12px;
+    background-color: #122419ff; border: 1px solid #336040ff; border-radius: 4px;
+}
+.ano-match-text { width: 100%; color: #e6f2eaff; font-size: 17px; text-overflow: shrink; vertical-align: center; }
+.ano-fixture-label.hidden { visibility: collapse; }
+.ano-fixture-label {
+    width: 100%; height: 35px; color: #e1f2e5ff; font-size: 16px;
+    padding: 5px; border-bottom: 1px solid #2e4a37ff; text-overflow: shrink;
+}
+.ano-team-row {
+    width: 100%; height: 45px; margin-bottom: 5px;
+    padding: 8px 14px; background-color: #13211aff; border-left: 3px solid #2c8241ff;
+}
+.ano-team-label { color: #e6f4e9ff; font-size: 18px; text-overflow: shrink; }
+.ano-detail-title, .ano-detail-label { color: #75c78bff; font-size: 14px; font-weight: bold; margin-bottom: 8px; }
+.ano-detail-team { color: #f0faf2ff; font-size: 25px; font-weight: bold; text-overflow: shrink; }
+.ano-detail-status { color: #a8d2b1ff; font-size: 17px; margin-bottom: 12px; }
+.ano-roster-label { color: #d9ecddff; font-size: 15px; margin-bottom: 7px; text-overflow: shrink; }
+.ano-tournament-footer {
+    width: 100%; height: 54px; flow-children: right; padding-top: 10px;
+    border-top: 1px solid #2d5437ff;
+}
+.ano-nav { width: 110px; height: 36px; background-color: #18321fff; border: 1px solid #3a8150ff; }
+.ano-nav.disabled { opacity: 0.3; }
+.ano-page { width: 150px; color: #bddec6ff; font-size: 16px; text-align: center; vertical-align: center; }
+.ano-sync { width: fill-parent-flow(1); color: #8aa797ff; font-size: 15px; text-align: right; vertical-align: center; }
