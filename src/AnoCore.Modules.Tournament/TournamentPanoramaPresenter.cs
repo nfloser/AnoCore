@@ -298,6 +298,20 @@ public sealed class TournamentPanoramaPresenter : IDisposable
                 $"{(i < 5 ? "Starter" : "Ersatz")} {i + 1}: {steam} " +
                 (online ? "· Online hier" : "· Nicht auf diesem Server"));
         }
+        if (state.View == "bracket" && state.SelectedMatchRow is { } selectedRow)
+        {
+            var selectedIndex = state.Page * 16 + selectedRow;
+            if (selectedIndex < bracketMatches.Length)
+            {
+                var match = bracketMatches[selectedIndex];
+                Set(player, "ano_tournament_team_name", "Match " + match.Id);
+                Set(player, "ano_tournament_team_status",
+                    Source(match.Home, names) + " vs " + Source(match.Away, names));
+                Set(player, "ano_tournament_roster_0", "K.-o.-Runde " + match.Round);
+                for (var i = 1; i < 7; i++)
+                    Set(player, $"ano_tournament_roster_{i}", string.Empty);
+            }
+        }
         state.RenderedRevision = revision;
         state.Dirty = false;
     }
