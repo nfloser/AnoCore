@@ -17,6 +17,44 @@ Each template must contain `{player.name}` and `{message}` exactly once, contain
 
 `RankColor`, `NameColor` and `MessageColor` accept only `None`, `Team` or the documented native names: `Default`, `White`, `DarkRed`, `LightPurple`, `Green`, `Olive`, `Lime`, `Red`, `Grey`, `Yellow`, `Silver`, `LightBlue`, `DarkBlue`, `Purple`, `LightRed` and `Orange`. Existing installations remain uncolored by default. `Team` resolves to the sender's current team color. Every colored rank, name or message slot is followed by the native default reset so colors cannot bleed into later text.
 
+## AnoMeme old-server chat line (recommended server profile)
+
+To restore the old server's **whole** chat line instead of coloring only
+the role tag, use the complete, ready-to-copy
+[`examples/server-profiles/anomeme/chat-format.json`](../examples/server-profiles/anomeme/chat-format.json)
+together with [`role-chat-tags.json`](../examples/server-profiles/anomeme/role-chat-tags.json).
+The active destination for the former is
+`game/csgo/addons/counterstrikesharp/plugins/AnoCore/config/chat-format.json`.
+
+```text
+[ALL]  [DEV]      Name-in-team-color: white message
+[TEAM] [HOST]     Name-in-team-color: white message
+```
+
+These are illustrative plain-text examples, not evidence of client rendering.
+The role uses its independently configured native color; `NameColor: "Team"`
+makes T names orange and CT names light blue (spectators light purple), and
+`MessageColor: "Default"` returns to the ordinary message color. The
+channel label is added **once before the role**, not embedded in the
+per-player templates; do not prepend `[ALL]`/`[TEAM]` manually.
+The profile intentionally excludes `{rank.tag}` so the old-style role
+prefix does not compete with an additional rank badge.
+
+After copying only the desired profile values into the existing configuration:
+
+```text
+css_anoreloadconfig chat-format
+css_anoreloadconfig role-chat-tags
+```
+
+Keep `core.json`, MySQL connection strings and CSS administrator group
+membership unchanged; none of these are replaced by a chat profile. The
+CSS groups control which role tag is displayed; display tags do **not**
+grant administrative permissions. Verify both all-chat and team-chat with
+one T and one CT player on the test server. Native CS2 rendering remains
+a separate acceptance gate; source/CI tests validate character codes,
+safe resets, channel placement and recipient selection.
+
 ## Tag ownership and priority
 
 Optional native CSS role prefixes are configured separately in `role-chat-tags.json`;
