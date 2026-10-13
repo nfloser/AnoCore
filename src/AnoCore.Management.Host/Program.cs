@@ -1,6 +1,9 @@
 using System.Threading.RateLimiting;
 using AnoCore.Management.Host;
 using Microsoft.AspNetCore.RateLimiting;
+using AnoCore.Modules.Tournament;
+using AnoCore.Modules.Tournament.Persistence;
+using AnoCore.Runtime.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,10 +17,19 @@ if (configurationErrors.Count != 0)
         + string.Join(" ", configurationErrors));
 }
 
+var matchZyEnabled = builder.Configuration.GetValue<bool>("TournamentMatchZy:Enabled");
+var matchZyConnection = matchZyEnabled ? Environment.GetEnvironmentVariable("ANOCORE_MYSQL") : null;
+if (matchZyEnabled && string.IsNullOrWhiteSpace(matchZyConnection))
+    throw new InvalidOperationException("MatchZy ingress requires ANOCORE_MYSQL for the same shared tournament database.");
+if (matchZyEnabled)
+    await TournamentPersistenceBootstrap.EnsureReadyAsync(new MySqlDatabase(matchZyConnection!)).ConfigureAwait(false);
+if (matchZyEnabled)
+    builder.Services.AddSingleton(new TournamentMatchZyEndpoint(new MySqlTournamentAssignmentRepository(new MySqlDatabase(matchZyConnection!))));
+
 builder.WebHost.ConfigureKestrel(options =>
 {
     options.AddServerHeader = false;
-    options.Limits.MaxRequestBodySize = sidecarOptions.MaximumRequestBodyBytes;
+    options.Limits.MaxRequestBodySize = matchZyEnabled ? TournamentMatchZy.MaximumPayloadBytes : sidecarOptions.MaximumRequestBodyBytes;
     options.Limits.MaxRequestHeaderCount = 16;
     options.Limits.MaxRequestHeadersTotalSize = 8 * 1024;
     options.Limits.MaxRequestLineSize = 512;
@@ -60,6 +72,12 @@ app.UseRateLimiter();
 
 app.Run(async context =>
 {
+    if (matchZyEnabled && context.Request.Path.Value is { } path && path.StartsWith("/tournament/matchzy/", StringComparison.Ordinal)
+        && long.TryParse(path["/tournament/matchzy/".Length..], out var assignmentId) && assignmentId > 0)
+    {
+        await context.RequestServices.GetRequiredService<TournamentMatchZyEndpoint>().HandleAsync(context, assignmentId).ConfigureAwait(false);
+        return;
+    }
     var endpoint = context.RequestServices.GetRequiredService<ManagementProxyEndpoint>();
     await endpoint.HandleAsync(context).ConfigureAwait(false);
 });
