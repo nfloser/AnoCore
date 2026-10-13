@@ -56,3 +56,19 @@ MSTest covers every count 3–10, unique seeded slots and match IDs,
 seed #1/#2 separation, appropriate opening byes, total contest count
 `N - 1`, dependency ordering, reproducibility and invalid seeds.
 Live CS2/DatHost and Workshop UI acceptance comes with #381.
+
+## Confirmed-result progression
+
+`TournamentBracketProgression.Calculate(entrants, results)` rebuilds the generated
+single-elimination graph in round order. Each match reports resolved home/away
+team IDs, its confirmed winner and whether it is ready to play. The final winner
+is the champion; byes advance known teams without inventing results.
+
+Results use stable match IDs, winner team IDs and winner/loser map totals (decisive,
+nonnegative, at most three winner maps for BO1/BO3/BO5). Unknown or duplicate
+matches, nonparticipant winners and results with unresolved dependencies are
+rejected. Input order is irrelevant; changing an upstream winner invalidates
+incompatible downstream results rather than silently transferring them.
+
+This is a domain snapshot for future persistence, presenter and match-capture
+integration. It does not yet persist playoff results or start a live CS2 match.
