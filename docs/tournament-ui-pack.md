@@ -1,0 +1,142 @@
+# AnoTournament Workshop UI contract
+
+This is the **resource and projection contract** for the tournament viewer
+([#381](https://github.com/nfloser/AnoCore/issues/381)). The Panorama
+presenter and shared event repository integration are now implemented in source,
+but the native CS2 client and Workshop distribution remain unverified.
+
+## Why fixed slots?
+
+Valve Panorama resources are compiled and mounted by clients through the
+`anomeme_ui` Workshop addon. Unlike a web interface, this server-facing
+`custom_hud_layout` API currently supports updating known dialog variables
+and CSS classes, but not arbitrary runtime creation of new panels. The
+layout therefore bundles every dynamic slot upfront.
+
+The UI has **five tabs**: Overview, Standings, Bracket, Matches, Teams.
+Fixed bounds: ten table/team buttons, sixteen bracket cards, sixteen
+fixture text rows, seven visible roster rows (paged for five starters and up to five substitutes)
+and four overview summaries. The team detail shows starter online/ready counts
+and missing participants; existing roster slots page up to five substitutes. The server fills the selected page,
+clears/marks unused slots and moves between pages without adding XML.
+
+- `ano_tournament_root` toggles the `shown` class and exactly one
+  `view-<tab>` class.
+- `ano_tournament_table_{0..9}` and `ano_tournament_team_{0..9}` are
+  stable clickable rows; `ano_tournament_match_{0..15}` are clickable match cards.
+- `ano_tournament_prev`, `ano_tournament_next` and
+  `ano_tournament_page` provide bounded paging.
+- Every ID-bearing label has `text="{s:text}"` and is filled through
+  `ICustomHudService.SetText`. All displayed data must be treated as plain
+  text; never inject untrusted HTML, styles or resource paths.
+- Use CSS `hidden` for unused rows and only allow click handlers for
+  the current player session and visible page/revision.
+- The right details panel includes `ano_tournament_team_name`,
+  `ano_tournament_team_status` and `ano_tournament_roster_0..6`.
+- Config and match-result changes update the database and then re-render
+  existing clients through the exact same IDs. There is no Workshop
+  republish for event/roster/point/ranking/format data.
+
+## Safe one-time rollout
+
+The **compiled Workshop pack is a prerequisite**, so the dashboard is
+**disabled by default** even when normal AnoMenu Panorama menus work.
+This allows the C# plugin to be updated before the new resources are
+published, without attempting to load a missing tournament layout.
+
+After native compilation and an initial clean-client/DatHost smoke test,
+enable the new dashboard in `config/core.json`:
+
+```json
+{
+  "PanoramaMenusEnabled": true,
+  "TournamentDashboardEnabled": true
+}
+```
+
+Keep other existing `core.json` settings (notably the connection string)
+unchanged; the JSON above shows only the relevant toggles. Setting
+`TournamentDashboardEnabled` with `PanoramaMenusEnabled=false` fails
+configuration validation explicitly. Until the dashboard is enabled,
+AnoMenu retains the existing **Tournament status** fallback. Once enabled,
+players open the new viewer with `!anotournament`.
+
+Disable `TournamentDashboardEnabled` and reload the plugin for a fast
+rollback if the native client displays incorrectly. This does not change
+event data or assignment state. **Do not publish** a speculative Workshop
+resource merely to match a new server commit. Only data is updated during
+regular tournaments, not XML/CSS.
+
+## Distribution and acceptance
+
+`ui/AnoCore/build.ps1` includes `ano_tournament.xml` and
+`ano_tournament.css` in the same `anomeme_ui` output as menu and veto.
+Publish only after Workshop Tools compilation and disposable CS2 client acceptance. The native presenter and shared event database integration now exist in source.
+
+CI performs offline XML/source contract tests but **does not compile Valve
+resources or exercise a CS2 client**. Before final Workshop publication:
+compile using CS2 Workshop Tools, test source-style compatibility, check
+cursor close/reconnect/map-change cleanup, and visually smoke-test 4:3,
+16:9 and ultrawide. A client must mount the published pack automatically
+via server addon distribution. A compiled Workshop update is necessary
+when the *structural XML or CSS* changes, not when tournament data changes.
+
+## Dynamic runtime projection
+
+When both `PanoramaMenusEnabled` and `TournamentDashboardEnabled` are enabled, `!anotournament` opens the
+dedicated tournament HUD. AnoMenu offers that destination and closes its own
+overlay before displaying it. Without Panorama enabled, the existing
+text-only tournament status entry remains available.
+
+The `TournamentPanoramaPresenter` loads the current event from shared
+MySQL and projects dynamic team names, standings, fixtures, knockout
+pairings and registered SteamIDs through `ICustomHudService.SetText`.
+Panorama tabs, page buttons, roster selection and bracket match selection
+run through session-validated click callbacks; close/unload releases input.
+
+The server polls the shared event revision every three seconds **only
+while the menu is open**. Unchanged snapshots are not rerendered; a delayed,
+older revision cannot overwrite a newer one. Switching active event IDs
+resets the client's selected page and team. The Workshop addon is not
+recompiled when only database data changes.
+
+When `PlayoffQualifiersPerGroup` is configured, the bracket waits for complete
+group results, then displays the qualified field, including a two-team final.
+Selected team IDs survive standings reordering.
+
+The knockout display now projects persisted confirmed playoff winners, resolved
+next-round pairings, ready/waiting states and champion through the same compiled
+slots. The view uses the configured Single/Double Elimination plan, including
+Upper/Lower brackets, loser-of-match references, grand final and optional reset.
+Group/match pages project the deterministic Round Robin or **incremental Swiss**
+schedule; a disabled group stage shows no fictitious table or fixtures. Result-only changes never require Workshop republishing. With `tournament-servers.json` enabled, shared expiring heartbeats project
+server identity, player session and a distinct ready indicator where the AnoTournament match owns readiness. Presence
+changes refresh the roster independently of event revisions. Multiple reported
+sessions are labeled explicitly instead of assuming readiness. Without that
+configuration, presence remains labeled **local server only**. Configured server identities use fenced per-server active match pointers;
+unconfigured servers retain the legacy singleton path. Swiss and Double
+Elimination logic and MatchZy callback ingestion exist in the backend,
+but they have not yet passed live CS2/DatHost multi-client acceptance.
+Do not treat CI success as a native validation.
+
+## Production acceptance
+
+- Compile this pack using CS2 Workshop Tools on Windows. CI does not have
+  Valve's resource compiler or live client.
+- Join a clean client with the Workshop addon mounted automatically.
+- Verify `!anotournament`, menu transitions, close/cursor release,
+  tabs, group paging, team and match click, reconnect and map change.
+- Visually inspect 4:3, 16:9, stretched and ultrawide with 3, 5 and 10 teams.
+- Run two connected AnoCore servers against the same MySQL and verify that
+  a confirmed fixture updates an already-open menu after a revision change.
+- **Publish the first updated Workshop addon only after this acceptance,
+  not once per code commit.** Once published, event data updates do not
+  require another upload.
+
+Open MatchZy assignments refresh independently of event revisions and append the
+assigned server/state to fixture cards. Dispatched means a load was requested;
+it does not assert live acceptance. MatchZy-owned teams show `Ready: MatchZy`
+rather than inferring ready status from presence. Inactive reset finals remain
+visible as disabled future slots and are labeled not required after an undefeated
+finalist wins. The ordinary `!anoadminmenu` links to the authorized tournament
+configuration menu; it reuses existing menu resources.

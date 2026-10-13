@@ -95,12 +95,15 @@ public sealed class AnoCorePlugin : BasePlugin
     private ModerationWebhookPump? _webhooks;
     private CounterStrikeSharp.API.Modules.Timers.Timer? _roleExpiryTimer;
     private bool _panoramaMenusEnabled;
+    private bool _tournamentDashboardEnabled;
     private TournamentMatchRuntime? _tournamentMatch;
     private TournamentTeamEnforcement? _tournamentTeamEnforcement;
     private TournamentSpectatorPolicySource? _tournamentSpectatorPolicies;
     private TournamentSpectatorEnforcement? _tournamentSpectatorEnforcement;
     private TournamentCommandController? _tournamentCommands;
     private TournamentEventCommandController? _tournamentEventCommands;
+    private TournamentPanoramaPresenter? _tournamentPanorama;
+    private CounterStrikeSharp.API.Modules.Timers.Timer? _tournamentRefreshTimer;
     private TournamentAdminMenuModule? _tournamentAdminMenu;
     private TournamentAssignmentCommandController? _tournamentAssignmentCommands;
     private TournamentServerConfiguration _tournamentServerConfiguration = new();
@@ -289,6 +292,10 @@ public sealed class AnoCorePlugin : BasePlugin
             _tournamentAssignmentCommands = null;
             _tournamentEventCommands?.Dispose();
             _tournamentEventCommands = null;
+            _tournamentRefreshTimer?.Kill();
+            _tournamentRefreshTimer = null;
+            _tournamentPanorama?.Dispose();
+            _tournamentPanorama = null;
             _tournamentSpectatorEnforcement?.Dispose();
             _tournamentSpectatorEnforcement = null;
             _tournamentSpectatorPolicies?.Dispose();
@@ -441,6 +448,9 @@ public sealed class AnoCorePlugin : BasePlugin
             var externalModules = await configuration.LoadAsync("modules", () => new ExternalModuleConfiguration(),
                 ExternalModuleConfiguration.Validate, cancellationToken).ConfigureAwait(false);
             _panoramaMenusEnabled = settings.PanoramaMenusEnabled;
+            _tournamentDashboardEnabled = settings.TournamentDashboardEnabled;
+            if (_tournamentDashboardEnabled && !_panoramaMenusEnabled)
+                throw new InvalidOperationException("TournamentDashboardEnabled requires PanoramaMenusEnabled in core.json.");
             try
             {
                 _tournamentServerConfiguration = await configuration.LoadAsync("tournament-servers", () => new TournamentServerConfiguration(),
@@ -1131,6 +1141,8 @@ public sealed class AnoCorePlugin : BasePlugin
             TournamentSpectatorEnforcement? tournamentSpectatorEnforcement = null;
             TournamentCommandController? tournamentCommands = null;
             TournamentEventCommandController? tournamentEventCommands = null;
+            TournamentPanoramaPresenter? tournamentPanorama = null;
+            CounterStrikeSharp.API.Modules.Timers.Timer? tournamentRefreshTimer = null;
             TournamentAdminMenuModule? tournamentAdminMenu = null;
             TournamentAssignmentCommandController? tournamentAssignmentCommands = null;
             CounterStrikeSharp.API.Modules.Timers.Timer? tournamentMatchZyTimer = null;
@@ -1358,6 +1370,18 @@ public sealed class AnoCorePlugin : BasePlugin
                     eventConfig, runtime.Commands,
                     new MySqlTournamentEventRepository(eventDatabase), runtime.AdminAudit,
                     _tournamentMatchZyConfiguration);
+                if (_tournamentDashboardEnabled && _panoramaMenusEnabled && _customHud is not null)
+                {
+                    tournamentPanorama = new TournamentPanoramaPresenter(
+                        _customHud, new MySqlTournamentEventRepository(eventDatabase),
+                        runtime.Players, runtime.Commands, events,
+                        _tournamentServerConfiguration.Enabled ? new MySqlTournamentPresenceRepository(eventDatabase) : null,
+                        new MySqlTournamentAssignmentRepository(eventDatabase), _tournamentMatchZyConfiguration.Enabled);
+                    var activeTournamentPanorama = tournamentPanorama;
+                    tournamentRefreshTimer = AddTimer(3.0f, () =>
+                        Observe(activeTournamentPanorama.RefreshOpenAsync(cancellationToken).AsTask(),
+                            "tournament_dashboard_refresh"), TimerFlags.REPEAT);
+                }
                 tournamentAdminMenu = new TournamentAdminMenuModule(runtime.Commands, runtime.Players, runtime.Menus,
                     eventConfig, new MySqlTournamentEventRepository(eventDatabase), events);
 
@@ -1612,6 +1636,8 @@ public sealed class AnoCorePlugin : BasePlugin
                 _tournamentSpectatorEnforcement = tournamentSpectatorEnforcement;
                 _tournamentCommands = tournamentCommands;
                 _tournamentEventCommands = tournamentEventCommands;
+                _tournamentPanorama = tournamentPanorama;
+                _tournamentRefreshTimer = tournamentRefreshTimer;
                 _tournamentAdminMenu = tournamentAdminMenu;
                 _tournamentAssignmentCommands = tournamentAssignmentCommands;
                 _tournamentMatchZyTimer = tournamentMatchZyTimer;
@@ -1706,6 +1732,8 @@ public sealed class AnoCorePlugin : BasePlugin
                 tournamentAdminMenu?.Dispose();
                 tournamentAssignmentCommands?.Dispose();
                 tournamentEventCommands?.Dispose();
+                tournamentRefreshTimer?.Kill();
+                tournamentPanorama?.Dispose();
                 tournamentSpectatorEnforcement?.Dispose();
                 tournamentSpectatorPolicies?.Dispose();
                 tournamentTeamEnforcement?.Dispose();
@@ -1846,6 +1874,10 @@ public sealed class AnoCorePlugin : BasePlugin
         public string ConnectionString { get; set; } = string.Empty;
 
         public bool PanoramaMenusEnabled { get; set; }
+
+        // Requires the compiled ano_tournament.xml in the mounted Workshop addon.
+        // Keep disabled until the one-time native client acceptance has passed.
+        public bool TournamentDashboardEnabled { get; set; }
 
         public ProtectedServerControlConfiguration ProtectedServerControls { get; set; } = new();
     }

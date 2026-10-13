@@ -149,7 +149,7 @@ if ($InstallLocalClient) {
     Copy-Item $logo (Join-Path $clientStyleDir "anomeme_banner.vtex_c") -Force
 }
 
-foreach ($name in @("ano_veto_cards", "ano_veto", "menu")) {
+foreach ($name in @("ano_veto_cards", "ano_veto", "menu", "ano_tournament")) {
     $layoutTarget = Join-Path $layoutDir "$name.xml"
     $styleTarget = Join-Path $styleDir "$name.css"
     Copy-Item (Join-Path $src "layout\custom_game\anocore\$name.xml") $layoutTarget -Force
