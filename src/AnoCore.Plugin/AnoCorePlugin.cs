@@ -8,6 +8,7 @@ using AnoCore.Abstractions.Stats;
 using AnoCore.Modules.Admin;
 using AnoCore.Modules.AnoVeto;
 using AnoCore.Modules.Arcade;
+using AnoCore.Modules.Arcade.Casino;
 using AnoCore.Modules.Progression;
 using AnoCore.Modules.Progression.Persistence;
 using AnoCore.Modules.Stats;
@@ -98,6 +99,9 @@ public sealed class AnoCorePlugin : BasePlugin
     private bool _panoramaMenusEnabled;
     private bool _arcadeProbeEnabled;
     private ArcadeProbePresenter? _arcadeProbe;
+    private CasinoPresenter? _casino;
+    private CounterStrikeSharp.API.Modules.Timers.Timer? _casinoTimer;
+    private bool _casinoEnabled;
     private CounterStrikeSharp.API.Modules.Timers.Timer? _arcadeProbeTimer;
     private bool _tournamentDashboardEnabled;
     private TournamentMatchRuntime? _tournamentMatch;
@@ -298,6 +302,10 @@ public sealed class AnoCorePlugin : BasePlugin
             _tournamentEventCommands = null;
             _tournamentRefreshTimer?.Kill();
             _tournamentRefreshTimer = null;
+            _casinoTimer?.Kill();
+            _casinoTimer = null;
+            _casino?.Dispose();
+            _casino = null;
             _arcadeProbeTimer?.Kill();
             _arcadeProbeTimer = null;
             _arcadeProbe?.Dispose();
@@ -457,6 +465,8 @@ public sealed class AnoCorePlugin : BasePlugin
                 ExternalModuleConfiguration.Validate, cancellationToken).ConfigureAwait(false);
             _panoramaMenusEnabled = settings.PanoramaMenusEnabled;
             _arcadeProbeEnabled = settings.ArcadeAnimationProbeEnabled;
+            _casinoEnabled = settings.CasinoEnabled;
+            if (_casinoEnabled && !settings.PanoramaMenusEnabled) throw new InvalidOperationException("CasinoEnabled requires PanoramaMenusEnabled.");
             if (_arcadeProbeEnabled && !_panoramaMenusEnabled)
                 throw new InvalidOperationException("ArcadeAnimationProbeEnabled requires PanoramaMenusEnabled in core.json.");
             _tournamentDashboardEnabled = settings.TournamentDashboardEnabled;
@@ -536,6 +546,12 @@ public sealed class AnoCorePlugin : BasePlugin
                 players,
                 cancellationToken: timeout.Token,
                 managementRateLimiter: managementRateLimiter).ConfigureAwait(false);
+
+            if (_casinoEnabled)
+            {
+                await new AnoCore.Runtime.Persistence.Migrations.MigrationRunner((IDatabase)created.GetService(typeof(IDatabase))!,
+                    [new CasinoSchemaMigration027()]).ApplyPendingAsync(timeout.Token).ConfigureAwait(false);
+            }
 
             if (managementConfiguration.Enabled)
             {
@@ -1152,6 +1168,8 @@ public sealed class AnoCorePlugin : BasePlugin
             TournamentSpectatorEnforcement? tournamentSpectatorEnforcement = null;
             TournamentCommandController? tournamentCommands = null;
             TournamentEventCommandController? tournamentEventCommands = null;
+            CasinoPresenter? casino = null;
+            CounterStrikeSharp.API.Modules.Timers.Timer? casinoTimer = null;
             ArcadeProbePresenter? arcadeProbe = null;
             CounterStrikeSharp.API.Modules.Timers.Timer? arcadeProbeTimer = null;
             TournamentPanoramaPresenter? tournamentPanorama = null;
@@ -1194,6 +1212,19 @@ public sealed class AnoCorePlugin : BasePlugin
 
             try
             {
+                if (_casinoEnabled && _customHud is not null)
+                {
+                    var casinoDatabase = (IDatabase)runtime.GetService(typeof(IDatabase))!;
+                    casino = new CasinoPresenter(_customHud, runtime.Players, runtime.Authorization,
+                        new MySqlCasinoWallet(casinoDatabase), runtime.Commands, _eventBus!, playerId =>
+                        {
+                            runtime.Menus.Close(playerId);
+                            presenter.Reconcile();
+                            _arcadeProbe?.CloseForPlayer(playerId);
+                        });
+                    var activeCasino = casino;
+                    casinoTimer = AddTimer(0.25f, activeCasino.Tick, TimerFlags.REPEAT);
+                }
                 if (_arcadeProbeEnabled && _customHud is not null)
                 {
                     arcadeProbe = new ArcadeProbePresenter(_customHud, runtime.Players, runtime.Authorization, runtime.Commands, _eventBus!,
@@ -1660,6 +1691,8 @@ public sealed class AnoCorePlugin : BasePlugin
                 _tournamentSpectatorEnforcement = tournamentSpectatorEnforcement;
                 _tournamentCommands = tournamentCommands;
                 _tournamentEventCommands = tournamentEventCommands;
+                _casino = casino;
+                _casinoTimer = casinoTimer;
                 _arcadeProbe = arcadeProbe;
                 _arcadeProbeTimer = arcadeProbeTimer;
                 _tournamentPanorama = tournamentPanorama;
@@ -1759,6 +1792,8 @@ public sealed class AnoCorePlugin : BasePlugin
                 tournamentAssignmentCommands?.Dispose();
                 tournamentEventCommands?.Dispose();
                 tournamentRefreshTimer?.Kill();
+                casinoTimer?.Kill();
+                casino?.Dispose();
                 arcadeProbeTimer?.Kill();
                 arcadeProbe?.Dispose();
                 tournamentPanorama?.Dispose();
@@ -1904,6 +1939,8 @@ public sealed class AnoCorePlugin : BasePlugin
         public bool PanoramaMenusEnabled { get; set; }
 
         public bool ArcadeAnimationProbeEnabled { get; set; }
+
+        public bool CasinoEnabled { get; set; }
 
         // Requires the compiled ano_tournament.xml in the mounted Workshop addon.
         // Keep disabled until the one-time native client acceptance has passed.
@@ -2639,6 +2676,7 @@ public sealed class AnoCorePlugin : BasePlugin
 
     private void OnMapEnd()
     {
+        _casino?.Reset();
         _arcadeProbe?.Reset();
         _warmupState.Reset();
         FlushCombatDetails("combat_detail_map_end");

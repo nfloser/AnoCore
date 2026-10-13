@@ -30,7 +30,7 @@ public sealed class ArcadeMenuIntegrationTests
         using var home = new AnoHomeMenuModule(commands, players, menus, permissions, events);
         Assert.IsTrue((await commands.ExecuteAsync("!anomenunavigation", Player)).Success);
         Assert.IsTrue(menus.TryGetOpenMenu(Player, out var definition));
-        Assert.IsTrue(definition!.Options.Any(option => option.Id == "anoarcadetest" && option.Label == "AnoCasino · Test"));
+        Assert.IsTrue(definition!.Options.Any(option => option.Id == "anoarcadetest" && option.Label == "AnoCasino · Animationstest"));
         Assert.IsTrue(panorama.Open(Player));
         var row = definition.Options.ToList().FindIndex(option => option.Id == "anoarcadetest");
         Assert.IsTrue(row < PanoramaMenuPresenter.PageSize);
