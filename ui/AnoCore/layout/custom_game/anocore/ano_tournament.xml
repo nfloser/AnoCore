@@ -1,0 +1,126 @@
+<root>
+  <styles><include src="s2r://panorama/styles/custom_game/anocore/ano_tournament.vcss_c" /></styles>
+  <Panel class="ano-hud-host" hittest="false">
+    <Panel id="ano_tournament_root" class="ano-tournament-overlay view-overview" hittest="true">
+      <Panel class="ano-tournament-backdrop" hittest="false" />
+      <Panel class="ano-tournament-window" hittest="true">
+        <Panel class="ano-tournament-header" hittest="true">
+          <Panel class="ano-tournament-identity" hittest="false">
+            <Panel class="ano-tournament-banner" hittest="false" />
+            <Label id="ano_tournament_title" class="ano-title" text="{s:text}" />
+            <Label id="ano_tournament_status" class="ano-status" text="{s:text}" />
+          </Panel>
+          <Button id="ano_tournament_close" class="ano-close"><Label text="CLOSE" /></Button>
+        </Panel>
+        <Panel class="ano-tournament-tabs" hittest="true">
+          <Button id="ano_tournament_tab_overview" class="ano-tab"><Label text="OVERVIEW" /></Button>
+          <Button id="ano_tournament_tab_table" class="ano-tab"><Label text="STANDINGS" /></Button>
+          <Button id="ano_tournament_tab_bracket" class="ano-tab"><Label text="BRACKET" /></Button>
+          <Button id="ano_tournament_tab_matches" class="ano-tab"><Label text="MATCHES" /></Button>
+          <Button id="ano_tournament_tab_teams" class="ano-tab"><Label text="TEAMS" /></Button>
+        </Panel>
+        <Panel class="ano-tournament-context" hittest="false">
+          <Label id="ano_tournament_heading" class="ano-section-title" text="{s:text}" />
+          <Label id="ano_tournament_description" class="ano-section-detail" text="{s:text}" />
+        </Panel>
+        <Panel class="ano-tournament-content" hittest="true">
+          <Panel class="ano-main-scroll" hittest="true">
+            <Panel id="ano_tournament_view_overview" class="ano-view" hittest="false">
+              <Panel class="ano-summary-grid" hittest="false"><Panel class="ano-summary-card" hittest="false"><Label id="ano_tournament_summary_0" class="ano-summary-text" text="{s:text}" /></Panel>
+<Panel class="ano-summary-card" hittest="false"><Label id="ano_tournament_summary_1" class="ano-summary-text" text="{s:text}" /></Panel>
+<Panel class="ano-summary-card" hittest="false"><Label id="ano_tournament_summary_2" class="ano-summary-text" text="{s:text}" /></Panel>
+<Panel class="ano-summary-card" hittest="false"><Label id="ano_tournament_summary_3" class="ano-summary-text" text="{s:text}" /></Panel></Panel>
+              <Label class="ano-hint" text="Tournament progress and upcoming matches are server-controlled." />
+            </Panel>
+            <Panel id="ano_tournament_view_table" class="ano-view" hittest="true">
+              <Panel class="ano-table-header" hittest="false">
+                <Label text="TEAM / POSITION" /><Label text="P | W | D | L | PTS | MAP +/- | ROUND +/-" />
+              </Panel>
+              <Button id="ano_tournament_table_0" class="ano-table-row"><Label id="ano_tournament_table_0_name" class="ano-table-name" text="{s:text}" /><Label id="ano_tournament_table_0_stats" class="ano-table-stats" text="{s:text}" /></Button>
+<Button id="ano_tournament_table_1" class="ano-table-row"><Label id="ano_tournament_table_1_name" class="ano-table-name" text="{s:text}" /><Label id="ano_tournament_table_1_stats" class="ano-table-stats" text="{s:text}" /></Button>
+<Button id="ano_tournament_table_2" class="ano-table-row"><Label id="ano_tournament_table_2_name" class="ano-table-name" text="{s:text}" /><Label id="ano_tournament_table_2_stats" class="ano-table-stats" text="{s:text}" /></Button>
+<Button id="ano_tournament_table_3" class="ano-table-row"><Label id="ano_tournament_table_3_name" class="ano-table-name" text="{s:text}" /><Label id="ano_tournament_table_3_stats" class="ano-table-stats" text="{s:text}" /></Button>
+<Button id="ano_tournament_table_4" class="ano-table-row"><Label id="ano_tournament_table_4_name" class="ano-table-name" text="{s:text}" /><Label id="ano_tournament_table_4_stats" class="ano-table-stats" text="{s:text}" /></Button>
+<Button id="ano_tournament_table_5" class="ano-table-row"><Label id="ano_tournament_table_5_name" class="ano-table-name" text="{s:text}" /><Label id="ano_tournament_table_5_stats" class="ano-table-stats" text="{s:text}" /></Button>
+<Button id="ano_tournament_table_6" class="ano-table-row"><Label id="ano_tournament_table_6_name" class="ano-table-name" text="{s:text}" /><Label id="ano_tournament_table_6_stats" class="ano-table-stats" text="{s:text}" /></Button>
+<Button id="ano_tournament_table_7" class="ano-table-row"><Label id="ano_tournament_table_7_name" class="ano-table-name" text="{s:text}" /><Label id="ano_tournament_table_7_stats" class="ano-table-stats" text="{s:text}" /></Button>
+<Button id="ano_tournament_table_8" class="ano-table-row"><Label id="ano_tournament_table_8_name" class="ano-table-name" text="{s:text}" /><Label id="ano_tournament_table_8_stats" class="ano-table-stats" text="{s:text}" /></Button>
+<Button id="ano_tournament_table_9" class="ano-table-row"><Label id="ano_tournament_table_9_name" class="ano-table-name" text="{s:text}" /><Label id="ano_tournament_table_9_stats" class="ano-table-stats" text="{s:text}" /></Button>
+            </Panel>
+            <Panel id="ano_tournament_view_bracket" class="ano-view" hittest="true">
+              <Label class="ano-hint" text="Bracket matches, seed positions and pending opponents." />
+              <Panel class="ano-bracket-grid" hittest="true"><Button id="ano_tournament_match_0" class="ano-match-card"><Label id="ano_tournament_match_0_text" class="ano-match-text" text="{s:text}" /></Button>
+<Button id="ano_tournament_match_1" class="ano-match-card"><Label id="ano_tournament_match_1_text" class="ano-match-text" text="{s:text}" /></Button>
+<Button id="ano_tournament_match_2" class="ano-match-card"><Label id="ano_tournament_match_2_text" class="ano-match-text" text="{s:text}" /></Button>
+<Button id="ano_tournament_match_3" class="ano-match-card"><Label id="ano_tournament_match_3_text" class="ano-match-text" text="{s:text}" /></Button>
+<Button id="ano_tournament_match_4" class="ano-match-card"><Label id="ano_tournament_match_4_text" class="ano-match-text" text="{s:text}" /></Button>
+<Button id="ano_tournament_match_5" class="ano-match-card"><Label id="ano_tournament_match_5_text" class="ano-match-text" text="{s:text}" /></Button>
+<Button id="ano_tournament_match_6" class="ano-match-card"><Label id="ano_tournament_match_6_text" class="ano-match-text" text="{s:text}" /></Button>
+<Button id="ano_tournament_match_7" class="ano-match-card"><Label id="ano_tournament_match_7_text" class="ano-match-text" text="{s:text}" /></Button>
+<Button id="ano_tournament_match_8" class="ano-match-card"><Label id="ano_tournament_match_8_text" class="ano-match-text" text="{s:text}" /></Button>
+<Button id="ano_tournament_match_9" class="ano-match-card"><Label id="ano_tournament_match_9_text" class="ano-match-text" text="{s:text}" /></Button>
+<Button id="ano_tournament_match_10" class="ano-match-card"><Label id="ano_tournament_match_10_text" class="ano-match-text" text="{s:text}" /></Button>
+<Button id="ano_tournament_match_11" class="ano-match-card"><Label id="ano_tournament_match_11_text" class="ano-match-text" text="{s:text}" /></Button>
+<Button id="ano_tournament_match_12" class="ano-match-card"><Label id="ano_tournament_match_12_text" class="ano-match-text" text="{s:text}" /></Button>
+<Button id="ano_tournament_match_13" class="ano-match-card"><Label id="ano_tournament_match_13_text" class="ano-match-text" text="{s:text}" /></Button>
+<Button id="ano_tournament_match_14" class="ano-match-card"><Label id="ano_tournament_match_14_text" class="ano-match-text" text="{s:text}" /></Button>
+<Button id="ano_tournament_match_15" class="ano-match-card"><Label id="ano_tournament_match_15_text" class="ano-match-text" text="{s:text}" /></Button></Panel>
+            </Panel>
+            <Panel id="ano_tournament_view_matches" class="ano-view" hittest="false">
+              <Label class="ano-hint" text="Choose a match from the bracket to inspect it, or navigate the match pages." />
+              <Label id="ano_tournament_fixture_0" class="ano-fixture-label" text="{s:text}" />
+<Label id="ano_tournament_fixture_1" class="ano-fixture-label" text="{s:text}" />
+<Label id="ano_tournament_fixture_2" class="ano-fixture-label" text="{s:text}" />
+<Label id="ano_tournament_fixture_3" class="ano-fixture-label" text="{s:text}" />
+<Label id="ano_tournament_fixture_4" class="ano-fixture-label" text="{s:text}" />
+<Label id="ano_tournament_fixture_5" class="ano-fixture-label" text="{s:text}" />
+<Label id="ano_tournament_fixture_6" class="ano-fixture-label" text="{s:text}" />
+<Label id="ano_tournament_fixture_7" class="ano-fixture-label" text="{s:text}" />
+<Label id="ano_tournament_fixture_8" class="ano-fixture-label" text="{s:text}" />
+<Label id="ano_tournament_fixture_9" class="ano-fixture-label" text="{s:text}" />
+<Label id="ano_tournament_fixture_10" class="ano-fixture-label" text="{s:text}" />
+<Label id="ano_tournament_fixture_11" class="ano-fixture-label" text="{s:text}" />
+<Label id="ano_tournament_fixture_12" class="ano-fixture-label" text="{s:text}" />
+<Label id="ano_tournament_fixture_13" class="ano-fixture-label" text="{s:text}" />
+<Label id="ano_tournament_fixture_14" class="ano-fixture-label" text="{s:text}" />
+<Label id="ano_tournament_fixture_15" class="ano-fixture-label" text="{s:text}" />
+            </Panel>
+            <Panel id="ano_tournament_view_teams" class="ano-view" hittest="true">
+              <Label class="ano-hint" text="Select a team to inspect registered players and their ready status." />
+              <Button id="ano_tournament_team_0" class="ano-team-row"><Label id="ano_tournament_team_0_name" class="ano-team-label" text="{s:text}" /></Button>
+<Button id="ano_tournament_team_1" class="ano-team-row"><Label id="ano_tournament_team_1_name" class="ano-team-label" text="{s:text}" /></Button>
+<Button id="ano_tournament_team_2" class="ano-team-row"><Label id="ano_tournament_team_2_name" class="ano-team-label" text="{s:text}" /></Button>
+<Button id="ano_tournament_team_3" class="ano-team-row"><Label id="ano_tournament_team_3_name" class="ano-team-label" text="{s:text}" /></Button>
+<Button id="ano_tournament_team_4" class="ano-team-row"><Label id="ano_tournament_team_4_name" class="ano-team-label" text="{s:text}" /></Button>
+<Button id="ano_tournament_team_5" class="ano-team-row"><Label id="ano_tournament_team_5_name" class="ano-team-label" text="{s:text}" /></Button>
+<Button id="ano_tournament_team_6" class="ano-team-row"><Label id="ano_tournament_team_6_name" class="ano-team-label" text="{s:text}" /></Button>
+<Button id="ano_tournament_team_7" class="ano-team-row"><Label id="ano_tournament_team_7_name" class="ano-team-label" text="{s:text}" /></Button>
+<Button id="ano_tournament_team_8" class="ano-team-row"><Label id="ano_tournament_team_8_name" class="ano-team-label" text="{s:text}" /></Button>
+<Button id="ano_tournament_team_9" class="ano-team-row"><Label id="ano_tournament_team_9_name" class="ano-team-label" text="{s:text}" /></Button>
+            </Panel>
+          </Panel>
+          <Panel class="ano-tournament-detail" hittest="false">
+            <Label class="ano-detail-title" text="SELECTED TEAM" />
+            <Label id="ano_tournament_team_name" class="ano-detail-team" text="{s:text}" />
+            <Label id="ano_tournament_team_status" class="ano-detail-status" text="{s:text}" />
+            <Label class="ano-detail-label" text="ROSTER / STEAM / PRESENCE" />
+            <Label id="ano_tournament_roster_0" class="ano-roster-label" text="{s:text}" />
+<Label id="ano_tournament_roster_1" class="ano-roster-label" text="{s:text}" />
+<Label id="ano_tournament_roster_2" class="ano-roster-label" text="{s:text}" />
+<Label id="ano_tournament_roster_3" class="ano-roster-label" text="{s:text}" />
+<Label id="ano_tournament_roster_4" class="ano-roster-label" text="{s:text}" />
+<Label id="ano_tournament_roster_5" class="ano-roster-label" text="{s:text}" />
+<Label id="ano_tournament_roster_6" class="ano-roster-label" text="{s:text}" />
+            <Label class="ano-hint" text="Online and ready are tracked separately. Configuration changes are server-side." />
+          </Panel>
+        </Panel>
+        <Panel class="ano-tournament-footer" hittest="true">
+          <Button id="ano_tournament_prev" class="ano-nav"><Label text="PREV" /></Button>
+          <Label id="ano_tournament_page" class="ano-page" text="{s:text}" />
+          <Button id="ano_tournament_next" class="ano-nav"><Label text="NEXT" /></Button>
+          <Label id="ano_tournament_sync" class="ano-sync" text="{s:text}" />
+        </Panel>
+      </Panel>
+    </Panel>
+  </Panel>
+</root>
