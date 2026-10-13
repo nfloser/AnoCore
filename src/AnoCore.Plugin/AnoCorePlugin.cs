@@ -95,6 +95,7 @@ public sealed class AnoCorePlugin : BasePlugin
     private ModerationWebhookPump? _webhooks;
     private CounterStrikeSharp.API.Modules.Timers.Timer? _roleExpiryTimer;
     private bool _panoramaMenusEnabled;
+    private bool _tournamentDashboardEnabled;
     private TournamentMatchRuntime? _tournamentMatch;
     private TournamentTeamEnforcement? _tournamentTeamEnforcement;
     private TournamentSpectatorPolicySource? _tournamentSpectatorPolicies;
@@ -447,6 +448,9 @@ public sealed class AnoCorePlugin : BasePlugin
             var externalModules = await configuration.LoadAsync("modules", () => new ExternalModuleConfiguration(),
                 ExternalModuleConfiguration.Validate, cancellationToken).ConfigureAwait(false);
             _panoramaMenusEnabled = settings.PanoramaMenusEnabled;
+            _tournamentDashboardEnabled = settings.TournamentDashboardEnabled;
+            if (_tournamentDashboardEnabled && !_panoramaMenusEnabled)
+                throw new InvalidOperationException("TournamentDashboardEnabled requires PanoramaMenusEnabled in core.json.");
             try
             {
                 _tournamentServerConfiguration = await configuration.LoadAsync("tournament-servers", () => new TournamentServerConfiguration(),
@@ -1365,7 +1369,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 tournamentEventCommands = new TournamentEventCommandController(
                     eventConfig, runtime.Commands,
                     new MySqlTournamentEventRepository(eventDatabase), runtime.AdminAudit);
-                if (_panoramaMenusEnabled && _customHud is not null)
+                if (_tournamentDashboardEnabled && _panoramaMenusEnabled && _customHud is not null)
                 {
                     tournamentPanorama = new TournamentPanoramaPresenter(
                         _customHud, new MySqlTournamentEventRepository(eventDatabase),
@@ -1869,6 +1873,10 @@ public sealed class AnoCorePlugin : BasePlugin
         public string ConnectionString { get; set; } = string.Empty;
 
         public bool PanoramaMenusEnabled { get; set; }
+
+        // Requires the compiled ano_tournament.xml in the mounted Workshop addon.
+        // Keep disabled until the one-time native client acceptance has passed.
+        public bool TournamentDashboardEnabled { get; set; }
 
         public ProtectedServerControlConfiguration ProtectedServerControls { get; set; } = new();
     }
