@@ -94,6 +94,10 @@ public sealed class TournamentSingleEliminationTests
             TournamentSingleElimination.Generate([entries[0], entries[1] with { Seed = 1 }, entries[2]]));
         Assert.ThrowsExactly<ArgumentException>(() =>
             TournamentSingleElimination.Generate([entries[0], entries[1] with { TeamId = "team-1" }, entries[2]]));
+        Assert.ThrowsExactly<ArgumentException>(() =>
+            TournamentSingleElimination.Generate([entries[0], null!, entries[2]]));
+        Assert.ThrowsExactly<ArgumentException>(() =>
+            TournamentSingleElimination.Generate([entries[0], entries[1] with { TeamId = "Bad ID" }, entries[2]]));
         Assert.ThrowsExactly<ArgumentOutOfRangeException>(() =>
             TournamentSingleElimination.Generate(Entries(2)));
         Assert.ThrowsExactly<ArgumentOutOfRangeException>(() =>
