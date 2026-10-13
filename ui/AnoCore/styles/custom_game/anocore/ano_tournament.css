@@ -65,6 +65,7 @@
     background-color: #122419ff; border: 1px solid #336040ff; border-radius: 4px;
 }
 .ano-match-text { width: 100%; color: #e6f2eaff; font-size: 17px; text-overflow: shrink; vertical-align: center; }
+.ano-fixture-label.hidden { visibility: collapse; }
 .ano-fixture-label {
     width: 100%; height: 35px; color: #e1f2e5ff; font-size: 16px;
     padding: 5px; border-bottom: 1px solid #2e4a37ff; text-overflow: shrink;
