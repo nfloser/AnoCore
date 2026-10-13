@@ -124,6 +124,10 @@ public sealed class MySqlTournamentEventRepositoryTests
         await Assert.ThrowsExactlyAsync<ArgumentException>(async () =>
             await writer.SavePlayoffsAsync(definition.Id, 3, [result, result]));
         Assert.AreEqual(3L, (await reader.LoadAsync(definition.Id))!.Revision);
+        definition.Teams[0].InitialSeed = 2;
+        definition.Teams[1].InitialSeed = 1;
+        await Assert.ThrowsExactlyAsync<ArgumentException>(async () => await writer.SaveAsync(definition.Id, 3, definition, []));
+        Assert.AreEqual(3L, (await reader.LoadAsync(definition.Id))!.Revision);
     }
 
     private static TournamentEventDefinition Definition(string id)

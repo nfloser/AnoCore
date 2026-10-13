@@ -89,7 +89,7 @@ public sealed class MySqlTournamentEventRepository : ITournamentEventRepository
         {
             await using var read = connection.CreateCommand();
             read.Transaction = transaction;
-            read.CommandText = "SELECT playoff_results_json, revision FROM ano_tournament_events WHERE event_id = @id FOR UPDATE";
+            read.CommandText = "SELECT playoff_results_json, revision, definition_json FROM ano_tournament_events WHERE event_id = @id FOR UPDATE";
             Add(read, "@id", eventId);
             IReadOnlyList<TournamentBracketResult> playoffs;
             await using (var reader = await read.ExecuteReaderAsync(token).ConfigureAwait(false))
@@ -97,6 +97,13 @@ public sealed class MySqlTournamentEventRepository : ITournamentEventRepository
                 if (!await reader.ReadAsync(token).ConfigureAwait(false) || reader.GetInt64(1) != expectedRevision)
                     throw new TournamentEventConcurrencyException(eventId, expectedRevision);
                 playoffs = DeserializePlayoffs(reader.GetString(0));
+                if (playoffs.Count > 0)
+                {
+                    var previous = JsonSerializer.Deserialize<TournamentEventDefinition>(reader.GetString(2))
+                        ?? throw new InvalidDataException("Missing previous event definition.");
+                    if (!TournamentEventPlayoffs.Entrants(previous).SequenceEqual(TournamentEventPlayoffs.Entrants(definition)))
+                        throw new ArgumentException("Cannot change playoff entrants or seeds after confirmed results.", nameof(definition));
+                }
             }
             _ = TournamentBracketProgression.Calculate(TournamentEventPlayoffs.Entrants(definition), playoffs);
             await using var command = connection.CreateCommand();
