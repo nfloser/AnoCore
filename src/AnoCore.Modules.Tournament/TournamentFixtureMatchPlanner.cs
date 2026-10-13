@@ -23,8 +23,13 @@ public static class TournamentFixtureMatchPlanner
     public static IReadOnlyList<TournamentReadyMatch> Plan(
         TournamentEventDefinition definition,
         IReadOnlyCollection<TournamentGroupResult> confirmedGroups,
-        IReadOnlyCollection<TournamentBracketResult> confirmedPlayoffs)
+        IReadOnlyCollection<TournamentBracketResult> confirmedPlayoffs,
+        int defaultGroupBestOf = 1, int defaultPlayoffBestOf = 3)
     {
+        if (defaultGroupBestOf is not (1 or 3 or 5)
+            || defaultPlayoffBestOf is not (1 or 3 or 5))
+            throw new ArgumentOutOfRangeException(nameof(defaultGroupBestOf),
+                "Default group and playoff BestOf must be 1, 3 or 5.");
         ArgumentNullException.ThrowIfNull(definition);
         ArgumentNullException.ThrowIfNull(confirmedGroups);
         ArgumentNullException.ThrowIfNull(confirmedPlayoffs);
@@ -53,7 +58,7 @@ public static class TournamentFixtureMatchPlanner
                 {
                     ready.Add(Create(definition.Id, "group", fixture.Id,
                         fixture.HomeTeamId, fixture.AwayTeamId, teams,
-                        definition.GroupBestOf ?? 1));
+                        definition.GroupBestOf ?? defaultGroupBestOf));
                 }
             }
         }
@@ -72,7 +77,7 @@ public static class TournamentFixtureMatchPlanner
             {
                 ready.Add(Create(definition.Id, "playoff", match.Id,
                     match.HomeTeamId!, match.AwayTeamId!, teams,
-                    definition.PlayoffBestOf ?? 3));
+                    definition.PlayoffBestOf ?? defaultPlayoffBestOf));
             }
         }
 

@@ -15,16 +15,22 @@ public sealed class TournamentEventCommandController : IDisposable
     private readonly IConfigStore _config;
     private readonly ITournamentEventRepository _repository;
     private readonly IAdminAuditService _audit;
+    private readonly TournamentMatchZyConfiguration _matchZyDefaults;
     private readonly SemaphoreSlim _gate = new(1, 1);
     private readonly List<IDisposable> _registrations = [];
     private bool _disposed;
 
     public TournamentEventCommandController(IConfigStore config, IAnoCommandRegistry registry,
-        ITournamentEventRepository repository, IAdminAuditService audit)
+        ITournamentEventRepository repository, IAdminAuditService audit,
+        TournamentMatchZyConfiguration? matchZyDefaults = null)
     {
         _config = config ?? throw new ArgumentNullException(nameof(config));
         _repository = repository ?? throw new ArgumentNullException(nameof(repository));
         _audit = audit ?? throw new ArgumentNullException(nameof(audit));
+        _matchZyDefaults = matchZyDefaults ?? new TournamentMatchZyConfiguration();
+        if (_matchZyDefaults.DefaultGroupBestOf is not (1 or 3 or 5)
+            || _matchZyDefaults.DefaultPlayoffBestOf is not (1 or 3 or 5))
+            throw new ArgumentException("Tournament MatchZy defaults must be valid BO1/3/5.", nameof(matchZyDefaults));
         ArgumentNullException.ThrowIfNull(registry);
 
         _registrations.Add(registry.Register(Owner,
@@ -118,7 +124,8 @@ public sealed class TournamentEventCommandController : IDisposable
         if (active is null)
             return CommandResult.Ok("[ANO] No shared tournament event is active.");
         var options = TournamentFixtureMatchPlanner.Plan(
-            active.Definition, active.ConfirmedResults, active.PlayoffResults);
+            active.Definition, active.ConfirmedResults, active.PlayoffResults,
+            _matchZyDefaults.DefaultGroupBestOf, _matchZyDefaults.DefaultPlayoffBestOf);
         const int pageSize = 6;
         var pages = Math.Max(1, (options.Count + pageSize - 1) / pageSize);
         if (page > pages)

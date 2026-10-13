@@ -1356,7 +1356,8 @@ public sealed class AnoCorePlugin : BasePlugin
                 }
                 tournamentEventCommands = new TournamentEventCommandController(
                     eventConfig, runtime.Commands,
-                    new MySqlTournamentEventRepository(eventDatabase), runtime.AdminAudit);
+                    new MySqlTournamentEventRepository(eventDatabase), runtime.AdminAudit,
+                    _tournamentMatchZyConfiguration);
                 tournamentAdminMenu = new TournamentAdminMenuModule(runtime.Commands, runtime.Players, runtime.Menus,
                     eventConfig, new MySqlTournamentEventRepository(eventDatabase), events);
 
