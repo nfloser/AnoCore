@@ -2,7 +2,7 @@
 
 Tracking: #409 (part of #379 and #380).
 
-`TournamentFixtureMatchPlanner.Plan(eventDefinition, groupResults, playoffResults)`
+`TournamentFixtureMatchPlanner.Plan(eventDefinition, groupResults, playoffResults, defaultGroupBestOf, defaultPlayoffBestOf)`
 returns **potential**, unclaimed 5v5 matches. It is independent of
 CounterStrikeSharp, MySQL access and Valve Workshop assets.
 
@@ -24,8 +24,8 @@ CounterStrikeSharp, MySQL access and Valve Workshop assets.
   five registered starters, captain, knife/overtime defaults, and
   configured BO1/BO3/BO5. Substitutes are never silently inserted into
   the starting roster.
-- Stage BestOf defaults are BO1 for groups and BO3 for playoffs unless
-  the event explicitly overrides them.
+- The default stage BestOf is BO1 for groups and BO3 for playoffs when no
+  alternative defaults are supplied; an explicit event-stage BestOf always wins.
 
 ## Read-only operator preview
 
@@ -36,6 +36,26 @@ deterministic CS2 match GUID. Pages are 1-based; the command does **not**
 reserve a server, create live gameplay, bypass permissions or mutate results.
 The same event may be previewed from any server sharing the database.
 
+## Consistency with automatic MatchZy assignment
+
+The MatchZy claim planner and the read-only fixture preview now both call
+the same canonical planner. They therefore agree on the source fixture ID,
+participant sides, unplayed stage eligibility and the effective BO1/BO3/BO5.
+If `tournament-matchzy.json` specifies `DefaultGroupBestOf` or
+`DefaultPlayoffBestOf`, the same defaults are supplied to the operator
+preview. Explicit `GroupBestOf` and `PlayoffBestOf` in the event take
+precedence, without mutating the stored event definition.
+
+The deterministic GUID shown by `anotournamenteventnext` is the independent
+AnoCore standalone match identity. MatchZy uses a separate **numeric**
+assignment ID for `matchid`. The common referent is the stable tournament
+fixture ID, not an interchangeable `matchid` format.
+
+MatchZy already supports transactionally claimed fixtures, server instance
+fencing and auditable, idempotent result ingestion; see
+[tournament-matchzy.md](tournament-matchzy.md). The standalone planner itself
+remains read-only and never claims or starts a CS2 match.
+
 ## Safety boundary
 
 **A planned fixture is not a live server reservation and does not mean
@@ -43,7 +63,7 @@ the players are online or ready.** The planner does not mutate the event
 database, call `TournamentRecoveryService.BeginAsync`, issue a
 map-change command or bypass the existing server-scoped match lease.
 
-Before automatic assignment, a separate coordinator must:
+The automatic MatchZy coordinator must:
 
 1. Check the current event revision and fixture identity again;
 2. transactionally claim the fixture against the specific live server,
@@ -56,9 +76,10 @@ Before automatic assignment, a separate coordinator must:
    event fixture before recording result in MySQL; use idempotency keys;
 6. release or recover the assignment safely after disconnect or crash.
 
-Those server and native match adapter steps remain follow-up work.
-This planner alone must not be described as hands-off tournament
-automation.
+The current MatchZy coordinator implements transactional claims and a
+validated callback adapter. Native, two-server and Workshop client acceptance
+is still required; this planner alone must not be described as hands-off
+tournament automation.
 
 ## Verification
 
