@@ -40,6 +40,11 @@ canonical group/playoff fixture planner, including Swiss round gating and
 explicit or default BestOf. The preview prints a deterministic standalone
 AnoCore match GUID for reference; MatchZy loads a **numeric** assignment ID.
 Their stable join key is the event fixture ID, not the match ID format.
+When several servers share an event, they must agree on effective group and
+playoff BestOf. The transaction compares each attempted claim against all
+historical assignments for that event and stage; inconsistent local defaults
+fail explicitly rather than producing mixed BO1/BO3 fixtures. Explicit
+event-stage BestOf overrides take precedence.
 
 When both teams' five starters are present on one server, the 10-second poll
 claims a ready fixture. A SteamID visible on two live servers prevents the claim.
