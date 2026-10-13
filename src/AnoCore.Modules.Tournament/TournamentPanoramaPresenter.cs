@@ -308,6 +308,7 @@ public sealed class TournamentPanoramaPresenter : IDisposable
                     MatchStatus(bracketMatches[index].Id, progress!, eventState!.PlayoffResults, names) + AssignmentStatus(bracketMatches[index].Id)
                 : string.Empty);
             var fixtureShow = index < fixtures.Length;
+            _hud.SetClass(player, HudId, $"ano_tournament_fixture_{i}", "hidden", !fixtureShow);
             if (fixtureShow)
             {
                 var fixture = fixtures[index];
