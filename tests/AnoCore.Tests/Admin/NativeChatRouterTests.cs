@@ -305,7 +305,7 @@ public sealed class NativeChatRouterTests
             CollectionAssert.AreEquivalent(new[] { t.Id, ct.Id }, everyone.Recipients.ToArray());
 
             var teamOnly = router.Route(ct.Id, "private", true);
-            Assert.AreEqual("[TEAM] \x0E[HOST]\x01 \x0BBlue\x01: \x01private\x01",
+            Assert.AreEqual("[TEAM] \x0E[HOST]\x01 \u000BBlue\x01: \x01private\x01",
                 teamOnly.FormattedMessage);
             CollectionAssert.AreEquivalent(new[] { ct.Id }, teamOnly.Recipients.ToArray());
             StringAssert.StartsWith(NativeChatText.Prepare(teamOnly.FormattedMessage!), " [TEAM] ");
