@@ -101,6 +101,8 @@ public sealed class AnoCorePlugin : BasePlugin
     private TournamentSpectatorEnforcement? _tournamentSpectatorEnforcement;
     private TournamentCommandController? _tournamentCommands;
     private TournamentEventCommandController? _tournamentEventCommands;
+    private TournamentPanoramaPresenter? _tournamentPanorama;
+    private CounterStrikeSharp.API.Modules.Timers.Timer? _tournamentRefreshTimer;
     private TournamentMapSelectionCommandController? _tournamentMapSelectionCommands;
     private CounterStrikeSharp.API.Modules.Timers.Timer? _chatPolicyTimer;
     private ChatMessageFormatter? _chatFormatter;
@@ -270,6 +272,10 @@ public sealed class AnoCorePlugin : BasePlugin
             _tournamentCommands = null;
             _tournamentEventCommands?.Dispose();
             _tournamentEventCommands = null;
+            _tournamentRefreshTimer?.Kill();
+            _tournamentRefreshTimer = null;
+            _tournamentPanorama?.Dispose();
+            _tournamentPanorama = null;
             _tournamentSpectatorEnforcement?.Dispose();
             _tournamentSpectatorEnforcement = null;
             _tournamentSpectatorPolicies?.Dispose();
@@ -1088,6 +1094,8 @@ public sealed class AnoCorePlugin : BasePlugin
             TournamentSpectatorEnforcement? tournamentSpectatorEnforcement = null;
             TournamentCommandController? tournamentCommands = null;
             TournamentEventCommandController? tournamentEventCommands = null;
+            TournamentPanoramaPresenter? tournamentPanorama = null;
+            CounterStrikeSharp.API.Modules.Timers.Timer? tournamentRefreshTimer = null;
             TournamentMapSelectionCommandController? tournamentMapSelectionCommands = null;
             IDisposable? messageTransportRegistration = null;
             LevelNotificationService? levelNotifications = null;
@@ -1285,6 +1293,16 @@ public sealed class AnoCorePlugin : BasePlugin
                 tournamentEventCommands = new TournamentEventCommandController(
                     eventConfig, runtime.Commands,
                     new MySqlTournamentEventRepository(eventDatabase), runtime.AdminAudit);
+                if (_panoramaMenusEnabled && _customHud is not null)
+                {
+                    tournamentPanorama = new TournamentPanoramaPresenter(
+                        _customHud, new MySqlTournamentEventRepository(eventDatabase),
+                        runtime.Players, runtime.Commands, events);
+                    var activeTournamentPanorama = tournamentPanorama;
+                    tournamentRefreshTimer = AddTimer(3.0f, () =>
+                        Observe(activeTournamentPanorama.RefreshOpenAsync(cancellationToken).AsTask(),
+                            "tournament_dashboard_refresh"), TimerFlags.REPEAT);
+                }
 
                 if (tournamentMatch is not null)
                 {
@@ -1535,6 +1553,8 @@ public sealed class AnoCorePlugin : BasePlugin
                 _tournamentSpectatorEnforcement = tournamentSpectatorEnforcement;
                 _tournamentCommands = tournamentCommands;
                 _tournamentEventCommands = tournamentEventCommands;
+                _tournamentPanorama = tournamentPanorama;
+                _tournamentRefreshTimer = tournamentRefreshTimer;
                 _tournamentMapSelectionCommands = tournamentMapSelectionCommands;
                 _chatFormatter = chatFormatter;
                 _chatTags = chatTags;
@@ -1619,6 +1639,8 @@ public sealed class AnoCorePlugin : BasePlugin
                 tournamentMapSelectionCommands?.Dispose();
                 tournamentCommands?.Dispose();
                 tournamentEventCommands?.Dispose();
+                tournamentRefreshTimer?.Kill();
+                tournamentPanorama?.Dispose();
                 tournamentSpectatorEnforcement?.Dispose();
                 tournamentSpectatorPolicies?.Dispose();
                 tournamentTeamEnforcement?.Dispose();
