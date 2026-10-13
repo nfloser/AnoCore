@@ -1368,7 +1368,8 @@ public sealed class AnoCorePlugin : BasePlugin
                 }
                 tournamentEventCommands = new TournamentEventCommandController(
                     eventConfig, runtime.Commands,
-                    new MySqlTournamentEventRepository(eventDatabase), runtime.AdminAudit);
+                    new MySqlTournamentEventRepository(eventDatabase), runtime.AdminAudit,
+                    _tournamentMatchZyConfiguration);
                 if (_tournamentDashboardEnabled && _panoramaMenusEnabled && _customHud is not null)
                 {
                     tournamentPanorama = new TournamentPanoramaPresenter(
