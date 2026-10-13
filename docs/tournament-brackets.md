@@ -114,3 +114,41 @@ After any playoff result is recorded, group/rule edits that would change the
 qualified field or its seeds are rejected. Display-name edits remain possible.
 This is static seeding; cross-group rematch avoidance and round reseeding are
 not yet configurable policies.
+
+
+## Optional first-round crossing after group qualification
+
+For multi-group tournaments, set `CrossGroupOpeningPairings: true` in
+`tournament-event.json` alongside `PlayoffQualifiersPerGroup`.
+For example, with three groups and two qualifiers from each:
+
+```json
+{
+  "GroupStageEnabled": true,
+  "PlayoffsEnabled": true,
+  "PlayoffQualifiersPerGroup": 2,
+  "CrossGroupOpeningPairings": true
+}
+```
+
+(Keep the other required event fields and real team/SteamID roster entries;
+the snippet above is only the additional stage policy.)
+
+After **all** group fixtures are confirmed, the engine seeds the qualified
+teams and searches opening-round matchups for the fewest same-group opponents.
+When a crossed pairing is possible, the optimizer finds one. It preserves
+first-round **byes for the original top seeds** and then minimizes how far
+the remaining seed positions must move. Ties have deterministic ordering,
+so all connected servers generate identical brackets from the same event.
+
+This applies to both single- and double-elimination, because the upper
+bracket shares the same seeded opening. No results or match IDs are rewritten
+once a playoff has started: MySQL rejects changes to crossing policy after
+a confirmed playoff result. If crossing is disabled or qualifying groups
+do not exist, the original standard seeding remains unchanged. Invalid
+crossing settings are rejected on import rather than silently ignored.
+
+Cross-group avoidance is only an opening-round preference. An eventual
+semifinal or final can naturally involve teams from the same initial group.
+It does **not** imply automatic reseeding after every completed playoff round;
+that is a separate stage policy.
