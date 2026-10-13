@@ -149,7 +149,25 @@ if ($InstallLocalClient) {
     Copy-Item $logo (Join-Path $clientStyleDir "anomeme_banner.vtex_c") -Force
 }
 
-foreach ($name in @("ano_veto_cards", "ano_veto", "menu", "ano_tournament")) {
+# Compile replaceable arcade fruit textures from source PNG/VTEX pairs.
+$arcadeDir = Join-Path $styleDir "arcade"
+New-Item -ItemType Directory -Force -Path $arcadeDir | Out-Null
+foreach ($symbol in @("cherry", "lemon", "plum")) {
+    foreach ($extension in @(".png", ".vtex")) {
+        Copy-Item (Join-Path $src "styles\custom_game\anocore\arcade\$symbol$extension") (Join-Path $arcadeDir "$symbol$extension") -Force
+    }
+    & $compiler -i (Join-Path $arcadeDir "$symbol.vtex") -f -r
+    if ($LASTEXITCODE -ne 0) { throw "Failed to compile arcade symbol $symbol" }
+    $compiled = Join-Path $Cs2 "game\csgo_addons\$Addon\panorama\styles\custom_game\anocore\arcade\$symbol.vtex_c"
+    if (-not (Test-Path $compiled)) { throw "Compiled arcade symbol missing: $compiled" }
+    if ($InstallLocalClient) {
+        $clientArcadeDir = Join-Path $Cs2 "game\csgo\panorama\styles\custom_game\anocore\arcade"
+        New-Item -ItemType Directory -Force -Path $clientArcadeDir | Out-Null
+        Copy-Item $compiled (Join-Path $clientArcadeDir "$symbol.vtex_c") -Force
+    }
+}
+
+foreach ($name in @("ano_veto_cards", "ano_veto", "menu", "ano_tournament", "ano_arcade")) {
     $layoutTarget = Join-Path $layoutDir "$name.xml"
     $styleTarget = Join-Path $styleDir "$name.css"
     Copy-Item (Join-Path $src "layout\custom_game\anocore\$name.xml") $layoutTarget -Force
