@@ -24,7 +24,7 @@ public sealed class NativeChatRouterTests
         var route = router.Route(sender.Id, "hello", false);
 
         Assert.IsTrue(route.ShouldIntercept);
-        Assert.AreEqual("[R] Player: hello", route.FormattedMessage);
+        Assert.AreEqual("[ALL] [R] Player: hello", route.FormattedMessage);
         CollectionAssert.AreEquivalent(
             new[] { sender.Id, teammate.Id, opponent.Id },
             route.Recipients.ToArray());
@@ -44,7 +44,7 @@ public sealed class NativeChatRouterTests
         CollectionAssert.AreEquivalent(
             new[] { sender.Id, teammate.Id },
             route.Recipients.ToArray());
-        Assert.AreEqual("(TEAM) [R] Player: team", route.FormattedMessage);
+        Assert.AreEqual("[TEAM] [R] Player: team", route.FormattedMessage);
     }
 
     [TestMethod]
@@ -223,7 +223,7 @@ public sealed class NativeChatRouterTests
                 throw new InvalidOperationException("diagnostics");
             });
         var route = router.Route(sender.Id, "hello", false);
-        Assert.AreEqual("[R] Player: hello", route.FormattedMessage);
+        Assert.AreEqual("[ALL] [R] Player: hello", route.FormattedMessage);
         release.SetResult();
         await reported.Task.WaitAsync(TimeSpan.FromSeconds(5));
     }
@@ -255,17 +255,65 @@ public sealed class NativeChatRouterTests
                 RolePrefix = player => policy.Resolve(player.Id, groups, player.Team),
             };
             var first = router.Route(sender.Id, "hello\x04 {chat.tag}", true);
-            StringAssert.StartsWith(first.FormattedMessage!, "\x0E[HOST]\x01 (TEAM)");
+            StringAssert.StartsWith(first.FormattedMessage!, "[TEAM] \x0E[HOST]\x01 ");
             StringAssert.Contains(first.FormattedMessage!, "Nils  {rank.tag}: hello  {chat.tag}");
             var nativeText = NativeChatText.Prepare(first.FormattedMessage!);
-            StringAssert.StartsWith(nativeText, " \x0E[HOST]\x01 (TEAM)");
+            StringAssert.StartsWith(nativeText, " [TEAM] \x0E[HOST]\x01 ");
             Assert.IsFalse(nativeText.Contains('\x07'));
             Assert.IsFalse(nativeText.Contains('\x04'));
             CollectionAssert.AreEquivalent(new[] { sender.Id, teammate.Id }, first.Recipients.ToArray());
             groups.Clear(); // no reconnect/snapshot refresh needed when CSS removes a role
-            StringAssert.StartsWith(router.Route(sender.Id, "next", false).FormattedMessage!, "\x04[ANOMEME]\x01 ");
+            StringAssert.StartsWith(router.Route(sender.Id, "next", false).FormattedMessage!, "[ALL] \x04[ANOMEME]\x01 ");
         }
         finally { if (Directory.Exists(root)) Directory.Delete(root, true); }
+    }
+
+    [TestMethod]
+    public async Task OldServerChatProfileColorsNamesByTeamAndKeepsRolesAndMessagesSeparate()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "anocore-old-chat-style", Guid.NewGuid().ToString("N"));
+        try
+        {
+            var bus = new AnoEventBus();
+            var players = new PlayerRegistry(bus);
+            var t = await players.ConnectAsync(new PlayerConnection(new PlayerId(76561198000012666),
+                "Orange", PlayerTeam.Terrorist, true, Now));
+            var ct = await players.ConnectAsync(new PlayerConnection(new PlayerId(76561198000012667),
+                "Blue", PlayerTeam.CounterTerrorist, true, Now));
+            var store = new AnoCore.Runtime.Configuration.JsonConfigStore(root);
+            await store.SaveAsync("chat-format", new ChatFormatConfiguration
+            {
+                PublicTemplate = "{player.name}: {message}",
+                TeamTemplate = "{player.name}: {message}",
+                NameColor = "Team",
+                MessageColor = "Default",
+                RankColor = "None",
+            });
+            using var formatter = await ChatMessageFormatter.CreateAsync(store,
+                new AnoCore.Runtime.Placeholders.PlaceholderRegistry());
+            using var snapshots = new ChatFormatSnapshotLifecycle(bus, formatter);
+            await snapshots.WarmExistingAsync(players.OnlinePlayers);
+            var router = new NativeChatRouter(_ => ChatInterceptionDecision.Allow, players, snapshots.TryFormat)
+            {
+                RolePrefix = player => player.Id == t.Id
+                    ? "\x09[DEV]\x01 " : "\x0E[HOST]\x01 ",
+            };
+
+            var everyone = router.Route(t.Id, "hello", false);
+            Assert.AreEqual("[ALL] \x09[DEV]\x01 \x10Orange\x01: \x01hello\x01",
+                everyone.FormattedMessage);
+            CollectionAssert.AreEquivalent(new[] { t.Id, ct.Id }, everyone.Recipients.ToArray());
+
+            var teamOnly = router.Route(ct.Id, "private", true);
+            Assert.AreEqual("[TEAM] \x0E[HOST]\x01 \u000BBlue\x01: \x01private\x01",
+                teamOnly.FormattedMessage);
+            CollectionAssert.AreEquivalent(new[] { ct.Id }, teamOnly.Recipients.ToArray());
+            StringAssert.StartsWith(NativeChatText.Prepare(teamOnly.FormattedMessage!), " [TEAM] ");
+        }
+        finally
+        {
+            if (Directory.Exists(root)) Directory.Delete(root, true);
+        }
     }
 
     [TestMethod]

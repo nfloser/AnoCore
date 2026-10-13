@@ -1,0 +1,17 @@
+{
+  "PublicTemplate": "{player.name}: {message}",
+  "TeamTemplate": "{player.name}: {message}",
+  "RankColor": "None",
+  "NameColor": "Team",
+  "MessageColor": "Default",
+  "PassthroughCommands": [
+    ".map",
+    ".prac",
+    ".ready",
+    ".unready",
+    ".pause",
+    ".unpause",
+    ".stay",
+    ".switch"
+  ]
+}
