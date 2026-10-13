@@ -1,0 +1,78 @@
+{
+  "Enabled": false,
+  "Event": {
+    "Id": "anomeme-cup",
+    "Name": "AnoMeme Cup",
+    "TeamSize": 5,
+    "MaxSubstitutes": 2,
+    "Teams": [
+      {
+        "Id": "legends",
+        "Name": "AnoMeme Legends",
+        "Tag": "LEG",
+        "CaptainSteamId": 76561198030000020,
+        "Starters": [
+          76561198030000020,
+          76561198030000020,
+          76561198030000020,
+          76561198030000020,
+          76561198030000020
+        ],
+        "Substitutes": [],
+        "InitialSeed": 1
+      },
+      {
+        "Id": "raiders",
+        "Name": "Night Raiders",
+        "Tag": "NR",
+        "CaptainSteamId": 76561198030000020,
+        "Starters": [
+          76561198030000020,
+          76561198030000020,
+          76561198030000020,
+          76561198030000020,
+          76561198030000020
+        ],
+        "Substitutes": [],
+        "InitialSeed": 2
+      },
+      {
+        "Id": "underdogs",
+        "Name": "Underdogs",
+        "Tag": "UD",
+        "CaptainSteamId": 76561198030000030,
+        "Starters": [
+          76561198030000030,
+          76561198030000030,
+          76561198030000030,
+          76561198030000030,
+          76561198030000030
+        ],
+        "Substitutes": [],
+        "InitialSeed": 3
+      }
+    ],
+    "Groups": [
+      {
+        "Id": "main",
+        "Name": "Liga",
+        "TeamIds": [
+          "legends",
+          "raiders",
+          "underdogs"
+        ]
+      }
+    ],
+    "Standings": {
+      "WinPoints": 3,
+      "DrawPoints": 1,
+      "LossPoints": 0,
+      "AllowDraws": false,
+      "Tiebreakers": [
+        "MapDifference",
+        "RoundDifference",
+        "InitialSeed"
+      ]
+    }
+  }
+}
