@@ -75,8 +75,8 @@ slots. Result-only changes never require Workshop republishing. With `tournament
 server identity, player session and actual AnoTournament readiness. Presence
 changes refresh the roster independently of event revisions. Multiple reported
 sessions are labeled explicitly instead of assuming readiness. Without that
-configuration, presence remains labeled **local server only**. The existing single-active-match runtime has not yet been
-replaced with server-scoped match leases. MatchZy/CS2 result ingestion,
+configuration, presence remains labeled **local server only**. Configured server identities now use fenced per-server active match pointers;
+unconfigured servers retain the legacy singleton path. MatchZy/CS2 result ingestion,
 Swiss and double elimination also require separate implementations.
 Do not treat those items as complete.
 
