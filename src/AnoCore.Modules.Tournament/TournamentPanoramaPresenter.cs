@@ -165,7 +165,20 @@ public sealed class TournamentPanoramaPresenter : IDisposable
     private void Render(State state, TournamentStoredEvent? eventState, bool force = false)
     {
         var revision = eventState?.Revision ?? 0;
-        if (!force && !state.Dirty && state.RenderedRevision == revision) return;
+        var eventId = eventState?.Definition.Id;
+        if (string.Equals(state.RenderedEventId, eventId, StringComparison.Ordinal)
+            && revision < state.RenderedRevision) return;
+        if (!force && !state.Dirty && state.RenderedRevision == revision
+            && string.Equals(state.RenderedEventId, eventId, StringComparison.Ordinal)) return;
+        if (state.RenderedEventId is not null
+            && !string.Equals(state.RenderedEventId, eventId, StringComparison.Ordinal))
+        {
+            state.View = "overview";
+            state.Page = 0;
+            state.SelectedTeamRow = null;
+            state.SelectedTableRow = null;
+            state.SelectedMatchRow = null;
+        }
         var player = state.Player.Id;
         var definition = eventState?.Definition;
         var groups = definition is null
@@ -312,6 +325,7 @@ public sealed class TournamentPanoramaPresenter : IDisposable
                     Set(player, $"ano_tournament_roster_{i}", string.Empty);
             }
         }
+        state.RenderedEventId = eventId;
         state.RenderedRevision = revision;
         state.Dirty = false;
     }
@@ -368,6 +382,7 @@ public sealed class TournamentPanoramaPresenter : IDisposable
         public int? SelectedTeamRow { get; set; }
         public int? SelectedTableRow { get; set; }
         public int? SelectedMatchRow { get; set; }
+        public string? RenderedEventId { get; set; }
         public long RenderedRevision { get; set; } = -1;
         public bool Dirty { get; set; } = true;
     }
