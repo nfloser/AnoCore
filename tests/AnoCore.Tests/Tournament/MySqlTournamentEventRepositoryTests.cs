@@ -117,10 +117,20 @@ public sealed class MySqlTournamentEventRepositoryTests
                 InitialSeed = i,
             };
         }).ToList();
-        return new TournamentEventDefinition { Id = id, Name = "Shared event",
-            Teams = teams, Groups = [new TournamentGroupDefinition
-            {
-                Id = "main", Name = "Main", TeamIds = teams.Select(team => team.Id).ToList(),
-            }] };
+        return new TournamentEventDefinition
+        {
+            Id = id,
+            Name = "Shared event",
+            Teams = teams,
+            Groups =
+            [
+                new TournamentGroupDefinition
+                {
+                    Id = "main",
+                    Name = "Main",
+                    TeamIds = teams.Select(team => team.Id).ToList(),
+                },
+            ],
+        };
     }
 }
