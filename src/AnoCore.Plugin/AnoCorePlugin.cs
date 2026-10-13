@@ -100,6 +100,7 @@ public sealed class AnoCorePlugin : BasePlugin
     private TournamentSpectatorPolicySource? _tournamentSpectatorPolicies;
     private TournamentSpectatorEnforcement? _tournamentSpectatorEnforcement;
     private TournamentCommandController? _tournamentCommands;
+    private TournamentEventCommandController? _tournamentEventCommands;
     private TournamentMapSelectionCommandController? _tournamentMapSelectionCommands;
     private CounterStrikeSharp.API.Modules.Timers.Timer? _chatPolicyTimer;
     private ChatMessageFormatter? _chatFormatter;
@@ -267,6 +268,8 @@ public sealed class AnoCorePlugin : BasePlugin
             _tournamentMapSelectionCommands = null;
             _tournamentCommands?.Dispose();
             _tournamentCommands = null;
+            _tournamentEventCommands?.Dispose();
+            _tournamentEventCommands = null;
             _tournamentSpectatorEnforcement?.Dispose();
             _tournamentSpectatorEnforcement = null;
             _tournamentSpectatorPolicies?.Dispose();
@@ -1084,6 +1087,7 @@ public sealed class AnoCorePlugin : BasePlugin
             TournamentSpectatorPolicySource? tournamentSpectatorPolicies = null;
             TournamentSpectatorEnforcement? tournamentSpectatorEnforcement = null;
             TournamentCommandController? tournamentCommands = null;
+            TournamentEventCommandController? tournamentEventCommands = null;
             TournamentMapSelectionCommandController? tournamentMapSelectionCommands = null;
             IDisposable? messageTransportRegistration = null;
             LevelNotificationService? levelNotifications = null;
@@ -1272,6 +1276,16 @@ public sealed class AnoCorePlugin : BasePlugin
                 transitionMonitor = null;
                 var events = _eventBus
                     ?? throw new InvalidOperationException("AnoCore event bus is unavailable during activation.");
+                // The shared multi-team event is independent of a loaded legacy two-team match.
+                // Operators import the fixed tournament-event.json into the shared DB.
+                var eventDatabase = runtime.GetService(typeof(IDatabase)) as IDatabase
+                    ?? throw new InvalidOperationException("AnoCore runtime has no shared database.");
+                var eventConfig = runtime.GetService(typeof(IConfigStore)) as IConfigStore
+                    ?? throw new InvalidOperationException("AnoCore runtime has no configuration store.");
+                tournamentEventCommands = new TournamentEventCommandController(
+                    eventConfig, runtime.Commands,
+                    new MySqlTournamentEventRepository(eventDatabase), runtime.AdminAudit);
+
                 if (tournamentMatch is not null)
                 {
                     var database = runtime.GetService(typeof(IDatabase)) as IDatabase
@@ -1520,6 +1534,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 _tournamentSpectatorPolicies = tournamentSpectatorPolicies;
                 _tournamentSpectatorEnforcement = tournamentSpectatorEnforcement;
                 _tournamentCommands = tournamentCommands;
+                _tournamentEventCommands = tournamentEventCommands;
                 _tournamentMapSelectionCommands = tournamentMapSelectionCommands;
                 _chatFormatter = chatFormatter;
                 _chatTags = chatTags;
@@ -1603,6 +1618,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 seasons?.Dispose();
                 tournamentMapSelectionCommands?.Dispose();
                 tournamentCommands?.Dispose();
+                tournamentEventCommands?.Dispose();
                 tournamentSpectatorEnforcement?.Dispose();
                 tournamentSpectatorPolicies?.Dispose();
                 tournamentTeamEnforcement?.Dispose();
