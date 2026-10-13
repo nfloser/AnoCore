@@ -215,7 +215,7 @@ public sealed class TournamentPanoramaPresenter : IDisposable
             TournamentSchedules.Generate(definition, group.Id, eventState!.ConfirmedResults.Where(result => result.FixtureId.StartsWith(group.Id + ":", StringComparison.Ordinal)).ToArray()).SelectMany(round => round.Fixtures)).ToArray();
         var fixturePages = Math.Max(1, (fixtures.Length + 15) / 16);
         var entrants = definition is null ? null : TournamentEventPlayoffs.ResolveEntrants(definition, eventState!.ConfirmedResults);
-        var bracket = entrants is null ? null : TournamentPlayoffPlans.Generate(definition!, entrants);
+        var bracket = entrants is null ? null : TournamentPlayoffPlans.Generate(definition!, entrants, eventState!.PlayoffResults);
         var progress = definition is null ? null : TournamentEventPlayoffs.Progress(definition, eventState!.ConfirmedResults, eventState.PlayoffResults);
         var winners = progress?.Matches.Where(match => match.WinnerTeamId is not null)
             .ToDictionary(match => match.Id, match => match.WinnerTeamId!, StringComparer.Ordinal)
