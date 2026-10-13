@@ -75,6 +75,35 @@ public static class TournamentEventSnapshotValidator
 /// <summary>Shared stable seed projection used by commands, persistence and UI.</summary>
 public static class TournamentEventPlayoffs
 {
+    public static IReadOnlyList<TournamentBracketEntrant>? ResolveEntrants(TournamentEventDefinition definition,
+        IReadOnlyCollection<TournamentGroupResult> groupResults)
+    {
+        TournamentEventSnapshotValidator.Validate(definition, groupResults);
+        if (definition.PlayoffQualifiersPerGroup is not { } count) return Entrants(definition);
+        var groups = definition.Groups.Count == 0 ? new[] { "main" }
+            : definition.Groups.OrderBy(group => group.Id, StringComparer.Ordinal).Select(group => group.Id).ToArray();
+        var fixtures = groups.SelectMany(group => TournamentRoundRobin.Generate(definition, group)
+            .SelectMany(round => round.Fixtures)).ToArray();
+        if (groupResults.Count != fixtures.Length) return null;
+        var ranked = groups.Select(group => TournamentStandings.Calculate(definition, group,
+            groupResults.Where(result => result.FixtureId.StartsWith(group + ":", StringComparison.Ordinal)).ToArray())).ToArray();
+        var qualified = Enumerable.Range(0, count).SelectMany(position => ranked.Select(rows => rows[position].TeamId));
+        return qualified.Select((id, index) => new TournamentBracketEntrant(id, index + 1)).ToArray();
+    }
+
+    public static TournamentBracketProgressSnapshot? Progress(TournamentEventDefinition definition,
+        IReadOnlyCollection<TournamentGroupResult> groups, IReadOnlyCollection<TournamentBracketResult> playoffs)
+    {
+        ArgumentNullException.ThrowIfNull(playoffs);
+        var entrants = ResolveEntrants(definition, groups);
+        if (entrants is null)
+        {
+            if (playoffs.Count > 0) throw new ArgumentException("Group stage is incomplete; playoff results cannot be confirmed.");
+            return null;
+        }
+        return TournamentBracketProgression.Calculate(entrants, playoffs);
+    }
+
     public static IReadOnlyList<TournamentBracketEntrant> Entrants(TournamentEventDefinition definition)
     {
         TournamentEventDefinition.RequireValid(definition);

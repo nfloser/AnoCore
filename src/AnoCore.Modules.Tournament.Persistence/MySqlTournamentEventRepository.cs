@@ -89,7 +89,7 @@ public sealed class MySqlTournamentEventRepository : ITournamentEventRepository
         {
             await using var read = connection.CreateCommand();
             read.Transaction = transaction;
-            read.CommandText = "SELECT playoff_results_json, revision, definition_json FROM ano_tournament_events WHERE event_id = @id FOR UPDATE";
+            read.CommandText = "SELECT playoff_results_json, revision, definition_json, results_json FROM ano_tournament_events WHERE event_id = @id FOR UPDATE";
             Add(read, "@id", eventId);
             IReadOnlyList<TournamentBracketResult> playoffs;
             await using (var reader = await read.ExecuteReaderAsync(token).ConfigureAwait(false))
@@ -101,11 +101,15 @@ public sealed class MySqlTournamentEventRepository : ITournamentEventRepository
                 {
                     var previous = JsonSerializer.Deserialize<TournamentEventDefinition>(reader.GetString(2))
                         ?? throw new InvalidDataException("Missing previous event definition.");
-                    if (!TournamentEventPlayoffs.Entrants(previous).SequenceEqual(TournamentEventPlayoffs.Entrants(definition)))
+                    var previousGroups = JsonSerializer.Deserialize<List<TournamentGroupResult>>(reader.GetString(3))
+                        ?? throw new InvalidDataException("Missing previous group results.");
+                    var before = TournamentEventPlayoffs.ResolveEntrants(previous, previousGroups);
+                    var after = TournamentEventPlayoffs.ResolveEntrants(definition, results);
+                    if (before is null || after is null || !before.SequenceEqual(after))
                         throw new ArgumentException("Cannot change playoff entrants or seeds after confirmed results.", nameof(definition));
                 }
             }
-            _ = TournamentBracketProgression.Calculate(TournamentEventPlayoffs.Entrants(definition), playoffs);
+            _ = TournamentEventPlayoffs.Progress(definition, results, playoffs);
             await using var command = connection.CreateCommand();
             command.Transaction = transaction;
             command.CommandText = """
@@ -135,7 +139,7 @@ public sealed class MySqlTournamentEventRepository : ITournamentEventRepository
         if (snapshot is null || snapshot.Revision != expectedRevision)
             throw new TournamentEventConcurrencyException(eventId, expectedRevision);
         var playoffs = Array.AsReadOnly(results.ToArray());
-        _ = TournamentBracketProgression.Calculate(TournamentEventPlayoffs.Entrants(snapshot.Definition), playoffs);
+        _ = TournamentEventPlayoffs.Progress(snapshot.Definition, snapshot.ConfirmedResults, playoffs);
         return await _database.InTransactionAsync(async (connection, transaction, token) =>
         {
             await using var command = connection.CreateCommand();
@@ -204,7 +208,7 @@ public sealed class MySqlTournamentEventRepository : ITournamentEventRepository
             throw new InvalidDataException("Stored tournament identity/revision is invalid.");
         TournamentEventSnapshotValidator.Validate(definition, results);
         var playoffs = DeserializePlayoffs(playoffJson);
-        _ = TournamentBracketProgression.Calculate(TournamentEventPlayoffs.Entrants(definition), playoffs);
+        _ = TournamentEventPlayoffs.Progress(definition, results, playoffs);
         return new TournamentStoredEvent(definition, results.AsReadOnly(), revision) { PlayoffResults = playoffs };
     }
 

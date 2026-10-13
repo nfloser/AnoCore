@@ -60,7 +60,8 @@ public sealed class TournamentEventCommandController : IDisposable
         ThrowIfDisposed();
         var active = await _repository.LoadActiveAsync(context.CancellationToken).ConfigureAwait(false);
         if (active is null) return CommandResult.Ok("[ANO] No active shared tournament.");
-        var progress = TournamentBracketProgression.Calculate(TournamentEventPlayoffs.Entrants(active.Definition), active.PlayoffResults);
+        var progress = TournamentEventPlayoffs.Progress(active.Definition, active.ConfirmedResults, active.PlayoffResults);
+        if (progress is null) return CommandResult.Ok("[ANO] Playoffs wait for all group fixtures to be confirmed.");
         return CommandResult.Ok("[ANO] " + string.Join(" | ", progress.Matches.Select(match =>
             $"{match.Id}: {match.HomeTeamId ?? "pending"} vs {match.AwayTeamId ?? "pending"}" +
             (match.WinnerTeamId is not null ? $" -> {match.WinnerTeamId}" : match.IsReady ? " [ready]" : " [waiting]")))
@@ -80,7 +81,8 @@ public sealed class TournamentEventCommandController : IDisposable
             var results = active.PlayoffResults.Append(result).ToArray();
             try
             {
-                _ = TournamentBracketProgression.Calculate(TournamentEventPlayoffs.Entrants(active.Definition), results);
+                if (TournamentEventPlayoffs.Progress(active.Definition, active.ConfirmedResults, results) is null)
+                    return CommandResult.Fail(CommandFailureReason.InvalidInput, "Group stage is incomplete.");
             }
             catch (ArgumentException exception) { return CommandResult.Fail(CommandFailureReason.InvalidInput, exception.Message); }
             if (!await AuditAsync("tournament.playoff-result.requested", context, result.MatchId))
