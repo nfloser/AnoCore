@@ -186,10 +186,11 @@ public sealed class AnoVetoHudController : IDisposable
 
         if (result.Failure == AnoVetoFailure.AlreadyVoted)
         {
-            if (Show(context.PlayerId))
+            if (Show(context.PlayerId)
+                && _coordinator.TryGetPlayerSelections(context.PlayerId, out var selected, out var maximum))
             {
                 _hud.SetText(context.PlayerId, HudId, "ano_veto_status",
-                    "Map already selected or all votes submitted");
+                    $"Map already selected or limit reached ({selected.Count}/{maximum} selected)");
             }
         }
         else if (result.Failure == AnoVetoFailure.NotActive)
