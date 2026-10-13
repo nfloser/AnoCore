@@ -34,13 +34,15 @@ public static class TournamentSingleElimination
             throw new ArgumentOutOfRangeException(nameof(entrants),
                 "Seeded tournaments require 3-10 teams.");
 
-        var ordered = entrants.OrderBy(entry => entry.Seed).ToArray();
+        var input = entrants.ToArray();
+        if (input.Any(entry => entry is null))
+            throw new ArgumentException("Bracket entrant cannot be null.", nameof(entrants));
+        var ordered = input.OrderBy(entry => entry.Seed).ToArray();
         var ids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var seeds = new HashSet<int>();
         foreach (var entrant in ordered)
         {
-            if (entrant is null || string.IsNullOrWhiteSpace(entrant.TeamId)
-                || entrant.TeamId.Length > 48 || !ids.Add(entrant.TeamId)
+            if (!ValidId(entrant.TeamId) || !ids.Add(entrant.TeamId)
                 || !seeds.Add(entrant.Seed))
                 throw new ArgumentException("Bracket entrants need distinct non-empty team IDs and seeds.",
                     nameof(entrants));
@@ -95,4 +97,10 @@ public static class TournamentSingleElimination
             throw new InvalidOperationException("Bracket does not have a final match winner.");
         return new TournamentBracketPlan(capacity, opening.AsReadOnly(), rounds.AsReadOnly());
     }
+
+    private static bool ValidId(string? value)
+        => !string.IsNullOrEmpty(value) && value.Length <= 48
+            && value.All(character => (character >= 'a' && character <= 'z')
+                || (character >= '0' && character <= '9') || character is '-' or '_')
+            && value[0] is not ('-' or '_');
 }
