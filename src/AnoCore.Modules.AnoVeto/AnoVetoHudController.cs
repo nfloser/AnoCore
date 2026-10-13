@@ -52,8 +52,18 @@ public sealed class AnoVetoHudController : IDisposable
             return false;
         }
 
+        if (!_coordinator.TryGetPlayerSelections(playerId, out var selectedMaps, out var maxVotes))
+        {
+            return false;
+        }
+
+        var selectedIds = selectedMaps.Select(map => map.MapId)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
         _hud.SetText(playerId, HudId, "ano_veto_title", "Choose the next map");
-        _hud.SetText(playerId, HudId, "ano_veto_status", "Click one map to cast your vote");
+        _hud.SetText(playerId, HudId, "ano_veto_status",
+            selectedMaps.Count == maxVotes
+                ? $"All {maxVotes} map votes submitted"
+                : $"Choose {maxVotes} different maps ({selectedMaps.Count}/{maxVotes} selected)");
 
         for (var index = 0; index < maps.Count; index++)
         {
@@ -75,6 +85,8 @@ public sealed class AnoVetoHudController : IDisposable
                 HudId,
                 $"ano_veto_map_{index}_text",
                 maps[index].DisplayName);
+            _hud.SetClass(playerId, HudId, $"ano_veto_map_{index}", "selected",
+                selectedIds.Contains(maps[index].MapId));
         }
 
         return _hud.Show(playerId, HudId);
@@ -109,6 +121,7 @@ public sealed class AnoVetoHudController : IDisposable
             foreach (var pair in _previewClasses.Where(pair => playerId is null || pair.Key.Player == playerId).ToArray())
             {
                 _hud.SetClass(pair.Key.Player, HudId, $"ano_veto_map_{pair.Key.Index}_image", pair.Value, false);
+                _hud.SetClass(pair.Key.Player, HudId, $"ano_veto_map_{pair.Key.Index}", "selected", false);
                 _previewClasses.Remove(pair.Key);
             }
         }
@@ -154,16 +167,32 @@ public sealed class AnoVetoHudController : IDisposable
 
         if (result.Accepted)
         {
-            Hide(context.PlayerId);
             if (result.Outcome != AnoVetoOutcome.None)
             {
                 HideAll();
+            }
+            else if (!_coordinator.TryGetPlayerSelections(context.PlayerId, out var selected, out var maximum)
+                     || selected.Count >= maximum)
+            {
+                Hide(context.PlayerId);
+            }
+            else
+            {
+                Show(context.PlayerId);
             }
 
             return;
         }
 
-        if (result.Failure is AnoVetoFailure.AlreadyVoted or AnoVetoFailure.NotActive)
+        if (result.Failure == AnoVetoFailure.AlreadyVoted)
+        {
+            if (Show(context.PlayerId))
+            {
+                _hud.SetText(context.PlayerId, HudId, "ano_veto_status",
+                    "Map already selected or all votes submitted");
+            }
+        }
+        else if (result.Failure == AnoVetoFailure.NotActive)
         {
             Hide(context.PlayerId);
         }
