@@ -149,19 +149,21 @@ public sealed class TournamentPanoramaPresenter : IDisposable
             }
             else if (TryButtonIndex(context.ButtonId, "ano_tournament_team_", 10, out var index))
             {
-                state.SelectedTeamRow = index;
-                state.SelectedTableRow = null;
+                if (state.View != "teams" || index >= state.TeamRowIds.Length) return;
+                state.SelectedTeamId = state.TeamRowIds[index];
+                state.Page = 0;
                 state.Dirty = true;
             }
             else if (TryButtonIndex(context.ButtonId, "ano_tournament_table_", 10, out index))
             {
-                state.SelectedTableRow = index;
-                state.SelectedTeamRow = null;
+                if (state.View != "table" || index >= state.TableRowIds.Length) return;
+                state.SelectedTeamId = state.TableRowIds[index];
                 state.Dirty = true;
             }
             else if (TryButtonIndex(context.ButtonId, "ano_tournament_match_", 16, out index))
             {
-                state.SelectedMatchRow = index;
+                if (state.View != "bracket" || index >= state.MatchRowIds.Length) return;
+                state.SelectedMatchId = state.MatchRowIds[index];
                 state.Dirty = true;
             }
             else return;
@@ -189,9 +191,8 @@ public sealed class TournamentPanoramaPresenter : IDisposable
         {
             state.View = "overview";
             state.Page = 0;
-            state.SelectedTeamRow = null;
-            state.SelectedTableRow = null;
-            state.SelectedMatchRow = null;
+            state.SelectedTeamId = null;
+            state.SelectedMatchId = null;
         }
         var player = state.Player.Id;
         var definition = eventState?.Definition;
@@ -206,16 +207,20 @@ public sealed class TournamentPanoramaPresenter : IDisposable
         var fixtures = definition is null ? [] : groups.SelectMany(group =>
             TournamentRoundRobin.Generate(definition, group.Id).SelectMany(round => round.Fixtures)).ToArray();
         var fixturePages = Math.Max(1, (fixtures.Length + 15) / 16);
-        var entrants = definition is null ? [] : TournamentEventPlayoffs.Entrants(definition);
-        var bracket = definition is null ? null : TournamentSingleElimination.Generate(entrants);
-        var progress = definition is null ? null : TournamentBracketProgression.Calculate(entrants, eventState!.PlayoffResults);
+        var entrants = definition is null ? null : TournamentEventPlayoffs.ResolveEntrants(definition, eventState!.ConfirmedResults);
+        var bracket = entrants is null ? null : TournamentSingleElimination.GenerateFinalStage(entrants);
+        var progress = definition is null ? null : TournamentEventPlayoffs.Progress(definition, eventState!.ConfirmedResults, eventState.PlayoffResults);
         var winners = progress?.Matches.Where(match => match.WinnerTeamId is not null)
             .ToDictionary(match => match.Id, match => match.WinnerTeamId!, StringComparer.Ordinal)
             ?? new Dictionary<string, string>(StringComparer.Ordinal);
         var bracketMatches = bracket?.Rounds.SelectMany(round => round.Matches).ToArray() ?? [];
+        var selectedRoster = definition?.Teams.FirstOrDefault(team => team.Id == state.SelectedTeamId)
+            ?? definition?.Teams.FirstOrDefault();
+        var rosterPages = Math.Max(1, ((selectedRoster?.Starters.Count ?? 0) + (selectedRoster?.Substitutes.Count ?? 0) + 6) / 7);
         var pageCount = state.View switch
         {
             "table" => tablePages,
+            "teams" => rosterPages,
             "matches" => fixturePages,
             "bracket" => Math.Max(1, (bracketMatches.Length + 15) / 16),
             _ => 1,
@@ -231,7 +236,8 @@ public sealed class TournamentPanoramaPresenter : IDisposable
             : state.View switch
             {
                 "table" => groups[state.Page].Name,
-                "bracket" => "K.-o.-Baum · bestätigte Sieger und nächste Paarungen",
+                "bracket" => entrants is null ? "Playoffs warten auf alle Gruppenergebnisse"
+                    : "K.-o.-Baum · bestätigte Sieger und nächste Paarungen",
                 "matches" => "Gruppenspiele und bestätigte Ergebnisse",
                 "teams" => "Teams und registrierte Spieler",
                 _ => "Turnierübersicht",
@@ -259,6 +265,9 @@ public sealed class TournamentPanoramaPresenter : IDisposable
         var standings = definition is null || group is null
             ? []
             : TournamentStandings.Calculate(definition, group.Id, groupResults).ToArray();
+        state.TableRowIds = standings.Select(row => row.TeamId).ToArray();
+        state.TeamRowIds = definition?.Teams.Select(team => team.Id).ToArray() ?? [];
+        state.MatchRowIds = bracketMatches.Skip(state.Page * 16).Take(16).Select(match => match.Id).ToArray();
         var names = definition?.Teams.ToDictionary(team => team.Id, team => team.Name, StringComparer.Ordinal)
             ?? new Dictionary<string, string>(StringComparer.Ordinal);
         for (var i = 0; i < 10; i++)
@@ -304,15 +313,7 @@ public sealed class TournamentPanoramaPresenter : IDisposable
                 visible ? definition!.Teams[i].Name : string.Empty);
         }
 
-        TournamentEventTeamDefinition? selected = null;
-        if (definition is not null)
-        {
-            if (state.SelectedTeamRow is { } teamIndex && teamIndex < definition.Teams.Count)
-                selected = definition.Teams[teamIndex];
-            else if (state.SelectedTableRow is { } tableIndex && tableIndex < standings.Length)
-                selected = definition.Teams.Single(team => team.Id == standings[tableIndex].TeamId);
-            selected ??= definition.Teams.First();
-        }
+        var selected = selectedRoster;
         Set(player, "ano_tournament_team_name", selected?.Name ?? "Kein Team ausgewählt");
         Set(player, "ano_tournament_team_status", selected is null
             ? "Warte auf Anmeldung"
@@ -320,9 +321,10 @@ public sealed class TournamentPanoramaPresenter : IDisposable
                 $"{selected.Substitutes.Count} Ersatz · " + (presence is null ? "Präsenz nur lokaler Server" : "Serverübergreifende Präsenz"));
         var roster = selected is null
             ? []
-            : selected.Starters.Concat(selected.Substitutes).Take(7).ToArray();
+            : selected.Starters.Concat(selected.Substitutes).Skip(state.View == "teams" ? state.Page * 7 : 0).Take(7).ToArray();
         for (var i = 0; i < 7; i++)
         {
+            var rosterIndex = (state.View == "teams" ? state.Page * 7 : 0) + i;
             var steam = i < roster.Length ? roster[i] : 0UL;
             var online = steam != 0 && _players.TryGet(new PlayerId(steam), out var other)
                 && other is { IsConnected: true };
@@ -330,24 +332,22 @@ public sealed class TournamentPanoramaPresenter : IDisposable
                 .Select(p => (server.ServerId, Player: p))).ToArray();
             var status = remote is null ? online ? "Online hier" : "Nicht auf diesem Server"
                 : remote.Length == 0 ? "Offline" : remote.Length > 1 ? "Online · mehrere Server/Sessions"
-                : $"{remote[0].Player.Name} · Online auf {remote[0].ServerId} · " +
+                : $"{new string(remote[0].Player.Name.Take(32).ToArray())} · Online auf {remote[0].ServerId} · " +
                     (remote[0].Player.IsReady ? "Bereit für " + remote[0].Player.MatchId?.ToString("N")[..8] : "Nicht bereit");
             Set(player, $"ano_tournament_roster_{i}", steam == 0 ? "" :
-                $"{(i < 5 ? "Starter" : "Ersatz")} {i + 1}: {steam} · {status}");
+                $"{(rosterIndex < 5 ? "Starter" : "Ersatz")} {(rosterIndex < 5 ? rosterIndex + 1 : rosterIndex - 4)}: {steam} · {status}");
         }
-        if (state.View == "bracket" && state.SelectedMatchRow is { } selectedRow)
+        if (state.View == "bracket" && state.SelectedMatchId is { } selectedMatch)
         {
-            var selectedIndex = state.Page * 16 + selectedRow;
-            if (selectedIndex < bracketMatches.Length)
+            var match = bracketMatches.FirstOrDefault(value => value.Id == selectedMatch);
+            if (match is not null)
             {
-                var match = bracketMatches[selectedIndex];
                 Set(player, "ano_tournament_team_name", "Match " + match.Id);
                 Set(player, "ano_tournament_team_status",
                     Source(match.Home, names, winners) + " vs " + Source(match.Away, names, winners) +
                     MatchStatus(match.Id, progress!, eventState!.PlayoffResults, names));
                 Set(player, "ano_tournament_roster_0", "K.-o.-Runde " + match.Round);
-                for (var i = 1; i < 7; i++)
-                    Set(player, $"ano_tournament_roster_{i}", string.Empty);
+                for (var i = 1; i < 7; i++) Set(player, $"ano_tournament_roster_{i}", string.Empty);
             }
         }
         state.RenderedPresenceKey = presenceKey;
@@ -416,9 +416,11 @@ public sealed class TournamentPanoramaPresenter : IDisposable
         public PlayerSnapshot Player { get; } = player;
         public string View { get; set; } = "overview";
         public int Page { get; set; }
-        public int? SelectedTeamRow { get; set; }
-        public int? SelectedTableRow { get; set; }
-        public int? SelectedMatchRow { get; set; }
+        public string? SelectedTeamId { get; set; }
+        public string? SelectedMatchId { get; set; }
+        public string[] TeamRowIds { get; set; } = [];
+        public string[] TableRowIds { get; set; } = [];
+        public string[] MatchRowIds { get; set; } = [];
         public long RenderedReadSequence { get; set; }
         public string? RenderedPresenceKey { get; set; }
         public string? RenderedEventId { get; set; }

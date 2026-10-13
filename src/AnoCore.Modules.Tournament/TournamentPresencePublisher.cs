@@ -21,11 +21,17 @@ public sealed class TournamentPresencePublisher(ITournamentPresenceRepository re
             var ready = match?.ReadyPlayers.ToHashSet() ?? [];
             var roster = players.Where(player => player.IsConnected).Select(player => new TournamentPlayerPresence(
                 player.Id.SteamId64, player.SessionId.Value,
-                new string(player.Name.Where(c => !char.IsControl(c)).Take(128).ToArray()),
+                DisplayName(player.Name),
                 match?.MatchId, ready.Contains(player.Id))).ToArray();
             await repository.PublishAsync(serverId, _instanceId, roster, linked.Token).ConfigureAwait(false);
         }
         finally { _gate.Release(); }
+    }
+
+    private static string DisplayName(string name)
+    {
+        var clean = new string(name.Where(c => !char.IsControl(c)).Take(128).ToArray());
+        return string.IsNullOrWhiteSpace(clean) ? "Unknown" : clean;
     }
 
     public void Dispose()

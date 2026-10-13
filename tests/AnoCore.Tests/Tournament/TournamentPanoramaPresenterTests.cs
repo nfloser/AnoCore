@@ -148,14 +148,69 @@ public sealed class TournamentPanoramaPresenterTests
         public ValueTask<IReadOnlyList<TournamentServerPresence>> LoadOnlineAsync(CancellationToken cancellationToken = default) => ValueTask.FromResult(States);
     }
 
+    [TestMethod]
+    public async Task QualifiedFinalAppearsOnlyAfterEveryGroupFixtureIsConfirmed()
+    {
+        var bus = new AnoEventBus();
+        var players = new PlayerRegistry(bus);
+        await players.ConnectAsync(new(Viewer, "Viewer", PlayerTeam.Terrorist, true, DateTimeOffset.UtcNow));
+        var definition = Definition();
+        definition.PlayoffQualifiersPerGroup = 2;
+        var repository = new MemoryEvents(definition);
+        var hud = new TestCustomHudService();
+        var commands = new CommandRegistry(new Allow());
+        using var presenter = new TournamentPanoramaPresenter(hud, repository, players, commands, bus);
+        await commands.ExecuteAsync("!anotournament", Viewer);
+        await hud.ClickAsync(Viewer, TournamentPanoramaPresenter.HudId, "ano_tournament_tab_bracket");
+        StringAssert.Contains(hud.Text(Viewer, TournamentPanoramaPresenter.HudId, "ano_tournament_description")!, "warten");
+        Assert.IsTrue(hud.Class(Viewer, TournamentPanoramaPresenter.HudId, "ano_tournament_match_0", "hidden"));
+        repository.GroupResults = TournamentRoundRobin.Generate(definition, "main").SelectMany(round => round.Fixtures)
+            .Select(fixture => new TournamentGroupResult(fixture.Id, 1, 0, 13, 4)).ToArray();
+        repository.Revision++;
+        await presenter.RefreshOpenAsync();
+        StringAssert.Contains(hud.Text(Viewer, TournamentPanoramaPresenter.HudId, "ano_tournament_match_0_text")!, "bereit");
+        Assert.IsTrue(hud.Class(Viewer, TournamentPanoramaPresenter.HudId, "ano_tournament_match_1", "hidden"));
+    }
+
+    [TestMethod]
+    public async Task SelectedTeamSurvivesRankingChangesAndAllSubstitutesArePaged()
+    {
+        var bus = new AnoEventBus();
+        var players = new PlayerRegistry(bus);
+        await players.ConnectAsync(new(Viewer, "Viewer", PlayerTeam.Terrorist, true, DateTimeOffset.UtcNow));
+        var definition = Definition();
+        definition.MaxSubstitutes = 5;
+        definition.Teams[0].Substitutes = Enumerable.Range(0, 5).Select(i => 76561198001000000UL + (ulong)i).ToList();
+        var repository = new MemoryEvents(definition);
+        var hud = new TestCustomHudService();
+        var commands = new CommandRegistry(new Allow());
+        using var presenter = new TournamentPanoramaPresenter(hud, repository, players, commands, bus);
+        await commands.ExecuteAsync("!anotournament", Viewer);
+        await hud.ClickAsync(Viewer, TournamentPanoramaPresenter.HudId, "ano_tournament_tab_table");
+        await hud.ClickAsync(Viewer, TournamentPanoramaPresenter.HudId, "ano_tournament_table_2");
+        var selected = hud.Text(Viewer, TournamentPanoramaPresenter.HudId, "ano_tournament_team_name");
+        repository.GroupResults = TournamentRoundRobin.Generate(definition, "main").SelectMany(round => round.Fixtures)
+            .Select(fixture => new TournamentGroupResult(fixture.Id, fixture.HomeTeamId == "team-3" ? 1 : 0, fixture.HomeTeamId == "team-3" ? 0 : 1, 13, 4)).ToArray();
+        repository.Revision++;
+        await presenter.RefreshOpenAsync();
+        Assert.AreEqual(selected, hud.Text(Viewer, TournamentPanoramaPresenter.HudId, "ano_tournament_team_name"));
+        await hud.ClickAsync(Viewer, TournamentPanoramaPresenter.HudId, "ano_tournament_tab_teams");
+        await hud.ClickAsync(Viewer, TournamentPanoramaPresenter.HudId, "ano_tournament_team_0");
+        Assert.AreEqual("1 / 2", hud.Text(Viewer, TournamentPanoramaPresenter.HudId, "ano_tournament_page"));
+        await hud.ClickAsync(Viewer, TournamentPanoramaPresenter.HudId, "ano_tournament_next");
+        StringAssert.Contains(hud.Text(Viewer, TournamentPanoramaPresenter.HudId, "ano_tournament_roster_0")!, "Ersatz 3");
+        StringAssert.Contains(hud.Text(Viewer, TournamentPanoramaPresenter.HudId, "ano_tournament_roster_2")!, definition.Teams[0].Substitutes[4].ToString());
+    }
+
     private sealed class MemoryEvents(TournamentEventDefinition definition)
         : ITournamentEventRepository
     {
         public TournamentEventDefinition Definition { get; } = definition;
         public long Revision { get; set; } = 1;
         public IReadOnlyList<TournamentBracketResult> PlayoffResults { get; set; } = [];
+        public IReadOnlyList<TournamentGroupResult> GroupResults { get; set; } = [];
         public ValueTask<TournamentStoredEvent?> LoadActiveAsync(CancellationToken cancellationToken = default)
-            => ValueTask.FromResult<TournamentStoredEvent?>(new TournamentStoredEvent(Definition, [], Revision) { PlayoffResults = PlayoffResults });
+            => ValueTask.FromResult<TournamentStoredEvent?>(new TournamentStoredEvent(Definition, GroupResults, Revision) { PlayoffResults = PlayoffResults });
         public ValueTask<TournamentStoredEvent?> LoadAsync(string eventId, CancellationToken cancellationToken = default)
             => LoadActiveAsync(cancellationToken);
         public ValueTask<TournamentStoredEvent> CreateAsync(TournamentEventDefinition definition,

@@ -130,6 +130,28 @@ public sealed class MySqlTournamentEventRepositoryTests
         Assert.AreEqual(3L, (await reader.LoadAsync(definition.Id))!.Revision);
     }
 
+    [TestMethod]
+    public async Task QualifiedPlayoffsWaitForGroupsAndPreventChangingRecordedFinalists()
+    {
+        var definition = Definition("qualified-event");
+        definition.PlayoffQualifiersPerGroup = 2;
+        var repository = new MySqlTournamentEventRepository(_database);
+        await repository.CreateAsync(definition);
+        Assert.IsNull(TournamentEventPlayoffs.Progress(definition, [], []));
+        await Assert.ThrowsExactlyAsync<ArgumentException>(async () =>
+            await repository.SavePlayoffsAsync(definition.Id, 1, [new("r1-m1", "team-1", 1, 0)]));
+        var results = TournamentRoundRobin.Generate(definition, "main").SelectMany(round => round.Fixtures)
+            .Select(fixture => new TournamentGroupResult(fixture.Id, 1, 0, 13, 4)).ToArray();
+        var ready = await repository.SaveAsync(definition.Id, 1, definition, results);
+        var final = TournamentEventPlayoffs.Progress(definition, ready.ConfirmedResults, [])!.Matches.Single();
+        await repository.SavePlayoffsAsync(definition.Id, 2, [new(final.Id, final.HomeTeamId!, 1, 0)]);
+        var reloaded = (await repository.LoadAsync(definition.Id))!;
+        Assert.AreEqual(final.HomeTeamId, TournamentEventPlayoffs.Progress(reloaded.Definition, reloaded.ConfirmedResults, reloaded.PlayoffResults)!.ChampionTeamId);
+        await Assert.ThrowsExactlyAsync<ArgumentException>(async () =>
+            await repository.SaveAsync(definition.Id, 3, definition, []));
+        Assert.AreEqual(3L, (await repository.LoadAsync(definition.Id))!.Revision);
+    }
+
     private static TournamentEventDefinition Definition(string id)
     {
         var teams = Enumerable.Range(1, 3).Select(i =>
