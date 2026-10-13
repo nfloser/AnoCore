@@ -203,6 +203,69 @@ public sealed class TournamentPanoramaPresenterTests
         StringAssert.Contains(hud.Text(Viewer, TournamentPanoramaPresenter.HudId, "ano_tournament_roster_2")!, definition.Teams[0].Substitutes[4].ToString());
     }
 
+    [TestMethod]
+    public async Task SwissStandingsAndMatchesUseOnlyThePublishedDynamicSchedule()
+    {
+        var bus = new AnoEventBus();
+        var players = new PlayerRegistry(bus);
+        await players.ConnectAsync(new(Viewer, "Viewer", PlayerTeam.Terrorist, true, DateTimeOffset.UtcNow));
+        var definition = Definition();
+        definition.GroupFormat = TournamentGroupFormat.Swiss;
+        definition.SwissRounds = 2;
+        var repository = new MemoryEvents(definition);
+        var hud = new TestCustomHudService();
+        var commands = new CommandRegistry(new Allow());
+        using var presenter = new TournamentPanoramaPresenter(hud, repository, players, commands, bus);
+        await commands.ExecuteAsync("!anotournament", Viewer);
+
+        Assert.AreEqual("1 Gruppenspiele", hud.Text(Viewer, TournamentPanoramaPresenter.HudId,
+            "ano_tournament_summary_2"));
+        await hud.ClickAsync(Viewer, TournamentPanoramaPresenter.HudId, "ano_tournament_tab_matches");
+        StringAssert.Contains(hud.Text(Viewer, TournamentPanoramaPresenter.HudId, "ano_tournament_fixture_0")!, "vs");
+        Assert.AreEqual("", hud.Text(Viewer, TournamentPanoramaPresenter.HudId, "ano_tournament_fixture_1"));
+
+        var first = TournamentSchedules.Generate(definition, "main", []).SelectMany(round => round.Fixtures)
+            .Select(fixture => new TournamentGroupResult(fixture.Id, 1, 0, 13, 4)).ToArray();
+        repository.GroupResults = first;
+        repository.Revision++;
+        await presenter.RefreshOpenAsync();
+
+        Assert.AreEqual("2 Gruppenspiele", hud.Text(Viewer, TournamentPanoramaPresenter.HudId,
+            "ano_tournament_summary_2"));
+        StringAssert.Contains(hud.Text(Viewer, TournamentPanoramaPresenter.HudId,
+            "ano_tournament_fixture_1")!, "vs");
+    }
+
+    [TestMethod]
+    public async Task DoubleEliminationShowsUpperLowerAndResetWithoutChangingWorkshopAssets()
+    {
+        var bus = new AnoEventBus();
+        var players = new PlayerRegistry(bus);
+        await players.ConnectAsync(new(Viewer, "Viewer", PlayerTeam.Terrorist, true, DateTimeOffset.UtcNow));
+        var definition = Definition();
+        definition.GroupStageEnabled = false;
+        definition.PlayoffFormat = TournamentPlayoffFormat.DoubleElimination;
+        definition.GrandFinalReset = true;
+        var repository = new MemoryEvents(definition);
+        var hud = new TestCustomHudService();
+        var commands = new CommandRegistry(new Allow());
+        using var presenter = new TournamentPanoramaPresenter(hud, repository, players, commands, bus);
+
+        Assert.IsTrue((await commands.ExecuteAsync("!anotournament", Viewer)).Success);
+        await hud.ClickAsync(Viewer, TournamentPanoramaPresenter.HudId, "ano_tournament_tab_table");
+        StringAssert.Contains(hud.Text(Viewer, TournamentPanoramaPresenter.HudId,
+            "ano_tournament_description")!, "Keine Gruppenphase");
+        await hud.ClickAsync(Viewer, TournamentPanoramaPresenter.HudId, "ano_tournament_tab_bracket");
+        StringAssert.Contains(hud.Text(Viewer, TournamentPanoramaPresenter.HudId,
+            "ano_tournament_description")!, "Double Elimination");
+        var contents = Enumerable.Range(0, 16).Select(i =>
+            hud.Text(Viewer, TournamentPanoramaPresenter.HudId, $"ano_tournament_match_{i}_text") ?? "").ToArray();
+        Assert.IsTrue(contents.Count(t => t.Contains(" vs ", StringComparison.Ordinal)) >= 4);
+        Assert.IsTrue(contents.Any(t => t.Contains("Lower", StringComparison.Ordinal)));
+        Assert.IsTrue(contents.Any(t => t.Contains("Reset", StringComparison.Ordinal)));
+        Assert.IsTrue(contents.Any(t => t.Contains("Verlierer", StringComparison.Ordinal)));
+    }
+
     private sealed class MemoryEvents(TournamentEventDefinition definition)
         : ITournamentEventRepository
     {
