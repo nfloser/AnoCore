@@ -37,6 +37,36 @@ clears/marks unused slots and moves between pages without adding XML.
   existing clients through the exact same IDs. There is no Workshop
   republish for event/roster/point/ranking/format data.
 
+## Safe one-time rollout
+
+The **compiled Workshop pack is a prerequisite**, so the dashboard is
+**disabled by default** even when normal AnoMenu Panorama menus work.
+This allows the C# plugin to be updated before the new resources are
+published, without attempting to load a missing tournament layout.
+
+After native compilation and an initial clean-client/DatHost smoke test,
+enable the new dashboard in `config/core.json`:
+
+```json
+{
+  "PanoramaMenusEnabled": true,
+  "TournamentDashboardEnabled": true
+}
+```
+
+Keep other existing `core.json` settings (notably the connection string)
+unchanged; the JSON above shows only the relevant toggles. Setting
+`TournamentDashboardEnabled` with `PanoramaMenusEnabled=false` fails
+configuration validation explicitly. Until the dashboard is enabled,
+AnoMenu retains the existing **Tournament status** fallback. Once enabled,
+players open the new viewer with `!anotournament`.
+
+Disable `TournamentDashboardEnabled` and reload the plugin for a fast
+rollback if the native client displays incorrectly. This does not change
+event data or assignment state. **Do not publish** a speculative Workshop
+resource merely to match a new server commit. Only data is updated during
+regular tournaments, not XML/CSS.
+
 ## Distribution and acceptance
 
 `ui/AnoCore/build.ps1` includes `ano_tournament.xml` and
@@ -53,7 +83,7 @@ when the *structural XML or CSS* changes, not when tournament data changes.
 
 ## Dynamic runtime projection
 
-When `PanoramaMenusEnabled` is enabled, `!anotournament` opens the
+When both `PanoramaMenusEnabled` and `TournamentDashboardEnabled` are enabled, `!anotournament` opens the
 dedicated tournament HUD. AnoMenu offers that destination and closes its own
 overlay before displaying it. Without Panorama enabled, the existing
 text-only tournament status entry remains available.
@@ -80,13 +110,14 @@ slots. The view uses the configured Single/Double Elimination plan, including
 Upper/Lower brackets, loser-of-match references, grand final and optional reset.
 Group/match pages project the deterministic Round Robin or **incremental Swiss**
 schedule; a disabled group stage shows no fictitious table or fixtures. Result-only changes never require Workshop republishing. With `tournament-servers.json` enabled, shared expiring heartbeats project
-server identity, player session and actual AnoTournament readiness. Presence
+server identity, player session and a distinct ready indicator where the AnoTournament match owns readiness. Presence
 changes refresh the roster independently of event revisions. Multiple reported
 sessions are labeled explicitly instead of assuming readiness. Without that
-configuration, presence remains labeled **local server only**. Configured server identities now use fenced per-server active match pointers;
-unconfigured servers retain the legacy singleton path. MatchZy/CS2 result ingestion,
-Swiss and double elimination also require separate implementations.
-Do not treat those items as complete.
+configuration, presence remains labeled **local server only**. Configured server identities use fenced per-server active match pointers;
+unconfigured servers retain the legacy singleton path. Swiss and Double
+Elimination logic and MatchZy callback ingestion exist in the backend,
+but they have not yet passed live CS2/DatHost multi-client acceptance.
+Do not treat CI success as a native validation.
 
 ## Production acceptance
 
