@@ -103,9 +103,13 @@ public sealed class AnoCorePlugin : BasePlugin
     private TournamentEventCommandController? _tournamentEventCommands;
     private TournamentPanoramaPresenter? _tournamentPanorama;
     private CounterStrikeSharp.API.Modules.Timers.Timer? _tournamentRefreshTimer;
+    private TournamentAdminMenuModule? _tournamentAdminMenu;
+    private TournamentAssignmentCommandController? _tournamentAssignmentCommands;
     private TournamentServerConfiguration _tournamentServerConfiguration = new();
     private readonly Guid _tournamentServerInstance = Guid.NewGuid();
     private bool _tournamentServerLeaseAcquired;
+    private TournamentMatchZyConfiguration _tournamentMatchZyConfiguration = new();
+    private CounterStrikeSharp.API.Modules.Timers.Timer? _tournamentMatchZyTimer;
     private TournamentPresencePublisher? _tournamentPresence;
     private CounterStrikeSharp.API.Modules.Timers.Timer? _tournamentPresenceTimer;
     private TournamentMapSelectionCommandController? _tournamentMapSelectionCommands;
@@ -275,10 +279,16 @@ public sealed class AnoCorePlugin : BasePlugin
             _tournamentMapSelectionCommands = null;
             _tournamentCommands?.Dispose();
             _tournamentCommands = null;
+            _tournamentMatchZyTimer?.Kill();
+            _tournamentMatchZyTimer = null;
             _tournamentPresenceTimer?.Kill();
             _tournamentPresenceTimer = null;
             _tournamentPresence?.Dispose();
             _tournamentPresence = null;
+            _tournamentAdminMenu?.Dispose();
+            _tournamentAdminMenu = null;
+            _tournamentAssignmentCommands?.Dispose();
+            _tournamentAssignmentCommands = null;
             _tournamentEventCommands?.Dispose();
             _tournamentEventCommands = null;
             _tournamentRefreshTimer?.Kill();
@@ -448,6 +458,10 @@ public sealed class AnoCorePlugin : BasePlugin
                 _tournamentServerConfiguration = new();
                 Logger.LogError(exception, "Tournament server identity rejected; shared presence is disabled.");
             }
+            _tournamentMatchZyConfiguration = await configuration.LoadAsync("tournament-matchzy", () => new TournamentMatchZyConfiguration(),
+                TournamentMatchZyConfiguration.Validate, cancellationToken).ConfigureAwait(false);
+            if (_tournamentMatchZyConfiguration.Enabled && !_tournamentServerConfiguration.Enabled)
+                throw new InvalidOperationException("Automatic MatchZy requires tournament-servers.Enabled and a unique server identity.");
             try
             {
                 _webhookPolicy = await configuration.LoadAsync("moderation-webhooks", () => new ModerationWebhookConfiguration(),
@@ -538,7 +552,8 @@ public sealed class AnoCorePlugin : BasePlugin
                         _tournamentServerConfiguration.ServerId, _tournamentServerInstance, [], timeout.Token).ConfigureAwait(false);
                     _tournamentServerLeaseAcquired = true;
                 }
-                createdTournamentMatch = await TournamentMatchRuntime.CreateAsync(
+                if (!_tournamentMatchZyConfiguration.Enabled)
+                    createdTournamentMatch = await TournamentMatchRuntime.CreateAsync(
                     new TournamentRecoveryService(
                         new MySqlTournamentMatchRepository(database,
                             _tournamentServerConfiguration.Enabled ? _tournamentServerConfiguration.ServerId : null,
@@ -1124,6 +1139,9 @@ public sealed class AnoCorePlugin : BasePlugin
             TournamentEventCommandController? tournamentEventCommands = null;
             TournamentPanoramaPresenter? tournamentPanorama = null;
             CounterStrikeSharp.API.Modules.Timers.Timer? tournamentRefreshTimer = null;
+            TournamentAdminMenuModule? tournamentAdminMenu = null;
+            TournamentAssignmentCommandController? tournamentAssignmentCommands = null;
+            CounterStrikeSharp.API.Modules.Timers.Timer? tournamentMatchZyTimer = null;
             TournamentPresencePublisher? tournamentPresence = null;
             CounterStrikeSharp.API.Modules.Timers.Timer? tournamentPresenceTimer = null;
             TournamentMapSelectionCommandController? tournamentMapSelectionCommands = null;
@@ -1333,6 +1351,16 @@ public sealed class AnoCorePlugin : BasePlugin
                     }
                     tournamentPresenceTimer = AddTimer(TournamentPresenceValidation.HeartbeatSeconds, PublishPresence, TimerFlags.REPEAT);
                     PublishPresence();
+                    if (_tournamentMatchZyConfiguration.Enabled)
+                    {
+                        var assignments = new MySqlTournamentAssignmentRepository(eventDatabase);
+                        var dispatcher = new TournamentMatchZyDispatcher(assignments,
+                            new CounterStrikeMatchZyTransport(), _tournamentMatchZyConfiguration,
+                            _tournamentServerConfiguration.ServerId, _tournamentServerInstance);
+                        tournamentAssignmentCommands = new TournamentAssignmentCommandController(runtime.Commands, assignments,
+                            dispatcher, eventConfig, runtime.AdminAudit);
+                        tournamentMatchZyTimer = AddTimer(10, () => Observe(dispatcher.PollAsync(cancellationToken).AsTask(), "tournament_matchzy"), TimerFlags.REPEAT);
+                    }
                 }
                 tournamentEventCommands = new TournamentEventCommandController(
                     eventConfig, runtime.Commands,
@@ -1342,12 +1370,15 @@ public sealed class AnoCorePlugin : BasePlugin
                     tournamentPanorama = new TournamentPanoramaPresenter(
                         _customHud, new MySqlTournamentEventRepository(eventDatabase),
                         runtime.Players, runtime.Commands, events,
-                        _tournamentServerConfiguration.Enabled ? new MySqlTournamentPresenceRepository(eventDatabase) : null);
+                        _tournamentServerConfiguration.Enabled ? new MySqlTournamentPresenceRepository(eventDatabase) : null,
+                        new MySqlTournamentAssignmentRepository(eventDatabase), _tournamentMatchZyConfiguration.Enabled);
                     var activeTournamentPanorama = tournamentPanorama;
                     tournamentRefreshTimer = AddTimer(3.0f, () =>
                         Observe(activeTournamentPanorama.RefreshOpenAsync(cancellationToken).AsTask(),
                             "tournament_dashboard_refresh"), TimerFlags.REPEAT);
                 }
+                tournamentAdminMenu = new TournamentAdminMenuModule(runtime.Commands, runtime.Players, runtime.Menus,
+                    eventConfig, new MySqlTournamentEventRepository(eventDatabase), events);
 
                 if (tournamentMatch is not null)
                 {
@@ -1602,6 +1633,9 @@ public sealed class AnoCorePlugin : BasePlugin
                 _tournamentEventCommands = tournamentEventCommands;
                 _tournamentPanorama = tournamentPanorama;
                 _tournamentRefreshTimer = tournamentRefreshTimer;
+                _tournamentAdminMenu = tournamentAdminMenu;
+                _tournamentAssignmentCommands = tournamentAssignmentCommands;
+                _tournamentMatchZyTimer = tournamentMatchZyTimer;
                 _tournamentPresence = tournamentPresence;
                 _tournamentPresenceTimer = tournamentPresenceTimer;
                 _tournamentMapSelectionCommands = tournamentMapSelectionCommands;
@@ -1687,8 +1721,11 @@ public sealed class AnoCorePlugin : BasePlugin
                 seasons?.Dispose();
                 tournamentMapSelectionCommands?.Dispose();
                 tournamentCommands?.Dispose();
+                tournamentMatchZyTimer?.Kill();
                 tournamentPresenceTimer?.Kill();
                 tournamentPresence?.Dispose();
+                tournamentAdminMenu?.Dispose();
+                tournamentAssignmentCommands?.Dispose();
                 tournamentEventCommands?.Dispose();
                 tournamentRefreshTimer?.Kill();
                 tournamentPanorama?.Dispose();

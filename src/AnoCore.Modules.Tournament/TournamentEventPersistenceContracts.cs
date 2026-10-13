@@ -54,7 +54,8 @@ public static class TournamentEventSnapshotValidator
             ? new[] { "main" }
             : definition.Groups.Select(group => group.Id).ToArray();
         var known = groups.SelectMany(groupId =>
-            TournamentRoundRobin.Generate(definition, groupId).SelectMany(round => round.Fixtures)
+            TournamentSchedules.Generate(definition, groupId,
+                results.Where(result => result is not null && result.FixtureId is not null && result.FixtureId.StartsWith(groupId + ":", StringComparison.Ordinal)).ToArray()).SelectMany(round => round.Fixtures)
                 .Select(fixture => (fixture.Id, GroupId: groupId)))
             .ToDictionary(x => x.Id, x => x.GroupId, StringComparer.Ordinal);
         var grouped = groups.ToDictionary(id => id, _ => new List<TournamentGroupResult>(),
@@ -79,12 +80,12 @@ public static class TournamentEventPlayoffs
         IReadOnlyCollection<TournamentGroupResult> groupResults)
     {
         TournamentEventSnapshotValidator.Validate(definition, groupResults);
+        if (!definition.PlayoffsEnabled) return null;
         if (definition.PlayoffQualifiersPerGroup is not { } count) return Entrants(definition);
         var groups = definition.Groups.Count == 0 ? new[] { "main" }
             : definition.Groups.OrderBy(group => group.Id, StringComparer.Ordinal).Select(group => group.Id).ToArray();
-        var fixtures = groups.SelectMany(group => TournamentRoundRobin.Generate(definition, group)
-            .SelectMany(round => round.Fixtures)).ToArray();
-        if (groupResults.Count != fixtures.Length) return null;
+        if (groups.Any(group => !TournamentSchedules.IsComplete(definition, group,
+            groupResults.Where(result => result.FixtureId.StartsWith(group + ":", StringComparison.Ordinal)).ToArray()))) return null;
         var ranked = groups.Select(group => TournamentStandings.Calculate(definition, group,
             groupResults.Where(result => result.FixtureId.StartsWith(group + ":", StringComparison.Ordinal)).ToArray())).ToArray();
         var qualified = Enumerable.Range(0, count).SelectMany(position => ranked.Select(rows => rows[position].TeamId));
@@ -98,10 +99,15 @@ public static class TournamentEventPlayoffs
         var entrants = ResolveEntrants(definition, groups);
         if (entrants is null)
         {
-            if (playoffs.Count > 0) throw new ArgumentException("Group stage is incomplete; playoff results cannot be confirmed.");
+            if (playoffs.Count > 0) throw new ArgumentException("Playoffs are disabled or the qualifying group stage is incomplete.");
             return null;
         }
-        return TournamentBracketProgression.Calculate(entrants, playoffs);
+        if (definition.PlayoffBestOf is { } bestOf && playoffs.Any(result => result is null
+            || result.WinnerMaps != bestOf / 2 + 1 || result.LoserMaps >= bestOf / 2 + 1))
+            throw new ArgumentException("Playoff result does not complete the configured BestOf series.", nameof(playoffs));
+        return definition.PlayoffFormat == TournamentPlayoffFormat.DoubleElimination
+            ? TournamentDoubleElimination.Calculate(entrants, playoffs, definition.GrandFinalReset)
+            : TournamentBracketProgression.Calculate(entrants, playoffs);
     }
 
     public static IReadOnlyList<TournamentBracketEntrant> Entrants(TournamentEventDefinition definition)
@@ -111,4 +117,13 @@ public static class TournamentEventPlayoffs
             .ThenBy(team => team.Id, StringComparer.Ordinal)
             .Select((team, index) => new TournamentBracketEntrant(team.Id, index + 1)).ToArray();
     }
+}
+
+public static class TournamentPlayoffPlans
+{
+    public static TournamentBracketPlan Generate(TournamentEventDefinition definition,
+        IReadOnlyCollection<TournamentBracketEntrant> entrants)
+        => definition.PlayoffFormat == TournamentPlayoffFormat.DoubleElimination
+            ? TournamentDoubleElimination.Generate(entrants, definition.GrandFinalReset)
+            : TournamentSingleElimination.GenerateFinalStage(entrants);
 }

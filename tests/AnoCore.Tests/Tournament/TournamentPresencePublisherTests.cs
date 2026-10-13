@@ -28,6 +28,21 @@ public sealed class TournamentPresencePublisherTests
         await publisher.PublishAsync([], null);
         Assert.IsEmpty(repository.Players);
     }
+    [TestMethod]
+    public async Task ControlOnlyAndLongNamesCannotInvalidateTheServerHeartbeat()
+    {
+        var repository = new Capture();
+        using var publisher = new TournamentPresencePublisher(repository, "server");
+        var player = new PlayerSnapshot(new(123), PlayerSessionId.New(), "\u0001", true, true, PlayerTeam.Terrorist,
+            DateTimeOffset.UtcNow, DateTimeOffset.UtcNow);
+        await publisher.PublishAsync([player], null);
+        Assert.AreEqual("Unknown", repository.Players.Single().Name);
+        var named = new PlayerSnapshot(player.Id, player.SessionId, new string('x', 200), true, true, player.Team,
+            DateTimeOffset.UtcNow, DateTimeOffset.UtcNow);
+        await publisher.PublishAsync([named], null);
+        Assert.AreEqual(128, repository.Players.Single().Name.Length);
+    }
+
     private sealed class Capture : ITournamentPresenceRepository
     {
         public IReadOnlyCollection<TournamentPlayerPresence> Players { get; private set; } = [];

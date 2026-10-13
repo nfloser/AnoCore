@@ -1,19 +1,24 @@
-# AnoTournament event model: 3–10 team groundwork
+# AnoTournament events: teams, standings and shared results
 
 Tracking: [#378](https://github.com/nfloser/AnoCore/issues/378), part of [#21](https://github.com/nfloser/AnoCore/issues/21).
 
 ## Status and compatibility
 
-This first increment adds **pure, engine-independent tournament-event contracts** alongside
-the existing two-team `TournamentMatchDefinition`. It does **not** activate multi-team
-events on the server, load the example JSON automatically, change the existing
-`tournament-match` file or deliver a Panorama tournament HUD. Event persistence,
-server-scoped match ownership, live presence, bracket advancement, Swiss, operator
-commands and Workshop UI are separately tracked under #379–#382.
+Events support 3-10 registered teams, deterministic group schedules and standings,
+shared MySQL revisions, explicit configuration import and audited result commands.
+Confirmed playoff winners resolve later pairings. Optional
+`PlayoffQualifiersPerGroup` derives finalists once every group fixture is complete.
+See [playoff rules and commands](tournament-brackets.md).
 
-The separation is intentional: `TournamentMatchDefinition` and existing MySQL
-match recovery still represent **one CS2 encounter**; a future event scheduler
-will convert scheduled event fixtures into those encounters.
+[Server identity configuration](tournament-servers.md) enables expiring cross-server
+player presence and fenced per-server active live matches. Default installations
+retain the legacy single-match path. Event data is shared; gameplay ownership is
+server-specific.
+
+`TournamentMatchDefinition` still represents one CS2 encounter. Automatic event
+fixture assignment and CS2/MatchZy result ingestion are not implemented. The
+Panorama viewer is integrated in draft PR #387 and requires Workshop Tools and
+real client acceptance before release. Swiss/double elimination remain open.
 
 ## Event and team contracts
 
@@ -143,6 +148,8 @@ Operator commands (console, or player with `ano.tournament.manage`):
 css_anotournamenteventload
 css_anotournamenteventstatus
 css_anotournamenteventstandings main
+css_anotournamenteventbracket
+css_anotournamenteventplayoffresult <match-id> <winner-team-id> <winner-maps> <loser-maps>
 css_anotournamenteventresult <fixture-id> <home-maps> <away-maps> <home-rounds> <away-rounds>
 ```
 
@@ -152,9 +159,74 @@ Result confirmation is one-way in this increment: corrections must be
 implemented through a separately reviewed and audited operation, rather
 than silently overwriting a confirmed result.
 
-**Not yet provided by this persistence layer:** automatically capturing
-CounterStrikeSharp/MatchZy wins, server-scoped concurrent live-match leases,
-shared player presence/ready heartbeat, GUI controls and live Panorama
-projection. Those remain tracked under #379–#382. Until the complete UI
-and game adapters are validated on DatHost, this is not production-ready
-tournament automation.
+**Remaining integration work:** automatic event match assignment, automatic
+CS2/MatchZy result capture, Swiss and double elimination, configurable group
+crossing/reseeding and native Workshop/DatHost acceptance. Shared presence,
+server-scoped ownership, playoff persistence and group qualification are already
+implemented; the Panorama viewer remains a draft until native acceptance.
+This is not yet production-ready tournament automation.
+
+## Stage formats and scheduling
+
+Events now select `GroupFormat` (`"RoundRobin"` or `"Swiss"`) and
+`PlayoffFormat` (`"SingleElimination"` or `"DoubleElimination"`). Existing JSON
+without these fields retains its original round-robin/single-elimination behavior.
+`GroupStageEnabled` and `PlayoffsEnabled` both default to true; set one false for
+an event consisting only of a group league or only of playoffs. Qualification
+requires both stages. Disabling a stage rejects results for that stage.
+
+`TournamentSchedules.Generate` is the authoritative group schedule. Swiss starts
+with seeded upper-half versus lower-half pairings, then minimizes point differences
+without repeating opponents. The next round becomes visible only when every real
+fixture of the current round is confirmed. Odd groups award one bye worth
+`WinPoints`, with no invented map result or game played; the lowest-ranked eligible
+team receives the bye and no team receives a second bye while another has none.
+`SwissRounds` defaults to ceil(log2(group size)); configured rounds may not exceed
+ceil(group size / 2), the bounded rematch-free policy for this implementation.
+`Buchholz` can be added to the existing tiebreaker list; it sums the current points
+of played opponents. The standings expose bye counts separately.
+
+Double elimination sends upper-bracket losers into a generated lower bracket.
+A team is eliminated on its second loss. `GrandFinalReset` defaults to true:
+if the lower-bracket finalist wins the grand final, a reset match becomes ready;
+if the undefeated finalist wins, the reset stays disabled. Setting the policy false
+makes the first grand final decisive. Results for an inactive reset are rejected.
+All participant slots and progression derive from confirmed results, including
+loser references; no UI or operator needs to edit the bracket after a result.
+
+Optional `GroupBestOf` / `PlayoffBestOf` accept 1, 3 or 5 and require decisive
+series scores of 1, 2 or 3 winning maps respectively. Omitting them preserves the
+legacy manually entered result policy. After the first playoff result, format,
+reset, BestOf and Swiss-round policies and qualified seeds cannot be changed.
+These additions do not themselves start a CS2 match or ingest MatchZy events.
+
+## Presets and preview
+
+The fixed import document accepts `SchemaVersion: 1` (missing defaults to 1).
+Unknown schema versions are rejected. `css_anotournamenteventpreview` validates
+that file and prints team/group sizes, match-count bounds, qualification and byes
+without writing or activating an event. Preview can run before `Enabled=true` if
+the roster definition is valid.
+
+`css_anotournamenteventpreset <RoundRobin|Groups|Swiss|SingleElimination|DoubleElimination>`
+clones the real configured teams into a validated format and atomically stages it
+in that same fixed file. It does not invent SteamIDs or publish a tournament.
+Presets choose BO1 groups and BO3 playoffs. Groups uses two balanced groups when
+there are at least four teams, otherwise one group, with two qualifiers per group.
+Swiss uses Buchholz ahead of map difference and initial seed. Double elimination
+includes the conditional reset, hence a one-match range in the preview.
+
+After checking the preview, set `Enabled=true` and use
+`css_anotournamenteventload` to publish under the shared revision guard. Preset
+changes for an event that already has confirmed results are rejected; use a new
+stable event ID for a different format. Both staging and publication require
+`ano.tournament.manage` and are audited. Existing JSON and the independent
+`tournament-match` workflow remain compatible; no arbitrary path is accepted.
+
+`!anotournamentadmin` opens the authorized Ingame configuration menu and is linked
+from `!anoadminmenu`. It uses the existing menu renderer, so it needs no additional
+Workshop resource. A publication confirmation pins the configuration fingerprint
+and stored event revision; changed files or concurrent writes require a fresh
+preview. Confirmation is consumed before the command awaits, and reconnects or
+permission revocation invalidate the operation. Console imports without these
+optional pinned arguments retain their existing behavior.

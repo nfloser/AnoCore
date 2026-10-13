@@ -4,6 +4,9 @@ using AnoCore.Abstractions.Permissions;
 using AnoCore.Abstractions.Players;
 using AnoCore.Modules.Tournament;
 using AnoCore.Runtime.Commands;
+using AnoCore.Runtime.Events;
+using AnoCore.Runtime.Menus;
+using AnoCore.Runtime.Players;
 
 namespace AnoCore.Tests.Tournament;
 
@@ -47,13 +50,86 @@ public sealed class TournamentEventCommandControllerTests
         StringAssert.Contains(status.Message!, "r2-m1: team-1 vs team-2 [ready]");
     }
 
+    [TestMethod]
+    public async Task PreviewAndPinnedImportRejectStaleConfigurationWithoutPublishing()
+    {
+        var repository = new Repository(); var config = new Config(); var audit = new Audit(); var commands = new CommandRegistry(new DenyAll());
+        using var controller = new TournamentEventCommandController(config, commands, repository, audit);
+        var preview = await commands.ExecuteAsync("!anotournamenteventpreview", null);
+        Assert.IsTrue(preview.Success); StringAssert.Contains(preview.Message!, "Preview only");
+        Assert.AreEqual(0, repository.Writes); Assert.AreEqual(0, config.Saves);
+        var hash = TournamentEventImportConfiguration.Fingerprint(config.Document);
+        config.Document.Event.Name = "Changed after preview";
+        Assert.IsFalse((await commands.ExecuteAsync("!anotournamenteventload 1 " + hash, null)).Success);
+        hash = TournamentEventImportConfiguration.Fingerprint(config.Document);
+        Assert.IsFalse((await commands.ExecuteAsync("!anotournamenteventload 0 " + hash, null)).Success);
+        Assert.AreEqual(0, repository.Writes);
+        Assert.IsFalse((await commands.ExecuteAsync("!anotournamenteventpreset Swiss", new PlayerId(123))).Success);
+        Assert.AreEqual(0, config.Saves);
+    }
+    [TestMethod]
+    public async Task MenuConsumesConfirmationAndRejectsChangedConfigurationOrRevokedPermissions()
+    {
+        var bus = new AnoEventBus(); var players = new PlayerRegistry(bus); var admin = new PlayerId(123);
+        await players.ConnectAsync(new(admin, "Admin", PlayerTeam.Terrorist, true, DateTimeOffset.UtcNow));
+        var permission = new MutablePermission(); var commands = new CommandRegistry(permission); var menus = new MenuService();
+        var repository = new Repository(); var config = new Config();
+        using var controller = new TournamentEventCommandController(config, commands, repository, new Audit());
+        using var module = new TournamentAdminMenuModule(commands, players, menus, config, repository, bus);
+        await commands.ExecuteAsync("!anotournamentadmin", admin);
+        await menus.SelectAsync(admin, "publish"); menus.TryGetOpenMenu(admin, out var confirm);
+        config.Document.Event.Name = "Changed";
+        await menus.SelectAsync(admin, confirm!, "confirm");
+        await menus.SelectAsync(admin, confirm!, "confirm");
+        Assert.AreEqual(0, repository.Writes);
+        await commands.ExecuteAsync("!anotournamentadmin", admin); await menus.SelectAsync(admin, "publish");
+        permission.Allowed = false; await menus.SelectAsync(admin, "confirm"); Assert.AreEqual(0, repository.Writes);
+        permission.Allowed = true;
+        await commands.ExecuteAsync("!anotournamentadmin", admin); await menus.SelectAsync(admin, "publish");
+        menus.TryGetOpenMenu(admin, out confirm);
+        await menus.SelectAsync(admin, confirm!, "confirm"); await menus.SelectAsync(admin, confirm!, "confirm");
+        Assert.AreEqual(1, repository.Writes);
+    }
+    private sealed class MutablePermission : IPermissionEvaluator
+    {
+        public bool Allowed = true;
+        public ValueTask<bool> HasPermissionAsync(PlayerId id, PermissionId permission, CancellationToken token = default) => ValueTask.FromResult(Allowed);
+    }
+
+    [TestMethod]
+    public async Task NextFixturesIsPublicReadOnlyAndUsesDeterministicMatchIds()
+    {
+        var repository = new Repository();
+        var audit = new Audit();
+        var registry = new CommandRegistry(new DenyAll());
+        using var controller = new TournamentEventCommandController(new Config(), registry, repository, audit);
+
+        var first = await registry.ExecuteAsync("!anotournamenteventnext", new PlayerId(123));
+        Assert.IsTrue(first.Success);
+        StringAssert.Contains(first.Message!, "1 / 1");
+        StringAssert.Contains(first.Message!, "group");
+        StringAssert.Contains(first.Message!, "Team");
+        var expected = TournamentFixtureMatchPlanner.Plan(repository.Current.Definition, [], [])[0].Match.MatchId;
+        StringAssert.Contains(first.Message!, expected);
+
+        var invalid = await registry.ExecuteAsync("!anotournamenteventnext 0", new PlayerId(123));
+        Assert.IsFalse(invalid.Success);
+        Assert.AreEqual(0, audit.Actions.Count);
+        Assert.HasCount(0, repository.Current.ConfirmedResults);
+    }
+
     private sealed class Repository : ITournamentEventRepository
     {
+        public int Writes;
         public TournamentStoredEvent Current { get; private set; } = new(Definition(), [], 1);
         public ValueTask<TournamentStoredEvent?> LoadActiveAsync(CancellationToken cancellationToken = default) => ValueTask.FromResult<TournamentStoredEvent?>(Current);
         public ValueTask<TournamentStoredEvent?> LoadAsync(string eventId, CancellationToken cancellationToken = default) => LoadActiveAsync(cancellationToken);
         public ValueTask<TournamentStoredEvent> CreateAsync(TournamentEventDefinition definition, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-        public ValueTask<TournamentStoredEvent> SaveAsync(string eventId, long expectedRevision, TournamentEventDefinition definition, IReadOnlyCollection<TournamentGroupResult> confirmedResults, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public ValueTask<TournamentStoredEvent> SaveAsync(string eventId, long expectedRevision, TournamentEventDefinition definition, IReadOnlyCollection<TournamentGroupResult> confirmedResults, CancellationToken cancellationToken = default)
+        {
+            if (expectedRevision != Current.Revision) throw new TournamentEventConcurrencyException(eventId, expectedRevision);
+            Writes++; Current = new(definition, confirmedResults.ToArray(), expectedRevision + 1) { PlayoffResults = Current.PlayoffResults }; return ValueTask.FromResult(Current);
+        }
         public ValueTask ActivateAsync(string eventId, CancellationToken cancellationToken = default) => ValueTask.CompletedTask;
         public ValueTask<TournamentStoredEvent> SavePlayoffsAsync(string eventId, long expectedRevision, IReadOnlyCollection<TournamentBracketResult> results, CancellationToken cancellationToken = default)
         {
@@ -80,8 +156,10 @@ public sealed class TournamentEventCommandControllerTests
 
     private sealed class Config : IConfigStore
     {
-        public ValueTask<T> LoadAsync<T>(string name, Func<T> createDefault, Func<T, IReadOnlyCollection<string>>? validate = null, CancellationToken cancellationToken = default) => ValueTask.FromResult(createDefault());
-        public ValueTask SaveAsync<T>(string name, T value, Func<T, IReadOnlyCollection<string>>? validate = null, CancellationToken cancellationToken = default) => ValueTask.CompletedTask;
+        public TournamentEventImportConfiguration Document = new() { Enabled = true, Event = Definition() };
+        public int Saves;
+        public ValueTask<T> LoadAsync<T>(string name, Func<T> createDefault, Func<T, IReadOnlyCollection<string>>? validate = null, CancellationToken cancellationToken = default) => ValueTask.FromResult((T)(object)Document);
+        public ValueTask SaveAsync<T>(string name, T value, Func<T, IReadOnlyCollection<string>>? validate = null, CancellationToken cancellationToken = default) { Saves++; Document = (TournamentEventImportConfiguration)(object)value!; return ValueTask.CompletedTask; }
     }
     private sealed class DenyAll : IPermissionEvaluator
     {

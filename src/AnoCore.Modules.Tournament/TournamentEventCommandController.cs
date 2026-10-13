@@ -28,10 +28,21 @@ public sealed class TournamentEventCommandController : IDisposable
         ArgumentNullException.ThrowIfNull(registry);
 
         _registrations.Add(registry.Register(Owner,
-            new("anotournamenteventload", "Import the fixed tournament-event JSON and activate it.", Manage),
+            new("anotournamenteventpreview", "Validate fixed tournament-event JSON without publishing it.", Manage), PreviewAsync));
+        _registrations.Add(registry.Register(Owner,
+            new("anotournamenteventpreset", "Stage a validated format preset in fixed tournament-event JSON.", Manage,
+                arguments: [new("preset", CommandArgumentKind.String, "RoundRobin, Groups, Swiss, SingleElimination or DoubleElimination.")]), PresetAsync));
+        _registrations.Add(registry.Register(Owner,
+            new("anotournamenteventload", "Import the fixed tournament-event JSON and activate it.", Manage,
+                arguments: [new("expected_revision",CommandArgumentKind.UInt64,"Pinned revision from an admin preview.",required:false),
+                    new("expected_hash",CommandArgumentKind.String,"Pinned document fingerprint.",required:false)]),
             ImportAsync));
         _registrations.Add(registry.Register(Owner,
             new("anotournamenteventbracket", "Show playoff pairings and champion."), BracketAsync));
+        _registrations.Add(registry.Register(Owner,
+            new("anotournamenteventnext", "Preview unplayed event fixtures ready for CS2 assignment.",
+                arguments: [new("page", CommandArgumentKind.Int32, "Fixture list page.", required: false)]),
+            NextFixturesAsync));
         _registrations.Add(registry.Register(Owner,
             new("anotournamenteventplayoffresult", "Confirm one playoff winner.", Manage, arguments:
                 [new("match", CommandArgumentKind.String, "Stable playoff match id."),
@@ -55,14 +66,82 @@ public sealed class TournamentEventCommandController : IDisposable
                 ]), ConfirmAsync));
     }
 
+    private async ValueTask<CommandResult> PreviewAsync(CommandContext context)
+    {
+        ThrowIfDisposed();
+        try
+        {
+            var document = await _config.LoadAsync(DefinitionConfigName, () => new TournamentEventImportConfiguration(),
+                TournamentEventImportConfiguration.Validate, context.CancellationToken).ConfigureAwait(false);
+            var preview = TournamentEventPresets.Preview(document.Event);
+            return CommandResult.Ok($"[ANO] Preview only: {preview.Teams} teams; groups [{string.Join(",", preview.GroupSizes)}]; " +
+                $"{preview.GroupMatches} group matches; {preview.PlayoffEntrants} playoff entrants; " +
+                $"{preview.GroupByes} group byes, {preview.OpeningByes} opening playoff byes; " +
+                $"{preview.MinimumMatches}-{preview.MaximumMatches} total matches. Not published.");
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException) { return CommandResult.Fail(CommandFailureReason.InvalidInput, exception.Message); }
+    }
+    private async ValueTask<CommandResult> PresetAsync(CommandContext context)
+    {
+        await _gate.WaitAsync(context.CancellationToken).ConfigureAwait(false);
+        try
+        {
+            ThrowIfDisposed();
+            if (!Enum.TryParse<TournamentEventPreset>(context.Get<string>("preset"), true, out var preset) || !Enum.IsDefined(preset))
+                return CommandResult.Fail(CommandFailureReason.InvalidInput, "Choose RoundRobin, Groups, Swiss, SingleElimination or DoubleElimination.");
+            var document = await _config.LoadAsync(DefinitionConfigName, () => new TournamentEventImportConfiguration(),
+                TournamentEventImportConfiguration.Validate, context.CancellationToken).ConfigureAwait(false);
+            var configured = TournamentEventPresets.Apply(document.Event, preset);
+            var stored = await _repository.LoadAsync(configured.Id, context.CancellationToken).ConfigureAwait(false);
+            if (stored is not null && (stored.ConfirmedResults.Count > 0 || stored.PlayoffResults.Count > 0))
+                return CommandResult.Fail(CommandFailureReason.InvalidInput, "This event already has results. Use a new event ID for a format preset.");
+            if (!await AuditAsync("tournament.preset.requested", context, preset.ToString()))
+                return CommandResult.Fail(CommandFailureReason.HandlerFailed, "Preset request could not be audited.");
+            document.Event = configured;
+            await _config.SaveAsync(DefinitionConfigName, document, TournamentEventImportConfiguration.Validate, context.CancellationToken).ConfigureAwait(false);
+            if (!await AuditAsync("tournament.preset", context, preset.ToString()))
+                return CommandResult.Fail(CommandFailureReason.HandlerFailed, "Preset file saved; completion audit failed. Preview before publishing.");
+            return CommandResult.Ok("[ANO] Preset saved to tournament-event JSON. Run anotournamenteventpreview, then set Enabled=true and use anotournamenteventload to publish.");
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        { return CommandResult.Fail(CommandFailureReason.InvalidInput, "Preset rejected: " + exception.Message); }
+        finally { _gate.Release(); }
+    }
+
+    private async ValueTask<CommandResult> NextFixturesAsync(CommandContext context)
+    {
+        ThrowIfDisposed();
+        var page = context.TryGet<int>("page", out var requested) ? requested : 1;
+        if (page < 1)
+            return CommandResult.Fail(CommandFailureReason.InvalidInput, "Page must be at least 1.");
+        var active = await _repository.LoadActiveAsync(context.CancellationToken).ConfigureAwait(false);
+        if (active is null)
+            return CommandResult.Ok("[ANO] No shared tournament event is active.");
+        var options = TournamentFixtureMatchPlanner.Plan(
+            active.Definition, active.ConfirmedResults, active.PlayoffResults);
+        const int pageSize = 6;
+        var pages = Math.Max(1, (options.Count + pageSize - 1) / pageSize);
+        if (page > pages)
+            return CommandResult.Fail(CommandFailureReason.InvalidInput,
+                $"Fixture page must be between 1 and {pages}.");
+        if (options.Count == 0)
+            return CommandResult.Ok("[ANO] No unplayed event fixtures are ready for assignment.");
+        return CommandResult.Ok($"[ANO] Next fixtures {page} / {pages} ({options.Count} open)"
+            + " | " + string.Join(" | ", options.Skip((page - 1) * pageSize).Take(pageSize)
+                .Select(option => $"{option.Stage} {option.SourceId}: "
+                    + $"{option.Match.TeamA.Name} vs {option.Match.TeamB.Name} "
+                    + $"BO{option.Match.BestOf} MatchId={option.Match.MatchId}")));
+    }
+
     private async ValueTask<CommandResult> BracketAsync(CommandContext context)
     {
         ThrowIfDisposed();
         var active = await _repository.LoadActiveAsync(context.CancellationToken).ConfigureAwait(false);
         if (active is null) return CommandResult.Ok("[ANO] No active shared tournament.");
         var progress = TournamentEventPlayoffs.Progress(active.Definition, active.ConfirmedResults, active.PlayoffResults);
-        if (progress is null) return CommandResult.Ok("[ANO] Playoffs wait for all group fixtures to be confirmed.");
-        return CommandResult.Ok("[ANO] " + string.Join(" | ", progress.Matches.Select(match =>
+        if (progress is null) return CommandResult.Ok(active.Definition.PlayoffsEnabled
+            ? "[ANO] Playoffs wait for all group fixtures to be confirmed." : "[ANO] Playoffs are disabled for this event.");
+        return CommandResult.Ok("[ANO] " + string.Join(" | ", progress.Matches.Where(match => match.IsEnabled).Select(match =>
             $"{match.Id}: {match.HomeTeamId ?? "pending"} vs {match.AwayTeamId ?? "pending"}" +
             (match.WinnerTeamId is not null ? $" -> {match.WinnerTeamId}" : match.IsReady ? " [ready]" : " [waiting]")))
             + (progress.ChampionTeamId is null ? "" : $" | Champion: {progress.ChampionTeamId}"));
@@ -126,6 +205,8 @@ public sealed class TournamentEventCommandController : IDisposable
                     $"Tournament import rejected: {exception.Message}");
             }
 
+            if (context.TryGet<string>("expected_hash", out var fingerprint) && fingerprint != TournamentEventImportConfiguration.Fingerprint(document))
+                return CommandResult.Fail(CommandFailureReason.InvalidInput, "Configuration changed after preview. Preview and confirm again.");
             var definition = document.Event;
             if (!await AuditAsync("tournament.event-import.requested", context, definition.Id))
                 return CommandResult.Fail(CommandFailureReason.HandlerFailed,
@@ -134,6 +215,8 @@ public sealed class TournamentEventCommandController : IDisposable
             try
             {
                 old = await _repository.LoadAsync(definition.Id, context.CancellationToken).ConfigureAwait(false);
+                if (context.TryGet<ulong>("expected_revision", out var pinned) && pinned != (ulong)(old?.Revision ?? 0))
+                    return CommandResult.Fail(CommandFailureReason.InvalidInput, "Event changed after preview. Preview and confirm again.");
                 if (old is null)
                     await _repository.CreateAsync(definition, context.CancellationToken).ConfigureAwait(false);
                 else

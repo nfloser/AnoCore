@@ -77,6 +77,12 @@ public sealed class AdminMenuModule : IDisposable
             options.Add(new(command.Name, Text(command.Description), context => Current(actor)
                 ? Targets(actor, command, context.CancellationToken) : ValueTask.CompletedTask, keepOpen: true));
         }
+        if (_commands.GetCommands().Any(command => command.Name == "anotournamentadmin")
+            && await _permissions.HasPermissionAsync(actor.Id, new("ano.tournament.manage"), token))
+            options.Add(new("tournament", "Tournament administration", async context =>
+            {
+                if (Current(actor)) await _commands.ExecuteAsync("!anotournamentadmin", actor.Id, context.CancellationToken);
+            }, keepOpen: true));
         if (options.Count == 0) options.Add(Info("empty", "No authorized actions available."));
         Replace(actor, "Administration — action", options, revision);
     }

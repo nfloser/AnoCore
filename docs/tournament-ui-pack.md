@@ -101,3 +101,11 @@ Do not treat those items as complete.
 - **Publish the first updated Workshop addon only after this acceptance,
   not once per code commit.** Once published, event data updates do not
   require another upload.
+
+Open MatchZy assignments refresh independently of event revisions and append the
+assigned server/state to fixture cards. Dispatched means a load was requested;
+it does not assert live acceptance. MatchZy-owned teams show `Ready: MatchZy`
+rather than inferring ready status from presence. Inactive reset finals remain
+visible as disabled future slots and are labeled not required after an undefeated
+finalist wins. The ordinary `!anoadminmenu` links to the authorized tournament
+configuration menu; it reuses existing menu resources.

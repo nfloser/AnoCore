@@ -266,6 +266,61 @@ public sealed class TournamentPanoramaPresenterTests
         Assert.IsTrue(contents.Any(t => t.Contains("Verlierer", StringComparison.Ordinal)));
     }
 
+    [TestMethod]
+    public async Task SwissAndDoubleEliminationRenderFromStoredStagePolicies()
+    {
+        var bus = new AnoEventBus(); var players = new PlayerRegistry(bus);
+        await players.ConnectAsync(new(Viewer, "Viewer", PlayerTeam.Terrorist, true, DateTimeOffset.UtcNow));
+        var definition = Definition(); definition.GroupFormat = TournamentGroupFormat.Swiss;
+        definition.PlayoffFormat = TournamentPlayoffFormat.DoubleElimination;
+        var repository = new MemoryEvents(definition); var hud = new TestCustomHudService(); var commands = new CommandRegistry(new Allow());
+        using var presenter = new TournamentPanoramaPresenter(hud, repository, players, commands, bus, matchZyReadyOwned: true);
+        await commands.ExecuteAsync("!anotournament", Viewer);
+        StringAssert.Contains(hud.Text(Viewer, TournamentPanoramaPresenter.HudId, "ano_tournament_team_status")!, "Ready: MatchZy");
+        await hud.ClickAsync(Viewer, TournamentPanoramaPresenter.HudId, "ano_tournament_tab_matches");
+        Assert.IsTrue(string.IsNullOrEmpty(hud.Text(Viewer, TournamentPanoramaPresenter.HudId, "ano_tournament_fixture_1")));
+        await hud.ClickAsync(Viewer, TournamentPanoramaPresenter.HudId, "ano_tournament_tab_bracket");
+        StringAssert.Contains(hud.Text(Viewer, TournamentPanoramaPresenter.HudId, "ano_tournament_match_2_text")!, "Verlierer");
+        Assert.IsTrue(hud.Class(Viewer, TournamentPanoramaPresenter.HudId, "ano_tournament_match_4", "disabled"));
+        var results = new List<TournamentBracketResult>();
+        while (!results.Any(result => result.MatchId == "grand-final"))
+        {
+            var match = TournamentEventPlayoffs.Progress(definition, [], results)!.Matches.First(match => match.IsReady);
+            results.Add(new(match.Id, match.AwayTeamId!, 1, 0));
+        }
+        repository.PlayoffResults = results; repository.Revision++;
+        await presenter.RefreshOpenAsync();
+        Assert.IsFalse(hud.Class(Viewer, TournamentPanoramaPresenter.HudId, "ano_tournament_match_4", "hidden"));
+        StringAssert.Contains(hud.Text(Viewer, TournamentPanoramaPresenter.HudId, "ano_tournament_match_4_text")!, "Reset");
+    }
+
+    [TestMethod]
+    public async Task AssignmentChangesRefreshServerLabelsWithoutEventRevisionChanges()
+    {
+        var bus = new AnoEventBus(); var players = new PlayerRegistry(bus);
+        await players.ConnectAsync(new(Viewer, "Viewer", PlayerTeam.Terrorist, true, DateTimeOffset.UtcNow));
+        var definition = Definition(); var repository = new MemoryEvents(definition); var hud = new TestCustomHudService(); var commands = new CommandRegistry(new Allow());
+        var assignments = new Assignments();
+        using var presenter = new TournamentPanoramaPresenter(hud, repository, players, commands, bus, assignments: assignments);
+        await commands.ExecuteAsync("!anotournament", Viewer);
+        await hud.ClickAsync(Viewer, TournamentPanoramaPresenter.HudId, "ano_tournament_tab_matches");
+        var fixture = TournamentSchedules.Generate(definition, "main", []).First().Fixtures.First();
+        assignments.Open = [new(42, definition.Id, fixture.Id, false, fixture.HomeTeamId, fixture.AwayTeamId, "server-a", Guid.NewGuid(), 1, ["de_mirage"], "dispatched")];
+        await presenter.RefreshOpenAsync();
+        StringAssert.Contains(hud.Text(Viewer, TournamentPanoramaPresenter.HudId, "ano_tournament_fixture_0")!, "server-a [dispatched]");
+        Assert.AreEqual(1L, repository.Revision);
+    }
+    private sealed class Assignments : ITournamentMatchAssignmentRepository
+    {
+        public IReadOnlyList<TournamentMatchAssignment> Open = [];
+        public ValueTask<IReadOnlyList<TournamentMatchAssignment>> LoadOpenAsync(CancellationToken token = default) => ValueTask.FromResult(Open);
+        public ValueTask<TournamentMatchClaim?> ClaimNextAsync(string server, Guid instance, TournamentMatchZyConfiguration config, CancellationToken token = default) => throw new NotSupportedException();
+        public ValueTask<bool> MarkDispatchedAsync(long id, string server, Guid instance, CancellationToken token = default) => throw new NotSupportedException();
+        public ValueTask<bool> AuthenticateAsync(long id, string secret, CancellationToken token = default) => throw new NotSupportedException();
+        public ValueTask<bool> ApplyEventAsync(long id, string payload, CancellationToken token = default) => throw new NotSupportedException();
+        public ValueTask CancelAsync(long id, string server, Guid instance, CancellationToken token = default) => throw new NotSupportedException();
+    }
+
     private sealed class MemoryEvents(TournamentEventDefinition definition)
         : ITournamentEventRepository
     {

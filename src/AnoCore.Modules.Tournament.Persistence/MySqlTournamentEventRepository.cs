@@ -103,12 +103,18 @@ public sealed class MySqlTournamentEventRepository : ITournamentEventRepository
                         ?? throw new InvalidDataException("Missing previous event definition.");
                     var previousGroups = JsonSerializer.Deserialize<List<TournamentGroupResult>>(reader.GetString(3))
                         ?? throw new InvalidDataException("Missing previous group results.");
+                    if (previous.GroupStageEnabled != definition.GroupStageEnabled || previous.PlayoffsEnabled != definition.PlayoffsEnabled
+                        || previous.PlayoffFormat != definition.PlayoffFormat || previous.GrandFinalReset != definition.GrandFinalReset
+                        || previous.PlayoffBestOf != definition.PlayoffBestOf || previous.GroupFormat != definition.GroupFormat
+                        || previous.GroupBestOf != definition.GroupBestOf || previous.SwissRounds != definition.SwissRounds)
+                        throw new ArgumentException("Cannot change stage rules after confirmed playoffs.", nameof(definition));
                     var before = TournamentEventPlayoffs.ResolveEntrants(previous, previousGroups);
                     var after = TournamentEventPlayoffs.ResolveEntrants(definition, results);
                     if (before is null || after is null || !before.SequenceEqual(after))
                         throw new ArgumentException("Cannot change playoff entrants or seeds after confirmed results.", nameof(definition));
                 }
             }
+            await RequireNoOpenAssignmentsAsync(connection, transaction, eventId, token).ConfigureAwait(false);
             _ = TournamentEventPlayoffs.Progress(definition, results, playoffs);
             await using var command = connection.CreateCommand();
             command.Transaction = transaction;
@@ -142,6 +148,15 @@ public sealed class MySqlTournamentEventRepository : ITournamentEventRepository
         _ = TournamentEventPlayoffs.Progress(snapshot.Definition, snapshot.ConfirmedResults, playoffs);
         return await _database.InTransactionAsync(async (connection, transaction, token) =>
         {
+            await using (var locked = connection.CreateCommand())
+            {
+                locked.Transaction = transaction;
+                locked.CommandText = "SELECT revision FROM ano_tournament_events WHERE event_id=@id FOR UPDATE";
+                Add(locked, "@id", eventId);
+                if (Convert.ToInt64(await locked.ExecuteScalarAsync(token).ConfigureAwait(false)) != expectedRevision)
+                    throw new TournamentEventConcurrencyException(eventId, expectedRevision);
+            }
+            await RequireNoOpenAssignmentsAsync(connection, transaction, eventId, token).ConfigureAwait(false);
             await using var command = connection.CreateCommand();
             command.Transaction = transaction;
             command.CommandText = """
@@ -168,6 +183,20 @@ public sealed class MySqlTournamentEventRepository : ITournamentEventRepository
     {
         await _database.InTransactionAsync(async (connection, transaction, token) =>
         {
+            await using (var active = connection.CreateCommand())
+            {
+                active.Transaction = transaction;
+                active.CommandText = "SELECT active_event_id FROM ano_tournament_event_runtime WHERE singleton_id=1 FOR UPDATE";
+                var current = await active.ExecuteScalarAsync(token).ConfigureAwait(false) as string;
+                if (current != eventId)
+                {
+                    await using var open = connection.CreateCommand();
+                    open.Transaction = transaction;
+                    open.CommandText = "SELECT assignment_id FROM ano_tournament_assignments WHERE state IN ('pending','dispatched') LIMIT 1";
+                    if (await open.ExecuteScalarAsync(token).ConfigureAwait(false) is not null)
+                        throw new ArgumentException("Finish or cancel open MatchZy assignments before activating another event.");
+                }
+            }
             await using var exists = connection.CreateCommand();
             exists.Transaction = transaction;
             exists.CommandText = "SELECT event_id FROM ano_tournament_events WHERE event_id = @id";
@@ -186,6 +215,17 @@ public sealed class MySqlTournamentEventRepository : ITournamentEventRepository
             return true;
         }, isolationLevel: IsolationLevel.Serializable, cancellationToken: cancellationToken)
             .ConfigureAwait(false);
+    }
+
+    private static async ValueTask RequireNoOpenAssignmentsAsync(DbConnection connection, DbTransaction transaction,
+        string eventId, CancellationToken token)
+    {
+        await using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = "SELECT assignment_id FROM ano_tournament_assignments WHERE event_id=@id AND state IN ('pending','dispatched') LIMIT 1";
+        Add(command, "@id", eventId);
+        if (await command.ExecuteScalarAsync(token).ConfigureAwait(false) is not null)
+            throw new ArgumentException("Event has an open MatchZy assignment. Finish it or cancel it before importing configuration or entering manual results.");
     }
 
     private static async ValueTask<TournamentStoredEvent?> ReadOneAsync(
