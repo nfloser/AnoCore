@@ -155,6 +155,28 @@ public sealed class TournamentEventFormatTests
         Assert.IsTrue(standings.All(row => row.Points == 0 && row.GamesPlayed == 0));
     }
 
+    [TestMethod]
+    public void FixtureIdentityChangesWhenTeamsAreReordered()
+    {
+        var definition = CreateEvent(4);
+        var oldFixture = TournamentRoundRobin.Generate(definition, "main")
+            .SelectMany(round => round.Fixtures).First();
+
+        definition.Groups[0].TeamIds.Reverse();
+        var newFixtures = TournamentRoundRobin.Generate(definition, "main")
+            .SelectMany(round => round.Fixtures).ToArray();
+
+        // Reordering a future schedule must never reinterpret a previously
+        // confirmed result as an unrelated encounter with the same round/slot.
+        var changedSlot = newFixtures.Single(fixture =>
+            fixture.Round == oldFixture.Round &&
+            fixture.Id.Split(':')[2] == oldFixture.Id.Split(':')[2]);
+        Assert.AreNotEqual(oldFixture.Id, changedSlot.Id);
+        Assert.ThrowsExactly<ArgumentException>(() =>
+            TournamentStandings.Calculate(definition, "main",
+                [new TournamentGroupResult(oldFixture.Id, 1, 0, 13, 8)]));
+    }
+
     private static TournamentGroupResult ResultFor(
         IReadOnlyCollection<TournamentGroupFixture> fixtures,
         string winner, string loser, int winnerMaps, int loserMaps, int winnerRounds, int loserRounds)
