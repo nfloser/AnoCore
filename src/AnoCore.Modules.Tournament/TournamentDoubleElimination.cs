@@ -13,7 +13,8 @@ public static class TournamentDoubleElimination
             ? new(null, "u-" + id) : slot;
         var upperRounds = upper.Rounds.Select(round => new TournamentBracketRound(round.Number,
             round.Matches.Select(match => new TournamentBracketMatch("u-" + match.Id, match.Round,
-                UpperSlot(match.Home), UpperSlot(match.Away)) { Bracket = "upper" }).ToArray())).ToArray();
+                UpperSlot(match.Home), UpperSlot(match.Away))
+            { Bracket = "upper" }).ToArray())).ToArray();
         rounds.AddRange(upperRounds);
         List<TournamentBracketSlot> Pair(IReadOnlyList<TournamentBracketSlot> slots)
         {
