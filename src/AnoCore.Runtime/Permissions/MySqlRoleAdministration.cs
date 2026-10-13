@@ -15,6 +15,15 @@ public sealed class MySqlRoleAdministration(IDatabase database, AuthorizationSer
     private readonly Func<Guid> _newAuditId = newAuditId ?? Guid.NewGuid;
     private readonly TimeProvider _clock = clock ?? TimeProvider.System;
 
+    public ValueTask SetupAdministratorAsync(PlayerId? actor, PlayerId target, CancellationToken cancellationToken = default)
+    {
+        if (actor is not null) throw new UnauthorizedAccessException("Administrator setup is console-only.");
+        ArgumentNullException.ThrowIfNull(target);
+        return MutateAsync(null, target, "roles.setup-admin", "role=anocore_admin; permanent console grant",
+            state => RoleAdministrationPolicy.SetupAdministratorAsync(state, null, target, _clock.GetUtcNow()),
+            cancellationToken);
+    }
+
     public ValueTask ChangeAsync(PlayerId? actor, PlayerId target, RoleId role, int minutes, bool revoke,
         string reason, CancellationToken cancellationToken = default)
     {

@@ -14,6 +14,19 @@ public sealed class RoleAdministrationCommands : IDisposable
         var owner = new ModuleId("ano.admin.roles");
         try
         {
+            _owned.Add(commands.Register(owner, new("anosetupadmin", "Create and grant the AnoCore administrator role from the server console.",
+                new("ano.admin.roles.define"), arguments: [new("target", CommandArgumentKind.String, "Explicit SteamID64.")]), async context =>
+            {
+                if (context.Caller is not null) return CommandResult.Fail(CommandFailureReason.Forbidden, "Server console required.");
+                if (!ulong.TryParse(context.Get<string>("target"), out var id) || id == 0)
+                    return CommandResult.Fail(CommandFailureReason.InvalidInput, "Use an explicit nonzero SteamID64.");
+                try
+                {
+                    await service.SetupAdministratorAsync(null, new PlayerId(id), context.CancellationToken);
+                    return CommandResult.Ok("[ANO] anocore_admin granted permanently; administration and tournament permissions refreshed. CSS roles remain separately configured.");
+                }
+                catch (ArgumentException exception) { return CommandResult.Fail(CommandFailureReason.InvalidInput, exception.Message); }
+            }));
             foreach (var revoke in new[] { false, true })
             {
                 var name = revoke ? "anorevokerole" : "anograntrole";
