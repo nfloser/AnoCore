@@ -228,7 +228,7 @@ public static class TournamentRoundRobin
                     var away = leg == 0 ? b : a;
                     var number = leg * perLeg + round + 1;
                     fixtures.Add(new TournamentGroupFixture(
-                        $"{group.Id}:r{number}:m{fixtures.Count + 1}",
+                        $"{group.Id}:r{number}:m{fixtures.Count + 1}:{home}:{away}",
                         group.Id, number, home, away));
                 }
                 rounds.Add(new TournamentGroupRound(leg * perLeg + round + 1,
