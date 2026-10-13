@@ -4,7 +4,10 @@ namespace AnoCore.Modules.Tournament;
 public sealed record TournamentStoredEvent(
     TournamentEventDefinition Definition,
     IReadOnlyList<TournamentGroupResult> ConfirmedResults,
-    long Revision);
+    long Revision)
+{
+    public IReadOnlyList<TournamentBracketResult> PlayoffResults { get; init; } = [];
+}
 
 public interface ITournamentEventRepository
 {
@@ -19,6 +22,9 @@ public interface ITournamentEventRepository
         TournamentEventDefinition definition,
         IReadOnlyCollection<TournamentGroupResult> confirmedResults,
         CancellationToken cancellationToken = default);
+    ValueTask<TournamentStoredEvent> SavePlayoffsAsync(string eventId, long expectedRevision,
+        IReadOnlyCollection<TournamentBracketResult> results, CancellationToken cancellationToken = default)
+        => throw new NotSupportedException("This repository does not support playoff persistence.");
     ValueTask ActivateAsync(string eventId, CancellationToken cancellationToken = default);
 }
 
@@ -63,5 +69,17 @@ public static class TournamentEventSnapshotValidator
         }
         foreach (var group in groups)
             _ = TournamentStandings.Calculate(definition, group, grouped[group]);
+    }
+}
+
+/// <summary>Shared stable seed projection used by commands, persistence and UI.</summary>
+public static class TournamentEventPlayoffs
+{
+    public static IReadOnlyList<TournamentBracketEntrant> Entrants(TournamentEventDefinition definition)
+    {
+        TournamentEventDefinition.RequireValid(definition);
+        return definition.Teams.OrderBy(team => team.InitialSeed ?? int.MaxValue)
+            .ThenBy(team => team.Id, StringComparer.Ordinal)
+            .Select((team, index) => new TournamentBracketEntrant(team.Id, index + 1)).ToArray();
     }
 }

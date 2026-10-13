@@ -72,3 +72,25 @@ incompatible downstream results rather than silently transferring them.
 
 This is a domain snapshot for future persistence, presenter and match-capture
 integration. It does not yet persist playoff results or start a live CS2 match.
+
+## Shared playoff results and operator commands
+
+The shared event store now retains playoff results beside group results.
+Migration 23 initializes existing events with an empty playoff result list.
+Both writes use the event revision: concurrent group/playoff edits reject stale
+writes, and a group import preserves and revalidates recorded playoff results.
+
+```text
+css_anotournamenteventbracket
+css_anotournamenteventplayoffresult r1-m1 team-2 2 0
+```
+
+The first command shows stable match IDs, resolved participants, waiting/ready
+pairings and the champion. The second confirms winner/loser map totals, requires
+`ano.tournament.manage`, and records request/completion audit entries. It rejects
+duplicates, premature finals and unrelated winners. Completion-audit failure
+reports that the result was saved; do not submit it again.
+
+Playoff seeds currently come from `InitialSeed`, then stable team IDs for unseeded
+teams. Automatic group qualification and format-specific BO limits are separate
+stage policy; this command does not assert group completion or start a CS2 match.

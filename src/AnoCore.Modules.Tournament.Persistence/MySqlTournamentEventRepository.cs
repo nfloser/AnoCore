@@ -26,8 +26,8 @@ public sealed class MySqlTournamentEventRepository : ITournamentEventRepository
             command.Transaction = transaction;
             command.CommandText = """
                 INSERT INTO ano_tournament_events
-                    (event_id, definition_json, results_json, revision, updated_at_utc)
-                VALUES (@id, @definition, @results, 1, UTC_TIMESTAMP(6))
+                    (event_id, definition_json, results_json, playoff_results_json, revision, updated_at_utc)
+                VALUES (@id, @definition, @results, '[]', 1, UTC_TIMESTAMP(6))
                 """;
             Add(command, "@id", definition.Id);
             Add(command, "@definition", JsonSerializer.Serialize(definition));
@@ -45,7 +45,7 @@ public sealed class MySqlTournamentEventRepository : ITournamentEventRepository
         {
             await using var command = connection.CreateCommand();
             command.CommandText = """
-                SELECT definition_json, results_json, revision
+                SELECT definition_json, results_json, revision, playoff_results_json
                 FROM ano_tournament_events WHERE event_id = @id
                 """;
             Add(command, "@id", eventId);
@@ -59,7 +59,7 @@ public sealed class MySqlTournamentEventRepository : ITournamentEventRepository
         {
             await using var command = connection.CreateCommand();
             command.CommandText = """
-                SELECT e.definition_json, e.results_json, e.revision, e.event_id
+                SELECT e.definition_json, e.results_json, e.revision, e.event_id, e.playoff_results_json
                 FROM ano_tournament_event_runtime AS r
                 JOIN ano_tournament_events AS e ON e.event_id = r.active_event_id
                 WHERE r.singleton_id = 1
@@ -68,7 +68,7 @@ public sealed class MySqlTournamentEventRepository : ITournamentEventRepository
             if (!await reader.ReadAsync(token).ConfigureAwait(false))
                 return null;
             var eventId = reader.GetString(3);
-            return Deserialize(eventId, reader.GetString(0), reader.GetString(1), reader.GetInt64(2));
+            return Deserialize(eventId, reader.GetString(0), reader.GetString(1), reader.GetInt64(2), reader.GetString(4));
         }, cancellationToken);
 
     public ValueTask<TournamentStoredEvent> SaveAsync(
@@ -87,6 +87,18 @@ public sealed class MySqlTournamentEventRepository : ITournamentEventRepository
 
         return _database.InTransactionAsync(async (connection, transaction, token) =>
         {
+            await using var read = connection.CreateCommand();
+            read.Transaction = transaction;
+            read.CommandText = "SELECT playoff_results_json, revision FROM ano_tournament_events WHERE event_id = @id FOR UPDATE";
+            Add(read, "@id", eventId);
+            IReadOnlyList<TournamentBracketResult> playoffs;
+            await using (var reader = await read.ExecuteReaderAsync(token).ConfigureAwait(false))
+            {
+                if (!await reader.ReadAsync(token).ConfigureAwait(false) || reader.GetInt64(1) != expectedRevision)
+                    throw new TournamentEventConcurrencyException(eventId, expectedRevision);
+                playoffs = DeserializePlayoffs(reader.GetString(0));
+            }
+            _ = TournamentBracketProgression.Calculate(TournamentEventPlayoffs.Entrants(definition), playoffs);
             await using var command = connection.CreateCommand();
             command.Transaction = transaction;
             command.CommandText = """
@@ -102,8 +114,37 @@ public sealed class MySqlTournamentEventRepository : ITournamentEventRepository
             var updated = await command.ExecuteNonQueryAsync(token).ConfigureAwait(false);
             if (updated != 1)
                 throw new TournamentEventConcurrencyException(eventId, expectedRevision);
-            return new TournamentStoredEvent(definition, results, checked(expectedRevision + 1));
+            return new TournamentStoredEvent(definition, results, checked(expectedRevision + 1)) { PlayoffResults = playoffs };
         }, cancellationToken: cancellationToken);
+    }
+
+    public async ValueTask<TournamentStoredEvent> SavePlayoffsAsync(string eventId, long expectedRevision,
+        IReadOnlyCollection<TournamentBracketResult> results, CancellationToken cancellationToken = default)
+    {
+        RequireId(eventId);
+        if (expectedRevision < 1) throw new ArgumentOutOfRangeException(nameof(expectedRevision));
+        ArgumentNullException.ThrowIfNull(results);
+        var snapshot = await LoadAsync(eventId, cancellationToken).ConfigureAwait(false);
+        if (snapshot is null || snapshot.Revision != expectedRevision)
+            throw new TournamentEventConcurrencyException(eventId, expectedRevision);
+        var playoffs = Array.AsReadOnly(results.ToArray());
+        _ = TournamentBracketProgression.Calculate(TournamentEventPlayoffs.Entrants(snapshot.Definition), playoffs);
+        return await _database.InTransactionAsync(async (connection, transaction, token) =>
+        {
+            await using var command = connection.CreateCommand();
+            command.Transaction = transaction;
+            command.CommandText = """
+                UPDATE ano_tournament_events SET playoff_results_json = @results,
+                    revision = revision + 1, updated_at_utc = UTC_TIMESTAMP(6)
+                WHERE event_id = @id AND revision = @expected
+                """;
+            Add(command, "@id", eventId);
+            Add(command, "@expected", expectedRevision);
+            Add(command, "@results", JsonSerializer.Serialize(playoffs));
+            if (await command.ExecuteNonQueryAsync(token).ConfigureAwait(false) != 1)
+                throw new TournamentEventConcurrencyException(eventId, expectedRevision);
+            return snapshot with { PlayoffResults = playoffs, Revision = checked(expectedRevision + 1) };
+        }, cancellationToken: cancellationToken).ConfigureAwait(false);
     }
 
     public ValueTask ActivateAsync(string eventId, CancellationToken cancellationToken = default)
@@ -142,11 +183,11 @@ public sealed class MySqlTournamentEventRepository : ITournamentEventRepository
         await using var reader = await command.ExecuteReaderAsync(token).ConfigureAwait(false);
         if (!await reader.ReadAsync(token).ConfigureAwait(false))
             return null;
-        return Deserialize(eventId, reader.GetString(0), reader.GetString(1), reader.GetInt64(2));
+        return Deserialize(eventId, reader.GetString(0), reader.GetString(1), reader.GetInt64(2), reader.GetString(3));
     }
 
     private static TournamentStoredEvent Deserialize(
-        string eventId, string definitionJson, string resultsJson, long revision)
+        string eventId, string definitionJson, string resultsJson, long revision, string playoffJson)
     {
         var definition = JsonSerializer.Deserialize<TournamentEventDefinition>(definitionJson)
             ?? throw new InvalidDataException("Missing tournament definition in database.");
@@ -155,8 +196,14 @@ public sealed class MySqlTournamentEventRepository : ITournamentEventRepository
         if (revision < 1 || !string.Equals(eventId, definition.Id, StringComparison.Ordinal))
             throw new InvalidDataException("Stored tournament identity/revision is invalid.");
         TournamentEventSnapshotValidator.Validate(definition, results);
-        return new TournamentStoredEvent(definition, results.AsReadOnly(), revision);
+        var playoffs = DeserializePlayoffs(playoffJson);
+        _ = TournamentBracketProgression.Calculate(TournamentEventPlayoffs.Entrants(definition), playoffs);
+        return new TournamentStoredEvent(definition, results.AsReadOnly(), revision) { PlayoffResults = playoffs };
     }
+
+    private static IReadOnlyList<TournamentBracketResult> DeserializePlayoffs(string json)
+        => (JsonSerializer.Deserialize<List<TournamentBracketResult>>(json)
+            ?? throw new InvalidDataException("Missing playoff results in database.")).AsReadOnly();
 
     private static void RequireId(string? id)
     {
