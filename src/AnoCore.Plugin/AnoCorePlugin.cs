@@ -101,6 +101,9 @@ public sealed class AnoCorePlugin : BasePlugin
     private TournamentSpectatorEnforcement? _tournamentSpectatorEnforcement;
     private TournamentCommandController? _tournamentCommands;
     private TournamentEventCommandController? _tournamentEventCommands;
+    private TournamentServerConfiguration _tournamentServerConfiguration = new();
+    private TournamentPresencePublisher? _tournamentPresence;
+    private CounterStrikeSharp.API.Modules.Timers.Timer? _tournamentPresenceTimer;
     private TournamentMapSelectionCommandController? _tournamentMapSelectionCommands;
     private CounterStrikeSharp.API.Modules.Timers.Timer? _chatPolicyTimer;
     private ChatMessageFormatter? _chatFormatter;
@@ -268,6 +271,10 @@ public sealed class AnoCorePlugin : BasePlugin
             _tournamentMapSelectionCommands = null;
             _tournamentCommands?.Dispose();
             _tournamentCommands = null;
+            _tournamentPresenceTimer?.Kill();
+            _tournamentPresenceTimer = null;
+            _tournamentPresence?.Dispose();
+            _tournamentPresence = null;
             _tournamentEventCommands?.Dispose();
             _tournamentEventCommands = null;
             _tournamentSpectatorEnforcement?.Dispose();
@@ -422,6 +429,17 @@ public sealed class AnoCorePlugin : BasePlugin
             var externalModules = await configuration.LoadAsync("modules", () => new ExternalModuleConfiguration(),
                 ExternalModuleConfiguration.Validate, cancellationToken).ConfigureAwait(false);
             _panoramaMenusEnabled = settings.PanoramaMenusEnabled;
+            try
+            {
+                _tournamentServerConfiguration = await configuration.LoadAsync("tournament-servers", () => new TournamentServerConfiguration(),
+                    TournamentServerConfiguration.Validate, cancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
+            catch (Exception exception)
+            {
+                _tournamentServerConfiguration = new();
+                Logger.LogError(exception, "Tournament server identity rejected; shared presence is disabled.");
+            }
             try
             {
                 _webhookPolicy = await configuration.LoadAsync("moderation-webhooks", () => new ModerationWebhookConfiguration(),
@@ -1088,6 +1106,8 @@ public sealed class AnoCorePlugin : BasePlugin
             TournamentSpectatorEnforcement? tournamentSpectatorEnforcement = null;
             TournamentCommandController? tournamentCommands = null;
             TournamentEventCommandController? tournamentEventCommands = null;
+            TournamentPresencePublisher? tournamentPresence = null;
+            CounterStrikeSharp.API.Modules.Timers.Timer? tournamentPresenceTimer = null;
             TournamentMapSelectionCommandController? tournamentMapSelectionCommands = null;
             IDisposable? messageTransportRegistration = null;
             LevelNotificationService? levelNotifications = null;
@@ -1282,6 +1302,20 @@ public sealed class AnoCorePlugin : BasePlugin
                     ?? throw new InvalidOperationException("AnoCore runtime has no shared database.");
                 var eventConfig = runtime.GetService(typeof(IConfigStore)) as IConfigStore
                     ?? throw new InvalidOperationException("AnoCore runtime has no configuration store.");
+                if (_tournamentServerConfiguration.Enabled)
+                {
+                    var publisher = new TournamentPresencePublisher(new MySqlTournamentPresenceRepository(eventDatabase),
+                        _tournamentServerConfiguration.ServerId);
+                    tournamentPresence = publisher;
+                    void PublishPresence()
+                    {
+                        var online = runtime.Players.OnlinePlayers.ToArray();
+                        var match = tournamentMatch?.CurrentSession?.Machine.Snapshot();
+                        Observe(publisher.PublishAsync(online, match, cancellationToken).AsTask(), "tournament_presence");
+                    }
+                    tournamentPresenceTimer = AddTimer(TournamentPresenceValidation.HeartbeatSeconds, PublishPresence, TimerFlags.REPEAT);
+                    PublishPresence();
+                }
                 tournamentEventCommands = new TournamentEventCommandController(
                     eventConfig, runtime.Commands,
                     new MySqlTournamentEventRepository(eventDatabase), runtime.AdminAudit);
@@ -1535,6 +1569,8 @@ public sealed class AnoCorePlugin : BasePlugin
                 _tournamentSpectatorEnforcement = tournamentSpectatorEnforcement;
                 _tournamentCommands = tournamentCommands;
                 _tournamentEventCommands = tournamentEventCommands;
+                _tournamentPresence = tournamentPresence;
+                _tournamentPresenceTimer = tournamentPresenceTimer;
                 _tournamentMapSelectionCommands = tournamentMapSelectionCommands;
                 _chatFormatter = chatFormatter;
                 _chatTags = chatTags;
@@ -1618,6 +1654,8 @@ public sealed class AnoCorePlugin : BasePlugin
                 seasons?.Dispose();
                 tournamentMapSelectionCommands?.Dispose();
                 tournamentCommands?.Dispose();
+                tournamentPresenceTimer?.Kill();
+                tournamentPresence?.Dispose();
                 tournamentEventCommands?.Dispose();
                 tournamentSpectatorEnforcement?.Dispose();
                 tournamentSpectatorPolicies?.Dispose();
