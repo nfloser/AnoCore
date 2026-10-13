@@ -201,6 +201,31 @@ public sealed class MySqlTournamentMatchRepositoryTests
         Assert.AreEqual(1L, stored.Revision);
     }
 
+    [TestMethod]
+    public async Task ScopedServersRecoverIndependentMatchesAndRejectForeignOwnership()
+    {
+        var presence = new MySqlTournamentPresenceRepository(_database);
+        var firstInstance = Guid.NewGuid();
+        var secondInstance = Guid.NewGuid();
+        await presence.PublishAsync("scope-a", firstInstance, []);
+        await presence.PublishAsync("scope-b", secondInstance, []);
+        var first = new MySqlTournamentMatchRepository(_database, "scope-a", firstInstance);
+        var second = new MySqlTournamentMatchRepository(_database, "scope-b", secondInstance);
+        var a = Configuration(TournamentBestOf.One);
+        var b = Configuration(TournamentBestOf.Three);
+        var storedA = await first.StoreAsync(a, new TournamentMatchStateMachine(a).Snapshot(), true);
+        await second.StoreAsync(b, new TournamentMatchStateMachine(b).Snapshot(), true);
+        Assert.AreEqual(a.MatchId, (await first.LoadActiveAsync())!.Configuration.MatchId);
+        Assert.AreEqual(b.MatchId, (await second.LoadActiveAsync())!.Configuration.MatchId);
+        await Assert.ThrowsAsync<InvalidOperationException>(async () => await second.StoreAsync(a, storedA.Snapshot, true));
+        Assert.AreEqual(b.MatchId, (await second.LoadActiveAsync())!.Configuration.MatchId);
+        await Assert.ThrowsAsync<InvalidOperationException>(async () => await second.SaveSnapshotAsync(a.MatchId, storedA.Revision, storedA.Snapshot));
+        await first.DeactivateAsync(a.MatchId, storedA.Revision, storedA.Snapshot);
+        Assert.IsNull(await first.LoadActiveAsync());
+        Assert.AreEqual(b.MatchId, (await new MySqlTournamentMatchRepository(_database, "scope-b", secondInstance).LoadActiveAsync())!.Configuration.MatchId);
+        Assert.IsNull(await new MySqlTournamentMatchRepository(_database).LoadActiveAsync());
+    }
+
     private static TournamentMatchConfiguration Configuration(
         TournamentBestOf bestOf,
         bool knifeRound = true)
@@ -219,6 +244,7 @@ public sealed class MySqlTournamentMatchRepositoryTests
             foreach (var statement in new[]
             {
                 "DROP TRIGGER IF EXISTS fail_tournament_member",
+                "DROP TABLE IF EXISTS ano_tournament_server_runtime",
                 "DROP TABLE IF EXISTS ano_tournament_runtime",
                 "DROP TABLE IF EXISTS ano_tournament_members",
                 "DROP TABLE IF EXISTS ano_tournament_matches",

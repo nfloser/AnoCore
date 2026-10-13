@@ -3,9 +3,9 @@ using AnoCore.Abstractions.Players;
 namespace AnoCore.Modules.Tournament;
 
 /// <summary>Publishes captured local identities; online status never implies readiness.</summary>
-public sealed class TournamentPresencePublisher(ITournamentPresenceRepository repository, string serverId) : IDisposable
+public sealed class TournamentPresencePublisher(ITournamentPresenceRepository repository, string serverId, Guid? instanceId = null) : IDisposable
 {
-    private readonly Guid _instanceId = Guid.NewGuid();
+    private readonly Guid _instanceId = instanceId ?? Guid.NewGuid();
     private readonly SemaphoreSlim _gate = new(1, 1);
     private readonly CancellationTokenSource _shutdown = new();
     private bool _disposed;
