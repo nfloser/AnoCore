@@ -28,11 +28,18 @@ public static class TournamentSingleElimination
 {
     public static TournamentBracketPlan Generate(
         IReadOnlyCollection<TournamentBracketEntrant> entrants)
+        => GenerateCore(entrants, 3);
+
+    /// <summary>Final stages may contain only two qualifiers; event registration stays 3-10 teams.</summary>
+    public static TournamentBracketPlan GenerateFinalStage(IReadOnlyCollection<TournamentBracketEntrant> entrants)
+        => GenerateCore(entrants, 2);
+
+    private static TournamentBracketPlan GenerateCore(IReadOnlyCollection<TournamentBracketEntrant> entrants, int minimum)
     {
         ArgumentNullException.ThrowIfNull(entrants);
-        if (entrants.Count is < 3 or > 10)
+        if (entrants.Count < minimum || entrants.Count > 10)
             throw new ArgumentOutOfRangeException(nameof(entrants),
-                "Seeded tournaments require 3-10 teams.");
+                "Seeded brackets exceed the supported entrant bounds.");
 
         var input = entrants.ToArray();
         if (input.Any(entry => entry is null))

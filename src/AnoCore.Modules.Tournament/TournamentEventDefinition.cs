@@ -9,6 +9,7 @@ public sealed class TournamentEventDefinition
     public string Id { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public int TeamSize { get; set; } = 5;
+    public int? PlayoffQualifiersPerGroup { get; set; }
     public int MaxSubstitutes { get; set; } = 2;
     public List<TournamentEventTeamDefinition> Teams { get; set; } = [];
     public List<TournamentGroupDefinition> Groups { get; set; } = [];
@@ -98,6 +99,15 @@ public sealed class TournamentEventDefinition
             }
             if (assigned.Count != teams.Count)
                 errors.Add("Every tournament team must belong to exactly one group.");
+        }
+
+        if (definition.PlayoffQualifiersPerGroup is { } qualifiers)
+        {
+            var capacities = definition.Groups is { Count: > 0 }
+                ? definition.Groups.Select(group => group?.TeamIds?.Count ?? 0).ToArray() : [teams.Count];
+            if (qualifiers < 1 || capacities.Any(size => qualifiers > size)
+                || (long)qualifiers * capacities.Length is < 2 or > 10)
+                errors.Add("PlayoffQualifiersPerGroup must select 2-10 total qualifiers without exceeding any group size.");
         }
 
         if (definition.Standings is null)

@@ -94,3 +94,22 @@ reports that the result was saved; do not submit it again.
 Playoff seeds currently come from `InitialSeed`, then stable team IDs for unseeded
 teams. Automatic group qualification and format-specific BO limits are separate
 stage policy; this command does not assert group completion or start a CS2 match.
+
+## Groups automatically qualifying for playoffs
+
+Optionally set `PlayoffQualifiersPerGroup` in `tournament-event.json` (for example,
+`2`). Leaving it absent preserves the existing direct seeded knockout plan.
+Each group must contain enough teams and the total qualified field must be 2-10.
+A three-team group can therefore qualify two finalists without changing the
+3-10 registered-team event limit.
+
+While any scheduled group fixture lacks a confirmed result, the playoff view
+waits and playoff results are rejected. Once every fixture is confirmed, the
+existing standings/tie-break rules select each group's top teams. Seeds are
+assigned by finishing position, then stable group ID, without a separate manual
+promotion command. A two-team final is one real contest with no fictitious bye.
+
+After any playoff result is recorded, group/rule edits that would change the
+qualified field or its seeds are rejected. Display-name edits remain possible.
+This is static seeding; cross-group rematch avoidance and round reseeding are
+not yet configurable policies.

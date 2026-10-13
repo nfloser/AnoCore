@@ -20,7 +20,7 @@ public static class TournamentBracketProgression
         IReadOnlyCollection<TournamentBracketResult> results)
     {
         ArgumentNullException.ThrowIfNull(results);
-        var plan = TournamentSingleElimination.Generate(entrants);
+        var plan = TournamentSingleElimination.GenerateFinalStage(entrants);
         var matches = plan.Rounds.SelectMany(round => round.Matches).ToArray();
         var known = matches.Select(match => match.Id).ToHashSet(StringComparer.Ordinal);
         var submitted = new Dictionary<string, TournamentBracketResult>(StringComparer.Ordinal);
