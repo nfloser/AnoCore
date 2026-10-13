@@ -1,9 +1,9 @@
 using System.Threading.RateLimiting;
 using AnoCore.Management.Host;
-using Microsoft.AspNetCore.RateLimiting;
 using AnoCore.Modules.Tournament;
 using AnoCore.Modules.Tournament.Persistence;
 using AnoCore.Runtime.Persistence;
+using Microsoft.AspNetCore.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
