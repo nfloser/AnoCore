@@ -28,20 +28,23 @@ public sealed class TournamentMatchZyConfiguration
 public sealed record TournamentAssignableFixture(string Id, bool IsPlayoff, string HomeTeamId, string AwayTeamId, int BestOf);
 public static class TournamentMatchAssignmentPlan
 {
-    public static IReadOnlyList<TournamentAssignableFixture> Ready(TournamentStoredEvent stored, TournamentMatchZyConfiguration config)
+    public static IReadOnlyList<TournamentAssignableFixture> Ready(
+        TournamentStoredEvent stored, TournamentMatchZyConfiguration config)
     {
-        var definition = stored.Definition;
-        TournamentEventSnapshotValidator.Validate(definition, stored.ConfirmedResults);
-        var groups = definition.Groups.Count == 0 ? new[] { "main" } : definition.Groups.Select(group => group.Id).ToArray();
-        var pending = groups.SelectMany(group => TournamentSchedules.Generate(definition, group,
-                stored.ConfirmedResults.Where(result => result.FixtureId.StartsWith(group + ":", StringComparison.Ordinal)).ToArray()))
-            .SelectMany(round => round.Fixtures).Where(fixture => !stored.ConfirmedResults.Any(result => result.FixtureId == fixture.Id))
-            .Select(fixture => new TournamentAssignableFixture(fixture.Id, false, fixture.HomeTeamId, fixture.AwayTeamId,
-                definition.GroupBestOf ?? config.DefaultGroupBestOf)).ToArray();
-        if (pending.Length > 0) return pending;
-        var progress = TournamentEventPlayoffs.Progress(definition, stored.ConfirmedResults, stored.PlayoffResults);
-        return progress?.Matches.Where(match => match.IsReady).Select(match => new TournamentAssignableFixture(match.Id,
-            true, match.HomeTeamId!, match.AwayTeamId!, definition.PlayoffBestOf ?? config.DefaultPlayoffBestOf)).ToArray() ?? [];
+        ArgumentNullException.ThrowIfNull(stored);
+        ArgumentNullException.ThrowIfNull(config);
+        if (config.DefaultGroupBestOf is not (1 or 3 or 5)
+            || config.DefaultPlayoffBestOf is not (1 or 3 or 5))
+            throw new ArgumentException("MatchZy BestOf defaults must be BO1, BO3 or BO5.", nameof(config));
+
+        // Use exactly the same stage validation and fixture ordering as the
+        // server-side preview. MatchZy has its own numeric assignment ID;
+        // the deterministic fixture identity remains the source of truth.
+        return TournamentFixtureMatchPlanner.Plan(stored.Definition, stored.ConfirmedResults,
+            stored.PlayoffResults, config.DefaultGroupBestOf, config.DefaultPlayoffBestOf)
+            .Select(match => new TournamentAssignableFixture(match.SourceId,
+                match.Stage == "playoff", match.HomeTeamId, match.AwayTeamId, match.Match.BestOf))
+            .ToArray();
     }
 }
 
