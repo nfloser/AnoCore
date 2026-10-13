@@ -65,6 +65,11 @@ public sealed class MySqlTournamentAssignmentRepositoryTests
         Assert.IsNotNull(second);
         Assert.AreEqual(1, second.Assignment.BestOf);
         Assert.AreNotEqual(first.Assignment.FixtureId, second.Assignment.FixtureId);
+
+        // These are deliberately unstarted synthetic claims; release both
+        // before any other integration test switches the global active event.
+        await assignments.CancelAsync(first.Assignment.Id, "bo-server-a", serverA);
+        await assignments.CancelAsync(second.Assignment.Id, "bo-server-b", serverB);
     }
 
     [TestMethod]
