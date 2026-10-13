@@ -56,6 +56,22 @@ class TournamentPanoramaContractTests(unittest.TestCase):
         self.assertFalse(required - set(self.ids),
                          f"Missing stable server-facing IDs: {required - set(self.ids)}")
 
+    def test_dashboard_is_opt_in_until_workshop_pack_is_installed(self):
+        plugin = (ROOT / "src/AnoCore.Plugin/AnoCorePlugin.cs").read_text(
+            encoding="utf-8")
+        self.assertRegex(plugin, re.compile(
+            r"public bool TournamentDashboardEnabled\\s*\\{ get; set; \\}"))
+        self.assertIn("_tournamentDashboardEnabled = settings.TournamentDashboardEnabled;", plugin)
+        self.assertIn("if (_tournamentDashboardEnabled && _panoramaMenusEnabled && _customHud is not null)", plugin)
+        self.assertIn("TournamentDashboardEnabled requires PanoramaMenusEnabled", plugin)
+
+    def test_empty_fixture_rows_can_be_hidden_by_the_server(self):
+        presenter = (ROOT / "src/AnoCore.Modules.Tournament/TournamentPanoramaPresenter.cs").read_text(
+            encoding="utf-8")
+        css = STYLE.read_text(encoding="utf-8")
+        self.assertIn('SetClass(player, HudId, $"ano_tournament_fixture_{i}", "hidden", !fixtureShow)', presenter)
+        self.assertIn(".ano-fixture-label.hidden { visibility: collapse; }", css)
+
     def test_all_server_data_is_plain_text_and_part_of_one_compiled_pack(self):
         labels = [node for node in self.root.iter() if node.tag == "Label"
                   and "id" in node.attrib]
