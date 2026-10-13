@@ -31,6 +31,14 @@ public sealed class TournamentEventCommandController : IDisposable
             new("anotournamenteventload", "Import the fixed tournament-event JSON and activate it.", Manage),
             ImportAsync));
         _registrations.Add(registry.Register(Owner,
+            new("anotournamenteventbracket", "Show playoff pairings and champion."), BracketAsync));
+        _registrations.Add(registry.Register(Owner,
+            new("anotournamenteventplayoffresult", "Confirm one playoff winner.", Manage, arguments:
+                [new("match", CommandArgumentKind.String, "Stable playoff match id."),
+                 new("winner", CommandArgumentKind.String, "Winning team id."),
+                 new("winner_maps", CommandArgumentKind.Int32, "Maps won by the winner."),
+                 new("loser_maps", CommandArgumentKind.Int32, "Maps won by the loser.")]), ConfirmPlayoffAsync));
+        _registrations.Add(registry.Register(Owner,
             new("anotournamenteventstatus", "Show current shared tournament event status."), StatusAsync));
         _registrations.Add(registry.Register(Owner,
             new("anotournamenteventstandings", "Show group standings.", arguments:
@@ -45,6 +53,51 @@ public sealed class TournamentEventCommandController : IDisposable
                     new("home_rounds", CommandArgumentKind.Int32, "Total rounds won by home."),
                     new("away_rounds", CommandArgumentKind.Int32, "Total rounds won by away."),
                 ]), ConfirmAsync));
+    }
+
+    private async ValueTask<CommandResult> BracketAsync(CommandContext context)
+    {
+        ThrowIfDisposed();
+        var active = await _repository.LoadActiveAsync(context.CancellationToken).ConfigureAwait(false);
+        if (active is null) return CommandResult.Ok("[ANO] No active shared tournament.");
+        var progress = TournamentBracketProgression.Calculate(TournamentEventPlayoffs.Entrants(active.Definition), active.PlayoffResults);
+        return CommandResult.Ok("[ANO] " + string.Join(" | ", progress.Matches.Select(match =>
+            $"{match.Id}: {match.HomeTeamId ?? "pending"} vs {match.AwayTeamId ?? "pending"}" +
+            (match.WinnerTeamId is not null ? $" -> {match.WinnerTeamId}" : match.IsReady ? " [ready]" : " [waiting]")))
+            + (progress.ChampionTeamId is null ? "" : $" | Champion: {progress.ChampionTeamId}"));
+    }
+
+    private async ValueTask<CommandResult> ConfirmPlayoffAsync(CommandContext context)
+    {
+        await _gate.WaitAsync(context.CancellationToken).ConfigureAwait(false);
+        try
+        {
+            ThrowIfDisposed();
+            var active = await _repository.LoadActiveAsync(context.CancellationToken).ConfigureAwait(false);
+            if (active is null) return CommandResult.Fail(CommandFailureReason.InvalidInput, "No active shared tournament.");
+            var result = new TournamentBracketResult(context.Get<string>("match"), context.Get<string>("winner"),
+                context.Get<int>("winner_maps"), context.Get<int>("loser_maps"));
+            var results = active.PlayoffResults.Append(result).ToArray();
+            try
+            {
+                _ = TournamentBracketProgression.Calculate(TournamentEventPlayoffs.Entrants(active.Definition), results);
+            }
+            catch (ArgumentException exception) { return CommandResult.Fail(CommandFailureReason.InvalidInput, exception.Message); }
+            if (!await AuditAsync("tournament.playoff-result.requested", context, result.MatchId))
+                return CommandResult.Fail(CommandFailureReason.HandlerFailed, "Playoff result could not be audited.");
+            try
+            {
+                await _repository.SavePlayoffsAsync(active.Definition.Id, active.Revision, results, context.CancellationToken).ConfigureAwait(false);
+            }
+            catch (TournamentEventConcurrencyException)
+            {
+                return CommandResult.Fail(CommandFailureReason.HandlerFailed, "Event changed on another server. Reload and retry.");
+            }
+            if (!await AuditAsync("tournament.playoff-result", context, result.MatchId))
+                return CommandResult.Fail(CommandFailureReason.HandlerFailed, "Result saved; completion audit failed. Do not submit again.");
+            return CommandResult.Ok($"[ANO] Playoff winner recorded: {result.MatchId} -> {result.WinnerTeamId}.");
+        }
+        finally { _gate.Release(); }
     }
 
     private async ValueTask<CommandResult> ImportAsync(CommandContext context)
