@@ -1,12 +1,14 @@
-# Static single-elimination bracket generation
+# Single-elimination playoffs and group qualification
 
 Tracking: [#385](https://github.com/nfloser/AnoCore/issues/385), a first
 subset of [#379](https://github.com/nfloser/AnoCore/issues/379).
 
 The engine-independent `TournamentSingleElimination` generator accepts
 **three through ten uniquely seeded teams** and returns deterministic
-bracket rounds and winner-of-match references. This is an additional planning
-building block and does **not** start matches or update Panorama yet.
+bracket rounds and winner-of-match references. Confirmed results are stored in the shared event repository and resolve later
+pairings. The draft Panorama viewer projects those snapshots; its native client
+acceptance remains outstanding. The generator does not start live CS2 matches.
+`GenerateFinalStage` additionally accepts two qualifiers for a single final.
 
 ## Placement and byes
 
@@ -44,11 +46,9 @@ consecutive 1..N. Every dependency references a **prior** round.
 Team display names are not used as persistent match keys.
 
 This generator explicitly implements **static single elimination**.
-Dynamic reseeding, double elimination, Swiss stages, advancement from
-completed group standings and championship resets are separate work
-in #379. It is not a substitute for a match execution or persistence
-engine; those must reject stale bracket results and support transactional
-advancement.
+Dynamic reseeding, double elimination, Swiss stages and championship resets
+remain tracked in #379. Group qualification and transactional playoff persistence
+are implemented below. Automatic live match execution/result capture is separate.
 
 ## Verification
 
@@ -70,8 +70,8 @@ matches, nonparticipant winners and results with unresolved dependencies are
 rejected. Input order is irrelevant; changing an upstream winner invalidates
 incompatible downstream results rather than silently transferring them.
 
-This is a domain snapshot for future persistence, presenter and match-capture
-integration. It does not yet persist playoff results or start a live CS2 match.
+The shared repository persists and validates these snapshots. The draft viewer
+projects them through fixed slots; automatic live match capture is still missing.
 
 ## Shared playoff results and operator commands
 
@@ -91,9 +91,10 @@ pairings and the champion. The second confirms winner/loser map totals, requires
 duplicates, premature finals and unrelated winners. Completion-audit failure
 reports that the result was saved; do not submit it again.
 
-Playoff seeds currently come from `InitialSeed`, then stable team IDs for unseeded
-teams. Automatic group qualification and format-specific BO limits are separate
-stage policy; this command does not assert group completion or start a CS2 match.
+Without qualification enabled, seeds come from `InitialSeed`, then stable team
+IDs for unseeded teams. With qualification enabled, group completion and standings
+select the field as described below. Format-specific BO limits and automatic
+CS2 execution remain separate policy/integration work.
 
 ## Groups automatically qualifying for playoffs
 

@@ -32,18 +32,18 @@ Native reconnect/team-lock adapters can use this without duplicating match polic
 series score, ready players, knife/side-choice ownership, current CS sides and paused
 resume state. `Restore` validates the snapshot before accepting it.
 
-This snapshot is a persistence contract, not yet a database implementation. Durable
-storage, native team enforcement, veto integration, knife execution, demo recording,
-round backups, coaching/spectator policy and real CS2 acceptance remain follow-up work
-under #21.
+The snapshot is persisted by the repository below. Native team/spectator adapters,
+veto integration and capture contracts are documented in later sections. Automatic
+event match execution/result capture and real CS2 acceptance remain open under #21.
 
 
 ## Durable recovery storage
 
 The tournament persistence package stores match configuration and roster membership
-separately from the validated recovery snapshot. One singleton runtime row points at
-the currently active match, so activating a different match never requires deleting
-historical match state.
+separately from the validated recovery snapshot. Legacy operation uses one active
+pointer; configured server identities use fenced per-server pointers instead.
+Activating a different match never requires deleting historical match state.
+See [server ownership and migration](tournament-servers.md).
 
 Every stored match carries a positive revision. Snapshot saves require the caller's
 expected revision and increment it transactionally; stale callbacks therefore fail
