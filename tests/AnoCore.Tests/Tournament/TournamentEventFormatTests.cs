@@ -5,7 +5,7 @@ namespace AnoCore.Tests.Tournament;
 [TestClass]
 public sealed class TournamentEventFormatTests
 {
-    [DataTestMethod]
+    [TestMethod]
     [DataRow(3)]
     [DataRow(4)]
     [DataRow(5)]
