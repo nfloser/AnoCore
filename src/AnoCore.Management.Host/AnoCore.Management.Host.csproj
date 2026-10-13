@@ -6,5 +6,6 @@
   <ItemGroup>
     <ProjectReference Include="..\AnoCore.Abstractions\AnoCore.Abstractions.csproj" />
     <ProjectReference Include="..\AnoCore.Runtime\AnoCore.Runtime.csproj" />
+    <ProjectReference Include="..\AnoCore.Modules.Tournament.Persistence\AnoCore.Modules.Tournament.Persistence.csproj" />
   </ItemGroup>
 </Project>

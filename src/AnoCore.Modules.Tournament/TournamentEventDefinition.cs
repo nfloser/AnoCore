@@ -101,7 +101,7 @@ public sealed class TournamentEventDefinition
                 }
                 foreach (var id in group.TeamIds)
                 {
-                    if (string.IsNullOrWhiteSpace(id) || !ids.Contains(id) || !assigned.Add(id))
+                    if (!ValidId(id) || !ids.Contains(id) || !assigned.Add(id))
                         errors.Add($"Unknown or multiply assigned team '{id}' in group '{group.Id}'.");
                 }
             }
