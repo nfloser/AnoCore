@@ -19,6 +19,7 @@ public static class TournamentEventPresets
         definition.GroupFormat = preset == TournamentEventPreset.Swiss ? TournamentGroupFormat.Swiss : TournamentGroupFormat.RoundRobin;
         definition.PlayoffFormat = preset == TournamentEventPreset.DoubleElimination ? TournamentPlayoffFormat.DoubleElimination : TournamentPlayoffFormat.SingleElimination;
         definition.GroupBestOf = 1; definition.PlayoffBestOf = 3; definition.SwissRounds = null; definition.GrandFinalReset = true;
+        definition.ReseedPlayoffRounds = false;
         definition.PlayoffQualifiersPerGroup = null;
         definition.CrossGroupOpeningPairings = false;
         if (preset == TournamentEventPreset.Groups)

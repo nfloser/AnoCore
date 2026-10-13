@@ -152,3 +152,42 @@ Cross-group avoidance is only an opening-round preference. An eventual
 semifinal or final can naturally involve teams from the same initial group.
 It does **not** imply automatic reseeding after every completed playoff round;
 that is a separate stage policy.
+
+
+## Optional reseeding after every Single Elimination round
+
+Set `ReseedPlayoffRounds: true` in your validated `tournament-event.json`
+to **re-pair the remaining teams after each fully confirmed knockout round**.
+The strongest surviving original seed then meets the weakest surviving seed;
+the next strongest meets the next weakest, and so on. The seeded opening
+pairings and their higher-seed byes remain unchanged.
+
+```json
+{
+  "PlayoffsEnabled": true,
+  "PlayoffFormat": "SingleElimination",
+  "ReseedPlayoffRounds": true
+}
+```
+
+This is a partial configuration excerpt; keep all required existing roster
+and event fields. Reseeding is **not supported** with Double Elimination,
+because its lower bracket requires stable loser dependencies; attempting
+that combination fails validation instead of silently dropping match history.
+
+Future round cards and MatchZy fixtures are only materialized when **all**
+games in the preceding round have confirmed results. No guessed match
+opponents are presented as ready. Subsequent match IDs are deterministic
+`r2-m1`, `r2-m2`, `r3-m1`, etc. A forged result for an ungenerated
+round or a winner outside the actual pairing is rejected.
+
+The server stores results for the exact resolved pairing and freezes
+`ReseedPlayoffRounds` once playoffs begin, preventing historical bracket
+reassignment. Both the admin bracket command and Panorama viewer use the
+same authoritative progression as the fixture planner, so no Workshop
+publication is necessary when new matches become known.
+
+This rule can coexist with `CrossGroupOpeningPairings`: the latter only
+arranges the initial qualified seeds, while reseeding affects **later**
+rounds of Single Elimination. These options are both disabled by default
+in old event definitions.

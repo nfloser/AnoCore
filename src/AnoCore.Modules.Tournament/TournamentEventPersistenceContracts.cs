@@ -111,7 +111,9 @@ public static class TournamentEventPlayoffs
             throw new ArgumentException("Playoff result does not complete the configured BestOf series.", nameof(playoffs));
         return definition.PlayoffFormat == TournamentPlayoffFormat.DoubleElimination
             ? TournamentDoubleElimination.Calculate(entrants, playoffs, definition.GrandFinalReset)
-            : TournamentBracketProgression.Calculate(entrants, playoffs);
+            : definition.ReseedPlayoffRounds
+                ? TournamentReseededSingleElimination.Calculate(entrants, playoffs).Progress
+                : TournamentBracketProgression.Calculate(entrants, playoffs);
     }
 
     public static IReadOnlyList<TournamentBracketEntrant> Entrants(TournamentEventDefinition definition)
@@ -126,8 +128,11 @@ public static class TournamentEventPlayoffs
 public static class TournamentPlayoffPlans
 {
     public static TournamentBracketPlan Generate(TournamentEventDefinition definition,
-        IReadOnlyCollection<TournamentBracketEntrant> entrants)
+        IReadOnlyCollection<TournamentBracketEntrant> entrants,
+        IReadOnlyCollection<TournamentBracketResult>? confirmedResults = null)
         => definition.PlayoffFormat == TournamentPlayoffFormat.DoubleElimination
             ? TournamentDoubleElimination.Generate(entrants, definition.GrandFinalReset)
-            : TournamentSingleElimination.GenerateFinalStage(entrants);
+            : definition.ReseedPlayoffRounds
+                ? TournamentReseededSingleElimination.Calculate(entrants, confirmedResults ?? []).Plan
+                : TournamentSingleElimination.GenerateFinalStage(entrants);
 }

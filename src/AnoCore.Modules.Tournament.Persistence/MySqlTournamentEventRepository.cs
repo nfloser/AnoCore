@@ -105,6 +105,7 @@ public sealed class MySqlTournamentEventRepository : ITournamentEventRepository
                         ?? throw new InvalidDataException("Missing previous group results.");
                     if (previous.GroupStageEnabled != definition.GroupStageEnabled || previous.PlayoffsEnabled != definition.PlayoffsEnabled
                         || previous.PlayoffFormat != definition.PlayoffFormat || previous.GrandFinalReset != definition.GrandFinalReset
+                        || previous.ReseedPlayoffRounds != definition.ReseedPlayoffRounds
                         || previous.PlayoffBestOf != definition.PlayoffBestOf || previous.GroupFormat != definition.GroupFormat
                         || previous.GroupBestOf != definition.GroupBestOf || previous.SwissRounds != definition.SwissRounds
                         || previous.CrossGroupOpeningPairings != definition.CrossGroupOpeningPairings)
