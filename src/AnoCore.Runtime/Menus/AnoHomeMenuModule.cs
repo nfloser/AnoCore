@@ -29,6 +29,7 @@ public sealed class AnoHomeMenuModule : IDisposable
         ("anosettingsmenu", "Settings", true, false),
         ("anochatmenu", "Chat tags", true, false),
         ("anotournament", "Tournament", true, false),
+        ("anotournamentstatus", "Tournament status", false, false),
     ];
     private readonly object _gate = new();
     private readonly IAnoCommandRegistry _commands;
@@ -142,6 +143,8 @@ public sealed class AnoHomeMenuModule : IDisposable
         foreach (var view in Destinations)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            if (view.Name == "anotournamentstatus" && descriptors.ContainsKey("anotournament"))
+                continue;
             if (!descriptors.TryGetValue(view.Name, out var descriptor)
                 || !await Allowed(player, descriptor, cancellationToken).ConfigureAwait(false)) continue;
             options.Add(new(view.Name, view.Label, context => Current(player) && context.PlayerId == player.Id
