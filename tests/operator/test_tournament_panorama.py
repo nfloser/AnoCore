@@ -59,8 +59,7 @@ class TournamentPanoramaContractTests(unittest.TestCase):
     def test_dashboard_is_opt_in_until_workshop_pack_is_installed(self):
         plugin = (ROOT / "src/AnoCore.Plugin/AnoCorePlugin.cs").read_text(
             encoding="utf-8")
-        self.assertRegex(plugin, re.compile(
-            r"public bool TournamentDashboardEnabled\\s*\\{ get; set; \\}"))
+        self.assertIn("public bool TournamentDashboardEnabled { get; set; }", plugin)
         self.assertIn("_tournamentDashboardEnabled = settings.TournamentDashboardEnabled;", plugin)
         self.assertIn("if (_tournamentDashboardEnabled && _panoramaMenusEnabled && _customHud is not null)", plugin)
         self.assertIn("TournamentDashboardEnabled requires PanoramaMenusEnabled", plugin)
