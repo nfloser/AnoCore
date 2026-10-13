@@ -152,7 +152,7 @@ if ($InstallLocalClient) {
 # Compile replaceable arcade fruit textures from source PNG/VTEX pairs.
 $arcadeDir = Join-Path $styleDir "arcade"
 New-Item -ItemType Directory -Force -Path $arcadeDir | Out-Null
-foreach ($symbol in @("cherry", "lemon", "plum")) {
+foreach ($symbol in @("cherry", "lemon", "plum", "orange", "grapes", "watermelon", "bell", "seven")) {
     foreach ($extension in @(".png", ".vtex")) {
         Copy-Item (Join-Path $src "styles\custom_game\anocore\arcade\$symbol$extension") (Join-Path $arcadeDir "$symbol$extension") -Force
     }
@@ -167,7 +167,7 @@ foreach ($symbol in @("cherry", "lemon", "plum")) {
     }
 }
 
-foreach ($name in @("ano_veto_cards", "ano_veto", "menu", "ano_tournament", "ano_arcade")) {
+foreach ($name in @("ano_veto_cards", "ano_veto", "menu", "ano_tournament", "ano_arcade", "ano_casino")) {
     $layoutTarget = Join-Path $layoutDir "$name.xml"
     $styleTarget = Join-Path $styleDir "$name.css"
     Copy-Item (Join-Path $src "layout\custom_game\anocore\$name.xml") $layoutTarget -Force

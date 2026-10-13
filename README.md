@@ -97,3 +97,10 @@ GNU GPL v3.0. Copyright and attribution notices are preserved in [NOTICE.md](NOT
 A default-off, administrator-only native Triple animation probe is available with
 replaceable fruit images and isolated Test-AP. It is not a production wallet or
 case simulator. See [the setup, native acceptance checklist and AP/case design](docs/arcade.md).
+
+### AnoCasino candidate
+
+Optional server-authoritative Slots, Coinflip and single-bet European Roulette,
+with a persistent SteamID AP wallet and replaceable fruit textures. Default off;
+requires a rebuilt matching Workshop addon and native acceptance. See
+[Casino rules and installation](docs/casino.md).

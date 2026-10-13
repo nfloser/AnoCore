@@ -1,0 +1,52 @@
+.host { width:100%; height:100%; }
+.overlay { width:100%; height:100%; visibility:collapse; background-color:#000000dd; }
+.overlay.shown { visibility:visible; }
+.window { width:1160px; padding:20px; horizontal-align:center; vertical-align:center; flow-children:down; background-color:#101715; border:1px solid #287547; border-radius:8px; }
+Label { color:#e9efed; font-family:Arial; font-size:18px; margin:4px; }
+.header, .row, .selection, .reels { flow-children:right; margin-bottom:10px; }
+.header .brand { color:#39e38c; font-size:28px; width:320px; }
+.counter { width:360px; flow-children:down; background-color:#1a2421; margin-right:10px; padding:8px; }
+.counter Label { horizontal-align:center; }
+.button { padding:8px 12px; margin-right:8px; border:1px solid #287547; background-color:#1a2421; border-radius:4px; }
+.button:hover { background-color:#223b2e; border-color:#39e38c; }
+.selection .button { width:360px; height:64px; }
+.selection Label { horizontal-align:center; vertical-align:center; font-size:26px; }
+.slots, .coin-choices, .roulette-choices, .other-game { visibility:collapse; }
+.view-slots .slots, .view-coinflip .coin-choices, .view-roulette .roulette-choices, .view-coinflip .other-game, .view-roulette .other-game { visibility:visible; }
+.reels { horizontal-align:center; }
+.reel { width:240px; height:300px; overflow:clip; background-color:#e9efed; margin-right:8px; }
+.symbol { width:240px; height:100px; background-size:contain; background-position:center; background-repeat:no-repeat; }
+.motion, .final { flow-children:down; }
+.motion { visibility:collapse; }
+.rolling .motion { visibility:visible; animation-name:casino-roll-a; animation-duration:0.8s; animation-timing-function:linear; animation-iteration-count:infinite; }
+.rolling .final { visibility:collapse; }
+@keyframes casino-roll-a { 0% { transform:translateY(0px); } 100% { transform:translateY(-800px); } }
+.other-game { horizontal-align:center; height:110px; }
+#casino_result { font-size:64px; color:#39e38c; horizontal-align:center; }
+.moving-a { animation-name:casino-flip-a; animation-duration:0.4s; animation-iteration-count:infinite; }
+.moving-b { animation-name:casino-flip-b; animation-duration:0.4s; animation-iteration-count:infinite; }
+@keyframes casino-flip-a { 0% { transform:rotateZ(0deg); } 100% { transform:rotateZ(360deg); } }
+@keyframes casino-flip-b { 0% { transform:rotateZ(0deg); } 100% { transform:rotateZ(360deg); } }
+#casino_status { width:100%; max-height:64px; color:#39e38c; font-size:16px; }
+.note { color:#9faea7; font-size:14px; }
+.busy .controls, .busy .selection, .busy .coin-choices, .busy .roulette-choices { opacity:0.4; }
+.symbol-cherry { background-image:url("s2r://panorama/styles/custom_game/anocore/arcade/cherry.vtex"); }
+.symbol-lemon { background-image:url("s2r://panorama/styles/custom_game/anocore/arcade/lemon.vtex"); }
+.symbol-plum { background-image:url("s2r://panorama/styles/custom_game/anocore/arcade/plum.vtex"); }
+.symbol-orange { background-image:url("s2r://panorama/styles/custom_game/anocore/arcade/orange.vtex"); }
+.symbol-grapes { background-image:url("s2r://panorama/styles/custom_game/anocore/arcade/grapes.vtex"); }
+.symbol-watermelon { background-image:url("s2r://panorama/styles/custom_game/anocore/arcade/watermelon.vtex"); }
+.symbol-bell { background-image:url("s2r://panorama/styles/custom_game/anocore/arcade/bell.vtex"); }
+.symbol-seven { background-image:url("s2r://panorama/styles/custom_game/anocore/arcade/seven.vtex"); }
+
+.roll-b .motion { animation-name:casino-roll-b; }
+@keyframes casino-roll-b { 0% { transform:translateY(0px); } 100% { transform:translateY(-800px); } }
+
+.number-button { width:72px; height:32px; margin-right:5px; border:1px solid #51665b; }
+.number-button Label { horizontal-align:center; vertical-align:center; margin:0px; }
+.number-button.red { background-color:#9c2837; }
+.number-button.black { background-color:#171d1a; }
+.number-button.green { background-color:#147443; }
+.number-button:hover { border-color:#39e38c; brightness:1.4; }
+
+.brand-banner { width:220px; height:44px; background-image:url("s2r://panorama/styles/custom_game/anocore/anomeme_banner.vtex"); background-size:contain; background-position:center; background-repeat:no-repeat; margin-right:12px; }
