@@ -315,10 +315,18 @@ public sealed class TournamentPanoramaPresenter : IDisposable
 
         var selected = selectedRoster;
         Set(player, "ano_tournament_team_name", selected?.Name ?? "Kein Team ausgewählt");
-        Set(player, "ano_tournament_team_status", selected is null
-            ? "Warte auf Anmeldung"
-            : $"{selected.Tag} · {selected.Starters.Count} Starter · " +
-                $"{selected.Substitutes.Count} Ersatz · " + (presence is null ? "Präsenz nur lokaler Server" : "Serverübergreifende Präsenz"));
+        var missing = selected is null ? 0 : selected.Starters.Count(steam => presence is null
+            ? !_players.TryGet(new PlayerId(steam), out var local) || local is not { IsConnected: true }
+            : !presence.Any(server => server.Players.Any(p => p.SteamId == steam)));
+        var readyCount = selected is null || presence is null ? 0 : selected.Starters.Count(steam =>
+        {
+            var matches = presence.SelectMany(server => server.Players.Where(p => p.SteamId == steam)).ToArray();
+            return matches.Length == 1 && matches[0].IsReady;
+        });
+        Set(player, "ano_tournament_team_status", selected is null ? "Warte auf Anmeldung"
+            : $"{selected.Tag} · Online {selected.Starters.Count - missing}/{selected.Starters.Count} · " +
+                (presence is null ? "Präsenz nur lokal" : $"Bereit {readyCount}/{selected.Starters.Count}") +
+                $" · Fehlen {missing} · {selected.Substitutes.Count} Ersatz");
         var roster = selected is null
             ? []
             : selected.Starters.Concat(selected.Substitutes).Skip(state.View == "teams" ? state.Page * 7 : 0).Take(7).ToArray();

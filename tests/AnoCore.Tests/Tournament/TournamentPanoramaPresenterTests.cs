@@ -131,6 +131,7 @@ public sealed class TournamentPanoramaPresenterTests
         using var presenter = new TournamentPanoramaPresenter(hud, repository, players, commands, bus, presence);
         await commands.ExecuteAsync("!anotournament", Viewer);
         StringAssert.Contains(hud.Text(Viewer, TournamentPanoramaPresenter.HudId, "ano_tournament_roster_0")!, "server-b");
+        StringAssert.Contains(hud.Text(Viewer, TournamentPanoramaPresenter.HudId, "ano_tournament_team_status")!, "Fehlen 4");
         StringAssert.Contains(hud.Text(Viewer, TournamentPanoramaPresenter.HudId, "ano_tournament_roster_0")!, "Nicht bereit");
         presence.States = [presence.States[0] with { Players = [remotePlayer with { IsReady = true }] }];
         await presenter.RefreshOpenAsync();

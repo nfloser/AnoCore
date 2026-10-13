@@ -15,8 +15,9 @@ layout therefore bundles every dynamic slot upfront.
 
 The UI has **five tabs**: Overview, Standings, Bracket, Matches, Teams.
 Fixed bounds: ten table/team buttons, sixteen bracket cards, sixteen
-fixture text rows, seven roster members (five starters and two substitutes)
-and four overview summaries. The server fills the selected page,
+fixture text rows, seven visible roster rows (paged for five starters and up to five substitutes)
+and four overview summaries. The team detail shows starter online/ready counts
+and missing participants; existing roster slots page up to five substitutes. The server fills the selected page,
 clears/marks unused slots and moves between pages without adding XML.
 
 - `ano_tournament_root` toggles the `shown` class and exactly one
@@ -68,6 +69,10 @@ while the menu is open**. Unchanged snapshots are not rerendered; a delayed,
 older revision cannot overwrite a newer one. Switching active event IDs
 resets the client's selected page and team. The Workshop addon is not
 recompiled when only database data changes.
+
+When `PlayoffQualifiersPerGroup` is configured, the bracket waits for complete
+group results, then displays the qualified field, including a two-team final.
+Selected team IDs survive standings reordering.
 
 The knockout display now projects persisted confirmed playoff winners, resolved
 next-round pairings, ready/waiting states and champion through the same compiled
