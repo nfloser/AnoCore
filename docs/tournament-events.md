@@ -199,3 +199,34 @@ series scores of 1, 2 or 3 winning maps respectively. Omitting them preserves th
 legacy manually entered result policy. After the first playoff result, format,
 reset, BestOf and Swiss-round policies and qualified seeds cannot be changed.
 These additions do not themselves start a CS2 match or ingest MatchZy events.
+
+## Presets and preview
+
+The fixed import document accepts `SchemaVersion: 1` (missing defaults to 1).
+Unknown schema versions are rejected. `css_anotournamenteventpreview` validates
+that file and prints team/group sizes, match-count bounds, qualification and byes
+without writing or activating an event. Preview can run before `Enabled=true` if
+the roster definition is valid.
+
+`css_anotournamenteventpreset <RoundRobin|Groups|Swiss|SingleElimination|DoubleElimination>`
+clones the real configured teams into a validated format and atomically stages it
+in that same fixed file. It does not invent SteamIDs or publish a tournament.
+Presets choose BO1 groups and BO3 playoffs. Groups uses two balanced groups when
+there are at least four teams, otherwise one group, with two qualifiers per group.
+Swiss uses Buchholz ahead of map difference and initial seed. Double elimination
+includes the conditional reset, hence a one-match range in the preview.
+
+After checking the preview, set `Enabled=true` and use
+`css_anotournamenteventload` to publish under the shared revision guard. Preset
+changes for an event that already has confirmed results are rejected; use a new
+stable event ID for a different format. Both staging and publication require
+`ano.tournament.manage` and are audited. Existing JSON and the independent
+`tournament-match` workflow remain compatible; no arbitrary path is accepted.
+
+`!anotournamentadmin` opens the authorized Ingame configuration menu and is linked
+from `!anoadminmenu`. It uses the existing menu renderer, so it needs no additional
+Workshop resource. A publication confirmation pins the configuration fingerprint
+and stored event revision; changed files or concurrent writes require a fresh
+preview. Confirmation is consumed before the command awaits, and reconnects or
+permission revocation invalidate the operation. Console imports without these
+optional pinned arguments retain their existing behavior.

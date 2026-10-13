@@ -28,7 +28,14 @@ public sealed class TournamentEventCommandController : IDisposable
         ArgumentNullException.ThrowIfNull(registry);
 
         _registrations.Add(registry.Register(Owner,
-            new("anotournamenteventload", "Import the fixed tournament-event JSON and activate it.", Manage),
+            new("anotournamenteventpreview", "Validate fixed tournament-event JSON without publishing it.", Manage), PreviewAsync));
+        _registrations.Add(registry.Register(Owner,
+            new("anotournamenteventpreset", "Stage a validated format preset in fixed tournament-event JSON.", Manage,
+                arguments: [new("preset", CommandArgumentKind.String, "RoundRobin, Groups, Swiss, SingleElimination or DoubleElimination.")]), PresetAsync));
+        _registrations.Add(registry.Register(Owner,
+            new("anotournamenteventload", "Import the fixed tournament-event JSON and activate it.", Manage,
+                arguments: [new("expected_revision",CommandArgumentKind.UInt64,"Pinned revision from an admin preview.",required:false),
+                    new("expected_hash",CommandArgumentKind.String,"Pinned document fingerprint.",required:false)]),
             ImportAsync));
         _registrations.Add(registry.Register(Owner,
             new("anotournamenteventbracket", "Show playoff pairings and champion."), BracketAsync));
@@ -57,6 +64,48 @@ public sealed class TournamentEventCommandController : IDisposable
                     new("home_rounds", CommandArgumentKind.Int32, "Total rounds won by home."),
                     new("away_rounds", CommandArgumentKind.Int32, "Total rounds won by away."),
                 ]), ConfirmAsync));
+    }
+
+    private async ValueTask<CommandResult> PreviewAsync(CommandContext context)
+    {
+        ThrowIfDisposed();
+        try
+        {
+            var document = await _config.LoadAsync(DefinitionConfigName, () => new TournamentEventImportConfiguration(),
+                TournamentEventImportConfiguration.Validate, context.CancellationToken).ConfigureAwait(false);
+            var preview = TournamentEventPresets.Preview(document.Event);
+            return CommandResult.Ok($"[ANO] Preview only: {preview.Teams} teams; groups [{string.Join(",", preview.GroupSizes)}]; " +
+                $"{preview.GroupMatches} group matches; {preview.PlayoffEntrants} playoff entrants; " +
+                $"{preview.GroupByes} group byes, {preview.OpeningByes} opening playoff byes; " +
+                $"{preview.MinimumMatches}-{preview.MaximumMatches} total matches. Not published.");
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException) { return CommandResult.Fail(CommandFailureReason.InvalidInput, exception.Message); }
+    }
+    private async ValueTask<CommandResult> PresetAsync(CommandContext context)
+    {
+        await _gate.WaitAsync(context.CancellationToken).ConfigureAwait(false);
+        try
+        {
+            ThrowIfDisposed();
+            if (!Enum.TryParse<TournamentEventPreset>(context.Get<string>("preset"), true, out var preset) || !Enum.IsDefined(preset))
+                return CommandResult.Fail(CommandFailureReason.InvalidInput, "Choose RoundRobin, Groups, Swiss, SingleElimination or DoubleElimination.");
+            var document = await _config.LoadAsync(DefinitionConfigName, () => new TournamentEventImportConfiguration(),
+                TournamentEventImportConfiguration.Validate, context.CancellationToken).ConfigureAwait(false);
+            var configured = TournamentEventPresets.Apply(document.Event, preset);
+            var stored = await _repository.LoadAsync(configured.Id, context.CancellationToken).ConfigureAwait(false);
+            if (stored is not null && (stored.ConfirmedResults.Count > 0 || stored.PlayoffResults.Count > 0))
+                return CommandResult.Fail(CommandFailureReason.InvalidInput, "This event already has results. Use a new event ID for a format preset.");
+            if (!await AuditAsync("tournament.preset.requested", context, preset.ToString()))
+                return CommandResult.Fail(CommandFailureReason.HandlerFailed, "Preset request could not be audited.");
+            document.Event = configured;
+            await _config.SaveAsync(DefinitionConfigName, document, TournamentEventImportConfiguration.Validate, context.CancellationToken).ConfigureAwait(false);
+            if (!await AuditAsync("tournament.preset", context, preset.ToString()))
+                return CommandResult.Fail(CommandFailureReason.HandlerFailed, "Preset file saved; completion audit failed. Preview before publishing.");
+            return CommandResult.Ok("[ANO] Preset saved to tournament-event JSON. Run anotournamenteventpreview, then set Enabled=true and use anotournamenteventload to publish.");
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        { return CommandResult.Fail(CommandFailureReason.InvalidInput, "Preset rejected: " + exception.Message); }
+        finally { _gate.Release(); }
     }
 
     private async ValueTask<CommandResult> NextFixturesAsync(CommandContext context)
@@ -156,6 +205,8 @@ public sealed class TournamentEventCommandController : IDisposable
                     $"Tournament import rejected: {exception.Message}");
             }
 
+            if (context.TryGet<string>("expected_hash", out var fingerprint) && fingerprint != TournamentEventImportConfiguration.Fingerprint(document))
+                return CommandResult.Fail(CommandFailureReason.InvalidInput, "Configuration changed after preview. Preview and confirm again.");
             var definition = document.Event;
             if (!await AuditAsync("tournament.event-import.requested", context, definition.Id))
                 return CommandResult.Fail(CommandFailureReason.HandlerFailed,
@@ -164,6 +215,8 @@ public sealed class TournamentEventCommandController : IDisposable
             try
             {
                 old = await _repository.LoadAsync(definition.Id, context.CancellationToken).ConfigureAwait(false);
+                if (context.TryGet<ulong>("expected_revision", out var pinned) && pinned != (ulong)(old?.Revision ?? 0))
+                    return CommandResult.Fail(CommandFailureReason.InvalidInput, "Event changed after preview. Preview and confirm again.");
                 if (old is null)
                     await _repository.CreateAsync(definition, context.CancellationToken).ConfigureAwait(false);
                 else

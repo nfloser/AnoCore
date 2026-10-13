@@ -101,6 +101,7 @@ public sealed class AnoCorePlugin : BasePlugin
     private TournamentSpectatorEnforcement? _tournamentSpectatorEnforcement;
     private TournamentCommandController? _tournamentCommands;
     private TournamentEventCommandController? _tournamentEventCommands;
+    private TournamentAdminMenuModule? _tournamentAdminMenu;
     private TournamentAssignmentCommandController? _tournamentAssignmentCommands;
     private TournamentServerConfiguration _tournamentServerConfiguration = new();
     private readonly Guid _tournamentServerInstance = Guid.NewGuid();
@@ -282,6 +283,8 @@ public sealed class AnoCorePlugin : BasePlugin
             _tournamentPresenceTimer = null;
             _tournamentPresence?.Dispose();
             _tournamentPresence = null;
+            _tournamentAdminMenu?.Dispose();
+            _tournamentAdminMenu = null;
             _tournamentAssignmentCommands?.Dispose();
             _tournamentAssignmentCommands = null;
             _tournamentEventCommands?.Dispose();
@@ -1128,6 +1131,7 @@ public sealed class AnoCorePlugin : BasePlugin
             TournamentSpectatorEnforcement? tournamentSpectatorEnforcement = null;
             TournamentCommandController? tournamentCommands = null;
             TournamentEventCommandController? tournamentEventCommands = null;
+            TournamentAdminMenuModule? tournamentAdminMenu = null;
             TournamentAssignmentCommandController? tournamentAssignmentCommands = null;
             CounterStrikeSharp.API.Modules.Timers.Timer? tournamentMatchZyTimer = null;
             TournamentPresencePublisher? tournamentPresence = null;
@@ -1353,6 +1357,8 @@ public sealed class AnoCorePlugin : BasePlugin
                 tournamentEventCommands = new TournamentEventCommandController(
                     eventConfig, runtime.Commands,
                     new MySqlTournamentEventRepository(eventDatabase), runtime.AdminAudit);
+                tournamentAdminMenu = new TournamentAdminMenuModule(runtime.Commands, runtime.Players, runtime.Menus,
+                    eventConfig, new MySqlTournamentEventRepository(eventDatabase), events);
 
                 if (tournamentMatch is not null)
                 {
@@ -1605,6 +1611,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 _tournamentSpectatorEnforcement = tournamentSpectatorEnforcement;
                 _tournamentCommands = tournamentCommands;
                 _tournamentEventCommands = tournamentEventCommands;
+                _tournamentAdminMenu = tournamentAdminMenu;
                 _tournamentAssignmentCommands = tournamentAssignmentCommands;
                 _tournamentMatchZyTimer = tournamentMatchZyTimer;
                 _tournamentPresence = tournamentPresence;
@@ -1695,6 +1702,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 tournamentMatchZyTimer?.Kill();
                 tournamentPresenceTimer?.Kill();
                 tournamentPresence?.Dispose();
+                tournamentAdminMenu?.Dispose();
                 tournamentAssignmentCommands?.Dispose();
                 tournamentEventCommands?.Dispose();
                 tournamentSpectatorEnforcement?.Dispose();
