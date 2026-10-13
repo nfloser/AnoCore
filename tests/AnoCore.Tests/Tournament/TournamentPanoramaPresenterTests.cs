@@ -83,6 +83,11 @@ public sealed class TournamentPanoramaPresenterTests
         await presenter.RefreshOpenAsync();
         Assert.AreEqual("Renamed Cup", hud.Text(Viewer,
             TournamentPanoramaPresenter.HudId, "ano_tournament_title"));
+        repository.Revision = 1;
+        repository.Definition.Name = "Stale database read";
+        await presenter.RefreshOpenAsync();
+        Assert.AreEqual("Renamed Cup", hud.Text(Viewer,
+            TournamentPanoramaPresenter.HudId, "ano_tournament_title"));
         await hud.ClickAsync(Viewer, TournamentPanoramaPresenter.HudId,
             "ano_tournament_close");
         Assert.AreEqual(0, hud.VisiblePlayers(TournamentPanoramaPresenter.HudId).Count);
