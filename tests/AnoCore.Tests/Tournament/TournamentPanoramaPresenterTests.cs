@@ -47,6 +47,10 @@ public sealed class TournamentPanoramaPresenterTests
             "ano_tournament_match_0_text")!.Contains("vs", StringComparison.Ordinal));
         Assert.IsTrue(hud.Class(Viewer, TournamentPanoramaPresenter.HudId,
             "ano_tournament_match_4", "hidden"));
+        await hud.ClickAsync(Viewer, TournamentPanoramaPresenter.HudId,
+            "ano_tournament_match_0");
+        Assert.IsTrue(hud.Text(Viewer, TournamentPanoramaPresenter.HudId,
+            "ano_tournament_team_name")!.StartsWith("Match ", StringComparison.Ordinal));
 
         await hud.ClickAsync(Viewer, TournamentPanoramaPresenter.HudId,
             "ano_tournament_tab_teams");
