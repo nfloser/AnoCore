@@ -65,10 +65,14 @@ public sealed class TournamentEventCommandControllerTests
 
     private static TournamentEventDefinition Definition() => new()
     {
-        Id = "event", Name = "Event",
+        Id = "event",
+        Name = "Event",
         Teams = Enumerable.Range(1, 3).Select(i => new TournamentEventTeamDefinition
         {
-            Id = $"team-{i}", Name = $"Team {i}", Tag = $"T{i}", InitialSeed = i,
+            Id = $"team-{i}",
+            Name = $"Team {i}",
+            Tag = $"T{i}",
+            InitialSeed = i,
             Starters = Enumerable.Range(0, 5).Select(j => (ulong)(i * 10 + j + 1)).ToList(),
             CaptainSteamId = (ulong)(i * 10 + 1),
         }).ToList(),
