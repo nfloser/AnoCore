@@ -5,6 +5,15 @@ namespace AnoCore.Tests.Arcade;
 public sealed class CasinoRulesTests
 {
     [TestMethod]
+    public void MaximumPayoutBoundsEveryGameBeforeDrawing()
+    {
+        Assert.AreEqual(100000L, CasinoRules.MaximumPayout(new(CasinoGame.Slots, 100, 0)));
+        Assert.AreEqual(200L, CasinoRules.MaximumPayout(new(CasinoGame.Coinflip, 100, 0)));
+        Assert.AreEqual(3600L, CasinoRules.MaximumPayout(new(CasinoGame.Roulette, 100, 0)));
+        Assert.AreEqual(300L, CasinoRules.MaximumPayout(new(CasinoGame.Roulette, 100, 43)));
+    }
+
+    [TestMethod]
     public void SlotsExpectedReturnIsPinnedToVersionedRules()
     {
         Assert.IsTrue(Math.Abs(CasinoRules.SlotsExpectedReturn - 0.934585259885204m) < 0.000000000001m);

@@ -286,6 +286,16 @@ public sealed class AnoHomeMenuModule : IDisposable
             _menus.Open(player.Id, menu.Id);
         }
     }
+    /// <summary>Invalidate pending dashboard/navigation reads before handing input to a dedicated HUD.</summary>
+    public void CloseForPlayer(PlayerId player)
+    {
+        lock (_gate)
+        {
+            if (_owned.Remove(player, out var state)) state.Registration?.Dispose();
+            _menus.Close(player);
+        }
+    }
+
     private void RemoveSession(PlayerSnapshot player)
     {
         lock (_gate)

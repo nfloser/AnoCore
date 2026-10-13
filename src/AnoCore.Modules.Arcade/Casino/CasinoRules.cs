@@ -17,6 +17,13 @@ public static class CasinoRules
         (decimal)weight * weight * weight * Multipliers[index] / (112m * 112m * 112m)).Sum();
     private static readonly int[][] Lines = [[0, 3, 6], [1, 4, 7], [2, 5, 8], [0, 4, 8], [2, 4, 6]];
     private static readonly HashSet<int> Reds = [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36];
+    public static long MaximumPayout(CasinoRequest request)
+    {
+        Validate(request);
+        return (long)request.Stake * (request.Game == CasinoGame.Slots ? Multipliers.Max()
+            : request.Game == CasinoGame.Coinflip ? 2 : request.Choice <= 36 ? 36 : request.Choice >= 43 ? 3 : 2);
+    }
+
     public static void Validate(CasinoRequest request)
     {
         if (!Enum.IsDefined(request.Game) || request.Stake is < 50 or > 500 || request.Stake % 50 != 0)

@@ -34,12 +34,13 @@ foreach ($symbol in @("cherry", "lemon", "plum", "orange", "grapes", "watermelon
 Compile-Resource "$style\ano_arcade.css" "$style\ano_arcade.vcss_c"
 Compile-Resource "$layout\ano_arcade.xml" "$layout\ano_arcade.vxml_c"
 
-Write-Output "Casino resources compiled: $game"
-Write-Output "Publish '$Addon' with Workshop Tools and mount it alongside anomeme_ui."
-Write-Output "Use exactly one provider for ano_arcade resources: separate casino addon OR the combined build."
 
 Compile-Resource "$style\ano_casino.css" "$style\ano_casino.vcss_c"
 Compile-Resource "$layout\ano_casino.xml" "$layout\ano_casino.vxml_c"
 
 Copy-Item (Join-Path $src "$style\anomeme_banner.png") (Join-Path $content "$style\anomeme_banner.png") -Force
 Compile-Resource "$style\anomeme_banner.vtex" "$style\anomeme_banner.vtex_c"
+
+Write-Output "Casino resources compiled: $game"
+Write-Output "Publish '$Addon' with Workshop Tools and mount it alongside anomeme_ui."
+Write-Output "Use exactly one provider for ano_arcade resources: separate casino addon OR the combined build."

@@ -30,7 +30,7 @@ public sealed class MySqlCasinoWallet(IDatabase database) : ICasinoWallet
         var request = JsonSerializer.Serialize(new { player = op.Player.SteamId64, action = op.Action, amount = op.Amount, game = op.Game, rules = CasinoRules.Version });
         return database.InTransactionAsync(async (connection, transaction, ct) =>
         {
-            await ExecuteAsync(connection, transaction, "INSERT IGNORE INTO ano_ap_accounts VALUES (@player, 0, 0, 0)", op.Player, ct).ConfigureAwait(false);
+            await ExecuteAsync(connection, transaction, "INSERT INTO ano_ap_accounts VALUES (@player, 0, 0, 0) ON DUPLICATE KEY UPDATE player_steam_id = VALUES(player_steam_id)", op.Player, ct).ConfigureAwait(false);
             var before = await BalanceAsync(connection, transaction, op.Player, true, ct).ConfigureAwait(false);
             await using (var replay = Command(connection, transaction, "SELECT request_json, result_json FROM ano_casino_operations WHERE operation_id=@id", op.Player))
             {
@@ -52,6 +52,8 @@ public sealed class MySqlCasinoWallet(IDatabase database) : ICasinoWallet
                 case CasinoAction.Credit: available = checked(available + op.Amount); break;
                 case CasinoAction.Play:
                     if (allocated < op.Game!.Stake) throw new CasinoRejectedException("Nicht genügend Automatenguthaben.");
+                    if (available + allocated - op.Game.Stake + CasinoRules.MaximumPayout(op.Game) > 1000000000L)
+                        throw new CasinoRejectedException("Kontolimit: nicht genügend Spielraum für die maximale Auszahlung.");
                     outcome = CasinoRules.Draw(op.Game);
                     allocated = checked(allocated - op.Game.Stake + outcome.Payout); break;
             }

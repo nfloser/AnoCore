@@ -33,7 +33,9 @@ css_anoapcredit <SteamID64> 5000
 1.000.000 AP an und schreibt eine dauerhafte Ledgerbuchung. Keine automatische
 Punktevergabe beim Login. Für andere Spieler nur den Grant wiederholen. Der
 Befehl ist unabhängig von CSS admins.json. Vorhandene Rollen vor Neudefinition
-prüfen. Das Casino-Konto ist auf insgesamt 1.000.000.000 AP begrenzt.
+prüfen. Das Casino-Konto ist auf insgesamt 1.000.000.000 AP begrenzt. Vor einem Spiel muss genug
+Spielraum für die maximal mögliche Auszahlung bestehen; dies wird vor der
+Zufallsziehung geprüft. Gewinnauszahlungen werden nicht nachträglich gekappt.
 
 Im Chat `!anocasino` oder `!anomenu` → Open menu → AnoCasino.
 `!anoap` zeigt Profilguthaben und reserviertes Automatenguthaben. Das Dashboard
@@ -114,7 +116,11 @@ freigestellt, ohne Flammen, Rahmen, Partikel oder äußeren Glow.
 
 Das UI bleibt clean schwarz/grün und verwendet das vorhandene ANOMEME-Banner.
 Rahmen, Buttons, Text, Gewinnlinien und Roulette-Zahlen sind native UI-Elemente;
-sie benötigen keine neu generierten Bilder. Die Coinflip-/Roulette-Ergebnis-
+sie benötigen keine neu generierten Bilder. Bei kleinen Auflösungen ist das Fenster in der Höhe begrenzt und vertikal
+scrollbar; das muss ebenfalls nativ geprüft werden. Grundlage sind die
+[Panorama-Eigenschaften](https://developer.valvesoftware.com/wiki/CSGO_Panorama_CSS_Properties)
+und [Scroll-Panel-Dokumentation](https://developer.valvesoftware.com/wiki/Panorama/Overview/Events).
+Die Coinflip-/Roulette-Ergebnis-
 animation ist derzeit eine native rotierende Ergebnisanzeige, kein fertiges
 physikalisches Münz- oder Roulette-Radmodell. Dekorative Kartenbilder können
 später ergänzt werden, ohne Buchungen oder Gewinnregeln zu ändern.

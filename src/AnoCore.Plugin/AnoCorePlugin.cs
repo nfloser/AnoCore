@@ -1218,6 +1218,7 @@ public sealed class AnoCorePlugin : BasePlugin
                     casino = new CasinoPresenter(_customHud, runtime.Players, runtime.Authorization,
                         new MySqlCasinoWallet(casinoDatabase), runtime.Commands, _eventBus!, playerId =>
                         {
+                            _homeMenu?.CloseForPlayer(playerId);
                             runtime.Menus.Close(playerId);
                             presenter.Reconcile();
                             _arcadeProbe?.CloseForPlayer(playerId);
@@ -1230,6 +1231,7 @@ public sealed class AnoCorePlugin : BasePlugin
                     arcadeProbe = new ArcadeProbePresenter(_customHud, runtime.Players, runtime.Authorization, runtime.Commands, _eventBus!,
                         beforeOpen: playerId =>
                         {
+                            _homeMenu?.CloseForPlayer(playerId);
                             runtime.Menus.Close(playerId);
                             presenter.Reconcile();
                         });

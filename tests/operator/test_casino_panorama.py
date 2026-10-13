@@ -31,3 +31,5 @@ class CasinoResourcesTests(unittest.TestCase):
         css=(UI/'styles/custom_game/anocore/ano_casino.css').read_text()
         for key in ['casino-roll-a','casino-roll-b','casino-flip-a','casino-flip-b']:self.assertIn('@keyframes '+key,css)
         self.assertIn('overflow:clip',css)
+        self.assertIn('max-height:92%',css)
+        self.assertIn('overflow:squish scroll',css)
