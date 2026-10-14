@@ -9,6 +9,7 @@ namespace AnoCore.Tests.Arcade;
 public sealed class MySqlCasinoRoundStoreTests
 {
     private static readonly PlayerId Player = new(76561198000911556);
+    private static readonly PlayerId OtherPlayer = new(76561198000911557);
     private MySqlDatabase _database = null!;
     private MySqlCasinoWallet _wallet = null!;
 
@@ -95,12 +96,50 @@ public sealed class MySqlCasinoRoundStoreTests
         Assert.AreEqual(2, (await store.ReadActiveAsync(Player))!.Revision);
     }
 
+    [TestMethod]
+    public async Task NonTerminalPayoutIsRejectedWithoutChangingBalanceOrRound()
+    {
+        var store = new MySqlCasinoRoundStore(_database);
+        var before = await _wallet.ReadAsync(Player);
+
+        await Assert.ThrowsExactlyAsync<ArgumentException>(async () => await store.ApplyAsync(
+            new(Guid.NewGuid(), Guid.NewGuid(), Player, CasinoRoundKind.Risk, 0, "{\"action\":\"start\"}"),
+            _ => new(100, 200),
+            _ => new("anocasino-risk-v1", "{\"held\":100}", 100, 1, 199, false, "{\"held\":100}")));
+
+        Assert.AreEqual(before, await _wallet.ReadAsync(Player));
+        Assert.IsNull(await store.ReadActiveAsync(Player));
+    }
+
+    [TestMethod]
+    public async Task SameOperationIdIsIdempotentPerPlayerWithoutCrossPlayerCollision()
+    {
+        await _wallet.ApplyAsync(new(Guid.NewGuid(), OtherPlayer, CasinoAction.Credit, 500, null));
+        await _wallet.ApplyAsync(new(Guid.NewGuid(), OtherPlayer, CasinoAction.Load, 500, null));
+        var id = Guid.NewGuid();
+        var transitions = 0;
+
+        async Task<CasinoRoundReceipt> StartAsync(PlayerId player) => await new MySqlCasinoRoundStore(_database).ApplyAsync(
+            new(id, Guid.NewGuid(), player, CasinoRoundKind.Risk, 0, "{\"action\":\"start\"}"),
+            _ => new(100, 200),
+            _ =>
+            {
+                Interlocked.Increment(ref transitions);
+                return new("anocasino-risk-v1", "{\"held\":100}", 100, 0, 200, false, "{\"held\":100}");
+            });
+
+        var receipts = await Task.WhenAll(StartAsync(Player), StartAsync(OtherPlayer));
+        Assert.AreEqual(2, transitions);
+        Assert.AreEqual(2, receipts.Length);
+        Assert.AreNotEqual(receipts[0].Round.Player, receipts[1].Round.Player);
+    }
+
     private async Task ClearAsync() => await _database.WithConnectionAsync(async (connection, token) =>
     {
         foreach (var table in new[] { "ano_casino_round_actions", "ano_casino_rounds", "ano_casino_operations", "ano_ap_accounts" })
         {
             await using var command = connection.CreateCommand();
-            command.CommandText = $"DELETE FROM {table} WHERE player_steam_id={Player.SteamId64}";
+            command.CommandText = $"DELETE FROM {table} WHERE player_steam_id IN ({Player.SteamId64},{OtherPlayer.SteamId64})";
             await command.ExecuteNonQueryAsync(token);
         }
         return true;
