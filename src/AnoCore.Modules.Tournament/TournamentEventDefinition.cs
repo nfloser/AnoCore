@@ -68,6 +68,18 @@ public sealed class TournamentEventDefinition
             if (team.Substitutes is null || team.Substitutes.Count > definition.MaxSubstitutes)
                 errors.Add($"Team '{team.Id}' exceeds MaxSubstitutes or has a null substitute list.");
             var players = (team.Starters ?? []).Concat(team.Substitutes ?? []).ToList();
+            if (team.PlayerNames is null)
+            {
+                errors.Add($"Team '{team.Id}' player names must not be null.");
+            }
+            else
+            {
+                foreach (var (steamId, label) in team.PlayerNames)
+                {
+                    if (!players.Contains(steamId) || !ValidText(label, 1, 32))
+                        errors.Add($"Team '{team.Id}' has an invalid player name or unregistered SteamID {steamId}.");
+                }
+            }
             if (team.CaptainSteamId == 0 || !(team.Starters ?? []).Contains(team.CaptainSteamId))
                 errors.Add($"Team '{team.Id}' captain must be one of the starters.");
             foreach (var steamId in players)
@@ -196,6 +208,8 @@ public sealed class TournamentEventTeamDefinition
     public ulong CaptainSteamId { get; set; }
     public List<ulong> Starters { get; set; } = [];
     public List<ulong> Substitutes { get; set; } = [];
+    /// <summary>Optional display labels keyed by registered SteamID64. Never used for identity or readiness.</summary>
+    public Dictionary<ulong, string> PlayerNames { get; set; } = [];
     public int? InitialSeed { get; set; }
 }
 
