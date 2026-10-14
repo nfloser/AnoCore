@@ -4,7 +4,7 @@ Tracking: #444; existing prerequisite design #374 and #375. This branch provides
 
 ## Intended command and window flow
 
-The `!anoveto create` command opens a session-owned ANOMEME dialog with three actions: **Create Veto**, **Random Veto**, **Use Veto**. The existing immediate random start must stay available under a distinct `!anoveto random` fast path during migration. Only an authorized player may manage or publish a vote.
+The `!anoveto create` command opens a session-owned ANOMEME dialog with three actions: **Create Veto**, **Random Veto**, **Use Veto**. The existing immediate random start remains available through the new `!anoveto random` command (added on this branch). For compatibility `!anoveto create` still starts immediately until the native create hub is integrated. Only an authorized player may manage or publish a vote.
 
 - **Create Veto**: show sorted eligible catalog, map thumbnail/name, scroll controls and clear eight-map selection progress. On confirmation, pass a snapshot of exactly eight valid MapIds to the existing AnoVeto coordinator, not raw client-visible labels.
 - **Random Veto**: start an independent random eight-map draw from the same eligible catalog.
