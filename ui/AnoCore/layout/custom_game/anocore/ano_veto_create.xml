@@ -1,0 +1,37 @@
+<root>
+    <styles>
+        <include src="s2r://panorama/styles/custom_game/anocore/ano_veto_create.vcss_c" />
+    </styles>
+    <Panel class="ano-create-host" hittest="false">
+        <Panel id="ano_veto_create_root" class="ano-create-overlay" hittest="true">
+            <Panel class="ano-create-dim" hittest="false" />
+            <Panel class="ano-create-window" hittest="true">
+                <Panel class="ano-create-banner" hittest="false" />
+                <Panel class="ano-create-header">
+                    <Panel class="ano-create-heading">
+                        <Label id="ano_veto_create_title" class="ano-create-title" text="CREATE VETO" />
+                        <Label id="ano_veto_create_status" class="ano-create-subtitle" text="Choose how to build your map vote" />
+                    </Panel>
+                    <Button id="ano_veto_create_close" class="ano-create-close"><Label text="×" /></Button>
+                </Panel>
+                <Panel id="ano_veto_create_home" class="ano-create-choices">
+                    <Button id="ano_veto_create_manual" class="ano-create-option">
+                        <Label class="ano-create-option-title" text="CREATE VETO" />
+                        <Label class="ano-create-option-caption" text="Select eight maps from the catalog" />
+                    </Button>
+                    <Button id="ano_veto_create_random" class="ano-create-option">
+                        <Label class="ano-create-option-title" text="RANDOM VETO" />
+                        <Label class="ano-create-option-caption" text="Launch with eight random maps" />
+                    </Button>
+                    <Button id="ano_veto_create_saved" class="ano-create-option">
+                        <Label class="ano-create-option-title" text="USE VETO" />
+                        <Label class="ano-create-option-caption" text="Open a saved personal map pool" />
+                    </Button>
+                </Panel>
+                <Panel class="ano-create-footer">
+                    <Label class="ano-create-help" text="Only authorized hosts can create a public vote." />
+                </Panel>
+            </Panel>
+        </Panel>
+    </Panel>
+</root>
