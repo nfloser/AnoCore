@@ -71,6 +71,41 @@ The short numeric SteamIDs are placeholders, not real SteamID64 assignments.
 Production import should validate actual SteamID64 formats and must restrict
 file locations to a predefined server config root.
 
+## Displaying offline players by name
+
+A team may optionally include a `PlayerNames` object in `config/tournament-event.json`.
+Its keys are the same SteamID64 values already listed in `Starters` or
+`Substitutes`; it never replaces or registers those identities. For example,
+the ANOMEME offline demonstration team can add:
+
+```json
+"PlayerNames": {
+  "88000000000000001": "Testspieler 1",
+  "88000000000000002": "Testspieler 2",
+  "88000000000000003": "Testspieler 3",
+  "88000000000000004": "Testspieler 4",
+  "88000000000000005": "Testspieler 5"
+}
+```
+
+Place this property inside the matching team's object, next to `Starters`
+and `Substitutes`. Each label must be printable and 1–32 characters long.
+References to players not in that team's roster are rejected. Absent labels
+default to the current session/presence nickname when available, otherwise to
+SteamID64 alone. A supplied label appears as `Name (SteamID64)` along with
+the truthful offline/online and ready status. Synthetic SteamIDs do not become
+online players or match participants merely by assigning a display name.
+
+After installing an AnoCore build containing this feature, update the fixed
+configuration file and use `css_anotournamenteventload` to reimport the
+event. Editing the file alone does not change the event already stored in
+MySQL. Previously confirmed results remain under their original fixture
+identities; use a new event ID for an independent clean-room tournament test
+rather than rewriting prior results. Existing events without `PlayerNames`
+continue to work. No new database migration or Workshop XML/CSS is required
+for this display-only change, provided the tournament viewer resources have
+already been deployed.
+
 ## Group pairings and standings
 
 `TournamentRoundRobin.Generate(definition, groupId, legs)` uses the circle
