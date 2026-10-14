@@ -248,3 +248,10 @@ css_anorevokerole <SteamID64> casino_tester 0 Test-beendet
 ```
 
 No database credentials or server configuration are replaced by these steps.
+
+## Spielbare Folgeversion
+
+Die volle Drei-Spiele-Anbindung und das persistente AP-Konto sind separat
+unter [casino.md](casino.md) dokumentiert. Aktivierung über `CasinoEnabled`,
+Berechtigung `ano.casino.play` und Befehl `anocasino`. Der ursprüngliche
+Animationstest bleibt unabhängig und kann deaktiviert bleiben.

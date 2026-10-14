@@ -29,7 +29,8 @@ public sealed class AnoHomeMenuModule : IDisposable
         ("anosettingsmenu", "Settings", true, false),
         ("anochatmenu", "Chat tags", true, false),
         ("anotournament", "Tournament", true, false),
-        ("anoarcadetest", "AnoCasino · Test", true, false),
+        ("anoarcadetest", "AnoCasino · Animationstest", true, false),
+        ("anocasino", "AnoCasino", true, false),
         ("anotournamentstatus", "Tournament status", false, false),
     ];
     private readonly object _gate = new();
@@ -105,6 +106,7 @@ public sealed class AnoHomeMenuModule : IDisposable
             return result.Success ? result.Message ?? "No data available" : "Unavailable";
         }
         var rank = await Read("anorank").ConfigureAwait(false);
+        var ap = descriptors.ContainsKey("anoap") ? await Read("anoap").ConfigureAwait(false) : null;
         var xp = await Read(descriptors.ContainsKey("anoxp") ? "anoxp" : "anolevel").ConfigureAwait(false);
         var statistics = await Read("anokda").ConfigureAwait(false);
         var gameplay = await Read("anogamestats").ConfigureAwait(false);
@@ -112,7 +114,7 @@ public sealed class AnoHomeMenuModule : IDisposable
         var challenges = await Read("anochallenges").ConfigureAwait(false);
         var lines = challenges.Split('|', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
         var previews = lines.Length > 1 ? lines.Skip(1).Take(2).ToArray() : lines;
-        var dashboard = new MenuDashboard(Text(player.Name + " | " + Compact(rank)), Text(Compact(xp).Split(" | Gameplay XP boost:")[0]), Text(StatisticsSummary(statistics, gameplay)),
+        var dashboard = new MenuDashboard(Text(player.Name + " | " + Compact(rank) + (ap is null || ap == "Unavailable" ? "" : " | " + Compact(ap))), Text(Compact(xp).Split(" | Gameplay XP boost:")[0]), Text(StatisticsSummary(statistics, gameplay)),
             Text(PlaytimeSummary(playtime)), Text(previews.ElementAtOrDefault(0) ?? "No challenges available"),
             Text(previews.ElementAtOrDefault(1) ?? "No additional challenge"));
         var options = new List<MenuOption>
@@ -284,6 +286,16 @@ public sealed class AnoHomeMenuModule : IDisposable
             _menus.Open(player.Id, menu.Id);
         }
     }
+    /// <summary>Invalidate pending dashboard/navigation reads before handing input to a dedicated HUD.</summary>
+    public void CloseForPlayer(PlayerId player)
+    {
+        lock (_gate)
+        {
+            if (_owned.Remove(player, out var state)) state.Registration?.Dispose();
+            _menus.Close(player);
+        }
+    }
+
     private void RemoveSession(PlayerSnapshot player)
     {
         lock (_gate)

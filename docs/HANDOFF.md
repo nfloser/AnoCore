@@ -979,3 +979,55 @@ License, NOTICE and source provenance must remain intact.
 ### CSS-owned individual team administration (#345)
 
 `anoteam`/`anoswap` now use the dedicated CSS `@anocore/team` flag, CSS targets/immunity and current-session engine writes. Other AnoCore permissions remain separate. Existing server developer/host groups need the flag appended; see [team administration](extended-inventory-team-admin.md). No MatchZy aliases or global side swaps are registered, and its roster handlers can restore a locked roster. Native CS2/DatHost acceptance is intentionally outstanding; no release, deployment or live config write occurred.
+## AnoCasino durable-round checkpoint (#423 / #429) — 2026-10-14
+
+- Integration branch `feature/429-casino-durable-rounds` keeps migration 027 and
+  all `anocasino-v1` request/receipt JSON immutable. Migration 028 adds separate
+  durable round/action tables with one active round per SteamID, optimistic
+  revisions, immutable operation receipts and a bounded outstanding-payout
+  reservation. No account-table columns were added because the v1 wallet uses a
+  positional insert.
+- Every writer locks the AP account before a round. A no-randomness plan proves
+  debit/liquidity and maximum gross payout exposure before the transition can
+  consume server randomness. Duplicate operation IDs replay the stored receipt;
+  stale different IDs fail without drawing. Intermediate bonus/Risk/Blackjack
+  winnings stay durably held and reserved; spendable AP is credited once on the
+  terminal action.
+- The legacy wallet now locks/checks an active round reservation after its account
+  lock, preventing credits or v1 games from consuming payout headroom. Migration
+  startup composes 027 then 028 in the Plugin, not Runtime.
+- MariaDB tests cover ten-way duplicate start/terminal replay, restart recovery,
+  competing same-revision actions and legacy-credit reservation enforcement.
+  Local `dotnet` is unavailable, so exact-head CI remains required. The existing
+  casino Panorama source suite passes (3 tests). No native Windows resourcecompiler,
+  Workshop, two-client CS2 or DatHost acceptance was performed.
+- Independent draft dependencies: #430 pins v1 compatibility, #431 adds Risk
+  rules, #432 adds Blackjack rules, #433 adds the bonus-slot rules and #434 adds
+  bounded fruit/coin/roulette animations. Their exact-head CI/reviews must pass
+  before integration. Presenter/plugin wiring for the three multi-action engines
+  remains next; none is yet claimed playable.
+
+### 05:00 automation run — reviewed integration checkpoint
+
+- `feat/casino-games` now contains the reviewed, squash-merged PRs #430, #431,
+  #432, #433 and #434 at `b247ee553a84025c1cbdc11657fdb244244bc556`:
+  immutable v1 compatibility vectors, bounded Risk rules, Blackjack rules,
+  bounded Book-style bonus rules and repeatable native fruit/coin/roulette
+  outcome animations. The last component run, CI #967, passed 1,295/1,295
+  tests plus formatting, packages and Panorama source validation.
+- Durable-round PR #435 is on `feature/429-casino-durable-rounds`, code head
+  `ea52c4bfef65afc190a1407abeedce64b4ecd576`. CI #970 passed the integrated
+  branch with 1,307/1,307 tests plus formatting, packaging, publish and
+  Panorama/operator checks. The independent review found and fixed two gaps: nonterminal
+  mutations can no longer credit spendable AP, and operation IDs are scoped to
+  a player so equal UUIDs on two accounts cannot collide after consuming both
+  transitions. MariaDB regression tests cover both fixes. #435 was squash-merged
+  as `db2c7c4b1b4a0a26e31326a69e4e5567bcbe6627`.
+- Final integration head for this run: `feat/casino-games` at
+  `db2c7c4b1b4a0a26e31326a69e4e5567bcbe6627`. CI on the post-merge head is a
+  final confirmation, while #970 already tested the identical merge result.
+- The rule engines are intentionally not advertised as playable. Next work is
+  to integrate cryptographic engine adapters with the durable store, expose
+  sanitized recovery state to the presenter and add the Blackjack, bonus and
+  Risk controls/history. Native Windows resourcecompiler, Workshop, two-client
+  CS2 and DatHost acceptance remains open and no release was created.

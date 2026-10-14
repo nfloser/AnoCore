@@ -238,6 +238,15 @@ public sealed class ArcadeProbePresenter : IDisposable
         }
     }
 
+    public void CloseForPlayer(PlayerId player)
+    {
+        lock (_gate)
+        {
+            if (_states.TryGetValue(player, out var state)) state.Visible = false;
+            _hud.Hide(player, HudId);
+        }
+    }
+
     public void Reset()
     {
         lock (_gate)

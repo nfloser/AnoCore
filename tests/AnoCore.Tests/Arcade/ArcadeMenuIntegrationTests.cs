@@ -1,3 +1,4 @@
+using AnoCore.Abstractions.Commands;
 using AnoCore.Abstractions.Permissions;
 using AnoCore.Abstractions.Players;
 using AnoCore.Modules.Arcade;
@@ -30,7 +31,7 @@ public sealed class ArcadeMenuIntegrationTests
         using var home = new AnoHomeMenuModule(commands, players, menus, permissions, events);
         Assert.IsTrue((await commands.ExecuteAsync("!anomenunavigation", Player)).Success);
         Assert.IsTrue(menus.TryGetOpenMenu(Player, out var definition));
-        Assert.IsTrue(definition!.Options.Any(option => option.Id == "anoarcadetest" && option.Label == "AnoCasino · Test"));
+        Assert.IsTrue(definition!.Options.Any(option => option.Id == "anoarcadetest" && option.Label == "AnoCasino · Animationstest"));
         Assert.IsTrue(panorama.Open(Player));
         var row = definition.Options.ToList().FindIndex(option => option.Id == "anoarcadetest");
         Assert.IsTrue(row < PanoramaMenuPresenter.PageSize);
@@ -70,6 +71,28 @@ public sealed class ArcadeMenuIntegrationTests
         Assert.IsFalse(unauthorized!.Options.Any(option => option.Id == "anoarcadetest"));
         Assert.IsFalse((await commands.ExecuteAsync("!anoarcadetest", Player)).Success);
         Assert.AreEqual(0, hud.VisiblePlayers(ArcadeProbePresenter.HudId).Count);
+    }
+
+    [TestMethod]
+    public async Task CasinoHandoffInvalidatesDelayedDashboardRead()
+    {
+        var events = new AnoEventBus();
+        var players = new PlayerRegistry(events);
+        await players.ConnectAsync(new(Player, "Tester", PlayerTeam.Terrorist, true, DateTimeOffset.UtcNow));
+        var permissions = new Permissions();
+        var commands = new CommandRegistry(permissions);
+        var menus = new MenuService();
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var rank = commands.Register(new("test"), new("anorank", "Rank"), async _ =>
+        { entered.SetResult(); await release.Task; return CommandResult.Ok("Rank"); });
+        using var home = new AnoHomeMenuModule(commands, players, menus, permissions, events);
+        var pending = commands.ExecuteAsync("!anomenu", Player).AsTask();
+        await entered.Task;
+        home.CloseForPlayer(Player);
+        release.SetResult();
+        await pending;
+        Assert.IsFalse(menus.TryGetOpenMenu(Player, out _));
     }
 
     private sealed class Permissions : IPermissionEvaluator
