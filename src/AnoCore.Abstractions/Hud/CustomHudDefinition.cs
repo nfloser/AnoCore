@@ -29,6 +29,8 @@ public sealed class CustomHudDefinition
 
     public CustomHudId Id { get; }
     public string LayoutResource { get; }
+    /// <summary>Compiled resource requested by a native dynamic HUD entity; source paths remain SDK-compatible.</summary>
+    public string CompiledLayoutResource => LayoutResource[..^4] + ".vxml_c";
     public string RootPanelId { get; }
     public string VisibleClass { get; }
     public bool CaptureInput { get; }

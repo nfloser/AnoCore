@@ -105,17 +105,56 @@ public sealed class AnoVetoCoordinatorTests
     }
 
     [TestMethod]
-    public async Task CastAsync_SameSteamIdCannotVoteTwice()
+    public async Task CastAsync_SameSteamIdCanSelectThreeDistinctMapsButNotFour()
     {
         var harness = CreateHarness(8, minimumVotes: 1);
         var created = await harness.Coordinator.CreateAsync(Manager, [PlayerA, PlayerB], Now);
+        var reconnectIdentity = new PlayerId(PlayerA.SteamId64);
 
         var first = await harness.Coordinator.CastAsync(PlayerA, created.Maps[0].MapId, Now.AddSeconds(1));
-        var second = await harness.Coordinator.CastAsync(new PlayerId(PlayerA.SteamId64), created.Maps[1].MapId, Now.AddSeconds(2));
+        var second = await harness.Coordinator.CastAsync(reconnectIdentity, created.Maps[1].MapId, Now.AddSeconds(2));
+        var third = await harness.Coordinator.CastAsync(PlayerA, created.Maps[2].MapId, Now.AddSeconds(3));
+        var fourth = await harness.Coordinator.CastAsync(reconnectIdentity, created.Maps[3].MapId, Now.AddSeconds(4));
 
         Assert.IsTrue(first.Accepted);
-        Assert.IsFalse(second.Accepted);
-        Assert.AreEqual(AnoVetoFailure.AlreadyVoted, second.Failure);
+        Assert.IsTrue(second.Accepted);
+        Assert.IsTrue(third.Accepted);
+        Assert.IsFalse(fourth.Accepted);
+        Assert.AreEqual(AnoVetoFailure.AlreadyVoted, fourth.Failure);
+    }
+
+    [TestMethod]
+    public async Task CreateSelectedAsync_PreservesConfirmedMapOrderAndPublishesNormalBallot()
+    {
+        var harness = CreateHarness(12, minimumVotes: 1);
+        var ids = Enumerable.Range(2, 8).Reverse().Select(i => $"de_map{i:00}").ToArray();
+
+        var result = await harness.Coordinator.CreateSelectedAsync(Manager, [PlayerA, PlayerB], ids, Now);
+
+        Assert.IsTrue(result.Accepted);
+        CollectionAssert.AreEqual(ids, result.Maps.Select(map => map.MapId).ToArray());
+        Assert.IsTrue((await harness.Coordinator.CastAsync(PlayerA, ids[0], Now.AddSeconds(1))).Accepted);
+        Assert.AreEqual(AnoVetoFailure.AlreadyActive,
+            (await harness.Coordinator.CreateSelectedAsync(Manager, [PlayerA], ids, Now)).Failure);
+    }
+
+    [TestMethod]
+    public async Task CreateSelectedAsync_RejectsMissingDuplicateAndWrongSizeWithoutStartingVote()
+    {
+        var harness = CreateHarness(12, minimumVotes: 1);
+        var good = Enumerable.Range(1, 8).Select(i => $"de_map{i:00}").ToArray();
+        foreach (var bad in new[]
+        {
+            good.Take(7).ToArray(),
+            good.Take(7).Append(good[0]).ToArray(),
+            good.Take(7).Append("missing_map").ToArray(),
+        })
+        {
+            var rejected = await harness.Coordinator.CreateSelectedAsync(Manager, [PlayerA], bad, Now);
+            Assert.IsFalse(rejected.Accepted);
+            Assert.AreEqual(AnoVetoFailure.InvalidMap, rejected.Failure);
+        }
+        Assert.IsTrue((await harness.Coordinator.CreateSelectedAsync(Manager, [PlayerA], good, Now)).Accepted);
     }
 
     private static Harness CreateHarness(int mapCount, int minimumVotes, TimeSpan? duration = null)

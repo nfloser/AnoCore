@@ -75,18 +75,25 @@ public sealed class VoteService : IVoteService
                 return ValueTask.FromResult(VoteOperationResult.Reject(VoteOperationFailure.NotEligible));
             }
 
-            if (session.Ballots.ContainsKey(playerId))
-            {
-                return ValueTask.FromResult(VoteOperationResult.Reject(VoteOperationFailure.AlreadyVoted));
-            }
-
             var normalizedOption = optionId?.Trim().ToLowerInvariant() ?? string.Empty;
             if (!session.OptionIds.Contains(normalizedOption))
             {
                 return ValueTask.FromResult(VoteOperationResult.Reject(VoteOperationFailure.InvalidOption));
             }
 
-            session.Ballots.Add(playerId, normalizedOption);
+            if (!session.Ballots.TryGetValue(playerId, out var selections))
+            {
+                selections = [];
+                session.Ballots.Add(playerId, selections);
+            }
+
+            if (selections.Count >= session.Definition.Policy.MaxVotesPerPlayer
+                || selections.Contains(normalizedOption, StringComparer.Ordinal))
+            {
+                return ValueTask.FromResult(VoteOperationResult.Reject(VoteOperationFailure.AlreadyVoted));
+            }
+
+            selections.Add(normalizedOption);
             return ValueTask.FromResult(VoteOperationResult.Success());
         }
     }
@@ -153,7 +160,9 @@ public sealed class VoteService : IVoteService
             if (!_sessions.TryGetValue(voteId, out var session)
                 || session.State != VoteState.Open
                 || now >= session.Deadline
-                || session.Ballots.Count != session.Eligible.Count)
+                || session.Ballots.Count != session.Eligible.Count
+                || session.Ballots.Values.Any(selections =>
+                    selections.Count < session.Definition.Policy.MaxVotesPerPlayer))
             {
                 return null;
             }
@@ -215,12 +224,18 @@ public sealed class VoteService : IVoteService
         public DateTimeOffset Deadline { get; }
         public HashSet<PlayerId> Eligible { get; }
         public HashSet<string> OptionIds { get; }
-        public Dictionary<PlayerId, string> Ballots { get; } = [];
+        public Dictionary<PlayerId, List<string>> Ballots { get; } = [];
         public VoteState State { get; private set; } = VoteState.Open;
         public VoteResult? Result { get; private set; }
 
         public VoteSnapshot Snapshot()
-            => new(Definition, State, OpenedAt, Deadline, new Dictionary<PlayerId, string>(Ballots));
+            => new(Definition, State, OpenedAt, Deadline,
+                Ballots.ToDictionary(pair => pair.Key, pair => pair.Value[0]))
+            {
+                Selections = Ballots.ToDictionary(
+                    pair => pair.Key,
+                    pair => (IReadOnlyList<string>)pair.Value.ToArray()),
+            };
 
         public VoteResult Finalize(DateTimeOffset now)
         {
@@ -230,7 +245,7 @@ public sealed class VoteService : IVoteService
             }
 
             var tallies = Definition.Options.ToDictionary(option => option.Id, _ => 0, StringComparer.Ordinal);
-            foreach (var optionId in Ballots.Values)
+            foreach (var optionId in Ballots.Values.SelectMany(selections => selections))
             {
                 tallies[optionId]++;
             }
@@ -267,20 +282,20 @@ public sealed class VoteService : IVoteService
             }
 
             State = VoteState.Completed;
-            Result = new VoteResult(Definition.Id, outcome, winner, tallies, Ballots.Count, now);
+            Result = new VoteResult(Definition.Id, outcome, winner, tallies, Ballots.Values.Sum(selections => selections.Count), now);
             return Result;
         }
 
         public VoteResult Cancel(DateTimeOffset now)
         {
             var tallies = Definition.Options.ToDictionary(option => option.Id, _ => 0, StringComparer.Ordinal);
-            foreach (var optionId in Ballots.Values)
+            foreach (var optionId in Ballots.Values.SelectMany(selections => selections))
             {
                 tallies[optionId]++;
             }
 
             State = VoteState.Cancelled;
-            Result = new VoteResult(Definition.Id, VoteOutcome.Cancelled, null, tallies, Ballots.Count, now);
+            Result = new VoteResult(Definition.Id, VoteOutcome.Cancelled, null, tallies, Ballots.Values.Sum(selections => selections.Count), now);
             return Result;
         }
     }

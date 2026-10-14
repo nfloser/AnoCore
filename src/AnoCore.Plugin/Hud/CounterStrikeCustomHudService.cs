@@ -543,15 +543,15 @@ public sealed class CounterStrikeCustomHudService : ICustomHudService, IDisposab
             return true;
         }
 
+        var layoutResource = registration.Definition.CompiledLayoutResource;
         try
         {
             foreach (var existing in Utilities.FindAllEntitiesByDesignerName<CCSCustomHudLayout>("custom_hud_layout"))
             {
                 if (existing.IsValid
-                    && string.Equals(
-                        existing.StrLayout,
-                        registration.Definition.LayoutResource,
-                        StringComparison.OrdinalIgnoreCase))
+                    && (string.Equals(existing.StrLayout, layoutResource, StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(existing.StrLayout,
+                            registration.Definition.LayoutResource, StringComparison.OrdinalIgnoreCase)))
                 {
                     existing.Remove();
                 }
@@ -563,17 +563,17 @@ public sealed class CounterStrikeCustomHudService : ICustomHudService, IDisposab
                 _logger.LogError(
                     "Could not create custom_hud_layout for {HudId} ({LayoutResource}).",
                     registration.Definition.Id,
-                    registration.Definition.LayoutResource);
+                    layoutResource);
                 return false;
             }
 
-            entity.StrLayout = registration.Definition.LayoutResource;
+            entity.StrLayout = layoutResource;
             entity.DispatchSpawn();
             registration.Entity = entity;
             _logger.LogInformation(
                 "Custom HUD {HudId} ready with layout {LayoutResource}.",
                 registration.Definition.Id,
-                registration.Definition.LayoutResource);
+                layoutResource);
             return true;
         }
         catch (Exception exception)
@@ -582,7 +582,7 @@ public sealed class CounterStrikeCustomHudService : ICustomHudService, IDisposab
                 exception,
                 "Failed to create custom HUD {HudId} ({LayoutResource}).",
                 registration.Definition.Id,
-                registration.Definition.LayoutResource);
+                layoutResource);
             return false;
         }
     }

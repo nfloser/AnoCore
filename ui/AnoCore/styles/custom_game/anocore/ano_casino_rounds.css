@@ -1,0 +1,76 @@
+.round-host { width:100%; height:100%; }
+.round-overlay { width:100%; height:100%; visibility:collapse; background-color:#000000dd; }
+.round-overlay.shown { visibility:visible; }
+.round-window { width:90%; max-width:1100px; max-height:92%; overflow:squish scroll; padding:20px; horizontal-align:center; vertical-align:center; flow-children:down; background-color:#101715; border:1px solid #287547; border-radius:8px; }
+Label { color:#e9efed; font-family:Arial; font-size:17px; margin:4px; }
+.row, .round-header, .book-reels { flow-children:right; margin-bottom:12px; }
+.round-header { width:100%; }
+.brand { width:75%; color:#39e38c; font-size:26px; }
+.title { font-size:32px; color:#39e38c; margin-bottom:16px; }
+.button { padding:9px 12px; margin-right:9px; border:1px solid #287547; background-color:#1a2421; border-radius:4px; }
+.button:hover { background-color:#223b2e; border-color:#39e38c; }
+.primary { border-color:#39e38c; background-color:#165e3a; }
+.counter { width:32%; flow-children:down; background-color:#1a2421; margin-right:10px; padding:8px; }
+.counter Label { horizontal-align:center; }
+#casino_round_payout { color:#39e38c; font-size:24px; }
+.book-table, .blackjack-table, .risk-table, .blackjack-actions, .risk-actions, .book-actions, .retry { visibility:collapse; }
+.view-book .book-table, .view-blackjack .blackjack-table, .view-risk .risk-table { visibility:visible; }
+.active.view-book .book-actions, .active.view-blackjack .blackjack-actions, .active.view-risk .risk-actions { visibility:visible; }
+.uncertain .retry { visibility:visible; }
+.active #casino_round_play, .active #casino_round_minus, .active #casino_round_plus { visibility:collapse; }
+.double-action, .split-action { visibility:collapse; }
+.can-double .double-action, .can-split .split-action { visibility:visible; }
+.busy .stake-controls, .busy .blackjack-actions, .busy .risk-actions, .busy .book-actions { opacity:0.35; }
+.book-table { width:100%; flow-children:down; padding:12px; border:2px solid #287547; background-color:#09100e; }
+.book-reels { horizontal-align:center; }
+.book-reel { width:170px; height:240px; overflow:clip; margin-right:6px; background-color:#e6e3d3; border:1px solid #706b4b; }
+.reel-final, .reel-motion { flow-children:down; }
+.book-symbol { width:168px; height:80px; margin:0px; padding-top:27px; text-align:center; font-size:20px; font-weight:bold; color:#28372e; border-bottom:1px solid #b8b7a9; }
+.book-symbol.scatter { color:#996211; background-color:#fff1bf; }
+.book-symbol.wild { color:#11653c; background-color:#b9f2c9; }
+.reel-motion { visibility:collapse; }
+.motion-a .reel-motion, .motion-b .reel-motion { visibility:visible; }
+.motion-a .reel-final, .motion-b .reel-final { visibility:collapse; }
+.motion-a .reel-motion { animation-name:book-roll-a; animation-duration:0.4s; animation-timing-function:linear; animation-iteration-count:infinite; }
+.motion-b .reel-motion { animation-name:book-roll-b; animation-duration:0.4s; animation-timing-function:linear; animation-iteration-count:infinite; }
+@keyframes book-roll-a { 0% { transform:translateY(0px); } 100% { transform:translateY(-480px); } }
+@keyframes book-roll-b { 0% { transform:translateY(0px); } 100% { transform:translateY(-480px); } }
+.table-note { horizontal-align:center; font-size:14px; color:#b4cbbd; }
+.blackjack-table { width:100%; flow-children:down; background-color:#0e3b2b; border:2px solid #287547; border-radius:16px; padding:20px; }
+.table-heading { color:#a4c8b4; font-size:15px; horizontal-align:center; }
+.dealer-cards { horizontal-align:center; font-size:30px; color:#ffffff; margin:14px; }
+.table-line { width:80%; height:1px; background-color:#287547; horizontal-align:center; margin-bottom:12px; }
+.round-detail { width:100%; max-height:190px; white-space:normal; font-size:21px; color:#e9efed; margin:12px 0px; }
+.view-blackjack .round-detail { background-color:#0e3b2b; padding:15px; border-radius:8px; }
+.motion-a.view-blackjack .round-detail { animation-name:card-deal-a; animation-duration:0.6s; }
+.motion-b.view-blackjack .round-detail { animation-name:card-deal-b; animation-duration:0.6s; }
+@keyframes card-deal-a { 0% { opacity:0; transform:translateX(70px); } 100% { opacity:1; transform:translateX(0px); } }
+@keyframes card-deal-b { 0% { opacity:0; transform:translateX(70px); } 100% { opacity:1; transform:translateX(0px); } }
+.risk-table { horizontal-align:center; flow-children:down; }
+.risk-chip { width:130px; height:130px; border-radius:65px; background-color:#165e3a; border:6px solid #39e38c; horizontal-align:center; margin:14px; }
+.risk-chip Label { horizontal-align:center; vertical-align:center; font-size:48px; font-weight:bold; }
+.motion-a.view-risk .risk-chip { animation-name:risk-turn-a; animation-duration:0.6s; }
+.motion-b.view-risk .risk-chip { animation-name:risk-turn-b; animation-duration:0.6s; }
+@keyframes risk-turn-a { 0% { transform:rotateY(0deg); } 100% { transform:rotateY(360deg); } }
+@keyframes risk-turn-b { 0% { transform:rotateY(0deg); } 100% { transform:rotateY(360deg); } }
+.motion-a.view-risk .round-detail, .motion-b.view-risk .round-detail, .motion-a.view-book .round-detail, .motion-b.view-book .round-detail { opacity:0; }
+.status { color:#39e38c; width:100%; max-height:110px; white-space:normal; }
+.note { color:#9faea7; font-size:14px; }
+
+.book-symbol.symbol-0 { color:#00000000; background-image:url("s2r://panorama/styles/custom_game/anocore/arcade/cherry.vtex"); background-size:contain; background-position:center; background-repeat:no-repeat; }
+.book-symbol.symbol-1 { color:#00000000; background-image:url("s2r://panorama/styles/custom_game/anocore/arcade/lemon.vtex"); background-size:contain; background-position:center; background-repeat:no-repeat; }
+.book-symbol.symbol-2 { color:#00000000; background-image:url("s2r://panorama/styles/custom_game/anocore/arcade/plum.vtex"); background-size:contain; background-position:center; background-repeat:no-repeat; }
+.book-symbol.symbol-3 { color:#00000000; background-image:url("s2r://panorama/styles/custom_game/anocore/arcade/orange.vtex"); background-size:contain; background-position:center; background-repeat:no-repeat; }
+.book-symbol.symbol-4 { color:#00000000; background-image:url("s2r://panorama/styles/custom_game/anocore/arcade/grapes.vtex"); background-size:contain; background-position:center; background-repeat:no-repeat; }
+.book-symbol.symbol-5 { color:#00000000; background-image:url("s2r://panorama/styles/custom_game/anocore/arcade/bell.vtex"); background-size:contain; background-position:center; background-repeat:no-repeat; }
+.book-symbol.symbol-6 { color:#00000000; background-image:url("s2r://panorama/styles/custom_game/anocore/arcade/seven.vtex"); background-size:contain; background-position:center; background-repeat:no-repeat; }
+.book-symbol.symbol-7 { color:#6f3a10; background-color:#fff1bf; border:3px solid #bf8d35; font-size:22px; font-weight:bold; }
+.motion-a .book-reel.stopped .reel-motion, .motion-b .book-reel.stopped .reel-motion { visibility:collapse; }
+.motion-a .book-reel.stopped .reel-final, .motion-b .book-reel.stopped .reel-final { visibility:visible; }
+.motion-a .book-reel.stopped .reel-final { animation-name:book-stop-a; animation-duration:0.25s; }
+.motion-b .book-reel.stopped .reel-final { animation-name:book-stop-b; animation-duration:0.25s; }
+@keyframes book-stop-a { 0% { transform:translateY(-12px); } 70% { transform:translateY(3px); } 100% { transform:translateY(0px); } }
+@keyframes book-stop-b { 0% { transform:translateY(-12px); } 70% { transform:translateY(3px); } 100% { transform:translateY(0px); } }
+
+#casino_round_risk { visibility:collapse; }
+.can-risk #casino_round_risk { visibility:visible; }

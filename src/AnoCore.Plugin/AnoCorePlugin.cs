@@ -7,6 +7,8 @@ using AnoCore.Abstractions.Players;
 using AnoCore.Abstractions.Stats;
 using AnoCore.Modules.Admin;
 using AnoCore.Modules.AnoVeto;
+using AnoCore.Modules.Arcade;
+using AnoCore.Modules.Arcade.Casino;
 using AnoCore.Modules.Progression;
 using AnoCore.Modules.Progression.Persistence;
 using AnoCore.Modules.Stats;
@@ -95,6 +97,13 @@ public sealed class AnoCorePlugin : BasePlugin
     private ModerationWebhookPump? _webhooks;
     private CounterStrikeSharp.API.Modules.Timers.Timer? _roleExpiryTimer;
     private bool _panoramaMenusEnabled;
+    private bool _arcadeProbeEnabled;
+    private ArcadeProbePresenter? _arcadeProbe;
+    private CasinoPresenter? _casino;
+    private CasinoRoundPresenter? _casinoRounds;
+    private CounterStrikeSharp.API.Modules.Timers.Timer? _casinoTimer;
+    private bool _casinoEnabled;
+    private CounterStrikeSharp.API.Modules.Timers.Timer? _arcadeProbeTimer;
     private bool _tournamentDashboardEnabled;
     private TournamentMatchRuntime? _tournamentMatch;
     private TournamentTeamEnforcement? _tournamentTeamEnforcement;
@@ -294,6 +303,16 @@ public sealed class AnoCorePlugin : BasePlugin
             _tournamentEventCommands = null;
             _tournamentRefreshTimer?.Kill();
             _tournamentRefreshTimer = null;
+            _casinoTimer?.Kill();
+            _casinoTimer = null;
+            _casino?.Dispose();
+            _casino = null;
+            _casinoRounds?.Dispose();
+            _casinoRounds = null;
+            _arcadeProbeTimer?.Kill();
+            _arcadeProbeTimer = null;
+            _arcadeProbe?.Dispose();
+            _arcadeProbe = null;
             _tournamentPanorama?.Dispose();
             _tournamentPanorama = null;
             _tournamentSpectatorEnforcement?.Dispose();
@@ -448,6 +467,11 @@ public sealed class AnoCorePlugin : BasePlugin
             var externalModules = await configuration.LoadAsync("modules", () => new ExternalModuleConfiguration(),
                 ExternalModuleConfiguration.Validate, cancellationToken).ConfigureAwait(false);
             _panoramaMenusEnabled = settings.PanoramaMenusEnabled;
+            _arcadeProbeEnabled = settings.ArcadeAnimationProbeEnabled;
+            _casinoEnabled = settings.CasinoEnabled;
+            if (_casinoEnabled && !settings.PanoramaMenusEnabled) throw new InvalidOperationException("CasinoEnabled requires PanoramaMenusEnabled.");
+            if (_arcadeProbeEnabled && !_panoramaMenusEnabled)
+                throw new InvalidOperationException("ArcadeAnimationProbeEnabled requires PanoramaMenusEnabled in core.json.");
             _tournamentDashboardEnabled = settings.TournamentDashboardEnabled;
             if (_tournamentDashboardEnabled && !_panoramaMenusEnabled)
                 throw new InvalidOperationException("TournamentDashboardEnabled requires PanoramaMenusEnabled in core.json.");
@@ -525,6 +549,12 @@ public sealed class AnoCorePlugin : BasePlugin
                 players,
                 cancellationToken: timeout.Token,
                 managementRateLimiter: managementRateLimiter).ConfigureAwait(false);
+
+            if (_casinoEnabled)
+            {
+                await new AnoCore.Runtime.Persistence.Migrations.MigrationRunner((IDatabase)created.GetService(typeof(IDatabase))!,
+                    [new CasinoSchemaMigration027(), new CasinoSchemaMigration028()]).ApplyPendingAsync(timeout.Token).ConfigureAwait(false);
+            }
 
             if (managementConfiguration.Enabled)
             {
@@ -786,7 +816,8 @@ public sealed class AnoCorePlugin : BasePlugin
                     votes,
                     new CounterStrikeMapChanger(),
                     cancellationToken: timeout.Token,
-                    reloads: created.ConfigReloads).ConfigureAwait(false);
+                    reloads: created.ConfigReloads,
+                    presetDatabase: created.GetService(typeof(IDatabase)) as IDatabase).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
@@ -1144,6 +1175,11 @@ public sealed class AnoCorePlugin : BasePlugin
             TournamentSpectatorEnforcement? tournamentSpectatorEnforcement = null;
             TournamentCommandController? tournamentCommands = null;
             TournamentEventCommandController? tournamentEventCommands = null;
+            CasinoPresenter? casino = null;
+            CasinoRoundPresenter? casinoRounds = null;
+            CounterStrikeSharp.API.Modules.Timers.Timer? casinoTimer = null;
+            ArcadeProbePresenter? arcadeProbe = null;
+            CounterStrikeSharp.API.Modules.Timers.Timer? arcadeProbeTimer = null;
             TournamentPanoramaPresenter? tournamentPanorama = null;
             CounterStrikeSharp.API.Modules.Timers.Timer? tournamentRefreshTimer = null;
             TournamentAdminMenuModule? tournamentAdminMenu = null;
@@ -1184,6 +1220,41 @@ public sealed class AnoCorePlugin : BasePlugin
 
             try
             {
+                if (_casinoEnabled && _customHud is not null)
+                {
+                    var casinoDatabase = (IDatabase)runtime.GetService(typeof(IDatabase))!;
+                    var wallet = new MySqlCasinoWallet(casinoDatabase);
+                    casino = new CasinoPresenter(_customHud, runtime.Players, runtime.Authorization,
+                        wallet, runtime.Commands, _eventBus!, playerId =>
+                        {
+                            casinoRounds?.Close(playerId);
+                            _homeMenu?.CloseForPlayer(playerId);
+                            runtime.Menus.Close(playerId);
+                            presenter.Reconcile();
+                            _arcadeProbe?.CloseForPlayer(playerId);
+                        }, openRound: (playerId, game, token) => casinoRounds!.OpenAsync(playerId, game, token));
+                    casinoRounds = new CasinoRoundPresenter(_customHud, runtime.Players, runtime.Authorization,
+                        wallet, new CasinoRoundService(new MySqlCasinoRoundStore(casinoDatabase)), _eventBus!,
+                        playerId => casino.CloseForPlayer(playerId), async (playerId, token) =>
+                        {
+                            await runtime.Commands.ExecuteAsync("!anocasino", playerId, token).ConfigureAwait(false);
+                        });
+                    var activeCasino = casino;
+                    var activeRounds = casinoRounds;
+                    casinoTimer = AddTimer(0.25f, () => { activeCasino.Tick(); activeRounds.Tick(); }, TimerFlags.REPEAT);
+                }
+                if (_arcadeProbeEnabled && _customHud is not null)
+                {
+                    arcadeProbe = new ArcadeProbePresenter(_customHud, runtime.Players, runtime.Authorization, runtime.Commands, _eventBus!,
+                        beforeOpen: playerId =>
+                        {
+                            _homeMenu?.CloseForPlayer(playerId);
+                            runtime.Menus.Close(playerId);
+                            presenter.Reconcile();
+                        });
+                    var activeArcadeProbe = arcadeProbe;
+                    arcadeProbeTimer = AddTimer(0.25f, activeArcadeProbe.Tick, TimerFlags.REPEAT);
+                }
                 try
                 {
                     _webhooks = ModerationWebhookPump.Create((AnoCore.Abstractions.Persistence.IDatabase)runtime.GetService(typeof(AnoCore.Abstractions.Persistence.IDatabase))!, _webhookPolicy);
@@ -1639,6 +1710,11 @@ public sealed class AnoCorePlugin : BasePlugin
                 _tournamentSpectatorEnforcement = tournamentSpectatorEnforcement;
                 _tournamentCommands = tournamentCommands;
                 _tournamentEventCommands = tournamentEventCommands;
+                _casino = casino;
+                _casinoRounds = casinoRounds;
+                _casinoTimer = casinoTimer;
+                _arcadeProbe = arcadeProbe;
+                _arcadeProbeTimer = arcadeProbeTimer;
                 _tournamentPanorama = tournamentPanorama;
                 _tournamentRefreshTimer = tournamentRefreshTimer;
                 _tournamentAdminMenu = tournamentAdminMenu;
@@ -1736,6 +1812,11 @@ public sealed class AnoCorePlugin : BasePlugin
                 tournamentAssignmentCommands?.Dispose();
                 tournamentEventCommands?.Dispose();
                 tournamentRefreshTimer?.Kill();
+                casinoTimer?.Kill();
+                casino?.Dispose();
+                casinoRounds?.Dispose();
+                arcadeProbeTimer?.Kill();
+                arcadeProbe?.Dispose();
                 tournamentPanorama?.Dispose();
                 tournamentSpectatorEnforcement?.Dispose();
                 tournamentSpectatorPolicies?.Dispose();
@@ -1877,6 +1958,10 @@ public sealed class AnoCorePlugin : BasePlugin
         public string ConnectionString { get; set; } = string.Empty;
 
         public bool PanoramaMenusEnabled { get; set; }
+
+        public bool ArcadeAnimationProbeEnabled { get; set; }
+
+        public bool CasinoEnabled { get; set; }
 
         // Requires the compiled ano_tournament.xml in the mounted Workshop addon.
         // Keep disabled until the one-time native client acceptance has passed.
@@ -2612,6 +2697,9 @@ public sealed class AnoCorePlugin : BasePlugin
 
     private void OnMapEnd()
     {
+        _casino?.Reset();
+        _casinoRounds?.Reset();
+        _arcadeProbe?.Reset();
         _warmupState.Reset();
         FlushCombatDetails("combat_detail_map_end");
         Interlocked.Exchange(ref _rankRoundGeneration, 0);

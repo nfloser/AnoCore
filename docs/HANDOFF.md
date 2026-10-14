@@ -979,3 +979,94 @@ License, NOTICE and source provenance must remain intact.
 ### CSS-owned individual team administration (#345)
 
 `anoteam`/`anoswap` now use the dedicated CSS `@anocore/team` flag, CSS targets/immunity and current-session engine writes. Other AnoCore permissions remain separate. Existing server developer/host groups need the flag appended; see [team administration](extended-inventory-team-admin.md). No MatchZy aliases or global side swaps are registered, and its roster handlers can restore a locked roster. Native CS2/DatHost acceptance is intentionally outstanding; no release, deployment or live config write occurred.
+## AnoCasino durable-round checkpoint (#423 / #429) — 2026-10-14
+
+- Integration branch `feature/429-casino-durable-rounds` keeps migration 027 and
+  all `anocasino-v1` request/receipt JSON immutable. Migration 028 adds separate
+  durable round/action tables with one active round per SteamID, optimistic
+  revisions, immutable operation receipts and a bounded outstanding-payout
+  reservation. No account-table columns were added because the v1 wallet uses a
+  positional insert.
+- Every writer locks the AP account before a round. A no-randomness plan proves
+  debit/liquidity and maximum gross payout exposure before the transition can
+  consume server randomness. Duplicate operation IDs replay the stored receipt;
+  stale different IDs fail without drawing. Intermediate bonus/Risk/Blackjack
+  winnings stay durably held and reserved; spendable AP is credited once on the
+  terminal action.
+- The legacy wallet now locks/checks an active round reservation after its account
+  lock, preventing credits or v1 games from consuming payout headroom. Migration
+  startup composes 027 then 028 in the Plugin, not Runtime.
+- MariaDB tests cover ten-way duplicate start/terminal replay, restart recovery,
+  competing same-revision actions and legacy-credit reservation enforcement.
+  Local `dotnet` is unavailable, so exact-head CI remains required. The existing
+  casino Panorama source suite passes (3 tests). No native Windows resourcecompiler,
+  Workshop, two-client CS2 or DatHost acceptance was performed.
+- Independent draft dependencies: #430 pins v1 compatibility, #431 adds Risk
+  rules, #432 adds Blackjack rules, #433 adds the bonus-slot rules and #434 adds
+  bounded fruit/coin/roulette animations. Their exact-head CI/reviews must pass
+  before integration. Presenter/plugin wiring for the three multi-action engines
+  remains next; none is yet claimed playable.
+
+### 05:00 automation run — reviewed integration checkpoint
+
+- `feat/casino-games` now contains the reviewed, squash-merged PRs #430, #431,
+  #432, #433 and #434 at `b247ee553a84025c1cbdc11657fdb244244bc556`:
+  immutable v1 compatibility vectors, bounded Risk rules, Blackjack rules,
+  bounded Book-style bonus rules and repeatable native fruit/coin/roulette
+  outcome animations. The last component run, CI #967, passed 1,295/1,295
+  tests plus formatting, packages and Panorama source validation.
+- Durable-round PR #435 is on `feature/429-casino-durable-rounds`, code head
+  `ea52c4bfef65afc190a1407abeedce64b4ecd576`. CI #970 passed the integrated
+  branch with 1,307/1,307 tests plus formatting, packaging, publish and
+  Panorama/operator checks. The independent review found and fixed two gaps: nonterminal
+  mutations can no longer credit spendable AP, and operation IDs are scoped to
+  a player so equal UUIDs on two accounts cannot collide after consuming both
+  transitions. MariaDB regression tests cover both fixes. #435 was squash-merged
+  as `db2c7c4b1b4a0a26e31326a69e4e5567bcbe6627`.
+- Final integration head for this run: `feat/casino-games` at
+  `db2c7c4b1b4a0a26e31326a69e4e5567bcbe6627`. CI on the post-merge head is a
+  final confirmation, while #970 already tested the identical merge result.
+- The rule engines are intentionally not advertised as playable. Next work is
+  to integrate cryptographic engine adapters with the durable store, expose
+  sanitized recovery state to the presenter and add the Blackjack, bonus and
+  Risk controls/history. Native Windows resourcecompiler, Workshop, two-client
+  CS2 and DatHost acceptance remains open and no release was created.
+
+
+## Six-game casino integration (#437) — 2026-10-14
+
+Branch feat/casino-playable-suite builds on dc4fafd (the latest casino-games
+foundation), preserving migration028 and all v1 receipts. A CasinoRoundService
+adapts native Blackjack/Risk/Bonus engines to the account-locked round store.
+Native lobby routes all six games; round views recover active state, gate legal
+actions, preserve retry IDs, and expose bounded native animations. The bonus
+retrigger count bug was reproduced and fixed: only spins that fit both caps
+are awarded, keeping persisted rounds playable. Cases remain excluded.
+
+Local Release/plugin build passes. New presenter/lobby tests pass; operator
+suite passes 38 with 8 PowerShell skips. Full local run: 1119 passed,191 skipped,
+6 management pipe tests fail because this runtime denies Unix sockets (not casino
+failures). New actual MariaDB service recovery/idempotence tests require CI.
+Full Roslyn formatting likewise needs named-pipe access; folder whitespace
+formatting and git diff checks work locally. Native resourcecompiler, Workshop
+upload and CS2 two-client lifecycle acceptance remain manual. Do not merge or
+claim native ready before relevant CI/native gates. See casino-test-install.md.
+
+
+## Missing Arcade window / compiled HUD resource repair (#441)
+
+Client reports all ano_arcade text IDs missing despite command acknowledgement.
+Actual source IDs match; server entity creation is not client resource validation.
+Inspection found the adapter passed source .xml verbatim to the CSS schema setter.
+The additive CompiledLayoutResource property now supplies .vxml_c while preserving
+the SDK source contract; entity cleanup recognizes both old and corrected names.
+Independent review confirmed the installed CSS1.0.376 setter performs no extension
+conversion. New contract cases and native-adapter source regression cover the fix.
+
+repair-arcade.ps1 stages only the original probe's five compiled client resources,
+requires fresh compiler output, backs up old overrides, verifies hashes and rolls
+back transfer failures. BuildOnly and UseWorkshop provide a narrow delivery check;
+visible marker ARCADE UI CHECK2026-10-14 identifies the source version. Existing
+combined/separate builders now reject stale outputs too. Owner must update the
+plugin and test client/Workshop rendering before native acceptance; CasinoEnabled
+is unnecessary for the original probe. Keep the fix PR draft until native proof.

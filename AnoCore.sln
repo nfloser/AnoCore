@@ -28,12 +28,18 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AnoCore.Management.Host", "
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AnoCore.TestModuleFixture", "tests\AnoCore.TestModuleFixture\AnoCore.TestModuleFixture.csproj", "{D8A6C19F-C347-49E5-9021-CBE2AB305305}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AnoCore.Modules.Arcade", "src\AnoCore.Modules.Arcade\AnoCore.Modules.Arcade.csproj", "{A77F41C3-4BEA-4A23-B8D2-F0C1B7B08E4F}"
+EndProject
 Global
   GlobalSection(SolutionConfigurationPlatforms) = preSolution
     Debug|Any CPU = Debug|Any CPU
     Release|Any CPU = Release|Any CPU
   EndGlobalSection
   GlobalSection(ProjectConfigurationPlatforms) = postSolution
+    {A77F41C3-4BEA-4A23-B8D2-F0C1B7B08E4F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+    {A77F41C3-4BEA-4A23-B8D2-F0C1B7B08E4F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+    {A77F41C3-4BEA-4A23-B8D2-F0C1B7B08E4F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+    {A77F41C3-4BEA-4A23-B8D2-F0C1B7B08E4F}.Release|Any CPU.Build.0 = Release|Any CPU
     {D8A6C19F-C347-49E5-9021-CBE2AB305305}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
     {D8A6C19F-C347-49E5-9021-CBE2AB305305}.Debug|Any CPU.Build.0 = Debug|Any CPU
     {D8A6C19F-C347-49E5-9021-CBE2AB305305}.Release|Any CPU.ActiveCfg = Release|Any CPU

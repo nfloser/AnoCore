@@ -9,6 +9,7 @@ public sealed class VoteDefinition
         if (string.IsNullOrWhiteSpace(title)) throw new ArgumentException("A vote title is required.", nameof(title));
         var optionArray = options.ToArray();
         if (optionArray.Length < 2) throw new ArgumentException("A vote requires at least two options.", nameof(options));
+        if (policy.MaxVotesPerPlayer > optionArray.Length) throw new ArgumentException("Votes per player cannot exceed the number of options.", nameof(policy));
         if (optionArray.Select(option => option.Id).Distinct(StringComparer.Ordinal).Count() != optionArray.Length) throw new ArgumentException("Vote option IDs must be unique.", nameof(options));
         var eligibleArray = eligiblePlayers.Distinct().ToArray();
         if (eligibleArray.Length == 0) throw new ArgumentException("A vote requires at least one eligible player.", nameof(eligiblePlayers));
