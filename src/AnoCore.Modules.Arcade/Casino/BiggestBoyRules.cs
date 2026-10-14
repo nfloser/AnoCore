@@ -118,7 +118,7 @@ public static class BiggestBoyRules
         ValidateState(current.State);
         if (current.State.FreeSpinsRemaining <= 0 || current.State.ExpandingSymbol is not null || !IsSelectableExpandingSymbol(symbol))
             throw new ArgumentException("Ungültige Bonus-Symbolauswahl.", nameof(symbol));
-        return current with { State = current.State with { ExpandingSymbol = symbol } };
+        return current with { ChargedStake = 0, State = current.State with { ExpandingSymbol = symbol } };
     }
 
     public static BiggestBoySpinResult PlayFreeSpin(BiggestBoyRoundState state, Func<int, int> random)
