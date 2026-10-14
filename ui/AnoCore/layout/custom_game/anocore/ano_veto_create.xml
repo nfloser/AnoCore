@@ -1,6 +1,7 @@
 <root>
     <styles>
         <include src="s2r://panorama/styles/custom_game/anocore/ano_veto_create.vcss_c" />
+        <include src="s2r://panorama/styles/custom_game/anocore/ano_veto_previews.vcss_c" />
     </styles>
     <Panel class="ano-create-host" hittest="false">
         <Panel id="ano_veto_create_root" class="ano-create-overlay" hittest="true">
