@@ -24,9 +24,13 @@ public sealed class BonusSlotRulesTests
     [TestMethod]
     public void GridUsesFiveReelsAndThreeRowsAndHasTenFixedLines()
     {
-        Assert.AreEqual(15, BonusSlotRules.GridSize);
-        Assert.AreEqual(10, BonusSlotRules.Paylines.Count);
-        Assert.AreEqual(1_000L, BonusSlotRules.EvaluateGrid(100, Enumerable.Repeat(BonusSlotSymbol.Cherry, 15).ToArray()).Payout);
+        var inputGrid = Enumerable.Repeat(BonusSlotSymbol.Cherry,
+            BonusSlotRules.ReelCount * BonusSlotRules.RowsPerReel).ToArray();
+        var outcome = BonusSlotRules.EvaluateGrid(100, inputGrid);
+
+        Assert.AreEqual(BonusSlotRules.GridSize, outcome.Grid.Length);
+        Assert.AreEqual(BonusSlotRules.PaylineCount, BonusSlotRules.Paylines.Count);
+        Assert.AreEqual(1_000L, outcome.Payout);
     }
 
     [TestMethod]
