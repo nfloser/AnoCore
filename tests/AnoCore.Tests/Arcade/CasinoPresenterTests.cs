@@ -72,6 +72,11 @@ public sealed class CasinoPresenterTests
         Assert.IsFalse(f.Class("wheel", "spinning")); Assert.IsFalse(f.Class("pointer", "spinning"));
         Assert.IsTrue(f.Class("wheel", "land-green")); Assert.IsTrue(f.Class("pointer", "land-green"));
         Assert.IsFalse(f.Class("wheel", "land-red")); Assert.IsFalse(f.Class("wheel", "land-black"));
+        Assert.IsTrue(f.Class("wheel", "land-n0")); Assert.IsFalse(f.Class("wheel", "land-n1"));
+        f.Clock.Advance(.4); f.Presenter.Tick();
+        await f.Click("play");
+        Assert.IsFalse(f.Class("wheel", "land-n0")); Assert.IsFalse(f.Class("wheel", "land-green"));
+        Assert.IsTrue(f.Class("wheel", "spinning"));
     }
 
     [TestMethod]
