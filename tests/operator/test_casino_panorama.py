@@ -94,9 +94,9 @@ class CasinoResourcesTests(unittest.TestCase):
         slots_css = (UI/'styles/custom_game/anocore/ano_casino_slots.css').read_text()
         coin_css = (UI/'styles/custom_game/anocore/ano_casino_coinflip.css').read_text()
         roulette_css = (UI/'styles/custom_game/anocore/ano_casino_roulette.css').read_text()
-        self.assertIn('@keyframes slot-roll', slots_css)
-        self.assertIn('@keyframes coin-spin', coin_css)
-        self.assertIn('@keyframes wheel-spin', roulette_css)
+        self.assertIn("@keyframes 'slot-roll'", slots_css)
+        self.assertIn("@keyframes 'coin-spin'", coin_css)
+        self.assertIn("@keyframes 'wheel-spin'", roulette_css)
 
     def test_round_games_have_all_server_buttons_and_bounded_book_grid(self):
         root = ET.parse(UI/'layout/custom_game/anocore/ano_casino_rounds.xml').getroot()
