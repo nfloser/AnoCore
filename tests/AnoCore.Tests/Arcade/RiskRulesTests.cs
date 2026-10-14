@@ -6,18 +6,18 @@ namespace AnoCore.Tests.Arcade;
 [TestClass]
 public sealed class RiskRulesTests
 {
-    [DataTestMethod]
+    [TestMethod]
     [DataRow("anocasino-risk-v1", 50, 5, 1_000_000L)]
     public void RulesExposePinnedVersionOddsAndLimits(
-        string expectedVersion,
-        int expectedWinOddsPercent,
-        int expectedMaximumGambles,
-        long expectedMaximumHeldExposure)
+        string actualVersion,
+        int actualWinOddsPercent,
+        int actualMaximumGambles,
+        long actualMaximumHeldExposure)
     {
-        Assert.AreEqual(expectedVersion, RiskRules.Version);
-        Assert.AreEqual(expectedWinOddsPercent, RiskRules.WinOddsPercent);
-        Assert.AreEqual(expectedMaximumGambles, RiskRules.MaximumGambles);
-        Assert.AreEqual(expectedMaximumHeldExposure, RiskRules.MaximumHeldExposure);
+        Assert.AreEqual("anocasino-risk-v1", actualVersion);
+        Assert.AreEqual(50, actualWinOddsPercent);
+        Assert.AreEqual(5, actualMaximumGambles);
+        Assert.AreEqual(1_000_000L, actualMaximumHeldExposure);
     }
 
     [TestMethod]
