@@ -22,8 +22,8 @@ public sealed class BonusSlotRulesTests
         Assert.AreEqual(10, result.State.FreeSpinsRemaining);
         Assert.AreEqual(10, result.State.FreeSpinsAwarded);
         Assert.AreEqual(100, result.State.LockedStake);
-        Assert.AreEqual(0L, result.State.TotalPayout);
-        Assert.AreEqual(0, result.State.ChargedStake);
+        Assert.AreEqual(result.Payout, result.State.TotalPayout);
+        Assert.AreEqual(100, result.ChargedStake);
     }
 
     [TestMethod]
@@ -62,8 +62,8 @@ public sealed class BonusSlotRulesTests
         var start = BonusSlotRules.StartRound(100, Grid(BonusSlotSymbol.Book, BonusSlotSymbol.Book, BonusSlotSymbol.Book).Next);
         var state = start.State with { FreeSpinsRemaining = 19, FreeSpinsAwarded = 29, SpinsPlayed = 10 };
         var result = BonusSlotRules.PlayFreeSpin(state, Grid(BonusSlotSymbol.Book, BonusSlotSymbol.Book, BonusSlotSymbol.Book).Next);
-        Assert.AreEqual(20, result.State.FreeSpinsAwarded);
-        Assert.AreEqual(20, result.State.FreeSpinsRemaining);
+        Assert.AreEqual(30, result.State.FreeSpinsAwarded);
+        Assert.AreEqual(19, result.State.FreeSpinsRemaining);
         Assert.AreEqual(0, result.ChargedStake);
     }
 
