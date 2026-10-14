@@ -24,3 +24,15 @@ Preserve GPL-3.0 compatibility and upstream attribution for K4-Zenith-derived co
 ## Quality gates
 
 A change is not complete until build, tests, formatting, documentation and applicable CI checks pass. Passing tests alone do not prove server behavior; server-facing changes also require explicit acceptance criteria and, where practical, integration/test-server verification.
+
+### Native Panorama / Workshop acceptance
+
+For changes to Panorama layouts, styles, textures or other Workshop-delivered UI, use a local-client-first workflow:
+
+1. Build the matching plugin/UI revision and install the compiled resources only on the owner's local CS2 client.
+2. Perform the native single-client acceptance there first. Do not update the shared Workshop item merely to test an unaccepted UI revision.
+3. After local acceptance, rebuild the same revision for the existing shared addon and update its existing Workshop entry. Preserve Workshop IDs and server configuration.
+4. Remove or disable loose local overrides before Workshop verification so they cannot mask the published addon.
+5. Verify Workshop delivery separately, including a second client when the feature requires multi-client behavior.
+
+Local-client acceptance proves only the local compiled-resource path. It does not count as Workshop, multi-client or production acceptance. Avoid mounting two addons that provide the same Panorama resource paths unless an issue explicitly requires and documents that arrangement.
