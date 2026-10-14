@@ -1,3 +1,24 @@
+## Casino persistence recovery after live command failure (#446) — 2026-10-14
+
+DatHost acceptance reproduced generic failures for both `!anocasino` and console
+`css_anoapcredit` after `ano.casino.play` had been granted successfully. Both
+commands enter the AP/Casino persistence path; the shared command registry was
+masking the underlying handler exception.
+
+Branch `fix/446-casino-persistence-bootstrap` stacks on `fix/arcade-ui-delivery`.
+Casino startup now replays the CREATE-IF-NOT-EXISTS 027/028 schema definitions after
+normal migration bookkeeping and probes all four required table shapes before live
+presenters are registered. This repairs missing physical tables when migration
+history is stale/partial without changing AP balances, receipts or game rules.
+Casino command storage failures now reach the server logger and return a bounded
+Casino-specific message instead of the generic command failure; raw DB details are
+not exposed to players.
+
+Regression coverage adds missing-table recovery plus `anocasino` / `anoapcredit`
+storage-failure reporting. Exact-head CI and the DatHost retest (credit AP, open
+Casino, reconnect/reopen) remain pending. Workshop/visual acceptance is still the
+separate #441/#442 native gate.
+
 ## Backup-matched CSS profile preparation (#354) — 2026-10-09
 
 Separate offline prepare_css_profile.py prepares three files from old CustomTags
