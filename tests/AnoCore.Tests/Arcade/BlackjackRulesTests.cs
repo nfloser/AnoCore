@@ -73,7 +73,7 @@ public sealed class BlackjackRulesTests
             C(BlackjackSuit.Clubs, BlackjackRank.Ten)));
         CollectionAssert.Contains(BlackjackRules.LegalActions(state).ToArray(), BlackjackAction.Double);
 
-        state = BlackjackRules.Apply(state, BlackjackAction.Double);
+        state = BlackjackRules.Apply(state, 0, BlackjackAction.Double);
         Assert.AreEqual(200L, state.PlayerHands[0].Stake);
         Assert.IsTrue(state.PlayerHands[0].IsStanding);
     }
@@ -89,7 +89,7 @@ public sealed class BlackjackRulesTests
             C(BlackjackSuit.Clubs, BlackjackRank.King),
             C(BlackjackSuit.Hearts, BlackjackRank.Queen),
             C(BlackjackSuit.Spades, BlackjackRank.Two)));
-        state = BlackjackRules.Apply(state, BlackjackAction.Split);
+        state = BlackjackRules.Apply(state, 0, BlackjackAction.Split);
 
         Assert.AreEqual(2, state.PlayerHands.Length);
         Assert.AreEqual(2, state.PlayerHands[0].Cards.Length);
@@ -108,7 +108,7 @@ public sealed class BlackjackRulesTests
             C(BlackjackSuit.Diamonds, BlackjackRank.Ten),
             C(BlackjackSuit.Clubs, BlackjackRank.Two),
             C(BlackjackSuit.Hearts, BlackjackRank.Three)));
-        state = BlackjackRules.Apply(state, BlackjackAction.Split);
+        state = BlackjackRules.Apply(state, 0, BlackjackAction.Split);
 
         Assert.AreEqual(2, state.PlayerHands.Length);
         Assert.IsFalse(BlackjackRules.LegalActions(state).Contains(BlackjackAction.Split));
@@ -123,7 +123,7 @@ public sealed class BlackjackRulesTests
             C(BlackjackSuit.Spades, BlackjackRank.Seven),
             C(BlackjackSuit.Diamonds, BlackjackRank.Six),
             C(BlackjackSuit.Clubs, BlackjackRank.King)));
-        state = BlackjackRules.Apply(state, BlackjackAction.Stand);
+        state = BlackjackRules.Apply(state, 0, BlackjackAction.Stand);
 
         Assert.AreEqual(2, state.DealerCards.Length);
         Assert.AreEqual(100L, state.TotalPayout);
