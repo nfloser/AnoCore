@@ -1219,7 +1219,7 @@
               </Panel>
             </Panel>
           </Panel>
-          <Label id="casino_round_biggest_win" class="biggest-win" text="GEWINN: 0 AP" hittest="false" />
+          <Label id="casino_round_biggest_win" class="biggest-win" text="GEWINN: 0 €" hittest="false" />
           <Label id="casino_round_biggest_bonus" class="biggest-bonus" text="3+ Gesichter: 10 Freispiele" hittest="false" />
         </Panel>
         <Panel class="book-table">
@@ -1518,7 +1518,7 @@
         <Button id="casino_round_retry" class="button retry">
           <Label text="BUCHUNG PRÜFEN" hittest="false" />
         </Button>
-        <Label class="note" text="Nur virtuelle AP · Runde wird dauerhaft gespeichert · keine Echtgeld-Auszahlung" />
+        <Label class="note" text="Nur virtuelle € · Runde wird dauerhaft gespeichert · keine Echtgeld-Auszahlung" />
       </Panel>
     </Panel>
   </Panel>

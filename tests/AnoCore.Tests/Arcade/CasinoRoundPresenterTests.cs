@@ -137,7 +137,7 @@ public sealed class CasinoRoundPresenterTests
         await f.Click("play");
         Assert.AreEqual(150, f.Rounds.Last!.Stake);
         Assert.AreEqual(CasinoRoundAction.Start, f.Rounds.Last.Action);
-        Assert.AreEqual("850 AP", f.Text("bankroll"));
+        Assert.AreEqual("850 €", f.Text("bankroll"));
         await f.Click("bank");
         Assert.AreEqual(1, f.Rounds.Calls.Count, "Animation must block subsequent actions.");
         f.FinishAnimation();
@@ -146,10 +146,10 @@ public sealed class CasinoRoundPresenterTests
         Assert.AreEqual(round.Id, f.Rounds.Last.SessionId);
         Assert.AreEqual(1L, f.Rounds.Last.ExpectedRevision);
         Assert.AreEqual(CasinoRoundAction.Bank, f.Rounds.Last.Action);
-        Assert.AreEqual("0 AP", f.Text("payout"), "Payout is concealed until the animation ends.");
+        Assert.AreEqual("0 €", f.Text("payout"), "Payout is concealed until the animation ends.");
         f.FinishAnimation();
         f.Presenter.Tick();
-        Assert.AreEqual("150 AP", f.Text("payout"));
+        Assert.AreEqual("150 €", f.Text("payout"));
         Assert.AreEqual(1000L, f.Wallet.Balance.Allocated);
         Assert.AreEqual(2, f.Rounds.Receipts.Count);
     }
@@ -267,13 +267,13 @@ public sealed class CasinoRoundPresenterTests
         using var f = await Fixture.Create();
         await f.Presenter.OpenAsync(Player, CasinoRoundGame.Risk);
         for (var i = 0; i < 20; i++) await f.Click("minus");
-        Assert.AreEqual("50 AP", f.Text("stake"));
+        Assert.AreEqual("50 €", f.Text("stake"));
         for (var i = 0; i < 20; i++) await f.Click("plus");
-        Assert.AreEqual("500 AP", f.Text("stake"));
+        Assert.AreEqual("500 €", f.Text("stake"));
         await f.Click("play");
         f.FinishAnimation();
         await f.Click("minus");
-        Assert.AreEqual("500 AP", f.Text("stake"));
+        Assert.AreEqual("500 €", f.Text("stake"));
         Assert.IsFalse(await f.Presenter.OpenAsync(Player, (CasinoRoundGame)99));
     }
 

@@ -41,8 +41,8 @@ public sealed class CasinoPresenterTests
         await f.ClickCoin("head");
         await f.ClickCoin("play");
 
-        Assert.AreEqual("600 AP", f.CoinText("bank"));
-        Assert.AreEqual("0 AP", f.CoinText("win"));
+        Assert.AreEqual("600 €", f.CoinText("bank"));
+        Assert.AreEqual("0 €", f.CoinText("win"));
 
         await f.ClickCoin("play");
         Assert.AreEqual(2, f.Wallet.Operations.Count);
@@ -121,7 +121,7 @@ public sealed class CasinoPresenterTests
 
         Assert.AreEqual(CasinoGame.Roulette, f.Wallet.Last!.Game!.Game);
         Assert.AreEqual(0, f.Wallet.Last.Game.Choice);
-        Assert.AreEqual("4.000 AP", f.RouletteText("bank"));
+        Assert.AreEqual("4.000 €", f.RouletteText("bank"));
         Assert.IsTrue(f.RouletteClass("wheel", "spinning"));
         Assert.IsTrue(f.RouletteClass("wheel", "target-n0"));
         Assert.IsFalse(f.RouletteClass("wheel", "turn-b"));
@@ -159,7 +159,7 @@ public sealed class CasinoPresenterTests
         await f.ClickCoin("retry");
         Assert.AreEqual(operation, f.Wallet.Last.Id);
         Assert.AreEqual(count, f.Wallet.Operations.Count);
-        Assert.AreEqual("600 AP", f.CoinText("bank"));
+        Assert.AreEqual("600 €", f.CoinText("bank"));
     }
 
     [TestMethod]

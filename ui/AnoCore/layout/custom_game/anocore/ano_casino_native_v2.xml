@@ -108,4 +108,4 @@
 <Label id="casino_status" text="{s:text}" />
 <Panel class="casino-row"><Button id="casino_home" class="casino-button"><Label text="SPIELAUSWAHL" /></Button><Button id="casino_menu" class="casino-button"><Label text="ANOMENU" /></Button><Button id="casino_refresh" class="casino-button"><Label text="AKTUALISIEREN" /></Button><Button id="casino_history" class="casino-button"><Label text="VERLAUF" /></Button><Button id="casino_rules" class="casino-button"><Label text="GEWINNREGELN" /></Button></Panel>
 <Button id="casino_retry" class="casino-button"><Label text="BUCHUNG PRÜFEN" /></Button>
-<Label class="casino-note" text="Nur virtuelle AP · simulierte Spiele · keine Echtgeld-Auszahlung" /></Panel></Panel></Panel></root>
+<Label class="casino-note" text="Nur virtuelle € · simulierte Spiele · keine Echtgeld-Auszahlung" /></Panel></Panel></Panel></root>

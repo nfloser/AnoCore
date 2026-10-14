@@ -114,7 +114,7 @@
 
         <Panel class="casino-lower">
           <Panel class="casino-wallet-panel">
-            <Label class="casino-section-title" text="AP-KONTO" />
+            <Label class="casino-section-title" text="GUTHABENKONTO" />
             <Panel class="casino-wallet-row">
               <Panel class="casino-balance-box">
                 <Label class="casino-muted" text="AUTOMAT" />
@@ -138,7 +138,7 @@
         </Panel>
 
         <Panel class="casino-footer">
-          <Label class="casino-note" text="Nur virtuelle AP · keine Echtgeld-Auszahlung" />
+          <Label class="casino-note" text="Nur virtuelle € · keine Echtgeld-Auszahlung" />
           <Panel class="casino-footer-actions">
             <Button id="casino_lobby_refresh" class="casino-link"><Label text="AKTUALISIEREN" hittest="false" /></Button>
             <Button id="casino_lobby_menu" class="casino-link"><Label text="ANOMENU" hittest="false" /></Button>
