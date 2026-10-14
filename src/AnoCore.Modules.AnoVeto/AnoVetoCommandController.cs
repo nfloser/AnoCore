@@ -12,6 +12,7 @@ public sealed class AnoVetoCommandController : IDisposable
     private readonly IPlayerRegistry _players;
     private readonly AnoVetoCoordinator _coordinator;
     private readonly AnoVetoHudController _hud;
+    private readonly AnoVetoCreateHudController _createHud;
     private readonly TimeProvider _timeProvider;
     private IDisposable? _commandRegistration;
 
@@ -20,7 +21,8 @@ public sealed class AnoVetoCommandController : IDisposable
         ICustomHudService hud,
         IPlayerRegistry players,
         AnoVetoCoordinator coordinator,
-        TimeProvider? timeProvider = null)
+        TimeProvider? timeProvider = null,
+        IAnoVetoPresetRepository? presetRepository = null)
     {
         ArgumentNullException.ThrowIfNull(commands);
         _players = players ?? throw new ArgumentNullException(nameof(players));
@@ -30,6 +32,8 @@ public sealed class AnoVetoCommandController : IDisposable
             hud ?? throw new ArgumentNullException(nameof(hud)),
             coordinator,
             _timeProvider);
+        _createHud = new AnoVetoCreateHudController(hud, StartRandomFromHudAsync,
+            _coordinator.GetAvailableMaps, StartSelectedFromHudAsync, presetRepository);
 
         _commandRegistration = commands.Register(
             Owner,
@@ -63,6 +67,7 @@ public sealed class AnoVetoCommandController : IDisposable
     public void Dispose()
     {
         Interlocked.Exchange(ref _commandRegistration, null)?.Dispose();
+        _createHud.Dispose();
         _hud.Dispose();
     }
 
@@ -82,13 +87,57 @@ public sealed class AnoVetoCommandController : IDisposable
 
         return action.Trim().ToLowerInvariant() switch
         {
-            "create" => CreateAsync(context),
+            "create" => ValueTask.FromResult(OpenCreateHud(context.Caller)),
+            "random" => CreateAsync(context),
             "status" => ValueTask.FromResult(GetStatus()),
             "cancel" => CancelAsync(context),
             _ => ValueTask.FromResult(CommandResult.Fail(
                 CommandFailureReason.InvalidInput,
                 $"Unknown AnoVeto action '{action}'.")),
         };
+    }
+
+    private CommandResult OpenCreateHud(PlayerId player)
+    {
+        if (_coordinator.TryGetStatus(out _))
+            return CommandResult.Fail(CommandFailureReason.InvalidInput, "An AnoVeto vote is already active.");
+        return _createHud.Show(player)
+            ? CommandResult.Ok("AnoVeto creation menu opened.")
+            : CommandResult.Fail(CommandFailureReason.HandlerFailed, "AnoVeto creation menu could not be opened.");
+    }
+
+    private async ValueTask<bool> StartSelectedFromHudAsync(
+        PlayerId manager, IReadOnlyList<string> selectedMaps, CancellationToken cancellationToken)
+    {
+        var eligible = _players.OnlinePlayers
+            .Where(player => player.IsConnected)
+            .Select(player => player.Id)
+            .Distinct()
+            .ToArray();
+        if (!eligible.Contains(manager)) return false;
+        var result = await _coordinator.CreateSelectedAsync(
+            manager, eligible, selectedMaps, _timeProvider.GetUtcNow(), cancellationToken).ConfigureAwait(false);
+        if (!result.Accepted) return false;
+        _hud.ShowAll(eligible);
+        return true;
+    }
+
+    private async ValueTask<bool> StartRandomFromHudAsync(PlayerId manager, CancellationToken cancellationToken)
+    {
+        // Permission is checked by the authoritative VoteService inside the coordinator.
+        // UI clicks never bypass the normal vote creation policy.
+        var eligible = _players.OnlinePlayers
+            .Where(player => player.IsConnected)
+            .Select(player => player.Id)
+            .Distinct()
+            .ToArray();
+        if (eligible.Length == 0 || !eligible.Contains(manager))
+            return false;
+        var result = await _coordinator.CreateAsync(
+            manager, eligible, _timeProvider.GetUtcNow(), cancellationToken).ConfigureAwait(false);
+        if (!result.Accepted) return false;
+        _hud.ShowAll(eligible);
+        return true;
     }
 
     private async ValueTask<CommandResult> CreateAsync(CommandContext context)

@@ -1,0 +1,88 @@
+<root>
+    <styles>
+        <include src="s2r://panorama/styles/custom_game/anocore/ano_veto_create.vcss_c" />
+        <include src="s2r://panorama/styles/custom_game/anocore/ano_veto_previews.vcss_c" />
+    </styles>
+    <Panel class="ano-create-host" hittest="false">
+        <Panel id="ano_veto_create_root" class="ano-create-overlay" hittest="true">
+            <Panel class="ano-create-dim" hittest="false" />
+            <Panel class="ano-create-window" hittest="true">
+                <Panel class="ano-create-banner" hittest="false" />
+                <Panel class="ano-create-header">
+                    <Panel class="ano-create-heading">
+                        <Label id="ano_veto_create_title" class="ano-create-title" text="CREATE VETO" />
+                        <Label id="ano_veto_create_status" class="ano-create-subtitle" text="Choose how to build your map vote" />
+                    </Panel>
+                    <Button id="ano_veto_create_close" class="ano-create-close"><Label text="×" /></Button>
+                </Panel>
+                <Panel id="ano_veto_create_home" class="ano-create-choices">
+                    <Button id="ano_veto_create_manual" class="ano-create-option">
+                        <Label class="ano-create-option-title" text="CREATE VETO" />
+                        <Label class="ano-create-option-caption" text="Select eight maps from the catalog" />
+                    </Button>
+                    <Button id="ano_veto_create_random" class="ano-create-option">
+                        <Label class="ano-create-option-title" text="RANDOM VETO" />
+                        <Label class="ano-create-option-caption" text="Launch with eight random maps" />
+                    </Button>
+                    <Button id="ano_veto_create_saved" class="ano-create-option">
+                        <Label class="ano-create-option-title" text="USE VETO" />
+                        <Label class="ano-create-option-caption" text="Open a saved personal map pool" />
+                    </Button>
+                </Panel>
+                <Panel id="ano_veto_create_picker" class="ano-create-picker">
+                    <Panel class="ano-create-picker-controls">
+                        <Button id="ano_veto_create_back" class="ano-create-small"><Label text="BACK" /></Button>
+                        <Label id="ano_veto_create_progress" class="ano-create-progress" text="{s:text}" />
+                        <Button id="ano_veto_create_prev" class="ano-create-small"><Label text="PREV" /></Button>
+                        <Button id="ano_veto_create_next" class="ano-create-small"><Label text="NEXT" /></Button>
+                    </Panel>
+                    <Panel class="ano-create-map-list">
+                    <Button id="ano_veto_create_map_0" class="ano-create-map">
+                        <Panel id="ano_veto_create_map_0_image" class="ano-create-map-image" hittest="false" />
+                        <Label id="ano_veto_create_map_0_text" class="ano-create-map-name" text="{s:text}" />
+                    </Button>
+                    <Button id="ano_veto_create_map_1" class="ano-create-map">
+                        <Panel id="ano_veto_create_map_1_image" class="ano-create-map-image" hittest="false" />
+                        <Label id="ano_veto_create_map_1_text" class="ano-create-map-name" text="{s:text}" />
+                    </Button>
+                    <Button id="ano_veto_create_map_2" class="ano-create-map">
+                        <Panel id="ano_veto_create_map_2_image" class="ano-create-map-image" hittest="false" />
+                        <Label id="ano_veto_create_map_2_text" class="ano-create-map-name" text="{s:text}" />
+                    </Button>
+                    <Button id="ano_veto_create_map_3" class="ano-create-map">
+                        <Panel id="ano_veto_create_map_3_image" class="ano-create-map-image" hittest="false" />
+                        <Label id="ano_veto_create_map_3_text" class="ano-create-map-name" text="{s:text}" />
+                    </Button>
+                    <Button id="ano_veto_create_map_4" class="ano-create-map">
+                        <Panel id="ano_veto_create_map_4_image" class="ano-create-map-image" hittest="false" />
+                        <Label id="ano_veto_create_map_4_text" class="ano-create-map-name" text="{s:text}" />
+                    </Button>
+                    <Button id="ano_veto_create_map_5" class="ano-create-map">
+                        <Panel id="ano_veto_create_map_5_image" class="ano-create-map-image" hittest="false" />
+                        <Label id="ano_veto_create_map_5_text" class="ano-create-map-name" text="{s:text}" />
+                    </Button>
+                    <Button id="ano_veto_create_map_6" class="ano-create-map">
+                        <Panel id="ano_veto_create_map_6_image" class="ano-create-map-image" hittest="false" />
+                        <Label id="ano_veto_create_map_6_text" class="ano-create-map-name" text="{s:text}" />
+                    </Button>
+                    <Button id="ano_veto_create_map_7" class="ano-create-map">
+                        <Panel id="ano_veto_create_map_7_image" class="ano-create-map-image" hittest="false" />
+                        <Label id="ano_veto_create_map_7_text" class="ano-create-map-name" text="{s:text}" />
+                    </Button>
+                    </Panel>
+                    <Panel class="ano-create-picker-actions">
+                        <Button id="ano_veto_create_save" class="ano-create-action"><Label text="SAVE PRESET" /></Button>
+                        <Button id="ano_veto_create_duplicate" class="ano-create-action"><Label text="DUPLICATE" /></Button>
+                        <Button id="ano_veto_create_delete" class="ano-create-action"><Label text="DELETE" /></Button>
+                    </Panel>
+                    <Button id="ano_veto_create_confirm" class="ano-create-confirm">
+                        <Label id="ano_veto_create_confirm_text" text="{s:text}" />
+                    </Button>
+                </Panel>
+                <Panel class="ano-create-footer">
+                    <Label class="ano-create-help" text="Only authorized hosts can create a public vote." />
+                </Panel>
+            </Panel>
+        </Panel>
+    </Panel>
+</root>

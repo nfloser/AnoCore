@@ -33,6 +33,33 @@ public sealed class MySqlCasinoWalletTests
     });
     private ValueTask<CasinoReceipt> Credit(int amount) => _wallet.ApplyAsync(new(Guid.NewGuid(), Player, CasinoAction.Credit, amount, null));
     [TestMethod]
+    public async Task BootstrapRepairsMissingPhysicalCasinoTables()
+    {
+        await _db.WithConnectionAsync(async (connection, token) =>
+        {
+            foreach (var table in new[]
+            {
+                "ano_casino_round_actions",
+                "ano_casino_rounds",
+                "ano_casino_operations",
+                "ano_ap_accounts",
+            })
+            {
+                await using var command = connection.CreateCommand();
+                command.CommandText = $"DROP TABLE IF EXISTS {table}";
+                await command.ExecuteNonQueryAsync(token);
+            }
+
+            return true;
+        });
+
+        await CasinoPersistenceBootstrap.EnsureReadyAsync(_db);
+        await Credit(250);
+
+        Assert.AreEqual(new CasinoBalance(250, 0, 1), await _wallet.ReadAsync(Player));
+    }
+
+    [TestMethod]
     public async Task TransfersConserveCredits_AndSurviveRepositoryRestart()
     {
         Assert.AreEqual(new CasinoBalance(0, 0, 0), await _wallet.ReadAsync(Player));
