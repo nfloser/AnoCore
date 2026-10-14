@@ -27,6 +27,22 @@ class CasinoResourcesTests(unittest.TestCase):
             for build in ['build.ps1','build-casino.ps1']:
                 self.assertIn('"'+symbol+'"',(UI/build).read_text())
         for build in ['build.ps1','build-casino.ps1']:self.assertIn('ano_casino',(UI/build).read_text())
+    def test_native_animation_panels_cover_settled_outcomes_and_five_lines(self):
+        root=ET.parse(UI/'layout/custom_game/anocore/ano_casino.xml').getroot()
+        ids={p.attrib['id'] for p in root.iter() if 'id' in p.attrib}
+        for name in ['coin','wheel','pointer','wheelresult']+[f'line{i}' for i in range(5)]:
+            self.assertIn('casino_'+name,ids)
+        css=(UI/'styles/custom_game/anocore/ano_casino.css').read_text()
+        for key in ['casino-coin-flip','casino-wheel-spin','casino-pointer-settle']:
+            self.assertIn('@keyframes '+key,css)
+        self.assertIn('.line-indicator.revealed',css)
+        self.assertIn('.line-indicator.active',css)
+        presenter=(ROOT/'src/AnoCore.Modules.Arcade/Casino/CasinoPresenter.cs').read_text()
+        tick=presenter.split('public void Tick()',1)[1].split('private void SetOutcome',1)[0]
+        for marker in ['2.6 + i * .5','elapsed.TotalSeconds >= 3.6','elapsed.TotalSeconds < 4','state.LinesRevealed']:
+            self.assertIn(marker,tick)
+        self.assertNotIn('_wallet',tick)
+        self.assertIn('WinningLines = [[0, 3, 6], [1, 4, 7], [2, 5, 8], [0, 4, 8], [2, 4, 6]]',presenter)
     def test_native_animation_alternates_without_server_frame_stream(self):
         css=(UI/'styles/custom_game/anocore/ano_casino.css').read_text()
         for key in ['casino-roll-a','casino-roll-b','casino-flip-a','casino-flip-b']:self.assertIn('@keyframes '+key,css)
