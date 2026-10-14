@@ -1016,12 +1016,16 @@ License, NOTICE and source provenance must remain intact.
   outcome animations. The last component run, CI #967, passed 1,295/1,295
   tests plus formatting, packages and Panorama source validation.
 - Durable-round PR #435 is on `feature/429-casino-durable-rounds`, code head
-  `01c026f41a91c1a8825c98280fa94751698907f9`. CI #955 was green before the
-  independent review. That review found and fixed two gaps: nonterminal
+  `ea52c4bfef65afc190a1407abeedce64b4ecd576`. CI #970 passed the integrated
+  branch with 1,307/1,307 tests plus formatting, packaging, publish and
+  Panorama/operator checks. The independent review found and fixed two gaps: nonterminal
   mutations can no longer credit spendable AP, and operation IDs are scoped to
   a player so equal UUIDs on two accounts cannot collide after consuming both
-  transitions. MariaDB regression tests cover both fixes; exact-head CI is
-  required before #435 may merge.
+  transitions. MariaDB regression tests cover both fixes. #435 was squash-merged
+  as `db2c7c4b1b4a0a26e31326a69e4e5567bcbe6627`.
+- Final integration head for this run: `feat/casino-games` at
+  `db2c7c4b1b4a0a26e31326a69e4e5567bcbe6627`. CI on the post-merge head is a
+  final confirmation, while #970 already tested the identical merge result.
 - The rule engines are intentionally not advertised as playable. Next work is
   to integrate cryptographic engine adapters with the durable store, expose
   sanitized recovery state to the presenter and add the Blackjack, bonus and
