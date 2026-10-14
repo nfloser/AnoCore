@@ -552,8 +552,12 @@ public sealed class AnoCorePlugin : BasePlugin
 
             if (_casinoEnabled)
             {
-                await new AnoCore.Runtime.Persistence.Migrations.MigrationRunner((IDatabase)created.GetService(typeof(IDatabase))!,
-                    [new CasinoSchemaMigration027(), new CasinoSchemaMigration028()]).ApplyPendingAsync(timeout.Token).ConfigureAwait(false);
+                var casinoDatabase = (IDatabase)created.GetService(typeof(IDatabase))!;
+                await new AnoCore.Runtime.Persistence.Migrations.MigrationRunner(
+                    casinoDatabase,
+                    [new CasinoSchemaMigration027(), new CasinoSchemaMigration028()])
+                    .ApplyPendingAsync(timeout.Token).ConfigureAwait(false);
+                await CasinoPersistenceBootstrap.EnsureReadyAsync(casinoDatabase, timeout.Token).ConfigureAwait(false);
             }
 
             if (managementConfiguration.Enabled)
@@ -1229,7 +1233,9 @@ public sealed class AnoCorePlugin : BasePlugin
                             runtime.Menus.Close(playerId);
                             presenter.Reconcile();
                             _arcadeProbe?.CloseForPlayer(playerId);
-                        }, openRound: (playerId, game, token) => casinoRounds!.OpenAsync(playerId, game, token));
+                        },
+                        openRound: (playerId, game, token) => casinoRounds!.OpenAsync(playerId, game, token),
+                        reportError: exception => Logger.LogError(exception, "Casino persistence command failed."));
                     casinoRounds = new CasinoRoundPresenter(_customHud, runtime.Players, runtime.Authorization,
                         wallet, new CasinoRoundService(new MySqlCasinoRoundStore(casinoDatabase)), _eventBus!,
                         playerId => casino.CloseForPlayer(playerId), async (playerId, token) =>
