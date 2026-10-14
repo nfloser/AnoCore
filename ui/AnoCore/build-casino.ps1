@@ -39,6 +39,8 @@ Compile-Resource "$layout\ano_arcade.xml" "$layout\ano_arcade.vxml_c"
 
 Compile-Resource "$style\ano_casino.css" "$style\ano_casino.vcss_c"
 Compile-Resource "$layout\ano_casino.xml" "$layout\ano_casino.vxml_c"
+Compile-Resource "$style\ano_casino_native_v2.css" "$style\ano_casino_native_v2.vcss_c"
+Compile-Resource "$layout\ano_casino_native_v2.xml" "$layout\ano_casino_native_v2.vxml_c"
 Compile-Resource "$style\ano_casino_rounds.css" "$style\ano_casino_rounds.vcss_c"
 Compile-Resource "$layout\ano_casino_rounds.xml" "$layout\ano_casino_rounds.vxml_c"
 
