@@ -55,7 +55,7 @@
 
 .ano-create-picker-actions { width: 100%; height: 46px; flow-children: right; margin-top: 6px; }
 .ano-create-action {
-    width: 215px; height: 40px; margin-right: 9px;
+    width: 155px; height: 40px; margin-right: 9px;
     background-color: #13291aff; border: 1px solid #2b893d88;
 }
 .ano-create-action:hover { background-color: #28683dff; }
