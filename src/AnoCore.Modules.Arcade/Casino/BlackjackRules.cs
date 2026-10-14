@@ -298,7 +298,7 @@ public static class BlackjackRules
         var cards = state.PlayerHands.SelectMany(hand => hand.Cards)
             .Concat(state.DealerCards).Concat(state.RemainingDeck).ToArray();
         if (cards.Any(card => !Enum.IsDefined(card.Suit) || !Enum.IsDefined(card.Rank))
-            || cards.Distinct().Count() != cards.Length || cards.Length > 52)
+            || cards.Distinct().Count() != cards.Length || cards.Length != 52)
             throw new ArgumentException("Blackjack state contains duplicate or invalid physical cards.", nameof(state));
     }
 }
