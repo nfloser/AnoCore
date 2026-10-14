@@ -22,27 +22,39 @@ class CasinoMotionAssetsTests(unittest.TestCase):
         for game in ['blackjack','book','risk']:
             self.assertIn('casino/'+game+'.vtex', (STYLE/'ano_casino_rounds.css').read_text())
 
-    def test_wheel_landing_matches_all_37_number_centres_and_both_restart_names(self):
+    def test_wheel_uses_fixed_result_orientation_and_small_unidirectional_steps(self):
         css = (STYLE/'ano_casino_roulette.css').read_text()
         self.assertEqual(set(ORDER),set(range(37)))
         for i,n in enumerate(ORDER):
-            end = 1440-i*360/37
-            for parity in ['a','b']:
-                pattern = r"@keyframes 'roulette-"+str(n)+'-'+parity+r"' \{ 0% \{ transform: rotateZ\(0deg\); \} 100% \{ transform: rotateZ\((-?[\d.]+)deg\);"
-                self.assertAlmostEqual(float(re.search(pattern,css)[1]),end,places=5)
-            pattern = r'\.land-n'+str(n)+r' \.casino-wheel-rotor \{ transform: rotateZ\((-?[\d.]+)deg\);'
-            self.assertAlmostEqual(float(re.search(pattern,css)[1]),end,places=5)
-        self.assertIn('animation-timing-function: ease-out',css)
+            pattern = r'\.target-n'+str(n)+r' \.casino-wheel-offset \{ transform: rotateZ\((-?[\d.]+)deg\);'
+            self.assertAlmostEqual(float(re.search(pattern,css)[1]),-i*360/37,places=5)
+        for name,end in [('roulette-laps-a',1800),('roulette-laps-b',1800),('roulette-ball-laps',-2160)]:
+            body = re.search(r"@keyframes '"+name+r"' \{(.*?)\n\}",css,re.S)[1]
+            frames = [(float(t),float(angle)) for t,angle in re.findall(r'([\d.]+)% \{ transform: rotateZ\((-?[\d.]+)deg\);',body)]
+            self.assertEqual(frames[0],(0,0))
+            self.assertEqual(frames[-1],(100,end))
+            speeds = []
+            for (t0,a0),(t1,a1) in zip(frames,frames[1:]):
+                self.assertGreater(t1,t0)
+                self.assertGreater((a1-a0)*end,0)
+                self.assertLessEqual(abs(a1-a0),30)
+                speeds.append(abs(a1-a0)/(t1-t0))
+            self.assertTrue(all(a >= b for a,b in zip(speeds,speeds[1:])))
         self.assertIn('.spinning .casino-wheel-result { opacity: 0; }',css)
+        self.assertNotIn('.land-n0 .casino-wheel-rotor',css)
 
     def test_reel_loop_matches_repeated_strip_and_symbols_cannot_squish(self):
         css = (STYLE/'ano_casino_slots.css').read_text()
         self.assertIn('height: 1792px; min-height: 1792px',css)
-        self.assertIn('translateY(-896px)',css)
+        self.assertIn('flow-children: none; width: 274px;',css)
+        for name in ['slot-fast-a','slot-fast-b']:
+            self.assertIn("@keyframes '"+name+"' { 0% { transform: translateY(-896px); } 100% { transform: translateY(0px); } }",css)
         tree = ET.parse(UI/'layout/custom_game/anocore/ano_casino_slots.xml')
         for reel in range(3):
             panels = tree.find('.//*[@id="casino_slots_reel'+str(reel)+'"]').find('./Panel').findall('./Panel')
             self.assertEqual(len(panels),16)
+            for row,panel in enumerate(panels):
+                self.assertEqual(panel.attrib['style'],f'position: 0px {row*112}px 0px;')
             self.assertEqual([p.attrib['class'] for p in panels[:8]], [p.attrib['class'] for p in panels[8:]])
 
     def test_round_shell_has_explicit_size_and_each_game_still_has_controls(self):

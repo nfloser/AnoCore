@@ -13,212 +13,261 @@
 .casino-wheel-rotor { width: 280px; height: 280px; background-image: url("s2r://panorama/styles/custom_game/anocore/casino/wheel.vtex"); background-size: contain; background-repeat: no-repeat; }
 .casino-wheel-result { background-color: #101d14; border: 2px solid #cdb36a; border-radius: 40px; width: 80px; height: 80px; text-align: center; padding-top: 17px; font-size: 34px; }
 .casino-wheel.spinning { animation-name: none; }
-.spinning .casino-wheel-rotor { animation-name: 'roulette-turn-a'; animation-duration: 0.7s; animation-timing-function: linear; animation-iteration-count: infinite; }
-.spinning.turn-b .casino-wheel-rotor { animation-name: 'roulette-turn-b'; }
+.spinning .casino-wheel-rotor { animation-name: 'roulette-laps-a'; animation-duration: 0.7s; animation-timing-function: linear; animation-iteration-count: infinite; }
+.spinning.turn-b .casino-wheel-rotor { animation-name: 'roulette-laps-b'; }
 .spinning .casino-wheel-result { opacity: 0; }
 .casino-ball-orbit { width: 280px; height: 280px; }
 .casino-ball { width: 12px; height: 12px; horizontal-align: center; margin-top: 17px; border-radius: 6px; background-color: #fff4d2; box-shadow: #fff4d288 0px 0px 8px 0px; }
 .spinning .casino-ball-orbit { animation-name: 'roulette-ball'; animation-duration: 0.48s; animation-timing-function: linear; animation-iteration-count: infinite; }
-@keyframes 'roulette-turn-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(360deg); } }
-@keyframes 'roulette-turn-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(360deg); } }
 @keyframes 'roulette-ball' { 0% { transform: rotateZ(360deg); } 100% { transform: rotateZ(0deg); } }
 .land-red .casino-wheel-result { border-color: #e46264; }
 .land-black .casino-wheel-result { border-color: #cdb36a; }
 .land-green .casino-wheel-result { border-color: #92ef72; }
 .casino-wheel-rotor { transition-property: transform; transition-duration: 0.4s; transition-timing-function: ease-out; }
-.land-n0 .casino-wheel-rotor { transform: rotateZ(1440.000000deg); }
-.land-n32 .casino-wheel-rotor { transform: rotateZ(1430.270270deg); }
-.land-n15 .casino-wheel-rotor { transform: rotateZ(1420.540541deg); }
-.land-n19 .casino-wheel-rotor { transform: rotateZ(1410.810811deg); }
-.land-n4 .casino-wheel-rotor { transform: rotateZ(1401.081081deg); }
-.land-n21 .casino-wheel-rotor { transform: rotateZ(1391.351351deg); }
-.land-n2 .casino-wheel-rotor { transform: rotateZ(1381.621622deg); }
-.land-n25 .casino-wheel-rotor { transform: rotateZ(1371.891892deg); }
-.land-n17 .casino-wheel-rotor { transform: rotateZ(1362.162162deg); }
-.land-n34 .casino-wheel-rotor { transform: rotateZ(1352.432432deg); }
-.land-n6 .casino-wheel-rotor { transform: rotateZ(1342.702703deg); }
-.land-n27 .casino-wheel-rotor { transform: rotateZ(1332.972973deg); }
-.land-n13 .casino-wheel-rotor { transform: rotateZ(1323.243243deg); }
-.land-n36 .casino-wheel-rotor { transform: rotateZ(1313.513514deg); }
-.land-n11 .casino-wheel-rotor { transform: rotateZ(1303.783784deg); }
-.land-n30 .casino-wheel-rotor { transform: rotateZ(1294.054054deg); }
-.land-n8 .casino-wheel-rotor { transform: rotateZ(1284.324324deg); }
-.land-n23 .casino-wheel-rotor { transform: rotateZ(1274.594595deg); }
-.land-n10 .casino-wheel-rotor { transform: rotateZ(1264.864865deg); }
-.land-n5 .casino-wheel-rotor { transform: rotateZ(1255.135135deg); }
-.land-n24 .casino-wheel-rotor { transform: rotateZ(1245.405405deg); }
-.land-n16 .casino-wheel-rotor { transform: rotateZ(1235.675676deg); }
-.land-n33 .casino-wheel-rotor { transform: rotateZ(1225.945946deg); }
-.land-n1 .casino-wheel-rotor { transform: rotateZ(1216.216216deg); }
-.land-n20 .casino-wheel-rotor { transform: rotateZ(1206.486486deg); }
-.land-n14 .casino-wheel-rotor { transform: rotateZ(1196.756757deg); }
-.land-n31 .casino-wheel-rotor { transform: rotateZ(1187.027027deg); }
-.land-n9 .casino-wheel-rotor { transform: rotateZ(1177.297297deg); }
-.land-n22 .casino-wheel-rotor { transform: rotateZ(1167.567568deg); }
-.land-n18 .casino-wheel-rotor { transform: rotateZ(1157.837838deg); }
-.land-n29 .casino-wheel-rotor { transform: rotateZ(1148.108108deg); }
-.land-n7 .casino-wheel-rotor { transform: rotateZ(1138.378378deg); }
-.land-n28 .casino-wheel-rotor { transform: rotateZ(1128.648649deg); }
-.land-n12 .casino-wheel-rotor { transform: rotateZ(1118.918919deg); }
-.land-n35 .casino-wheel-rotor { transform: rotateZ(1109.189189deg); }
-.land-n3 .casino-wheel-rotor { transform: rotateZ(1099.459459deg); }
-.land-n26 .casino-wheel-rotor { transform: rotateZ(1089.729730deg); }
 
-/* One client-rendered eased spin per server receipt, aligned to the exact result. */
-.spinning .casino-wheel-rotor { animation-duration: 3.6s; animation-iteration-count: 1; animation-timing-function: ease-out; animation-fill-mode: both; }
-.spinning .casino-ball-orbit { animation-duration: 3.6s; animation-iteration-count: 1; animation-timing-function: ease-out; animation-fill-mode: both; }
-.spinning.target-n0 .casino-wheel-rotor { animation-name: 'roulette-0-a'; }
-@keyframes 'roulette-0-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1440.000000deg); } }
-.spinning.turn-b.target-n0 .casino-wheel-rotor { animation-name: 'roulette-0-b'; }
-@keyframes 'roulette-0-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1440.000000deg); } }
-.spinning.target-n32 .casino-wheel-rotor { animation-name: 'roulette-32-a'; }
-@keyframes 'roulette-32-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1430.270270deg); } }
-.spinning.turn-b.target-n32 .casino-wheel-rotor { animation-name: 'roulette-32-b'; }
-@keyframes 'roulette-32-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1430.270270deg); } }
-.spinning.target-n15 .casino-wheel-rotor { animation-name: 'roulette-15-a'; }
-@keyframes 'roulette-15-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1420.540541deg); } }
-.spinning.turn-b.target-n15 .casino-wheel-rotor { animation-name: 'roulette-15-b'; }
-@keyframes 'roulette-15-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1420.540541deg); } }
-.spinning.target-n19 .casino-wheel-rotor { animation-name: 'roulette-19-a'; }
-@keyframes 'roulette-19-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1410.810811deg); } }
-.spinning.turn-b.target-n19 .casino-wheel-rotor { animation-name: 'roulette-19-b'; }
-@keyframes 'roulette-19-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1410.810811deg); } }
-.spinning.target-n4 .casino-wheel-rotor { animation-name: 'roulette-4-a'; }
-@keyframes 'roulette-4-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1401.081081deg); } }
-.spinning.turn-b.target-n4 .casino-wheel-rotor { animation-name: 'roulette-4-b'; }
-@keyframes 'roulette-4-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1401.081081deg); } }
-.spinning.target-n21 .casino-wheel-rotor { animation-name: 'roulette-21-a'; }
-@keyframes 'roulette-21-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1391.351351deg); } }
-.spinning.turn-b.target-n21 .casino-wheel-rotor { animation-name: 'roulette-21-b'; }
-@keyframes 'roulette-21-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1391.351351deg); } }
-.spinning.target-n2 .casino-wheel-rotor { animation-name: 'roulette-2-a'; }
-@keyframes 'roulette-2-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1381.621622deg); } }
-.spinning.turn-b.target-n2 .casino-wheel-rotor { animation-name: 'roulette-2-b'; }
-@keyframes 'roulette-2-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1381.621622deg); } }
-.spinning.target-n25 .casino-wheel-rotor { animation-name: 'roulette-25-a'; }
-@keyframes 'roulette-25-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1371.891892deg); } }
-.spinning.turn-b.target-n25 .casino-wheel-rotor { animation-name: 'roulette-25-b'; }
-@keyframes 'roulette-25-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1371.891892deg); } }
-.spinning.target-n17 .casino-wheel-rotor { animation-name: 'roulette-17-a'; }
-@keyframes 'roulette-17-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1362.162162deg); } }
-.spinning.turn-b.target-n17 .casino-wheel-rotor { animation-name: 'roulette-17-b'; }
-@keyframes 'roulette-17-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1362.162162deg); } }
-.spinning.target-n34 .casino-wheel-rotor { animation-name: 'roulette-34-a'; }
-@keyframes 'roulette-34-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1352.432432deg); } }
-.spinning.turn-b.target-n34 .casino-wheel-rotor { animation-name: 'roulette-34-b'; }
-@keyframes 'roulette-34-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1352.432432deg); } }
-.spinning.target-n6 .casino-wheel-rotor { animation-name: 'roulette-6-a'; }
-@keyframes 'roulette-6-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1342.702703deg); } }
-.spinning.turn-b.target-n6 .casino-wheel-rotor { animation-name: 'roulette-6-b'; }
-@keyframes 'roulette-6-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1342.702703deg); } }
-.spinning.target-n27 .casino-wheel-rotor { animation-name: 'roulette-27-a'; }
-@keyframes 'roulette-27-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1332.972973deg); } }
-.spinning.turn-b.target-n27 .casino-wheel-rotor { animation-name: 'roulette-27-b'; }
-@keyframes 'roulette-27-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1332.972973deg); } }
-.spinning.target-n13 .casino-wheel-rotor { animation-name: 'roulette-13-a'; }
-@keyframes 'roulette-13-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1323.243243deg); } }
-.spinning.turn-b.target-n13 .casino-wheel-rotor { animation-name: 'roulette-13-b'; }
-@keyframes 'roulette-13-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1323.243243deg); } }
-.spinning.target-n36 .casino-wheel-rotor { animation-name: 'roulette-36-a'; }
-@keyframes 'roulette-36-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1313.513514deg); } }
-.spinning.turn-b.target-n36 .casino-wheel-rotor { animation-name: 'roulette-36-b'; }
-@keyframes 'roulette-36-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1313.513514deg); } }
-.spinning.target-n11 .casino-wheel-rotor { animation-name: 'roulette-11-a'; }
-@keyframes 'roulette-11-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1303.783784deg); } }
-.spinning.turn-b.target-n11 .casino-wheel-rotor { animation-name: 'roulette-11-b'; }
-@keyframes 'roulette-11-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1303.783784deg); } }
-.spinning.target-n30 .casino-wheel-rotor { animation-name: 'roulette-30-a'; }
-@keyframes 'roulette-30-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1294.054054deg); } }
-.spinning.turn-b.target-n30 .casino-wheel-rotor { animation-name: 'roulette-30-b'; }
-@keyframes 'roulette-30-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1294.054054deg); } }
-.spinning.target-n8 .casino-wheel-rotor { animation-name: 'roulette-8-a'; }
-@keyframes 'roulette-8-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1284.324324deg); } }
-.spinning.turn-b.target-n8 .casino-wheel-rotor { animation-name: 'roulette-8-b'; }
-@keyframes 'roulette-8-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1284.324324deg); } }
-.spinning.target-n23 .casino-wheel-rotor { animation-name: 'roulette-23-a'; }
-@keyframes 'roulette-23-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1274.594595deg); } }
-.spinning.turn-b.target-n23 .casino-wheel-rotor { animation-name: 'roulette-23-b'; }
-@keyframes 'roulette-23-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1274.594595deg); } }
-.spinning.target-n10 .casino-wheel-rotor { animation-name: 'roulette-10-a'; }
-@keyframes 'roulette-10-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1264.864865deg); } }
-.spinning.turn-b.target-n10 .casino-wheel-rotor { animation-name: 'roulette-10-b'; }
-@keyframes 'roulette-10-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1264.864865deg); } }
-.spinning.target-n5 .casino-wheel-rotor { animation-name: 'roulette-5-a'; }
-@keyframes 'roulette-5-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1255.135135deg); } }
-.spinning.turn-b.target-n5 .casino-wheel-rotor { animation-name: 'roulette-5-b'; }
-@keyframes 'roulette-5-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1255.135135deg); } }
-.spinning.target-n24 .casino-wheel-rotor { animation-name: 'roulette-24-a'; }
-@keyframes 'roulette-24-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1245.405405deg); } }
-.spinning.turn-b.target-n24 .casino-wheel-rotor { animation-name: 'roulette-24-b'; }
-@keyframes 'roulette-24-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1245.405405deg); } }
-.spinning.target-n16 .casino-wheel-rotor { animation-name: 'roulette-16-a'; }
-@keyframes 'roulette-16-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1235.675676deg); } }
-.spinning.turn-b.target-n16 .casino-wheel-rotor { animation-name: 'roulette-16-b'; }
-@keyframes 'roulette-16-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1235.675676deg); } }
-.spinning.target-n33 .casino-wheel-rotor { animation-name: 'roulette-33-a'; }
-@keyframes 'roulette-33-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1225.945946deg); } }
-.spinning.turn-b.target-n33 .casino-wheel-rotor { animation-name: 'roulette-33-b'; }
-@keyframes 'roulette-33-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1225.945946deg); } }
-.spinning.target-n1 .casino-wheel-rotor { animation-name: 'roulette-1-a'; }
-@keyframes 'roulette-1-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1216.216216deg); } }
-.spinning.turn-b.target-n1 .casino-wheel-rotor { animation-name: 'roulette-1-b'; }
-@keyframes 'roulette-1-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1216.216216deg); } }
-.spinning.target-n20 .casino-wheel-rotor { animation-name: 'roulette-20-a'; }
-@keyframes 'roulette-20-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1206.486486deg); } }
-.spinning.turn-b.target-n20 .casino-wheel-rotor { animation-name: 'roulette-20-b'; }
-@keyframes 'roulette-20-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1206.486486deg); } }
-.spinning.target-n14 .casino-wheel-rotor { animation-name: 'roulette-14-a'; }
-@keyframes 'roulette-14-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1196.756757deg); } }
-.spinning.turn-b.target-n14 .casino-wheel-rotor { animation-name: 'roulette-14-b'; }
-@keyframes 'roulette-14-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1196.756757deg); } }
-.spinning.target-n31 .casino-wheel-rotor { animation-name: 'roulette-31-a'; }
-@keyframes 'roulette-31-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1187.027027deg); } }
-.spinning.turn-b.target-n31 .casino-wheel-rotor { animation-name: 'roulette-31-b'; }
-@keyframes 'roulette-31-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1187.027027deg); } }
-.spinning.target-n9 .casino-wheel-rotor { animation-name: 'roulette-9-a'; }
-@keyframes 'roulette-9-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1177.297297deg); } }
-.spinning.turn-b.target-n9 .casino-wheel-rotor { animation-name: 'roulette-9-b'; }
-@keyframes 'roulette-9-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1177.297297deg); } }
-.spinning.target-n22 .casino-wheel-rotor { animation-name: 'roulette-22-a'; }
-@keyframes 'roulette-22-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1167.567568deg); } }
-.spinning.turn-b.target-n22 .casino-wheel-rotor { animation-name: 'roulette-22-b'; }
-@keyframes 'roulette-22-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1167.567568deg); } }
-.spinning.target-n18 .casino-wheel-rotor { animation-name: 'roulette-18-a'; }
-@keyframes 'roulette-18-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1157.837838deg); } }
-.spinning.turn-b.target-n18 .casino-wheel-rotor { animation-name: 'roulette-18-b'; }
-@keyframes 'roulette-18-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1157.837838deg); } }
-.spinning.target-n29 .casino-wheel-rotor { animation-name: 'roulette-29-a'; }
-@keyframes 'roulette-29-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1148.108108deg); } }
-.spinning.turn-b.target-n29 .casino-wheel-rotor { animation-name: 'roulette-29-b'; }
-@keyframes 'roulette-29-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1148.108108deg); } }
-.spinning.target-n7 .casino-wheel-rotor { animation-name: 'roulette-7-a'; }
-@keyframes 'roulette-7-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1138.378378deg); } }
-.spinning.turn-b.target-n7 .casino-wheel-rotor { animation-name: 'roulette-7-b'; }
-@keyframes 'roulette-7-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1138.378378deg); } }
-.spinning.target-n28 .casino-wheel-rotor { animation-name: 'roulette-28-a'; }
-@keyframes 'roulette-28-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1128.648649deg); } }
-.spinning.turn-b.target-n28 .casino-wheel-rotor { animation-name: 'roulette-28-b'; }
-@keyframes 'roulette-28-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1128.648649deg); } }
-.spinning.target-n12 .casino-wheel-rotor { animation-name: 'roulette-12-a'; }
-@keyframes 'roulette-12-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1118.918919deg); } }
-.spinning.turn-b.target-n12 .casino-wheel-rotor { animation-name: 'roulette-12-b'; }
-@keyframes 'roulette-12-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1118.918919deg); } }
-.spinning.target-n35 .casino-wheel-rotor { animation-name: 'roulette-35-a'; }
-@keyframes 'roulette-35-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1109.189189deg); } }
-.spinning.turn-b.target-n35 .casino-wheel-rotor { animation-name: 'roulette-35-b'; }
-@keyframes 'roulette-35-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1109.189189deg); } }
-.spinning.target-n3 .casino-wheel-rotor { animation-name: 'roulette-3-a'; }
-@keyframes 'roulette-3-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1099.459459deg); } }
-.spinning.turn-b.target-n3 .casino-wheel-rotor { animation-name: 'roulette-3-b'; }
-@keyframes 'roulette-3-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1099.459459deg); } }
-.spinning.target-n26 .casino-wheel-rotor { animation-name: 'roulette-26-a'; }
-@keyframes 'roulette-26-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1089.729730deg); } }
-.spinning.turn-b.target-n26 .casino-wheel-rotor { animation-name: 'roulette-26-b'; }
-@keyframes 'roulette-26-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1089.729730deg); } }
-@keyframes 'roulette-ball-land' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(-2160deg); } }
-.spinning .casino-ball-orbit { animation-name: 'roulette-ball-land'; }
-
+/* Result orientation is a fixed parent. Only the inner wheel rotates. */
+.casino-wheel-offset { width: 280px; height: 280px; }
+.casino-wheel-rotor { transition-duration: 0s; }
+.spinning .casino-wheel-rotor { animation-duration: 3.6s; animation-timing-function: linear; animation-iteration-count: 1; animation-fill-mode: both; }
+.spinning .casino-ball-orbit { animation-name: 'roulette-ball-laps'; animation-duration: 3.6s; animation-timing-function: linear; animation-iteration-count: 1; animation-fill-mode: both; }
 .casino-pointer.spinning { animation-name: none; }
-
 .casino-header .casino-title { font-size: 28px; color: #98f277; }
- .casino-wheel .casino-wheel-result { font-size: 34px; color: #98f277; }
+.casino-wheel .casino-wheel-result { font-size: 34px; color: #98f277; }
+.target-n0 .casino-wheel-offset { transform: rotateZ(0.000000deg); }
+.target-n32 .casino-wheel-offset { transform: rotateZ(-9.729730deg); }
+.target-n15 .casino-wheel-offset { transform: rotateZ(-19.459459deg); }
+.target-n19 .casino-wheel-offset { transform: rotateZ(-29.189189deg); }
+.target-n4 .casino-wheel-offset { transform: rotateZ(-38.918919deg); }
+.target-n21 .casino-wheel-offset { transform: rotateZ(-48.648649deg); }
+.target-n2 .casino-wheel-offset { transform: rotateZ(-58.378378deg); }
+.target-n25 .casino-wheel-offset { transform: rotateZ(-68.108108deg); }
+.target-n17 .casino-wheel-offset { transform: rotateZ(-77.837838deg); }
+.target-n34 .casino-wheel-offset { transform: rotateZ(-87.567568deg); }
+.target-n6 .casino-wheel-offset { transform: rotateZ(-97.297297deg); }
+.target-n27 .casino-wheel-offset { transform: rotateZ(-107.027027deg); }
+.target-n13 .casino-wheel-offset { transform: rotateZ(-116.756757deg); }
+.target-n36 .casino-wheel-offset { transform: rotateZ(-126.486486deg); }
+.target-n11 .casino-wheel-offset { transform: rotateZ(-136.216216deg); }
+.target-n30 .casino-wheel-offset { transform: rotateZ(-145.945946deg); }
+.target-n8 .casino-wheel-offset { transform: rotateZ(-155.675676deg); }
+.target-n23 .casino-wheel-offset { transform: rotateZ(-165.405405deg); }
+.target-n10 .casino-wheel-offset { transform: rotateZ(-175.135135deg); }
+.target-n5 .casino-wheel-offset { transform: rotateZ(-184.864865deg); }
+.target-n24 .casino-wheel-offset { transform: rotateZ(-194.594595deg); }
+.target-n16 .casino-wheel-offset { transform: rotateZ(-204.324324deg); }
+.target-n33 .casino-wheel-offset { transform: rotateZ(-214.054054deg); }
+.target-n1 .casino-wheel-offset { transform: rotateZ(-223.783784deg); }
+.target-n20 .casino-wheel-offset { transform: rotateZ(-233.513514deg); }
+.target-n14 .casino-wheel-offset { transform: rotateZ(-243.243243deg); }
+.target-n31 .casino-wheel-offset { transform: rotateZ(-252.972973deg); }
+.target-n9 .casino-wheel-offset { transform: rotateZ(-262.702703deg); }
+.target-n22 .casino-wheel-offset { transform: rotateZ(-272.432432deg); }
+.target-n18 .casino-wheel-offset { transform: rotateZ(-282.162162deg); }
+.target-n29 .casino-wheel-offset { transform: rotateZ(-291.891892deg); }
+.target-n7 .casino-wheel-offset { transform: rotateZ(-301.621622deg); }
+.target-n28 .casino-wheel-offset { transform: rotateZ(-311.351351deg); }
+.target-n12 .casino-wheel-offset { transform: rotateZ(-321.081081deg); }
+.target-n35 .casino-wheel-offset { transform: rotateZ(-330.810811deg); }
+.target-n3 .casino-wheel-offset { transform: rotateZ(-340.540541deg); }
+.target-n26 .casino-wheel-offset { transform: rotateZ(-350.270270deg); }
+@keyframes 'roulette-laps-a' {
+  0.000000% { transform: rotateZ(0deg); }
+  0.558671% { transform: rotateZ(30deg); }
+  1.123691% { transform: rotateZ(60deg); }
+  1.695243% { transform: rotateZ(90deg); }
+  2.273519% { transform: rotateZ(120deg); }
+  2.858722% { transform: rotateZ(150deg); }
+  3.451062% { transform: rotateZ(180deg); }
+  4.050760% { transform: rotateZ(210deg); }
+  4.658050% { transform: rotateZ(240deg); }
+  5.273176% { transform: rotateZ(270deg); }
+  5.896397% { transform: rotateZ(300deg); }
+  6.527984% { transform: rotateZ(330deg); }
+  7.168223% { transform: rotateZ(360deg); }
+  7.817418% { transform: rotateZ(390deg); }
+  8.475887% { transform: rotateZ(420deg); }
+  9.143970% { transform: rotateZ(450deg); }
+  9.822026% { transform: rotateZ(480deg); }
+  10.510434% { transform: rotateZ(510deg); }
+  11.209600% { transform: rotateZ(540deg); }
+  11.919953% { transform: rotateZ(570deg); }
+  12.641954% { transform: rotateZ(600deg); }
+  13.376089% { transform: rotateZ(630deg); }
+  14.122884% { transform: rotateZ(660deg); }
+  14.882899% { transform: rotateZ(690deg); }
+  15.656733% { transform: rotateZ(720deg); }
+  16.445034% { transform: rotateZ(750deg); }
+  17.248497% { transform: rotateZ(780deg); }
+  18.067873% { transform: rotateZ(810deg); }
+  18.903973% { transform: rotateZ(840deg); }
+  19.757679% { transform: rotateZ(870deg); }
+  20.629947% { transform: rotateZ(900deg); }
+  21.521821% { transform: rotateZ(930deg); }
+  22.434441% { transform: rotateZ(960deg); }
+  23.369057% { transform: rotateZ(990deg); }
+  24.327044% { transform: rotateZ(1020deg); }
+  25.309921% { transform: rotateZ(1050deg); }
+  26.319370% { transform: rotateZ(1080deg); }
+  27.357264% { transform: rotateZ(1110deg); }
+  28.425694% { transform: rotateZ(1140deg); }
+  29.527013% { transform: rotateZ(1170deg); }
+  30.663873% { transform: rotateZ(1200deg); }
+  31.839288% { transform: rotateZ(1230deg); }
+  33.056705% { transform: rotateZ(1260deg); }
+  34.320089% { transform: rotateZ(1290deg); }
+  35.634041% { transform: rotateZ(1320deg); }
+  37.003948% { transform: rotateZ(1350deg); }
+  38.436175% { transform: rotateZ(1380deg); }
+  39.938335% { transform: rotateZ(1410deg); }
+  41.519645% { transform: rotateZ(1440deg); }
+  43.191436% { transform: rotateZ(1470deg); }
+  44.967879% { transform: rotateZ(1500deg); }
+  46.867072% { transform: rotateZ(1530deg); }
+  48.912705% { transform: rotateZ(1560deg); }
+  51.136760% { transform: rotateZ(1590deg); }
+  53.584112% { transform: rotateZ(1620deg); }
+  56.320977% { transform: rotateZ(1650deg); }
+  59.451987% { transform: rotateZ(1680deg); }
+  63.159685% { transform: rotateZ(1710deg); }
+  67.817021% { transform: rotateZ(1740deg); }
+  74.456352% { transform: rotateZ(1770deg); }
+  100.000000% { transform: rotateZ(1800deg); }
+}
+@keyframes 'roulette-laps-b' {
+  0.000000% { transform: rotateZ(0deg); }
+  0.558671% { transform: rotateZ(30deg); }
+  1.123691% { transform: rotateZ(60deg); }
+  1.695243% { transform: rotateZ(90deg); }
+  2.273519% { transform: rotateZ(120deg); }
+  2.858722% { transform: rotateZ(150deg); }
+  3.451062% { transform: rotateZ(180deg); }
+  4.050760% { transform: rotateZ(210deg); }
+  4.658050% { transform: rotateZ(240deg); }
+  5.273176% { transform: rotateZ(270deg); }
+  5.896397% { transform: rotateZ(300deg); }
+  6.527984% { transform: rotateZ(330deg); }
+  7.168223% { transform: rotateZ(360deg); }
+  7.817418% { transform: rotateZ(390deg); }
+  8.475887% { transform: rotateZ(420deg); }
+  9.143970% { transform: rotateZ(450deg); }
+  9.822026% { transform: rotateZ(480deg); }
+  10.510434% { transform: rotateZ(510deg); }
+  11.209600% { transform: rotateZ(540deg); }
+  11.919953% { transform: rotateZ(570deg); }
+  12.641954% { transform: rotateZ(600deg); }
+  13.376089% { transform: rotateZ(630deg); }
+  14.122884% { transform: rotateZ(660deg); }
+  14.882899% { transform: rotateZ(690deg); }
+  15.656733% { transform: rotateZ(720deg); }
+  16.445034% { transform: rotateZ(750deg); }
+  17.248497% { transform: rotateZ(780deg); }
+  18.067873% { transform: rotateZ(810deg); }
+  18.903973% { transform: rotateZ(840deg); }
+  19.757679% { transform: rotateZ(870deg); }
+  20.629947% { transform: rotateZ(900deg); }
+  21.521821% { transform: rotateZ(930deg); }
+  22.434441% { transform: rotateZ(960deg); }
+  23.369057% { transform: rotateZ(990deg); }
+  24.327044% { transform: rotateZ(1020deg); }
+  25.309921% { transform: rotateZ(1050deg); }
+  26.319370% { transform: rotateZ(1080deg); }
+  27.357264% { transform: rotateZ(1110deg); }
+  28.425694% { transform: rotateZ(1140deg); }
+  29.527013% { transform: rotateZ(1170deg); }
+  30.663873% { transform: rotateZ(1200deg); }
+  31.839288% { transform: rotateZ(1230deg); }
+  33.056705% { transform: rotateZ(1260deg); }
+  34.320089% { transform: rotateZ(1290deg); }
+  35.634041% { transform: rotateZ(1320deg); }
+  37.003948% { transform: rotateZ(1350deg); }
+  38.436175% { transform: rotateZ(1380deg); }
+  39.938335% { transform: rotateZ(1410deg); }
+  41.519645% { transform: rotateZ(1440deg); }
+  43.191436% { transform: rotateZ(1470deg); }
+  44.967879% { transform: rotateZ(1500deg); }
+  46.867072% { transform: rotateZ(1530deg); }
+  48.912705% { transform: rotateZ(1560deg); }
+  51.136760% { transform: rotateZ(1590deg); }
+  53.584112% { transform: rotateZ(1620deg); }
+  56.320977% { transform: rotateZ(1650deg); }
+  59.451987% { transform: rotateZ(1680deg); }
+  63.159685% { transform: rotateZ(1710deg); }
+  67.817021% { transform: rotateZ(1740deg); }
+  74.456352% { transform: rotateZ(1770deg); }
+  100.000000% { transform: rotateZ(1800deg); }
+}
+@keyframes 'roulette-ball-laps' {
+  0.000000% { transform: rotateZ(0deg); }
+  0.465123% { transform: rotateZ(-30deg); }
+  0.934634% { transform: rotateZ(-60deg); }
+  1.408638% { transform: rotateZ(-90deg); }
+  1.887245% { transform: rotateZ(-120deg); }
+  2.370567% { transform: rotateZ(-150deg); }
+  2.858722% { transform: rotateZ(-180deg); }
+  3.351833% { transform: rotateZ(-210deg); }
+  3.850029% { transform: rotateZ(-240deg); }
+  4.353441% { transform: rotateZ(-270deg); }
+  4.862209% { transform: rotateZ(-300deg); }
+  5.376477% { transform: rotateZ(-330deg); }
+  5.896397% { transform: rotateZ(-360deg); }
+  6.422127% { transform: rotateZ(-390deg); }
+  6.953830% { transform: rotateZ(-420deg); }
+  7.491682% { transform: rotateZ(-450deg); }
+  8.035861% { transform: rotateZ(-480deg); }
+  8.586557% { transform: rotateZ(-510deg); }
+  9.143970% { transform: rotateZ(-540deg); }
+  9.708308% { transform: rotateZ(-570deg); }
+  10.279790% { transform: rotateZ(-600deg); }
+  10.858646% { transform: rotateZ(-630deg); }
+  11.445119% { transform: rotateZ(-660deg); }
+  12.039465% { transform: rotateZ(-690deg); }
+  12.641954% { transform: rotateZ(-720deg); }
+  13.252869% { transform: rotateZ(-750deg); }
+  13.872512% { transform: rotateZ(-780deg); }
+  14.501203% { transform: rotateZ(-810deg); }
+  15.139277% { transform: rotateZ(-840deg); }
+  15.787094% { transform: rotateZ(-870deg); }
+  16.445034% { transform: rotateZ(-900deg); }
+  17.113503% { transform: rotateZ(-930deg); }
+  17.792931% { transform: rotateZ(-960deg); }
+  18.483779% { transform: rotateZ(-990deg); }
+  19.186540% { transform: rotateZ(-1020deg); }
+  19.901741% { transform: rotateZ(-1050deg); }
+  20.629947% { transform: rotateZ(-1080deg); }
+  21.371767% { transform: rotateZ(-1110deg); }
+  22.127855% { transform: rotateZ(-1140deg); }
+  22.898917% { transform: rotateZ(-1170deg); }
+  23.685717% { transform: rotateZ(-1200deg); }
+  24.489085% { transform: rotateZ(-1230deg); }
+  25.309921% { transform: rotateZ(-1260deg); }
+  26.149206% { transform: rotateZ(-1290deg); }
+  27.008014% { transform: rotateZ(-1320deg); }
+  27.887521% { transform: rotateZ(-1350deg); }
+  28.789022% { transform: rotateZ(-1380deg); }
+  29.713945% { transform: rotateZ(-1410deg); }
+  30.663873% { transform: rotateZ(-1440deg); }
+  31.640568% { transform: rotateZ(-1470deg); }
+  32.646000% { transform: rotateZ(-1500deg); }
+  33.682380% { transform: rotateZ(-1530deg); }
+  34.752206% { transform: rotateZ(-1560deg); }
+  35.858314% { transform: rotateZ(-1590deg); }
+  37.003948% { transform: rotateZ(-1620deg); }
+  38.192837% { transform: rotateZ(-1650deg); }
+  39.429314% { transform: rotateZ(-1680deg); }
+  40.718445% { transform: rotateZ(-1710deg); }
+  42.066223% { transform: rotateZ(-1740deg); }
+  43.479809% { transform: rotateZ(-1770deg); }
+  44.967879% { transform: rotateZ(-1800deg); }
+  46.541095% { transform: rotateZ(-1830deg); }
+  48.212792% { transform: rotateZ(-1860deg); }
+  50.000000% { transform: rotateZ(-1890deg); }
+  51.925014% { transform: rotateZ(-1920deg); }
+  54.017930% { transform: rotateZ(-1950deg); }
+  56.320977% { transform: rotateZ(-1980deg); }
+  58.896465% { transform: rotateZ(-2010deg); }
+  61.842859% { transform: rotateZ(-2040deg); }
+  65.331936% { transform: rotateZ(-2070deg); }
+  69.714657% { transform: rotateZ(-2100deg); }
+  75.962507% { transform: rotateZ(-2130deg); }
+  100.000000% { transform: rotateZ(-2160deg); }
+}
