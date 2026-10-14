@@ -21,7 +21,8 @@ public sealed class AnoVetoCommandController : IDisposable
         ICustomHudService hud,
         IPlayerRegistry players,
         AnoVetoCoordinator coordinator,
-        TimeProvider? timeProvider = null)
+        TimeProvider? timeProvider = null,
+        IAnoVetoPresetRepository? presetRepository = null)
     {
         ArgumentNullException.ThrowIfNull(commands);
         _players = players ?? throw new ArgumentNullException(nameof(players));
@@ -32,7 +33,7 @@ public sealed class AnoVetoCommandController : IDisposable
             coordinator,
             _timeProvider);
         _createHud = new AnoVetoCreateHudController(hud, StartRandomFromHudAsync,
-            _coordinator.GetAvailableMaps, StartSelectedFromHudAsync);
+            _coordinator.GetAvailableMaps, StartSelectedFromHudAsync, presetRepository);
 
         _commandRegistration = commands.Register(
             Owner,
