@@ -55,6 +55,14 @@ class CasinoResourcesTests(unittest.TestCase):
         for hud in ['LobbyHudId','SlotsHudId','CoinflipHudId','RouletteHudId']:
             self.assertIn(hud, presenter)
 
+    def test_panorama_keyframe_names_are_quoted(self):
+        for css_file in (UI/'styles/custom_game/anocore').glob('*.css'):
+            text = css_file.read_text()
+            self.assertNotRegex(text, r'@keyframes\s+[A-Za-z0-9_-]+')
+            for match in __import__('re').finditer(r"@keyframes\s+(['\"])([^'\"]+)\1", text):
+                name = match.group(2)
+                self.assertRegex(text, rf"animation-name\s*:\s*['\"]{__import__('re').escape(name)}['\"]")
+
     def test_symbols_are_individual_alpha_textures_and_included_in_full_build(self):
         for symbol in ['cherry','lemon','plum','orange','grapes','watermelon','bell','seven']:
             png = UI/f'styles/custom_game/anocore/arcade/{symbol}.png'
