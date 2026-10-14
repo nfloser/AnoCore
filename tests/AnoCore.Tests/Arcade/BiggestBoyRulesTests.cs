@@ -31,7 +31,7 @@ public sealed class BiggestBoyRulesTests
     [TestMethod]
     public void TwentyFiveLinesPayOnlyBestLeftToRightBaseWinAndScatterIsNeverWild()
     {
-        Assert.AreEqual(25, BiggestBoyRules.PaylineCount);
+        Assert.AreEqual(BiggestBoyRules.PaylineCount, BiggestBoyRules.Paylines.Count);
         Assert.AreEqual(25, BiggestBoyRules.Paylines.Count);
         Assert.AreEqual(25, BiggestBoyRules.Paylines.Distinct(new LineComparer()).Count());
 
