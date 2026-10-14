@@ -18,7 +18,7 @@ public static class BiggestBoyRules
     public const int MaximumFreeSpinsAwarded = 30;
     public const int PaylineCount = 25;
     public const int MaximumStake = 10_000;
-    public static IReadOnlyList<int> StakeSteps { get; } = Array.AsReadOnly([100, 250, 500, 1_000, 2_500, 5_000, 10_000]);
+    public static IReadOnlyList<int> StakeSteps { get; } = Array.AsReadOnly(new[] { 100, 250, 500, 1_000, 2_500, 5_000, 10_000 });
 
     private static readonly int[][] Lines =
     [
