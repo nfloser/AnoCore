@@ -76,7 +76,7 @@
                         <Button id="ano_veto_create_delete" class="ano-create-action"><Label text="DELETE" /></Button>
                     </Panel>
                     <Button id="ano_veto_create_confirm" class="ano-create-confirm">
-                        <Label id="ano_veto_create_confirm_text" text="START SELECTED VETO" />
+                        <Label id="ano_veto_create_confirm_text" text="{s:text}" />
                     </Button>
                 </Panel>
                 <Panel class="ano-create-footer">
