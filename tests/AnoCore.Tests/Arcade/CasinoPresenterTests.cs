@@ -68,10 +68,20 @@ public sealed class CasinoPresenterTests
         for (var i = 0; i < 3; i++)
             Assert.IsTrue(f.SlotsClass("reel" + i, "rolling"));
 
-        f.Clock.AdvanceMilliseconds(2600);
+        f.Clock.AdvanceMilliseconds(2150);
+        f.Presenter.Tick();
+        Assert.IsTrue(f.SlotsClass("reel0", "settling"));
+        Assert.IsFalse(f.SlotsClass("reel0", "rolling"));
+        Assert.IsFalse(f.SlotsClass("reel0", "settled"));
+        Assert.IsTrue(f.SlotsClass("reel1", "rolling"));
+        await f.ClickSlots("play");
+        Assert.IsTrue(f.SlotsClass("reel0", "settling"), "Settling cannot start another booking.");
+
+        f.Clock.AdvanceMilliseconds(450);
         f.Presenter.Tick();
         Assert.IsFalse(f.SlotsClass("reel0", "rolling"));
         Assert.IsTrue(f.SlotsClass("reel0", "settled"));
+        Assert.IsFalse(f.SlotsClass("reel0", "settling"));
         Assert.IsTrue(f.SlotsClass("reel1", "rolling"));
 
         f.Clock.AdvanceMilliseconds(500);

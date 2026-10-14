@@ -14,6 +14,61 @@ public sealed class CasinoRoundPresenterTests
     private static readonly PlayerId Player = new(76561198000911901);
 
     [TestMethod]
+    public async Task BlackjackCardsConcealDealerHoleAndClearAbsentHandsOnRefresh()
+    {
+        using var f = await Fixture.Create();
+        var state = new BlackjackState(BlackjackRules.RulesVersion, 1, 100,
+            [new([new(BlackjackSuit.Hearts, BlackjackRank.Ten), new(BlackjackSuit.Clubs, BlackjackRank.Seven)], 100, false, false, false),
+             new([new(BlackjackSuit.Spades, BlackjackRank.Eight), new(BlackjackSuit.Diamonds, BlackjackRank.Eight)], 100, false, false, true)],
+            [new(BlackjackSuit.Clubs, BlackjackRank.Five), new(BlackjackSuit.Hearts, BlackjackRank.King)], [], 1, BlackjackRoundStatus.PlayerTurn, 0);
+        f.Rounds.Current = new(Guid.NewGuid(), Player, CasinoRoundGame.Blackjack, 100, 1, false, 200, 0, JsonSerializer.Serialize(state));
+        await f.Presenter.OpenAsync(Player, CasinoRoundGame.Blackjack);
+        Assert.AreEqual("5\n♣", f.Text("dealer_card0"));
+        Assert.AreEqual("?", f.Text("dealer_card1"));
+        Assert.IsTrue(f.PanelClass("dealer_card1", "face-down"));
+        Assert.IsFalse(f.PanelClass("dealer_card1", "red"), "The concealed suit must not leak.");
+        Assert.IsFalse(f.PanelClass("dealer_card2", "present"));
+        Assert.AreEqual("10\n♥", f.Text("hand0_card0"));
+        Assert.IsTrue(f.PanelClass("hand0_card0", "red"));
+        Assert.IsTrue(f.PanelClass("hand1", "active-hand"));
+        Assert.IsFalse(f.PanelClass("hand0", "active-hand"));
+        Assert.IsTrue(f.Text("hand1_summary")!.Contains("16"));
+
+        state = state with { PlayerHands = [state.PlayerHands[0]], ActiveHandIndex = 0, Status = BlackjackRoundStatus.Settled };
+        f.Rounds.Current = f.Rounds.Current with { StateJson = JsonSerializer.Serialize(state) };
+        await f.Click("refresh");
+        Assert.AreEqual("K\n♥", f.Text("dealer_card1"));
+        Assert.IsFalse(f.PanelClass("dealer_card1", "face-down"));
+        Assert.IsFalse(f.PanelClass("hand1", "present"));
+        Assert.IsFalse(f.PanelClass("hand1_card0", "present"));
+        Assert.AreEqual("", f.Text("hand1_card0"));
+        Assert.AreEqual(0, f.Rounds.Calls.Count);
+    }
+
+    [TestMethod]
+    public async Task BookSettlesBeforeEachStopAndResetsForNextFreeSpin()
+    {
+        using var f = await Fixture.Create();
+        var spin = BonusSlotRules.StartRound(100, bound => bound - 1);
+        f.Rounds.NextSnapshot = new(Guid.NewGuid(), Player, CasinoRoundGame.Book, 100, 1, false, 100, 0, JsonSerializer.Serialize(spin));
+        await f.Presenter.OpenAsync(Player, CasinoRoundGame.Book);
+        await f.Click("play");
+        f.Clock.AdvanceMilliseconds(1550); f.Presenter.Tick();
+        Assert.IsTrue(f.PanelClass("reel0", "settling"));
+        Assert.IsFalse(f.PanelClass("reel0", "stopped"));
+        Assert.IsFalse(f.PanelClass("reel1", "settling"));
+        f.Clock.AdvanceMilliseconds(450); f.Presenter.Tick();
+        Assert.IsTrue(f.PanelClass("reel0", "stopped"));
+        Assert.IsFalse(f.PanelClass("reel0", "settling"));
+        f.FinishAnimation();
+        await f.Click("free");
+        Assert.IsFalse(f.PanelClass("reel0", "stopped"));
+        Assert.IsFalse(f.PanelClass("reel0", "settling"));
+        Assert.IsTrue(f.Class("motion-b"));
+        Assert.AreEqual(2, f.Rounds.Calls.Count);
+    }
+
+    [TestMethod]
     public async Task EveryRoundGameOpensWithRulesAndBookShowsPreviewBeforeBooking()
     {
         using var f = await Fixture.Create();
@@ -184,6 +239,7 @@ public sealed class CasinoRoundPresenterTests
         private DateTimeOffset _now = DateTimeOffset.UtcNow;
         public override DateTimeOffset GetUtcNow() => _now;
         public void Advance() => _now = _now.AddSeconds(4);
+        public void AdvanceMilliseconds(int milliseconds) => _now = _now.AddMilliseconds(milliseconds);
     }
 
     private sealed class Permission : IPermissionEvaluator
@@ -208,6 +264,7 @@ public sealed class CasinoRoundPresenterTests
     private sealed class Rounds(Wallet wallet) : ICasinoRounds
     {
         public DurableCasinoRoundSnapshot? Current;
+        public DurableCasinoRoundSnapshot? NextSnapshot;
         public DurableCasinoRoundOperation? Last;
         public Exception? RejectOnce;
         public Task<DurableCasinoRoundSnapshot?>? DelayedRead;
@@ -227,6 +284,13 @@ public sealed class CasinoRoundPresenterTests
             Calls.Add(operation);
             if (RejectOnce is { } rejected) { RejectOnce = null; throw rejected; }
             if (Receipts.TryGetValue(operation.Id, out var replay)) return replay;
+            if (NextSnapshot is { } next)
+            {
+                Current = next;
+                var prepared = new DurableCasinoRoundReceipt(operation.Id, wallet.Balance, next);
+                Receipts.Add(operation.Id, prepared);
+                return prepared;
+            }
             var start = operation.Action == CasinoRoundAction.Start;
             var previous = Current is null ? null : JsonSerializer.Deserialize<RiskRoundState>(Current.StateJson);
             var state = start ? RiskRules.Start(operation.Stake) : RiskRules.Bank(previous!, previous!.Revision);
@@ -276,6 +340,7 @@ public sealed class CasinoRoundPresenterTests
         public ValueTask Click(string action) => Hud.ClickAsync(Player, CasinoRoundPresenter.HudId, "casino_round_" + action);
         public string? Text(string panel) => Hud.Text(Player, CasinoRoundPresenter.HudId, "casino_round_" + panel);
         public bool Class(string name) => Hud.Class(Player, CasinoRoundPresenter.HudId, "casino_round_root", name);
+        public bool PanelClass(string panel, string name) => Hud.Class(Player, CasinoRoundPresenter.HudId, "casino_round_" + panel, name);
         public void FinishAnimation() { Clock.Advance(); Presenter.Tick(); }
         public void Dispose() => Presenter.Dispose();
     }

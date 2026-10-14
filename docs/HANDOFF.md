@@ -1,11 +1,16 @@
-## Slots CustomHud inline-style rejection (#473) — 2026-10-14
+## Casino native reference adaptation (#472) and inline-style repair (#473) — 2026-10-14
 
-Owner CS2 log rejects Panel style attributes before opening the Slots HUD.
-Moved all 16 strip positions to named CSS classes, preserving symbol order
-and downward animation. Added a regression covering every native XML layout.
-This is a resource-only fix on #471; rebuild/reinstall the matching addon
-locally, then test Slots opening and two spins before Workshop publication.
-No plugin/config/AP changes. Native acceptance remains outstanding.
+Built locally on #471 (11a78e8), preserving Veto actions, all six Casino games,
+existing rules, receipts and AP persistence. Slots/Book now have result-ribbon
+settle phases; Book loops a complete downward double strip. Blackjack gains
+bounded individual cards, concealed dealer hole card and active split-hand
+styling; Risk gains amount/next-step indicators. Button children are inert.
+Owner reported CS2 rejecting Panel style: positions now use CSS classes and
+all native layouts are scanned for forbidden inline style attributes.
+See casino-reference-ui.md for sources, exact acceptance and rollback.
+Local operator tests pass; .NET SDK/PowerShell/Valve/CS2 are unavailable here.
+GitHub push was blocked by automatic approval review; CI/native validation and
+publication remain pending. No production deployment or Workshop upload.
 
 ## Backup-matched CSS profile preparation (#354) — 2026-10-09
 

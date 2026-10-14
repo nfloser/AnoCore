@@ -20,12 +20,19 @@
 #casino_slots_reel2.rolling .casino-motion { animation-duration: 0.39s; }
 @keyframes 'slot-fast-a' { 0% { transform: translateY(-896px); } 100% { transform: translateY(0px); } }
 @keyframes 'slot-fast-b' { 0% { transform: translateY(-896px); } 100% { transform: translateY(0px); } }
-.settled .casino-final { animation-name: 'slot-land'; animation-duration: 0.28s; animation-timing-function: ease-out; }
-@keyframes 'slot-land' { 0% { transform: translateY(-22px); } 65% { transform: translateY(6px); } 100% { transform: translateY(0px); } }
+
 
 .casino-header .casino-title { font-size: 28px; color: #98f277; }
 
-/* Position in CSS: CustomHud forbids inline style attributes. */
+/* Result ribbon slides in above its decorative tail, then rests without a second jump. */
+.casino-final { height: 672px; min-height: 672px; }
+.settling .casino-final { animation-name: 'slot-settle-a'; animation-duration: 0.45s; animation-timing-function: ease-out; }
+.roll-b.settling .casino-final { animation-name: 'slot-settle-b'; }
+@keyframes 'slot-settle-a' { 0% { transform: translateY(-336px); } 100% { transform: translateY(0px); } }
+@keyframes 'slot-settle-b' { 0% { transform: translateY(-336px); } 100% { transform: translateY(0px); } }
+.casino-reel.settled { border-color: #98f277; }
+
+/* Native XML does not permit inline styles. */
 .slot-row-0 { position: 0px 0px 0px; }
 .slot-row-1 { position: 0px 112px 0px; }
 .slot-row-2 { position: 0px 224px 0px; }
