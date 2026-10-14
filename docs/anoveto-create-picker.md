@@ -95,3 +95,21 @@ in-memory catalog does not persist any records across restarts.
 The command itself currently exposes the non-mutating landing screen before permission verification; the Random click is checked by `VoteService`. Native UI access control and complete per-session creation lifecycle must be hardened before production release.
 
 This is not the finished picker: the map browser, owner-persisted presets, scrolling/keyboard and three-vote feature branch remain to be integrated and verified together with the Casino HUD fix.
+
+## Manual map-picker wiring
+
+The `ano.veto.create` HUD now contains eight map-preview cards, a selection
+counter, Prev/Next buttons, Back and Confirm. A host clicking **Create Veto**
+enters a per-player draft populated from `AnoVetoCoordinator.GetAvailableMaps`.
+Map preview classes reuse the existing compiled `ano_veto_previews.vcss_c`
+and map names come from the current server catalog. Selected cards are
+highlighted. **Start Selected Veto** requires eight unique maps and calls
+`AnoVetoCoordinator.CreateSelectedAsync` through the normal server-authorized
+vote service. `tests/AnoCore.Tests/AnoVeto/AnoVetoCommandControllerTests.cs`
+includes the end-to-end virtual HUD click path.
+
+The paged navigation is an intentional fallback; true wheel-scroll and keyboard
+search are still native CS2 acceptance items. **Use Veto** remains unconnected
+until durable MariaDB repository integration. Neither click-contract tests nor
+Panorama source assets establish live Workshop input behavior. The #383
+three-vote patch is also not included in this branch yet.
