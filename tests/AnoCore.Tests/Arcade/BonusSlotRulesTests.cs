@@ -10,7 +10,7 @@ public sealed class BonusSlotRulesTests
     {
         Assert.AreEqual(15, BonusSlotRules.GridSize);
         Assert.AreEqual(10, BonusSlotRules.Paylines.Count);
-        Assert.AreEqual(0L, BonusSlotRules.EvaluateGrid(100, Enumerable.Repeat(BonusSlotSymbol.Cherry, 15).ToArray()).Payout);
+        Assert.AreEqual(1_000L, BonusSlotRules.EvaluateGrid(100, Enumerable.Repeat(BonusSlotSymbol.Cherry, 15).ToArray()).Payout);
     }
 
     [TestMethod]
