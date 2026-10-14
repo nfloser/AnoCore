@@ -105,7 +105,8 @@ public sealed class MySqlCasinoRoundStore(IDatabase database) : ICasinoRoundStor
 
             await using (var replay = Command(connection, transaction, """
                 SELECT request_json,result_json,player_steam_id,round_id
-                FROM ano_casino_round_actions WHERE operation_id=@operation
+                FROM ano_casino_round_actions
+                WHERE player_steam_id=@player AND operation_id=@operation
                 """, operation.Player))
             {
                 Add(replay, "@operation", operation.Id.ToString("N"));
@@ -223,6 +224,7 @@ public sealed class MySqlCasinoRoundStore(IDatabase database) : ICasinoRoundStor
             || string.IsNullOrWhiteSpace(mutation.OutcomeJson) || mutation.OutcomeJson.Length > MaximumJsonLength
             || mutation.AdditionalDebit < 0 || mutation.Payout < 0 || mutation.ReservedPayout < 0
             || mutation.AdditionalDebit > 1_000_000 || mutation.Payout > AccountLimit || mutation.ReservedPayout > AccountLimit
+            || !mutation.Completed && mutation.Payout != 0
             || mutation.Completed && mutation.ReservedPayout != 0
             )
             throw new ArgumentException("Invalid casino round mutation.", nameof(mutation));
