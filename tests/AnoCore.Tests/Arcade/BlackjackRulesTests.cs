@@ -8,7 +8,13 @@ namespace AnoCore.Tests.Arcade;
 public sealed class BlackjackRulesTests
 {
     private static BlackjackCard C(BlackjackSuit suit, BlackjackRank rank) => new(suit, rank);
-    private static BlackjackCard[] Deck(params BlackjackCard[] drawOrder) => drawOrder;
+    private static BlackjackCard[] Deck(params BlackjackCard[] drawOrder)
+    {
+        var fullDeck = Enum.GetValues<BlackjackSuit>()
+            .SelectMany(suit => Enum.GetValues<BlackjackRank>()
+                .Select(rank => new BlackjackCard(suit, rank)));
+        return drawOrder.Concat(fullDeck.Except(drawOrder)).ToArray();
+    }
 
     [TestMethod]
     public void Start_is_deterministic_and_serializable()
@@ -24,7 +30,7 @@ public sealed class BlackjackRulesTests
 
         Assert.AreEqual(json, JsonSerializer.Serialize(restored));
         Assert.IsTrue(BlackjackRules.LegalActions(restored).Contains(BlackjackAction.Stand));
-        Assert.AreEqual(1, restored.RemainingDeck.Length);
+        Assert.AreEqual(48, restored.RemainingDeck.Length);
     }
 
     [TestMethod]
@@ -50,10 +56,10 @@ public sealed class BlackjackRulesTests
             C(BlackjackSuit.Spades, BlackjackRank.Five),
             C(BlackjackSuit.Diamonds, BlackjackRank.Ten),
             C(BlackjackSuit.Clubs, BlackjackRank.Nine)));
-        state = BlackjackRules.Apply(state, BlackjackAction.Hit);
+        state = BlackjackRules.Apply(state, 0, BlackjackAction.Hit);
 
         Assert.AreEqual(16, state.PlayerHands[0].BestTotal);
-        Assert.AreEqual(1, state.RemainingDeck.Length);
+        Assert.AreEqual(47, state.RemainingDeck.Length);
     }
 
     [TestMethod]
@@ -89,7 +95,7 @@ public sealed class BlackjackRulesTests
         Assert.AreEqual(2, state.PlayerHands[0].Cards.Length);
         Assert.AreEqual(2, state.PlayerHands[1].Cards.Length);
         Assert.IsTrue(state.PlayerHands.All(hand => hand.IsStanding));
-        Assert.AreEqual(1, state.RemainingDeck.Length);
+        Assert.AreEqual(45, state.RemainingDeck.Length);
     }
 
     [TestMethod]
@@ -121,7 +127,45 @@ public sealed class BlackjackRulesTests
 
         Assert.AreEqual(2, state.DealerCards.Length);
         Assert.AreEqual(100L, state.TotalPayout);
-        Assert.AreEqual(1, state.RemainingDeck.Length);
+        Assert.AreEqual(48, state.RemainingDeck.Length);
+    }
+
+    [TestMethod]
+    public void Dealer_hits_soft_sixteen()
+    {
+        var state = BlackjackRules.Start(100, Deck(
+            C(BlackjackSuit.Clubs, BlackjackRank.Ten),
+            C(BlackjackSuit.Hearts, BlackjackRank.Ace),
+            C(BlackjackSuit.Spades, BlackjackRank.Six),
+            C(BlackjackSuit.Diamonds, BlackjackRank.Five),
+            C(BlackjackSuit.Clubs, BlackjackRank.Two)));
+        state = BlackjackRules.Apply(state, 0, BlackjackAction.Stand);
+
+        Assert.AreEqual(3, state.DealerCards.Length);
+        Assert.AreEqual(18, new BlackjackHand(state.DealerCards, 100, false, false, false).BestTotal);
+        Assert.AreEqual(47, state.RemainingDeck.Length);
+    }
+
+    [TestMethod]
+    public void Version_revision_and_physical_card_uniqueness_are_validated()
+    {
+        var state = BlackjackRules.Start(100, Deck(
+            C(BlackjackSuit.Clubs, BlackjackRank.Ten),
+            C(BlackjackSuit.Hearts, BlackjackRank.Six),
+            C(BlackjackSuit.Spades, BlackjackRank.Five),
+            C(BlackjackSuit.Diamonds, BlackjackRank.Nine),
+            C(BlackjackSuit.Clubs, BlackjackRank.Two)));
+
+        Assert.ThrowsExactly<InvalidOperationException>(() => BlackjackRules.Apply(state, 1, BlackjackAction.Hit));
+        Assert.ThrowsExactly<ArgumentException>(() => BlackjackRules.LegalActions(state with { RulesVersion = "old" }));
+        Assert.ThrowsExactly<ArgumentException>(() => BlackjackRules.LegalActions(state with
+        {
+            RemainingDeck = state.RemainingDeck.SetItem(0, state.DealerCards[0]),
+        }));
+
+        var advanced = BlackjackRules.Apply(state, 0, BlackjackAction.Stand);
+        Assert.AreEqual(1L, advanced.Revision);
+        Assert.AreEqual(BlackjackRules.RulesVersion, advanced.RulesVersion);
     }
 
     [TestMethod]
@@ -132,6 +176,6 @@ public sealed class BlackjackRulesTests
                 C(BlackjackSuit.Spades, BlackjackRank.Three), C(BlackjackSuit.Diamonds, BlackjackRank.Three))));
         Assert.ThrowsExactly<ArgumentException>(() => BlackjackRules.Start(100,
             Deck(C(BlackjackSuit.Clubs, BlackjackRank.Two), C(BlackjackSuit.Hearts, BlackjackRank.Two),
-                C(BlackjackSuit.Spades, BlackjackRank.Three))));
+                C(BlackjackSuit.Spades, BlackjackRank.Three)).Take(3)));
     }
 }
