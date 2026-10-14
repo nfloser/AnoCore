@@ -80,3 +80,44 @@ Label { color:#e9efed; font-family:Arial; font-size:16px; margin:3px; }
 
 #casino_coin, #casino_wheel { visibility:collapse; }
 .view-coinflip #casino_coin, .view-roulette #casino_wheel { visibility:visible; }
+
+/* Number classes hold the booked European-wheel landing orientation; these are static, not frame updates. */
+#casino_wheel.land-n0 .wheel-rim { transform:rotateZ(0.0deg); }
+#casino_wheel.land-n32 .wheel-rim { transform:rotateZ(9.7deg); }
+#casino_wheel.land-n15 .wheel-rim { transform:rotateZ(19.5deg); }
+#casino_wheel.land-n19 .wheel-rim { transform:rotateZ(29.2deg); }
+#casino_wheel.land-n4 .wheel-rim { transform:rotateZ(38.9deg); }
+#casino_wheel.land-n21 .wheel-rim { transform:rotateZ(48.6deg); }
+#casino_wheel.land-n2 .wheel-rim { transform:rotateZ(58.4deg); }
+#casino_wheel.land-n25 .wheel-rim { transform:rotateZ(68.1deg); }
+#casino_wheel.land-n17 .wheel-rim { transform:rotateZ(77.8deg); }
+#casino_wheel.land-n34 .wheel-rim { transform:rotateZ(87.6deg); }
+#casino_wheel.land-n6 .wheel-rim { transform:rotateZ(97.3deg); }
+#casino_wheel.land-n27 .wheel-rim { transform:rotateZ(107.0deg); }
+#casino_wheel.land-n13 .wheel-rim { transform:rotateZ(116.8deg); }
+#casino_wheel.land-n36 .wheel-rim { transform:rotateZ(126.5deg); }
+#casino_wheel.land-n11 .wheel-rim { transform:rotateZ(136.2deg); }
+#casino_wheel.land-n30 .wheel-rim { transform:rotateZ(145.9deg); }
+#casino_wheel.land-n8 .wheel-rim { transform:rotateZ(155.7deg); }
+#casino_wheel.land-n23 .wheel-rim { transform:rotateZ(165.4deg); }
+#casino_wheel.land-n10 .wheel-rim { transform:rotateZ(175.1deg); }
+#casino_wheel.land-n5 .wheel-rim { transform:rotateZ(184.9deg); }
+#casino_wheel.land-n24 .wheel-rim { transform:rotateZ(194.6deg); }
+#casino_wheel.land-n16 .wheel-rim { transform:rotateZ(204.3deg); }
+#casino_wheel.land-n33 .wheel-rim { transform:rotateZ(214.1deg); }
+#casino_wheel.land-n1 .wheel-rim { transform:rotateZ(223.8deg); }
+#casino_wheel.land-n20 .wheel-rim { transform:rotateZ(233.5deg); }
+#casino_wheel.land-n14 .wheel-rim { transform:rotateZ(243.2deg); }
+#casino_wheel.land-n31 .wheel-rim { transform:rotateZ(253.0deg); }
+#casino_wheel.land-n9 .wheel-rim { transform:rotateZ(262.7deg); }
+#casino_wheel.land-n22 .wheel-rim { transform:rotateZ(272.4deg); }
+#casino_wheel.land-n18 .wheel-rim { transform:rotateZ(282.2deg); }
+#casino_wheel.land-n29 .wheel-rim { transform:rotateZ(291.9deg); }
+#casino_wheel.land-n7 .wheel-rim { transform:rotateZ(301.6deg); }
+#casino_wheel.land-n28 .wheel-rim { transform:rotateZ(311.4deg); }
+#casino_wheel.land-n12 .wheel-rim { transform:rotateZ(321.1deg); }
+#casino_wheel.land-n35 .wheel-rim { transform:rotateZ(330.8deg); }
+#casino_wheel.land-n3 .wheel-rim { transform:rotateZ(340.5deg); }
+#casino_wheel.land-n26 .wheel-rim { transform:rotateZ(350.3deg); }
+#casino_coin.flipping #casino_result { visibility:collapse; }
+#casino_wheel.spinning #casino_wheelresult { visibility:collapse; }
