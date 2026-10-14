@@ -134,11 +134,11 @@ public sealed class CasinoRoundPresenter : IDisposable
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             lock (_gate) if (Current(state))
-                {
-                    if (ex is ArgumentException or CasinoRejectedException) state.Unconfirmed = null;
-                    state.Status = ex is ArgumentException or CasinoRejectedException ? ex.Message
-                        : "Buchung unbestätigt. BUCHUNG PRÜFEN verwendet dieselbe Aktions-ID.";
-                }
+            {
+                if (ex is ArgumentException or CasinoRejectedException) state.Unconfirmed = null;
+                state.Status = ex is ArgumentException or CasinoRejectedException ? ex.Message
+                    : "Buchung unbestätigt. BUCHUNG PRÜFEN verwendet dieselbe Aktions-ID.";
+            }
         }
         finally { lock (_gate) { state.Pending = false; if (Current(state) && state.Visible) Render(state); } }
     }
@@ -146,13 +146,13 @@ public sealed class CasinoRoundPresenter : IDisposable
     public void Tick()
     {
         lock (_gate) foreach (var state in _states.Values.ToArray())
-            {
-                if (!Current(state)) { Forget(state.Player); continue; }
-                if (state.Game == CasinoRoundGame.Book && state.AnimatingUntil is { } bookEnd)
-                    for (var reel = 0; reel < 5; reel++) if (_clock.GetUtcNow() >= bookEnd.AddSeconds(-1 + reel * .2)) Class(state, "reel" + reel, "stopped", true);
-                if (state.AnimatingUntil is { } end && _clock.GetUtcNow() >= end)
-                { state.AnimatingUntil = null; state.Status = "Gespeichertes Ergebnis"; if (state.Visible) Render(state); }
-            }
+        {
+            if (!Current(state)) { Forget(state.Player); continue; }
+            if (state.Game == CasinoRoundGame.Book && state.AnimatingUntil is { } bookEnd)
+                for (var reel = 0; reel < 5; reel++) if (_clock.GetUtcNow() >= bookEnd.AddSeconds(-1 + reel * .2)) Class(state, "reel" + reel, "stopped", true);
+            if (state.AnimatingUntil is { } end && _clock.GetUtcNow() >= end)
+            { state.AnimatingUntil = null; state.Status = "Gespeichertes Ergebnis"; if (state.Visible) Render(state); }
+        }
     }
 
     private void Render(State state)

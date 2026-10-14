@@ -171,55 +171,55 @@ public sealed class CasinoPresenter : IDisposable
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             lock (_gate) if (Current(state))
-                {
-                    if (ex is CasinoRejectedException or ArgumentException) state.Unconfirmed = null;
-                    state.Status = ex is CasinoRejectedException ? ex.Message : "Buchung unbestätigt. BUCHUNG PRÜFEN verwenden; keine neue Spielanfrage senden.";
-                }
+            {
+                if (ex is CasinoRejectedException or ArgumentException) state.Unconfirmed = null;
+                state.Status = ex is CasinoRejectedException ? ex.Message : "Buchung unbestätigt. BUCHUNG PRÜFEN verwenden; keine neue Spielanfrage senden.";
+            }
         }
         finally { lock (_gate) { state.Pending = false; if (Current(state) && state.Visible) Render(state); } }
     }
     public void Tick()
     {
         lock (_gate) foreach (var state in _states.Values.ToArray())
+        {
+            if (!Current(state)) { ForgetSession(state.Player); continue; }
+            if (state.Started is not { } start) continue;
+            var elapsed = _clock.GetUtcNow() - start;
+            if (state.Outcome?.Game == CasinoGame.Slots)
             {
-                if (!Current(state)) { ForgetSession(state.Player); continue; }
-                if (state.Started is not { } start) continue;
-                var elapsed = _clock.GetUtcNow() - start;
-                if (state.Outcome?.Game == CasinoGame.Slots)
+                for (var i = 0; i < 3; i++)
                 {
-                    for (var i = 0; i < 3; i++)
-                    {
-                        if ((state.ReelStops & (1 << i)) != 0 || elapsed < TimeSpan.FromMilliseconds(2600 + i * 500)) continue;
-                        state.ReelStops |= 1 << i;
-                        Class(state, "reel" + i, "rolling", false);
-                        Class(state, "reel" + i, "settled", true);
-                    }
+                    if ((state.ReelStops & (1 << i)) != 0 || elapsed < TimeSpan.FromMilliseconds(2600 + i * 500)) continue;
+                    state.ReelStops |= 1 << i;
+                    Class(state, "reel" + i, "rolling", false);
+                    Class(state, "reel" + i, "settled", true);
                 }
-                if (!state.LandingApplied && elapsed >= TimeSpan.FromMilliseconds(3600) && state.Outcome is { } settled)
-                {
-                    state.LandingApplied = true;
-                    Class(state, "coin", "flipping", false);
-                    Class(state, "coin", settled.Number == 0 ? "land-heads" : "land-tails", settled.Game == CasinoGame.Coinflip);
-                    Class(state, "wheel", "spinning", false);
-                    Class(state, "pointer", "spinning", false);
-                    var color = settled.Number == 0 ? "land-green" : RouletteReds.Contains(settled.Number) ? "land-red" : "land-black";
-                    Class(state, "wheel", color, settled.Game == CasinoGame.Roulette);
-                    Class(state, "pointer", color, settled.Game == CasinoGame.Roulette);
-                    for (var number = 0; number <= 36; number++) Class(state, "wheel", "land-n" + number, settled.Game == CasinoGame.Roulette && settled.Number == number);
-                }
-                if (elapsed < TimeSpan.FromMilliseconds(4000)) continue;
-                if (!state.LinesRevealed && state.Outcome is { Game: CasinoGame.Slots } slots)
-                {
-                    for (var line = 0; line < WinningLines.Length; line++)
-                    {
-                        var cells = WinningLines[line];
-                        Class(state, "line" + line, "revealed", true);
-                        Class(state, "line" + line, "active", slots.Symbols[cells[0]] == slots.Symbols[cells[1]] && slots.Symbols[cells[1]] == slots.Symbols[cells[2]]);
-                    }
-                    state.LinesRevealed = true;
-                }
-                state.Started = null; state.Win = state.Outcome!.Payout; state.Status = state.Outcome.Summary; if (state.Visible) Render(state);
             }
+            if (!state.LandingApplied && elapsed >= TimeSpan.FromMilliseconds(3600) && state.Outcome is { } settled)
+            {
+                state.LandingApplied = true;
+                Class(state, "coin", "flipping", false);
+                Class(state, "coin", settled.Number == 0 ? "land-heads" : "land-tails", settled.Game == CasinoGame.Coinflip);
+                Class(state, "wheel", "spinning", false);
+                Class(state, "pointer", "spinning", false);
+                var color = settled.Number == 0 ? "land-green" : RouletteReds.Contains(settled.Number) ? "land-red" : "land-black";
+                Class(state, "wheel", color, settled.Game == CasinoGame.Roulette);
+                Class(state, "pointer", color, settled.Game == CasinoGame.Roulette);
+                for (var number = 0; number <= 36; number++) Class(state, "wheel", "land-n" + number, settled.Game == CasinoGame.Roulette && settled.Number == number);
+            }
+            if (elapsed < TimeSpan.FromMilliseconds(4000)) continue;
+            if (!state.LinesRevealed && state.Outcome is { Game: CasinoGame.Slots } slots)
+            {
+                for (var line = 0; line < WinningLines.Length; line++)
+                {
+                    var cells = WinningLines[line];
+                    Class(state, "line" + line, "revealed", true);
+                    Class(state, "line" + line, "active", slots.Symbols[cells[0]] == slots.Symbols[cells[1]] && slots.Symbols[cells[1]] == slots.Symbols[cells[2]]);
+                }
+                state.LinesRevealed = true;
+            }
+            state.Started = null; state.Win = state.Outcome!.Payout; state.Status = state.Outcome.Summary; if (state.Visible) Render(state);
+        }
     }
     private void SetOutcome(State s, CasinoOutcome o)
     {
