@@ -1,5 +1,5 @@
-using AnoCore.Abstractions.Maps;
 using AnoCore.Abstractions.Hud;
+using AnoCore.Abstractions.Maps;
 using AnoCore.Abstractions.Modules;
 using AnoCore.Abstractions.Players;
 
