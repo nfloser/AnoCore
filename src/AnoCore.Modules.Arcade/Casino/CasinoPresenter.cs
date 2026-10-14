@@ -442,7 +442,7 @@ public sealed class CasinoPresenter : IDisposable
                 {
                     if (Current(state))
                     {
-                        state.Status = "Spiel konnte nicht geladen werden.";
+                        state.Status = "Spiel konnte nicht geladen werden. Bitte aktualisieren.";
                         state.Game = null;
                         state.Visible = true;
                         HideAllViews(context.PlayerId);
