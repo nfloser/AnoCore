@@ -1,3 +1,23 @@
+## Casino native shell v2 (#451) — 2026-10-14
+
+Live local-client acceptance reached the current Casino command successfully, and the
+client could resolve the Casino root resource, but no visible lobby appeared. The
+working AnoVeto UI uses a fully namespaced fixed-size shell, while the first Casino
+layout used generic classes such as `.host`, `.overlay`, `.window`, `.row`,
+`.button`, global Label styling and percentage/max sizing.
+
+Branch `fix/451-casino-native-shell-v2` now keeps all existing server-facing
+`casino_*` panel/button IDs but loads a fresh cache-busting resource
+`ano_casino_native_v2.vxml_c`. Its shell mirrors the proven AnoVeto pattern:
+explicit full-screen host/overlay, fixed 1180x880 centered window, namespaced classes,
+no global Label selector, and a static `UI V2 · LOCAL TEST 2026-10-14` marker.
+The build scripts compile/install both the new VXML and VCSS for local-client testing.
+Game/AP rules are unchanged. Operator tests now target the v2 layout/style contract.
+
+Next gate: exact-head CI, then local-client build/install and first-open visual
+acceptance. Do not update the shared Workshop item until the v2 marker and lobby are
+visible locally and the controls respond.
+
 ## Custom HUD initial client-sync race (#450) — 2026-10-14
 
 Local Casino acceptance now narrows the remaining failure to the first HUD sync:
