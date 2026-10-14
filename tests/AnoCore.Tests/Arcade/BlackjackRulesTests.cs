@@ -127,10 +127,10 @@ public sealed class BlackjackRulesTests
     [TestMethod]
     public void Invalid_stakes_and_exhausted_deck_are_rejected()
     {
-        Assert.ThrowsException<ArgumentOutOfRangeException>(() => BlackjackRules.Start(51,
+        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => BlackjackRules.Start(51,
             Deck(C(BlackjackSuit.Clubs, BlackjackRank.Two), C(BlackjackSuit.Hearts, BlackjackRank.Two),
                 C(BlackjackSuit.Spades, BlackjackRank.Three), C(BlackjackSuit.Diamonds, BlackjackRank.Three))));
-        Assert.ThrowsException<ArgumentException>(() => BlackjackRules.Start(100,
+        Assert.ThrowsExactly<ArgumentException>(() => BlackjackRules.Start(100,
             Deck(C(BlackjackSuit.Clubs, BlackjackRank.Two), C(BlackjackSuit.Hearts, BlackjackRank.Two),
                 C(BlackjackSuit.Spades, BlackjackRank.Three))));
     }
