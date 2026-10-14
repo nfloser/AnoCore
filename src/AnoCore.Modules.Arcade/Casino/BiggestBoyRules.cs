@@ -88,7 +88,7 @@ public static class BiggestBoyRules
     public static long MaximumRoundExposure(int stake)
     {
         ValidateStake(stake);
-        return checked(stake * (long)Pays.Max(row => row[2]) * 31);
+        return checked(stake * ((long)Pays.Max(row => row[2]) + ExpansionPays.Max(row => row[2])) * 31);
     }
 
     public static BiggestBoySymbol[] DrawGrid(Func<int, int> random) => Draw(random).Grid;
