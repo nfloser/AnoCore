@@ -26,6 +26,8 @@ public sealed class AnoVetoCreateHudController : IDisposable
         public int Page { get; set; }
         public IReadOnlyList<(AnoVetoPreset Preset, long Revision)> Saved { get; set; } = [];
         public string? SelectedSavedName { get; set; }
+        public string? EditingName { get; set; }
+        public long EditingRevision { get; set; }
         public string? PendingDeleteName { get; set; }
         public Dictionary<int, string> ImageClasses { get; } = [];
     }
@@ -47,7 +49,7 @@ public sealed class AnoVetoCreateHudController : IDisposable
             "ano_veto_create_close", "ano_veto_create_random", "ano_veto_create_manual",
             "ano_veto_create_saved", "ano_veto_create_back", "ano_veto_create_prev",
             "ano_veto_create_next", "ano_veto_create_confirm", "ano_veto_create_save",
-            "ano_veto_create_duplicate", "ano_veto_create_delete"
+            "ano_veto_create_edit", "ano_veto_create_duplicate", "ano_veto_create_delete"
         };
         buttons.AddRange(Enumerable.Range(0, PageSize).Select(i => $"ano_veto_create_map_{i}"));
         _registration = _hud.Register(Owner,
@@ -205,6 +207,11 @@ public sealed class AnoVetoCreateHudController : IDisposable
             await SaveCurrentAsync(player, context.CancellationToken).ConfigureAwait(false);
             return;
         }
+        if (context.ButtonId == "ano_veto_create_edit")
+        {
+            EditSelected(player);
+            return;
+        }
         if (context.ButtonId == "ano_veto_create_duplicate")
         {
             await DuplicateSelectedAsync(player, context.CancellationToken).ConfigureAwait(false);
@@ -285,6 +292,37 @@ public sealed class AnoVetoCreateHudController : IDisposable
         }
     }
 
+    private void EditSelected(PlayerId player)
+    {
+        lock (_gate)
+        {
+            if (!_states.TryGetValue(player, out var state)
+                || state.Session.CurrentScreen != AnoVetoCreateSession.Screen.Saved)
+                return;
+            var existing = state.Saved.FirstOrDefault(p =>
+                string.Equals(p.Preset.Name, state.SelectedSavedName, StringComparison.OrdinalIgnoreCase));
+            if (existing.Preset is null) return;
+
+            var catalog = _getCatalog();
+            var allowed = catalog.Select(m => (m.MapId, m.DisplayName)).ToArray();
+            var editor = new PickerState(new AnoVetoCreateSession(allowed))
+            {
+                EditingName = existing.Preset.Name,
+                EditingRevision = existing.Revision
+            };
+            editor.Session.OpenCreate();
+            foreach (var id in existing.Preset.MapIds)
+                editor.Session.SelectMap(id);
+            ClearState(player);
+            _states[player] = editor;
+            RenderPicker(player, editor, catalog);
+            _hud.SetText(player, HudId, "ano_veto_create_status",
+                editor.Session.Draft.CanConfirm
+                    ? $"Editing {editor.EditingName}. Save changes when ready."
+                    : "Some saved maps are no longer available. Select valid replacements.");
+        }
+    }
+
     private async ValueTask OpenSavedAsync(PlayerId player, CancellationToken token)
     {
         if (_presets is null)
@@ -328,12 +366,18 @@ public sealed class AnoVetoCreateHudController : IDisposable
     {
         if (_presets is null) return;
         IReadOnlyList<string>? maps = null;
+        string? editing = null;
+        long expectedRevision = 0;
         lock (_gate)
         {
             if (_states.TryGetValue(player, out var state)
                 && state.Session.CurrentScreen == AnoVetoCreateSession.Screen.Create
                 && state.Session.Draft.CanConfirm)
+            {
                 maps = state.Session.Draft.Confirm();
+                editing = state.EditingName;
+                expectedRevision = state.EditingRevision;
+            }
         }
         if (maps is null)
         {
@@ -342,11 +386,28 @@ public sealed class AnoVetoCreateHudController : IDisposable
         }
         try
         {
-            var list = await _presets.ListAsync(player.SteamId64, token).ConfigureAwait(false);
-            var name = NextPresetName(list);
-            await _presets.CreateAsync(new AnoVetoPreset(player.SteamId64, name, maps), token)
-                .ConfigureAwait(false);
-            _hud.SetText(player, HudId, "ano_veto_create_status", $"Saved as {name}.");
+            if (editing is not null)
+            {
+                var replacement = new AnoVetoPreset(player.SteamId64, editing, maps);
+                var newRevision = await _presets.ReplaceAsync(
+                    player.SteamId64, editing, expectedRevision, replacement, token).ConfigureAwait(false);
+                lock (_gate)
+                {
+                    if (_states.TryGetValue(player, out var current)
+                        && string.Equals(current.EditingName, editing, StringComparison.Ordinal)
+                        && current.EditingRevision == expectedRevision)
+                        current.EditingRevision = newRevision;
+                }
+                _hud.SetText(player, HudId, "ano_veto_create_status", $"Updated {editing}.");
+            }
+            else
+            {
+                var list = await _presets.ListAsync(player.SteamId64, token).ConfigureAwait(false);
+                var name = NextPresetName(list);
+                await _presets.CreateAsync(new AnoVetoPreset(player.SteamId64, name, maps), token)
+                    .ConfigureAwait(false);
+                _hud.SetText(player, HudId, "ano_veto_create_status", $"Saved as {name}.");
+            }
         }
         catch (Exception error) when (error is not OperationCanceledException)
         {
