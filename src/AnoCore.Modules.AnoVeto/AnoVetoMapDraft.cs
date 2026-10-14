@@ -28,6 +28,7 @@ public sealed class AnoVetoMapDraft
 
     public IReadOnlyList<string> SelectedMapIds => _selected.ToArray();
     public bool CanConfirm => _selected.Count == RequiredMaps;
+    public int AvailableMapCount => _catalog.Count;
 
     public bool Toggle(string mapId)
     {
