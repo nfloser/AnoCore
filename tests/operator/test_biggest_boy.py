@@ -15,7 +15,7 @@ spec.loader.exec_module(audit)
 
 class BiggestBoyTests(unittest.TestCase):
     def test_each_reel_is_the_authoritative_double_strip_plus_visible_window(self):
-        _, _, strips = audit.profile()
+        _, _, _, strips = audit.profile()
         tree = ET.parse(UI / 'layout/custom_game/anocore/ano_casino_rounds.xml')
         for reel in range(5):
             motion = tree.find(f'.//*[@id="casino_round_biggest_offset{reel}"]//Panel[@class="biggest-motion"]')
