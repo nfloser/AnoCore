@@ -85,32 +85,60 @@ public sealed class AnoVetoCreateHudController : IDisposable
 
     private void RenderPicker(PlayerId player, PickerState state, IReadOnlyList<MapDefinition> catalog)
     {
-        var page = state.Session.Browse(state.Page * PageSize, PageSize);
+        var saved = state.Session.CurrentScreen == AnoVetoCreateSession.Screen.Saved;
+        var maps = saved
+            ? Array.Empty<(string MapId, string DisplayName)>()
+            : state.Session.Browse(state.Page * PageSize, PageSize).ToArray();
+        var savedPage = saved
+            ? state.Saved.Skip(state.Page * PageSize).Take(PageSize).ToArray()
+            : [];
         var mapLookup = catalog.ToDictionary(m => m.MapId, StringComparer.OrdinalIgnoreCase);
-        var selected = state.Session.Draft.SelectedMapIds.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var selectedMaps = state.Session.Draft.SelectedMapIds.ToHashSet(StringComparer.OrdinalIgnoreCase);
         _hud.SetText(player, HudId, "ano_veto_create_progress",
-            $"{selected.Count}/8 selected · Page {state.Page + 1}");
+            saved ? $"{state.Saved.Count} saved vetos · Page {state.Page + 1}"
+                  : $"{selectedMaps.Count}/8 selected · Page {state.Page + 1}");
+        _hud.SetText(player, HudId, "ano_veto_create_confirm_text",
+            saved ? "START SAVED VETO" : "START SELECTED VETO");
+
         for (var i = 0; i < PageSize; i++)
         {
             var imagePanel = $"ano_veto_create_map_{i}_image";
+            var card = $"ano_veto_create_map_{i}";
             if (state.ImageClasses.Remove(i, out var previous))
                 _hud.SetClass(player, HudId, imagePanel, previous, false);
-            if (i < page.Count)
+
+            var exists = saved ? i < savedPage.Length : i < maps.Length;
+            if (!exists)
             {
-                var row = page[i];
-                _hud.SetText(player, HudId, $"ano_veto_create_map_{i}_text", row.DisplayName);
-                _hud.SetClass(player, HudId, $"ano_veto_create_map_{i}", "selected", selected.Contains(row.MapId));
-                if (mapLookup.TryGetValue(row.MapId, out var map))
-                {
-                    var preview = AnoVetoMapPreview.GetClass(map);
-                    _hud.SetClass(player, HudId, imagePanel, preview, true);
-                    state.ImageClasses[i] = preview;
-                }
+                _hud.SetText(player, HudId, $"{card}_text", "");
+                _hud.SetClass(player, HudId, card, "selected", false);
+                continue;
+            }
+
+            string name;
+            string? previewMapId;
+            bool isSelected;
+            if (saved)
+            {
+                var preset = savedPage[i].Preset;
+                name = preset.Name;
+                previewMapId = preset.MapIds[0];
+                isSelected = string.Equals(state.SelectedSavedName, name, StringComparison.OrdinalIgnoreCase);
             }
             else
             {
-                _hud.SetText(player, HudId, $"ano_veto_create_map_{i}_text", "");
-                _hud.SetClass(player, HudId, $"ano_veto_create_map_{i}", "selected", false);
+                name = maps[i].DisplayName;
+                previewMapId = maps[i].MapId;
+                isSelected = selectedMaps.Contains(previewMapId);
+            }
+
+            _hud.SetText(player, HudId, $"{card}_text", name);
+            _hud.SetClass(player, HudId, card, "selected", isSelected);
+            if (mapLookup.TryGetValue(previewMapId, out var map))
+            {
+                var preview = AnoVetoMapPreview.GetClass(map);
+                _hud.SetClass(player, HudId, imagePanel, preview, true);
+                state.ImageClasses[i] = preview;
             }
         }
     }
