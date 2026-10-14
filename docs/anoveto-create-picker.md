@@ -29,3 +29,20 @@ Test in CS2 with a rebuilt, matching `anomeme_ui` addon and two clients:
 ## Combined Casino test delivery
 
 Do not publish this branch on its own. Integrate after validating #383, #374/#375 and the Casino stack #421/#438/#442; build one exact package with `BUILD-COMMIT.txt`, run all existing .NET/MariaDB/operator/PowerShell/Panorama CI checks and then verify native CS2. Preserve `core.json`, server database and Workshop item `3815363712`.
+
+## Source resource staging (PR #445 follow-up)
+
+The independent ANOMEME create landing screen is checked in as
+`ano_veto_create.xml` and `ano_veto_create.css`. The combined
+`ui/AnoCore/build.ps1` now compiles it alongside `ano_veto_cards`,
+`ano_veto`, `menu` and `ano_tournament`, including local-client staging
+when requested. `tests/operator/test_anoveto_create_resources.py` checks
+the source tree and builder mapping.
+
+**Not wired yet:** no `ICustomHudService.Register` registration, no
+`anoveto create` command route, and no live/persistent preset CRUD. An XML
+button by itself does not perform an action. The existing `anoveto create`
+continues to start a random vote; `anoveto random` is an explicit alias
+until the manager window is fully implemented. The search field remains
+absent until keyboard capture is proven on real CS2 clients. Do not publish
+or describe the staged layout as an end-user feature.
