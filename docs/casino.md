@@ -5,7 +5,9 @@
 > Presenter-/Plugin-Integration spielbar. Kistenöffnung und simuliertes Inventar
 > gehören ausdrücklich nicht zu AnoCasino.
 
-Diese Version ergänzt den separaten Drei-Frucht-Animationstest. Slots, Coinflip
+Diese Version ergänzt den separaten Drei-Frucht-Animationstest. Der bestehende Stand
+`anocasino-v1` bleibt der Legacy-Vertrag für gespeicherte Vorgänge; neue
+Spiel-Engines dürfen dessen Auswertungen und Belege nicht verändern. Slots, Coinflip
 und Roulette sind serverseitig spielbar. Die native CS2-Darstellung und alle
 Workshop-Ressourcen müssen auf dem Testserver abgenommen werden; Sourcechecks
 und CI ersetzen diese Abnahme nicht. Keine Echtgeld-Einzahlung oder Auszahlung.
@@ -166,4 +168,19 @@ vollständigen Serverneustart testen. AP dürfen nicht entstehen/verschwinden,
 außer durch dokumentierte Spielverluste/-gewinne oder Konsolengutschriften.
 Konto nach Neustart und den letzten Beleg mit dem Zustand vor Abbruch vergleichen.
 
-Kistensimulator, Wettzentrale und Book-Automat bleiben getrennte Folgearbeiten.
+Kistensimulator und Wettzentrale bleiben getrennte Folgearbeiten. Der Book-artige
+Bonus-Slot gehört zum Pflichtumfang, ist aber erst nach #429 spielbar.
+
+## Kompatibilität und erweiterte Automaten
+
+Migration 027 speichert Requests und Receipts als JSON mit den Standardoptionen
+von `System.Text.Json`. Die Enum-Zahlen, Symbolreihenfolge, Regelversion und
+repräsentative Auszahlungs-/JSON-Vektoren sind deshalb als Legacy-Vertrag
+Regressionstests abgesichert. Belege bleiben unveränderlich: spätere Regel- oder
+Darstellungsänderungen interpretieren abgeschlossene Vorgänge nicht neu.
+
+Die Engines aus #424 (Blackjack), #425 (Risk / Double-or-Bank) und #426
+(Book-style bonus slot) sind eine teilweise Erweiterung, keine derzeit spielbaren
+Funktionen. Sie gelten erst nach #429 einschließlich Persistenz-, UI- und
+CI-Integration als spielbar. Diese Dokumentation behauptet keine native
+CS2-Abnahme der erweiterten Automaten.
