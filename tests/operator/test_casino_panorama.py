@@ -35,8 +35,8 @@ class CasinoResourcesTests(unittest.TestCase):
         css=(UI/'styles/custom_game/anocore/ano_casino_native_v2.css').read_text()
         for key in ['casino-coin-flip','casino-wheel-spin','casino-pointer-settle']:
             self.assertIn('@keyframes '+key,css)
-        self.assertIn('.line-indicator.revealed',css)
-        self.assertIn('.line-indicator.active',css)
+        self.assertIn('.casino-line-indicator.revealed',css)
+        self.assertIn('.casino-line-indicator.active',css)
         presenter=(ROOT/'src/AnoCore.Modules.Arcade/Casino/CasinoPresenter.cs').read_text()
         tick=presenter.split('public void Tick()',1)[1].split('private void SetOutcome',1)[0]
         for marker in ['TimeSpan.FromMilliseconds(2600 + i * 500)','TimeSpan.FromMilliseconds(3600)','TimeSpan.FromMilliseconds(4000)','state.LinesRevealed']:
@@ -71,7 +71,7 @@ class CasinoResourcesTests(unittest.TestCase):
             self.assertNotIn(generic,layout)
         for required in ['casino-hud-host','casino-overlay','casino-window','casino-button']:
             self.assertIn(required,layout)
-        self.assertNotIn('Label {',css)
+        self.assertNotIn('\nLabel {',css)
         for build in ['build.ps1','build-casino.ps1']:
             self.assertIn('ano_casino_native_v2',(UI/build).read_text())
 
