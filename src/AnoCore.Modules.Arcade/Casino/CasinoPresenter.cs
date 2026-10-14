@@ -23,6 +23,8 @@ public sealed class CasinoPresenter : IDisposable
     private readonly Dictionary<PlayerId, State> _states = [];
     private readonly List<IDisposable> _owned = [];
     private bool _disposed;
+    private static readonly int[][] WinningLines = [[0, 3, 6], [1, 4, 7], [2, 5, 8], [0, 4, 8], [2, 4, 6]];
+    private static readonly HashSet<int> RouletteReds = [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36];
     private static readonly string[] Buttons = ["close", "home", "menu", "slots", "coinflip", "roulette", "load", "return", "loadminus", "loadplus", "minus", "plus", "play", "head", "tail", "numberminus", "numberplus", "number", "refresh", "history", "rules", "retry", .. Enumerable.Range(37, 12).Select(n => "bet" + n), .. Enumerable.Range(0, 37).Select(n => "r" + n)];
     public CasinoPresenter(ICustomHudService hud, IPlayerRegistry players, IPermissionEvaluator permissions,
         ICasinoWallet wallet, IAnoCommandRegistry commands, IAnoEventBus events, Action<PlayerId> beforeOpen, TimeProvider? clock = null)
@@ -141,13 +143,16 @@ public sealed class CasinoPresenter : IDisposable
                 if (receipt is not null) state.Unconfirmed = null;
                 if (receipt?.Outcome is { } outcome)
                 {
-                    state.Outcome = outcome; state.Win = 0; state.Started = _clock.GetUtcNow(); state.Spin++; state.Status = "Ergebnis gebucht · Animation läuft";
+                    ClearAnimationClasses(state); state.Outcome = outcome; state.Win = 0; state.Started = _clock.GetUtcNow(); state.Spin++; state.Status = "Ergebnis gebucht · Animation läuft";
                     SetOutcome(state, outcome);
                     for (var i = 0; i < 3; i++)
                     {
                         Class(state, "reel" + i, "roll-a", state.Spin % 2 == 1); Class(state, "reel" + i, "roll-b", state.Spin % 2 == 0);
                         Class(state, "reel" + i, "rolling", outcome.Game == CasinoGame.Slots);
                     }
+                    Class(state, "coin", "flipping", outcome.Game == CasinoGame.Coinflip);
+                    Class(state, "wheel", "spinning", outcome.Game == CasinoGame.Roulette);
+                    Class(state, "pointer", "spinning", outcome.Game == CasinoGame.Roulette);
                 }
                 else state.Status = entries is null ? "AP-Anzeige aktualisiert" : string.Join(" | ", entries.Where(x => x.Outcome is not null).Take(5).Select(x => x.Outcome!.Summary));
             }
@@ -169,21 +174,60 @@ public sealed class CasinoPresenter : IDisposable
             if (!Current(state)) { ForgetSession(state.Player); continue; }
             if (state.Started is not { } start) continue;
             var elapsed = _clock.GetUtcNow() - start;
-            for (var i = 0; i < 3; i++) if (elapsed.TotalSeconds >= 2.6 + i * .5) Class(state, "reel" + i, "rolling", false);
+            if (state.Outcome?.Game == CasinoGame.Slots)
+            {
+                for (var i = 0; i < 3; i++)
+                {
+                    if ((state.ReelStops & (1 << i)) != 0 || elapsed.TotalSeconds < 2.6 + i * .5) continue;
+                    state.ReelStops |= 1 << i;
+                    Class(state, "reel" + i, "rolling", false);
+                    Class(state, "reel" + i, "settled", true);
+                }
+            }
+            if (!state.LandingApplied && elapsed.TotalSeconds >= 3.6 && state.Outcome is { } settled)
+            {
+                state.LandingApplied = true;
+                Class(state, "coin", "flipping", false);
+                Class(state, "coin", settled.Number == 0 ? "land-heads" : "land-tails", settled.Game == CasinoGame.Coinflip);
+                Class(state, "wheel", "spinning", false);
+                Class(state, "pointer", "spinning", false);
+                var color = settled.Number == 0 ? "land-green" : RouletteReds.Contains(settled.Number) ? "land-red" : "land-black";
+                Class(state, "wheel", color, settled.Game == CasinoGame.Roulette);
+                Class(state, "pointer", color, settled.Game == CasinoGame.Roulette);
+            }
             if (elapsed.TotalSeconds < 4) continue;
+            if (!state.LinesRevealed && state.Outcome is { Game: CasinoGame.Slots } slots)
+            {
+                for (var line = 0; line < WinningLines.Length; line++)
+                {
+                    var cells = WinningLines[line];
+                    Class(state, "line" + line, "revealed", true);
+                    Class(state, "line" + line, "active", slots.Symbols[cells[0]] == slots.Symbols[cells[1]] && slots.Symbols[cells[1]] == slots.Symbols[cells[2]]);
+                }
+                state.LinesRevealed = true;
+            }
             state.Started = null; state.Win = state.Outcome!.Payout; state.Status = state.Outcome.Summary; if (state.Visible) Render(state);
         }
     }
     private void SetOutcome(State s, CasinoOutcome o)
     {
         if (o.Game == CasinoGame.Slots) for (var i = 0; i < 9; i++) for (var symbol = 0; symbol < CasinoRules.Symbols.Length; symbol++) Class(s, "symbol" + i, "symbol-" + CasinoRules.Symbols[symbol], o.Symbols[i] == symbol);
-        Text(s, "result", o.Game == CasinoGame.Coinflip ? (o.Number == 0 ? "KOPF" : "ZAHL") : o.Game == CasinoGame.Roulette ? o.Number.ToString(CultureInfo.InvariantCulture) : "");
+        Text(s, "result", o.Game == CasinoGame.Coinflip ? (o.Number == 0 ? "KOPF" : "ZAHL") : "");
+        Text(s, "wheelresult", o.Game == CasinoGame.Roulette ? o.Number.ToString(CultureInfo.InvariantCulture) : "");
+    }
+    private void ClearAnimationClasses(State s)
+    {
+        s.ReelStops = 0; s.LandingApplied = false; s.LinesRevealed = false;
+        for (var i = 0; i < 3; i++) { Class(s, "reel" + i, "rolling", false); Class(s, "reel" + i, "settled", false); }
+        for (var line = 0; line < WinningLines.Length; line++) { Class(s, "line" + line, "revealed", false); Class(s, "line" + line, "active", false); }
+        foreach (var name in new[] { "flipping", "land-heads", "land-tails" }) Class(s, "coin", name, false);
+        foreach (var name in new[] { "spinning", "land-red", "land-black", "land-green" }) { Class(s, "wheel", name, false); Class(s, "pointer", name, false); }
     }
     private void Render(State s)
     {
         foreach (var g in Enum.GetValues<CasinoGame>()) Class(s, "root", "view-" + g.ToString().ToLowerInvariant(), s.Game == g);
         Class(s, "root", "home", s.Game is null); Class(s, "root", "busy", s.Pending || s.Started is not null);
-        Class(s, "result", "moving-a", s.Started is not null && s.Spin % 2 == 1); Class(s, "result", "moving-b", s.Started is not null && s.Spin % 2 == 0);
+        Class(s, "result", "moving-a", s.Started is not null && s.Game == CasinoGame.Coinflip && s.Spin % 2 == 1); Class(s, "result", "moving-b", s.Started is not null && s.Game == CasinoGame.Coinflip && s.Spin % 2 == 0);
         Text(s, "profile", s.Player.Name); Text(s, "account", Points(s.Balance.Available)); Text(s, "bank", Points(s.Balance.Allocated)); Text(s, "stake", Points(s.Stake)); Text(s, "loadamount", Points(s.Load)); Text(s, "win", Points(s.Win)); Text(s, "numbervalue", s.Number.ToString(CultureInfo.InvariantCulture));
         Text(s, "choice", s.Game == CasinoGame.Coinflip ? (s.Coin == 0 ? "Kopf ausgewählt" : "Zahl ausgewählt") : s.Game == CasinoGame.Roulette ? "Wette: " + BetLabel(s.Bet) : "5 Gewinnlinien · Einsatz aufgeteilt"); Text(s, "status", s.Status);
     }
@@ -208,6 +252,9 @@ public sealed class CasinoPresenter : IDisposable
         public int Number { get; set; }
         public int Bet { get; set; } = 37;
         public int Spin { get; set; }
+        public int ReelStops { get; set; }
+        public bool LandingApplied { get; set; }
+        public bool LinesRevealed { get; set; }
         public long Win { get; set; }
         public DateTimeOffset? Started { get; set; }
         public CasinoOutcome? Outcome { get; set; }
