@@ -100,6 +100,16 @@
               <Label class="casino-card-arrow" text="›" hittest="false" />
             </Panel>
           </Button>
+          <Button id="casino_lobby_biggestboy" class="casino-game-card compact">
+            <Panel class="casino-preview casino-preview-biggestboy" hittest="false" />
+            <Panel class="casino-card-footer" hittest="false">
+              <Panel class="casino-card-copy" hittest="false">
+                <Label class="casino-card-title" text="BIGGEST BOY BÜCHER" hittest="false" />
+                <Label class="casino-card-caption" text="5×5 · Kebap-Wild · Gesicht-Freispiele" hittest="false" />
+              </Panel>
+              <Label class="casino-card-arrow" text="›" hittest="false" />
+            </Panel>
+          </Button>
         </Panel>
 
         <Panel class="casino-lower">

@@ -1108,3 +1108,7 @@ Slots retain the doubled symbol strip but use absolute row positions rather than
 ## Manual Veto action feedback (#470)
 
 Native labels with their own IDs inside map/start buttons were still hit-testable. The HUD adapter accepts registered button IDs only. Make all button label children inert so text clicks reach the button. Keep image children inert. Explicit readiness explains the existing exactly-eight-map contract; incomplete pools remain clickable and report their actual count instead of silently failing. Missing preset storage no longer returns silently, and save/start report progress and failure visibly. The start path retains the coordinator's authorization and live catalog validation. Native acceptance: select eight maps by clicking names as well as images, save, reopen the saved pool and start it. Confirm incomplete selections and unavailable storage show explanations.
+
+## Biggest Boy Bücher – Issue #481
+
+Branch `feat/481-biggest-boy-symbols`, basiert auf Casino-UI PR #475. Eigenständiges 5×5-Spiel; die elf gelieferten Symbole sind unverändert eingebunden. Separate persistierte Spielart und Regelversion, genaue Linienauszahlungen, 10/+5/max.30 Freispiele, Kebap-Expansion, vier Umläufe, Einsatzkonfiguration und RTP-Audit. Siehe [biggest-boy.md](biggest-boy.md). GitHub-Push/PR durch automatische Freigabeprüfung wegen öffentlicher Bildveröffentlichung blockiert; noch kein CI-Lauf oder Merge dieses Branches. Native Abnahme offen.

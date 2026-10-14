@@ -15,6 +15,33 @@ public sealed class CasinoRoundPresenterTests
     private static readonly PlayerId Player = new(76561198000911901);
 
     [TestMethod]
+    public async Task BiggestBoyProjectsAllCellsAndHidesWinningLinesUntilFourLapsFinish()
+    {
+        using var f = await Fixture.Create();
+        var trigger = BiggestBoyRules.StartRound(100, _ => 0);
+        var spin = BiggestBoyRules.PlayFreeSpin(trigger.State, _ => 1);
+        f.Rounds.NextSnapshot = new(Guid.NewGuid(), Player, CasinoRoundGame.BiggestBoy, 100, 1, false,
+            100, spin.State.TotalPayout, JsonSerializer.Serialize(spin));
+        Assert.IsTrue(await f.Presenter.OpenAsync(Player, CasinoRoundGame.BiggestBoy));
+        await f.Click("play");
+        Assert.AreEqual("WALZEN LAUFEN …", f.Text("biggest_win"));
+        Assert.AreEqual("", f.Text("detail"));
+        for (var cell = 0; cell < 25; cell++)
+        {
+            Assert.IsTrue(f.PanelClass("biggest_symbol" + cell, "biggest-symbol-" + (int)spin.Grid[cell]));
+            Assert.IsFalse(f.PanelClass("biggest_symbol" + cell, "winning"));
+        }
+        await f.Click("free");
+        Assert.AreEqual(1, f.Rounds.Calls.Count);
+        f.Clock.AdvanceMilliseconds(3300); f.Presenter.Tick();
+        Assert.IsTrue(f.Text("biggest_win")!.StartsWith("GEWINN: ", StringComparison.Ordinal));
+        Assert.IsTrue(f.PanelClass("biggest_symbol0", "expanded"));
+        await f.Click("free");
+        Assert.AreEqual(2, f.Rounds.Calls.Count);
+        Assert.IsTrue(f.Class("motion-b"));
+    }
+
+    [TestMethod]
     public async Task BlackjackCardsConcealDealerHoleAndClearAbsentHandsOnRefresh()
     {
         using var f = await Fixture.Create();

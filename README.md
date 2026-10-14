@@ -100,7 +100,8 @@ case simulator. See [the setup, native acceptance checklist and AP/case design](
 
 ### AnoCasino candidate
 
-Optional server-authoritative Slots, Coinflip and single-bet European Roulette,
-with a persistent SteamID AP wallet and replaceable fruit textures. Default off;
+Optional server-authoritative Slots, Coinflip, European Roulette, Blackjack,
+Book, Risk and [Biggest Boy Bücher](docs/biggest-boy.md), with a persistent
+SteamID AP wallet and supplied symbol textures. Default off;
 requires a rebuilt matching Workshop addon and native acceptance. See
 [Casino rules and installation](docs/casino.md).

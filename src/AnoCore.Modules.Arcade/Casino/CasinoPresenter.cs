@@ -31,7 +31,7 @@ public sealed class CasinoPresenter : IDisposable
     [
         "casino_lobby_close", "casino_lobby_menu",
         "casino_lobby_slots", "casino_lobby_coinflip", "casino_lobby_roulette",
-        "casino_lobby_blackjack", "casino_lobby_book", "casino_lobby_risk",
+        "casino_lobby_blackjack", "casino_lobby_book", "casino_lobby_risk", "casino_lobby_biggestboy",
         "casino_lobby_load", "casino_lobby_return", "casino_lobby_loadminus",
         "casino_lobby_loadplus", "casino_lobby_refresh", "casino_lobby_history"
     ];
@@ -339,6 +339,9 @@ public sealed class CasinoPresenter : IDisposable
                         break;
                     case "risk":
                         roundGame = CasinoRoundGame.Risk;
+                        break;
+                    case "biggestboy":
+                        roundGame = CasinoRoundGame.BiggestBoy;
                         break;
                     case "book":
                         roundGame = CasinoRoundGame.Book;

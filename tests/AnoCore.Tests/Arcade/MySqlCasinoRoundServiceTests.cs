@@ -52,6 +52,44 @@ public sealed class MySqlCasinoRoundServiceTests
     }
 
     [TestMethod]
+    public async Task BiggestBoyTriggeredBonusRestoresAfterLimitReductionAndReplaysExactlyOnce()
+    {
+        var spin = BiggestBoyRules.StartRound(100, _ => 0);
+        var stored = await new MySqlCasinoRoundStore(_database).ApplyAsync(
+            new(Guid.NewGuid(), Guid.NewGuid(), Player, CasinoRoundKind.BiggestBoy, 0, "biggest-trigger-fixture"),
+            _ => new(100, BiggestBoyRules.MaximumRoundExposure(100)),
+            _ => new(BiggestBoyRules.Version, JsonSerializer.Serialize(spin), 100, 0,
+                BiggestBoyRules.MaximumRoundExposure(100), false, "{}"));
+        var reduced = new CasinoRoundService(new MySqlCasinoRoundStore(_database), 50);
+        var restored = await reduced.ReadAsync(Player);
+        Assert.AreEqual(CasinoRoundGame.BiggestBoy, restored!.Game);
+        Assert.AreEqual(stored.Round.StateJson, restored.StateJson);
+        await Assert.ThrowsExactlyAsync<CasinoRejectedException>(async () => await reduced.ApplyAsync(
+            Next(restored, CasinoRoundAction.FreeSpin) with { Stake = 50 }));
+        await Assert.ThrowsExactlyAsync<CasinoRejectedException>(async () => await reduced.ApplyAsync(
+            Next(restored, CasinoRoundAction.FreeSpin) with { Game = CasinoRoundGame.Book }));
+        var receipt = new DurableCasinoRoundReceipt(stored.OperationId, stored.Balance, restored);
+        var spins = 0;
+        while (!receipt.Round.IsComplete)
+        {
+            Assert.IsTrue(spins++ < BiggestBoyRules.MaximumFreeSpinsAwarded);
+            var action = Next(receipt.Round, CasinoRoundAction.FreeSpin);
+            var concurrent = await Task.WhenAll(Enumerable.Range(0, 3).Select(_ => reduced.ApplyAsync(action).AsTask()));
+            Assert.IsTrue(concurrent.All(result => result == concurrent[0]));
+            receipt = concurrent[0];
+            if (!receipt.Round.IsComplete)
+            {
+                Assert.AreEqual(1900L, receipt.Balance.Allocated);
+                Assert.AreEqual(receipt.Round, await Service().ReadAsync(Player));
+            }
+        }
+        Assert.AreEqual(1900L + receipt.Round.Payout, (await _wallet.ReadAsync(Player)).Allocated);
+        Assert.AreEqual(spins + 1L, await CountActions());
+        Assert.IsNull(await reduced.ReadAsync(Player));
+        await Assert.ThrowsExactlyAsync<CasinoRejectedException>(async () => await reduced.ApplyAsync(Start(CasinoRoundGame.BiggestBoy)));
+    }
+
+    [TestMethod]
     public async Task BookStartAndEveryRemainingSpinChargeOnlyTheInitialStake()
     {
         var receipt = await Service().ApplyAsync(Start(CasinoRoundGame.Book));

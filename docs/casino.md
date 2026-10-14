@@ -219,3 +219,9 @@ Runden besitzen ein separates dauerhaftes Aktionsledger. Native Windows-Builds,
 Workshop-Auslieferung und Zwei-Client-Abnahme sind noch durchzuführen.
 
 Die konkrete Installation steht in [casino-test-install.md](casino-test-install.md).
+
+## Biggest Boy Bücher
+
+Eigenständige siebte Slot mit 5×5-Feld, elf eigenen Symbolen und Kebap-Wild.
+[Gewinnplan, Bonusregeln, mathematische Prüfung und Abnahme](biggest-boy.md).
+`BiggestBoyMaximumStake` begrenzt den Einsatz auf bis zu 10.000 AP.

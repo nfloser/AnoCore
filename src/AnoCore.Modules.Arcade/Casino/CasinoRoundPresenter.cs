@@ -22,6 +22,7 @@ public sealed class CasinoRoundPresenter : IDisposable
     private readonly Action<PlayerId> _beforeOpen;
     private readonly Func<PlayerId, CancellationToken, ValueTask> _back;
     private readonly TimeProvider _clock;
+    private readonly int _biggestBoyMaximumStake;
     private readonly object _gate = new();
     private readonly Dictionary<PlayerId, State> _states = [];
     private readonly List<IDisposable> _owned = [];
@@ -29,10 +30,11 @@ public sealed class CasinoRoundPresenter : IDisposable
 
     public CasinoRoundPresenter(ICustomHudService hud, IPlayerRegistry players, IPermissionEvaluator permissions,
         ICasinoWallet wallet, ICasinoRounds rounds, IAnoEventBus events, Action<PlayerId> beforeOpen,
-        Func<PlayerId, CancellationToken, ValueTask> back, TimeProvider? clock = null)
+        Func<PlayerId, CancellationToken, ValueTask> back, TimeProvider? clock = null, int biggestBoyMaximumStake = BiggestBoyRules.MaximumStake)
     {
         _hud = hud; _players = players; _permissions = permissions; _wallet = wallet; _rounds = rounds;
         _beforeOpen = beforeOpen; _back = back; _clock = clock ?? TimeProvider.System;
+        _biggestBoyMaximumStake = Math.Clamp(biggestBoyMaximumStake / 50 * 50, 50, BiggestBoyRules.MaximumStake);
         try
         {
             _owned.Add(hud.Register(new("ano.casino"), new(HudId,
@@ -65,6 +67,7 @@ public sealed class CasinoRoundPresenter : IDisposable
                 if (!Current(state)) return false;
                 state.Game = round is { IsComplete: false } ? round.Game : game;
                 state.Round = round?.Game == state.Game ? round : null;
+                state.Stake = state.Round?.Stake ?? Math.Min(state.Stake, state.Game == CasinoRoundGame.BiggestBoy ? _biggestBoyMaximumStake : 500);
                 state.Balance = balance; state.Visible = true; state.Pending = false;
                 state.Status = round is { IsComplete: false } ? "Gespeicherte Runde fortsetzen" : "Einsatz wählen und Runde starten";
                 _beforeOpen(player); Render(state);
@@ -92,11 +95,11 @@ public sealed class CasinoRoundPresenter : IDisposable
                 if (state.Pending || state.AnimatingUntil is not null) return;
                 if (state.Unconfirmed is not null && action is not ("retry" or "rules"))
                 { state.Status = "Unbestätigte Aktion: BUCHUNG PRÜFEN verwenden."; Render(state); return; }
-                if (action == "rules") { state.Status = Rules(state.Game); Render(state); return; }
+                if (action == "rules") { state.BiggestRules = !state.BiggestRules; state.Status = state.Game == CasinoRoundGame.BiggestBoy ? state.BiggestRules ? "Gewinnplan geöffnet · REGELN schließt die Ansicht" : "Gewinnplan geschlossen" : Rules(state.Game); Render(state); return; }
                 if (action is "minus" or "plus")
                 {
                     if (state.Round is { IsComplete: false }) return;
-                    state.Stake = Math.Clamp(state.Stake + (action == "plus" ? 50 : -50), 50, 500); Render(state); return;
+                    state.Stake = Math.Clamp(state.Stake + (action == "plus" ? 50 : -50), 50, state.Game == CasinoRoundGame.BiggestBoy ? _biggestBoyMaximumStake : 500); Render(state); return;
                 }
                 if (action == "retry") operation = state.Unconfirmed;
                 else if (action == "play" && state.Round is not { IsComplete: false })
@@ -120,7 +123,11 @@ public sealed class CasinoRoundPresenter : IDisposable
             {
                 if (!Current(state)) return;
                 state.Round = round; state.Balance = balance;
-                if (round is not null) state.Game = round.Game;
+                if (round is not null)
+                {
+                    state.Game = round.Game;
+                    if (round.IsComplete) state.Stake = Math.Min(state.Stake, state.Game == CasinoRoundGame.BiggestBoy ? _biggestBoyMaximumStake : 500);
+                }
                 if (receipt is not null)
                 {
                     state.Unconfirmed = null; state.Animation++;
@@ -131,7 +138,7 @@ public sealed class CasinoRoundPresenter : IDisposable
                         Class(state, "reel" + reel, "settling", false);
                     }
                     state.BookSettles = 0; state.BookStops = 0;
-                    state.AnimatingUntil = _clock.GetUtcNow().AddSeconds(state.Game == CasinoRoundGame.Book ? 3 : state.Game == CasinoRoundGame.Blackjack ? .95 : .65);
+                    state.AnimatingUntil = _clock.GetUtcNow().AddSeconds(state.Game == CasinoRoundGame.BiggestBoy ? 3.2 : state.Game == CasinoRoundGame.Book ? 3 : state.Game == CasinoRoundGame.Blackjack ? .95 : .65);
                     state.Status = "Aktion gebucht · Animation läuft";
                 }
                 else state.Status = "Spielstand aktualisiert";
@@ -179,6 +186,7 @@ public sealed class CasinoRoundPresenter : IDisposable
     private void Render(State state)
     {
         foreach (var game in Enum.GetValues<CasinoRoundGame>()) Class(state, "root", "view-" + game.ToString().ToLowerInvariant(), state.Game == game);
+        Class(state, "root", "biggest-rules", state.Game == CasinoRoundGame.BiggestBoy && state.BiggestRules);
         var active = state.Round is { IsComplete: false };
         var moving = state.AnimatingUntil is not null;
         Class(state, "root", "complete", state.Round is { IsComplete: true });
@@ -186,7 +194,7 @@ public sealed class CasinoRoundPresenter : IDisposable
         Class(state, "root", "uncertain", state.Unconfirmed is not null);
         Class(state, "root", "motion-a", moving && state.Animation % 2 == 1);
         Class(state, "root", "motion-b", moving && state.Animation % 2 == 0);
-        Text(state, "title", state.Game switch { CasinoRoundGame.Blackjack => "BLACKJACK", CasinoRoundGame.Book => "BOOK · FREISPIELE", _ => "RISK · DOUBLE OR BANK" });
+        Text(state, "title", state.Game switch { CasinoRoundGame.Blackjack => "BLACKJACK", CasinoRoundGame.Book => "BOOK · FREISPIELE", CasinoRoundGame.BiggestBoy => "BIGGEST BOY BÜCHER · 5×5", _ => "RISK · DOUBLE OR BANK" });
         Text(state, "account", Points(state.Balance.Available)); Text(state, "bankroll", Points(state.Balance.Allocated));
         Text(state, "stake", Points(active ? state.Round!.Stake : state.Stake)); Text(state, "status", state.Status);
         Text(state, "payout", state.Round is { IsComplete: true } round && !moving ? Points(round.Payout) : "0 AP");
@@ -200,6 +208,7 @@ public sealed class CasinoRoundPresenter : IDisposable
             for (var step = 0; step < 5; step++) Class(state, "step" + step, "reached", false);
             Text(state, "detail", Rules(state.Game));
             Text(state, "dealer", "Dealer wartet auf den Rundenstart");
+            if (state.Game == CasinoRoundGame.BiggestBoy) RenderBiggestBoy(state, null, false);
             if (state.Game == CasinoRoundGame.Book)
                 for (var index = 0; index < 15; index++)
                 {
@@ -230,6 +239,9 @@ public sealed class CasinoRoundPresenter : IDisposable
                     Class(state, "root", "can-split", BlackjackRules.LegalActions(blackjack).Contains(BlackjackAction.Split));
                 }
                 break;
+            case CasinoRoundGame.BiggestBoy:
+                RenderBiggestBoy(state, Read<BiggestBoySpinResult>(snapshot), moving);
+                break;
             case CasinoRoundGame.Book:
                 var book = Read<BonusSlotSpinResult>(snapshot);
                 Text(state, "bonus", $"{book.State.FreeSpinsRemaining} Freispiele · gesammelt {Points(book.State.TotalPayout)} · Bonussymbol: {(book.State.ExpandingSymbol is { } bonusSymbol ? SymbolName(bonusSymbol) : "–")}");
@@ -245,6 +257,41 @@ public sealed class CasinoRoundPresenter : IDisposable
                 break;
         }
     }
+
+    private void RenderBiggestBoy(State state, BiggestBoySpinResult? spin, bool moving)
+    {
+        Text(state, "biggest_win", moving ? "WALZEN LAUFEN …" : "GEWINN: " + Points(spin?.Payout ?? 0));
+        Text(state, "biggest_bonus", spin is null ? "3+ Gesichter: 10 Freispiele · Kebap ist Wild" :
+            $"{spin.State.FreeSpinsRemaining} Freispiele · gesammelt {Points(spin.State.TotalPayout)} · {spin.ScatterCount} Scatter");
+        Text(state, "detail", moving ? "" : spin is null ? Rules(state.Game) :
+            string.Join(" · ", spin.LineWins.Select(win => $"Linie {win.Payline + 1}: {win.MatchCount}× {BiggestName(win.Symbol)} = {Points(win.Payout)}")));
+        for (var reel = 0; reel < 5; reel++)
+        {
+            var stop = spin is null ? 0 : spin.Stops[reel];
+            for (var bit = 0; bit < 7; bit++) Class(state, "biggest_shift" + reel + "_" + bit, "shifted", (stop & (1 << bit)) != 0);
+            for (var row = 0; row < 5; row++)
+            {
+                var cell = reel * 5 + row;
+                var symbol = spin is null ? BiggestBoyRules.ReelStrips[reel][row] : spin.Grid[cell];
+                for (var index = 0; index < 11; index++) Class(state, "biggest_symbol" + cell, "biggest-symbol-" + index, (int)symbol == index);
+                Class(state, "biggest_symbol" + cell, "winning", !moving && spin is not null &&
+                    spin.LineWins.Any(win => BiggestBoyRules.Paylines[win.Payline].Take(win.MatchCount).Contains(cell)));
+                Class(state, "biggest_symbol" + cell, "expanded", !moving && spin is not null && spin.ExpandedReels.Contains(reel));
+            }
+        }
+    }
+
+    private static string BiggestName(BiggestBoySymbol symbol) => symbol switch
+    {
+        BiggestBoySymbol.Kebap => "KEBAP",
+        BiggestBoySymbol.Beer => "BIER",
+        BiggestBoySymbol.Cigarette => "ZIGARETTE",
+        BiggestBoySymbol.Butter => "BUTTER",
+        BiggestBoySymbol.Shot => "SHOT",
+        BiggestBoySymbol.Funnel => "TRINKTRICHTER",
+        BiggestBoySymbol.Scatter => "GESICHT",
+        _ => symbol.ToString(),
+    };
 
     private void ClearCards(State state)
     {
@@ -303,12 +350,19 @@ public sealed class CasinoRoundPresenter : IDisposable
     private static string Rules(CasinoRoundGame game) => game switch
     {
         CasinoRoundGame.Blackjack => "Blackjack 3:2 · Dealer steht auf Soft 17 · max. 2 Hände · Split-Asse erhalten eine Karte · Double/Split kosten einen zusätzlichen Handeinsatz.",
+        CasinoRoundGame.BiggestBoy => "5×5 · 10 Linien von links · Einsatz/10 · Kebap ersetzt Gewinnsymbole, nie Scatter. Im Bonus expandiert Kebap. 3+ Gesichter: 10 Freispiele, erneut +5; höchstens 30 insgesamt/20 verbleibend. Keine Scatter-Auszahlung. Auszahlung am Bonusende.",
         CasinoRoundGame.Book => "5 Walzen · 10 Linien · BUCH ist Wild/Scatter · 3+ Bücher: 10 Freispiele · erneute Scatter: +5, max. 30 Freispiele · Einsatz bleibt fix. Auszahlung am Bonusende.",
         _ => "50 % Chance: Zwischenstand verdoppeln oder verlieren · BANK bucht den Zwischenstand zurück · nach 5 Erfolgen BANK wählen.",
     };
     private static string Points(long value) => value.ToString("N0", CultureInfo.GetCultureInfo("de-DE")) + " AP";
     private void Text(State s, string id, string value) => _hud.SetText(s.Player.Id, HudId, "casino_round_" + id, value);
-    private void Class(State s, string id, string name, bool value) => _hud.SetClass(s.Player.Id, HudId, "casino_round_" + id, name, value);
+    private void Class(State s, string id, string name, bool value)
+    {
+        var key = (id, name);
+        if (s.Classes.TryGetValue(key, out var previous) && previous == value) return;
+        s.Classes[key] = value;
+        _hud.SetClass(s.Player.Id, HudId, "casino_round_" + id, name, value);
+    }
     private bool Current(State s) => !_disposed && _states.TryGetValue(s.Player.Id, out var state) && ReferenceEquals(state, s)
         && _players.TryGet(s.Player.Id, out var player) && player is { IsConnected: true } && player.SessionId == s.Player.SessionId;
     private void Forget(PlayerSnapshot player) { lock (_gate) if (_states.TryGetValue(player.Id, out var state) && state.Player.SessionId == player.SessionId) { _states.Remove(player.Id); _hud.Hide(player.Id, HudId); } }
@@ -327,9 +381,11 @@ public sealed class CasinoRoundPresenter : IDisposable
         public DurableCasinoRoundOperation? Unconfirmed { get; set; }
         public DateTimeOffset? AnimatingUntil { get; set; }
         public int Animation { get; set; }
+        public bool BiggestRules { get; set; }
         public int BookSettles { get; set; }
         public int BookStops { get; set; }
         public Dictionary<string, string> Cards { get; } = [];
+        public Dictionary<(string Id, string Name), bool> Classes { get; } = [];
         public string Status { get; set; } = "";
     }
 }

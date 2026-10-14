@@ -28,6 +28,1200 @@
             <Label id="casino_round_payout" text="{s:text}" />
           </Panel>
         </Panel>
+        <Panel class="biggest-rule-table" hittest="false">
+          <Label text="GEWINNPLAN · REGELN erneut drücken, um zurückzukehren" hittest="false" />
+          <Label text="Auszahlung = Einsatz ÷ 10 × Linienfaktor. Pro Linie nur der höchste Gewinn. 3/4/5 gleiche von links; Kebap ersetzt alle Gewinnsymbole, nie das Gesicht." hittest="false" />
+          <Label text="Symbol                         3 gleiche / 4 gleiche / 5 gleiche" hittest="false" />
+          <Label text="Kebap / Wild: 225× / 1125× / 2500×" hittest="false" />
+          <Label text="Bier: 170× / 675× / 2250×" hittest="false" />
+          <Label text="Zigarette: 135× / 450× / 1690×" hittest="false" />
+          <Label text="Butter: 113× / 338× / 1125×" hittest="false" />
+          <Label text="Shot: 68× / 225× / 675×" hittest="false" />
+          <Label text="Trinktrichter: 56× / 169× / 563×" hittest="false" />
+          <Label text="G: 22× / 56× / 169×" hittest="false" />
+          <Label text="O: 22× / 56× / 169×" hittest="false" />
+          <Label text="A: 11× / 45× / 113×" hittest="false" />
+          <Label text="T: 11× / 45× / 113×" hittest="false" />
+          <Label text="3, 4 oder 5 Gesicht-Scatter irgendwo: 10 Freispiele. Erneuter Trigger: +5; höchstens 30 insgesamt und 20 verbleibend. Scatter selbst zahlt nicht. Im Bonus expandiert jeder Kebap auf seiner Walze; Gesichter bleiben erhalten. Einsatz bleibt fest, gesammelte Gewinne werden am Bonusende einmal ausgezahlt." hittest="false" />
+          <Label text="Gewinnlinien (Zeilen von oben 1 bis 5):" hittest="false" />
+          <Label text="Linie 1: 1 – 1 – 1 – 1 – 1" hittest="false" />
+          <Label text="Linie 2: 2 – 2 – 2 – 2 – 2" hittest="false" />
+          <Label text="Linie 3: 3 – 3 – 3 – 3 – 3" hittest="false" />
+          <Label text="Linie 4: 4 – 4 – 4 – 4 – 4" hittest="false" />
+          <Label text="Linie 5: 5 – 5 – 5 – 5 – 5" hittest="false" />
+          <Label text="Linie 6: 1 – 2 – 3 – 4 – 5" hittest="false" />
+          <Label text="Linie 7: 5 – 4 – 3 – 2 – 1" hittest="false" />
+          <Label text="Linie 8: 1 – 2 – 3 – 2 – 1" hittest="false" />
+          <Label text="Linie 9: 5 – 4 – 3 – 4 – 5" hittest="false" />
+          <Label text="Linie 10: 3 – 2 – 1 – 2 – 3" hittest="false" />
+          <Label text="Eigenes Modell: RTP 94,1822 % inklusive Freispiele. Bonuschance 0,856 % pro bezahltem Spin. Nur virtuelle AnoPoints." hittest="false" />
+        </Panel>
+        <Panel class="biggest-table" hittest="false">
+          <Panel class="biggest-reels" hittest="false">
+            <Panel class="biggest-reel biggest-reel-0" hittest="false">
+              <Panel id="casino_round_biggest_offset0" class="biggest-offset" hittest="false">
+                <Panel id="casino_round_biggest_shift0_0" class="biggest-shift biggest-shift-0" hittest="false">
+                <Panel id="casino_round_biggest_shift0_1" class="biggest-shift biggest-shift-1" hittest="false">
+                <Panel id="casino_round_biggest_shift0_2" class="biggest-shift biggest-shift-2" hittest="false">
+                <Panel id="casino_round_biggest_shift0_3" class="biggest-shift biggest-shift-3" hittest="false">
+                <Panel id="casino_round_biggest_shift0_4" class="biggest-shift biggest-shift-4" hittest="false">
+                <Panel id="casino_round_biggest_shift0_5" class="biggest-shift biggest-shift-5" hittest="false">
+                <Panel id="casino_round_biggest_shift0_6" class="biggest-shift biggest-shift-6" hittest="false">
+                <Panel class="biggest-motion" hittest="false">
+                  <Panel class="biggest-symbol biggest-symbol-10 biggest-row-0" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-1 biggest-row-1" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-2" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-3" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-4" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-0 biggest-row-5" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-6" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-7" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-8" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-9" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-1 biggest-row-10" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-11" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-12" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-13" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-14" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-15" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-16" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-17" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-2 biggest-row-18" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-19" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-20" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-21" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-22" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-1 biggest-row-23" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-24" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-25" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-26" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-27" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-28" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-29" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-30" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-2 biggest-row-31" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-32" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-33" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-34" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-35" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-36" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-37" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-38" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-2 biggest-row-39" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-40" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-41" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-42" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-43" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-1 biggest-row-44" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-45" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-46" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-47" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-48" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-49" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-10 biggest-row-50" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-51" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-52" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-2 biggest-row-53" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-54" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-55" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-56" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-57" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-58" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-59" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-60" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-61" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-62" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-63" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-64" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-65" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-1 biggest-row-66" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-67" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-68" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-69" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-70" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-71" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-72" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-73" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-2 biggest-row-74" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-75" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-76" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-77" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-78" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-79" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-80" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-81" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-82" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-83" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-84" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-85" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-86" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-1 biggest-row-87" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-88" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-89" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-90" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-91" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-92" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-93" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-94" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-2 biggest-row-95" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-96" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-97" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-98" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-99" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-10 biggest-row-100" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-1 biggest-row-101" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-102" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-103" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-104" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-0 biggest-row-105" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-106" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-107" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-108" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-109" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-1 biggest-row-110" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-111" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-112" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-113" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-114" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-115" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-116" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-117" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-2 biggest-row-118" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-119" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-120" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-121" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-122" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-1 biggest-row-123" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-124" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-125" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-126" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-127" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-128" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-129" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-130" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-2 biggest-row-131" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-132" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-133" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-134" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-135" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-136" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-137" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-138" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-2 biggest-row-139" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-140" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-141" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-142" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-143" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-1 biggest-row-144" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-145" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-146" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-147" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-148" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-149" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-10 biggest-row-150" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-151" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-152" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-2 biggest-row-153" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-154" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-155" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-156" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-157" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-158" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-159" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-160" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-161" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-162" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-163" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-164" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-165" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-1 biggest-row-166" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-167" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-168" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-169" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-170" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-171" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-172" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-173" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-2 biggest-row-174" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-175" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-176" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-177" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-178" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-179" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-180" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-181" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-182" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-183" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-184" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-185" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-186" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-1 biggest-row-187" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-188" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-189" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-190" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-191" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-192" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-193" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-194" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-2 biggest-row-195" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-196" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-197" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-198" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-199" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-10 biggest-row-200" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-1 biggest-row-201" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-202" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-203" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-204" hittest="false" />
+                </Panel>
+                </Panel>
+                </Panel>
+                </Panel>
+                </Panel>
+                </Panel>
+                </Panel>
+                </Panel>
+              </Panel>
+              <Panel class="biggest-final" hittest="false">
+                <Panel id="casino_round_biggest_symbol0" class="biggest-symbol" hittest="false" />
+                <Panel id="casino_round_biggest_symbol1" class="biggest-symbol" hittest="false" />
+                <Panel id="casino_round_biggest_symbol2" class="biggest-symbol" hittest="false" />
+                <Panel id="casino_round_biggest_symbol3" class="biggest-symbol" hittest="false" />
+                <Panel id="casino_round_biggest_symbol4" class="biggest-symbol" hittest="false" />
+              </Panel>
+            </Panel>
+            <Panel class="biggest-reel biggest-reel-1" hittest="false">
+              <Panel id="casino_round_biggest_offset1" class="biggest-offset" hittest="false">
+                <Panel id="casino_round_biggest_shift1_0" class="biggest-shift biggest-shift-0" hittest="false">
+                <Panel id="casino_round_biggest_shift1_1" class="biggest-shift biggest-shift-1" hittest="false">
+                <Panel id="casino_round_biggest_shift1_2" class="biggest-shift biggest-shift-2" hittest="false">
+                <Panel id="casino_round_biggest_shift1_3" class="biggest-shift biggest-shift-3" hittest="false">
+                <Panel id="casino_round_biggest_shift1_4" class="biggest-shift biggest-shift-4" hittest="false">
+                <Panel id="casino_round_biggest_shift1_5" class="biggest-shift biggest-shift-5" hittest="false">
+                <Panel id="casino_round_biggest_shift1_6" class="biggest-shift biggest-shift-6" hittest="false">
+                <Panel class="biggest-motion" hittest="false">
+                  <Panel class="biggest-symbol biggest-symbol-10 biggest-row-0" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-1" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-2" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-3" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-4" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-0 biggest-row-5" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-6" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-2 biggest-row-7" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-8" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-9" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-10" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-11" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-1 biggest-row-12" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-13" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-14" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-15" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-16" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-17" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-18" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-19" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-2 biggest-row-20" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-21" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-22" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-23" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-24" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-25" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-26" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-27" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-2 biggest-row-28" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-29" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-30" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-31" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-32" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-1 biggest-row-33" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-34" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-35" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-36" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-37" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-38" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-39" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-40" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-2 biggest-row-41" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-42" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-43" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-44" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-45" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-46" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-47" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-48" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-49" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-10 biggest-row-50" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-51" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-52" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-53" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-54" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-1 biggest-row-55" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-56" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-57" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-58" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-59" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-60" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-61" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-62" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-2 biggest-row-63" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-64" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-65" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-66" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-67" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-68" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-69" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-70" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-71" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-72" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-73" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-74" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-75" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-1 biggest-row-76" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-77" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-78" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-79" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-80" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-81" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-82" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-83" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-2 biggest-row-84" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-85" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-86" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-87" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-88" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-1 biggest-row-89" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-90" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-91" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-92" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-93" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-94" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-95" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-96" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-1 biggest-row-97" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-98" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-99" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-10 biggest-row-100" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-101" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-102" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-103" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-104" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-0 biggest-row-105" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-106" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-2 biggest-row-107" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-108" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-109" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-110" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-111" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-1 biggest-row-112" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-113" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-114" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-115" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-116" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-117" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-118" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-119" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-2 biggest-row-120" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-121" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-122" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-123" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-124" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-125" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-126" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-127" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-2 biggest-row-128" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-129" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-130" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-131" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-132" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-1 biggest-row-133" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-134" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-135" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-136" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-137" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-138" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-139" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-140" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-2 biggest-row-141" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-142" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-143" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-144" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-145" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-146" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-147" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-148" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-149" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-10 biggest-row-150" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-151" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-152" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-153" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-154" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-1 biggest-row-155" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-156" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-157" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-158" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-159" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-160" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-161" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-162" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-2 biggest-row-163" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-164" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-165" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-166" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-167" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-168" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-169" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-170" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-171" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-172" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-173" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-174" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-175" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-1 biggest-row-176" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-177" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-178" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-179" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-180" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-181" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-182" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-183" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-2 biggest-row-184" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-185" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-186" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-187" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-188" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-1 biggest-row-189" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-190" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-191" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-192" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-193" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-194" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-195" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-196" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-1 biggest-row-197" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-198" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-199" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-10 biggest-row-200" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-201" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-202" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-203" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-204" hittest="false" />
+                </Panel>
+                </Panel>
+                </Panel>
+                </Panel>
+                </Panel>
+                </Panel>
+                </Panel>
+                </Panel>
+              </Panel>
+              <Panel class="biggest-final" hittest="false">
+                <Panel id="casino_round_biggest_symbol5" class="biggest-symbol" hittest="false" />
+                <Panel id="casino_round_biggest_symbol6" class="biggest-symbol" hittest="false" />
+                <Panel id="casino_round_biggest_symbol7" class="biggest-symbol" hittest="false" />
+                <Panel id="casino_round_biggest_symbol8" class="biggest-symbol" hittest="false" />
+                <Panel id="casino_round_biggest_symbol9" class="biggest-symbol" hittest="false" />
+              </Panel>
+            </Panel>
+            <Panel class="biggest-reel biggest-reel-2" hittest="false">
+              <Panel id="casino_round_biggest_offset2" class="biggest-offset" hittest="false">
+                <Panel id="casino_round_biggest_shift2_0" class="biggest-shift biggest-shift-0" hittest="false">
+                <Panel id="casino_round_biggest_shift2_1" class="biggest-shift biggest-shift-1" hittest="false">
+                <Panel id="casino_round_biggest_shift2_2" class="biggest-shift biggest-shift-2" hittest="false">
+                <Panel id="casino_round_biggest_shift2_3" class="biggest-shift biggest-shift-3" hittest="false">
+                <Panel id="casino_round_biggest_shift2_4" class="biggest-shift biggest-shift-4" hittest="false">
+                <Panel id="casino_round_biggest_shift2_5" class="biggest-shift biggest-shift-5" hittest="false">
+                <Panel id="casino_round_biggest_shift2_6" class="biggest-shift biggest-shift-6" hittest="false">
+                <Panel class="biggest-motion" hittest="false">
+                  <Panel class="biggest-symbol biggest-symbol-10 biggest-row-0" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-1" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-2" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-3" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-4" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-0 biggest-row-5" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-6" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-7" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-8" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-2 biggest-row-9" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-10" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-11" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-12" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-13" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-14" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-15" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-16" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-2 biggest-row-17" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-18" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-19" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-20" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-21" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-1 biggest-row-22" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-23" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-24" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-25" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-26" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-27" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-28" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-29" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-2 biggest-row-30" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-31" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-32" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-33" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-34" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-35" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-36" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-37" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-38" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-39" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-40" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-41" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-42" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-1 biggest-row-43" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-44" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-45" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-46" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-47" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-48" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-49" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-10 biggest-row-50" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-51" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-2 biggest-row-52" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-53" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-54" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-55" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-56" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-57" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-58" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-59" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-60" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-61" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-62" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-63" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-64" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-1 biggest-row-65" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-66" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-67" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-68" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-69" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-70" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-71" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-72" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-2 biggest-row-73" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-74" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-75" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-76" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-77" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-1 biggest-row-78" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-79" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-80" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-81" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-82" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-83" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-84" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-85" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-1 biggest-row-86" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-87" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-88" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-89" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-90" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-91" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-92" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-93" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-2 biggest-row-94" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-95" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-96" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-97" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-98" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-1 biggest-row-99" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-10 biggest-row-100" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-101" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-102" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-103" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-104" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-0 biggest-row-105" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-106" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-107" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-108" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-2 biggest-row-109" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-110" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-111" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-112" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-113" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-114" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-115" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-116" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-2 biggest-row-117" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-118" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-119" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-120" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-121" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-1 biggest-row-122" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-123" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-124" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-125" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-126" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-127" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-128" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-129" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-2 biggest-row-130" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-131" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-132" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-133" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-134" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-135" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-136" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-137" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-138" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-139" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-140" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-141" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-142" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-1 biggest-row-143" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-144" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-145" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-146" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-147" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-148" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-149" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-10 biggest-row-150" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-151" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-2 biggest-row-152" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-153" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-154" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-155" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-156" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-157" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-158" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-159" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-160" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-161" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-162" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-163" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-164" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-1 biggest-row-165" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-166" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-167" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-168" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-169" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-170" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-171" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-172" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-2 biggest-row-173" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-174" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-175" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-176" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-177" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-1 biggest-row-178" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-179" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-180" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-181" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-182" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-183" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-184" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-185" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-1 biggest-row-186" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-187" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-188" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-189" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-190" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-191" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-192" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-193" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-2 biggest-row-194" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-195" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-196" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-197" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-198" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-1 biggest-row-199" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-10 biggest-row-200" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-201" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-202" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-203" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-204" hittest="false" />
+                </Panel>
+                </Panel>
+                </Panel>
+                </Panel>
+                </Panel>
+                </Panel>
+                </Panel>
+                </Panel>
+              </Panel>
+              <Panel class="biggest-final" hittest="false">
+                <Panel id="casino_round_biggest_symbol10" class="biggest-symbol" hittest="false" />
+                <Panel id="casino_round_biggest_symbol11" class="biggest-symbol" hittest="false" />
+                <Panel id="casino_round_biggest_symbol12" class="biggest-symbol" hittest="false" />
+                <Panel id="casino_round_biggest_symbol13" class="biggest-symbol" hittest="false" />
+                <Panel id="casino_round_biggest_symbol14" class="biggest-symbol" hittest="false" />
+              </Panel>
+            </Panel>
+            <Panel class="biggest-reel biggest-reel-3" hittest="false">
+              <Panel id="casino_round_biggest_offset3" class="biggest-offset" hittest="false">
+                <Panel id="casino_round_biggest_shift3_0" class="biggest-shift biggest-shift-0" hittest="false">
+                <Panel id="casino_round_biggest_shift3_1" class="biggest-shift biggest-shift-1" hittest="false">
+                <Panel id="casino_round_biggest_shift3_2" class="biggest-shift biggest-shift-2" hittest="false">
+                <Panel id="casino_round_biggest_shift3_3" class="biggest-shift biggest-shift-3" hittest="false">
+                <Panel id="casino_round_biggest_shift3_4" class="biggest-shift biggest-shift-4" hittest="false">
+                <Panel id="casino_round_biggest_shift3_5" class="biggest-shift biggest-shift-5" hittest="false">
+                <Panel id="casino_round_biggest_shift3_6" class="biggest-shift biggest-shift-6" hittest="false">
+                <Panel class="biggest-motion" hittest="false">
+                  <Panel class="biggest-symbol biggest-symbol-10 biggest-row-0" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-1" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-2" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-3" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-4" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-0 biggest-row-5" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-2 biggest-row-6" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-7" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-8" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-9" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-10" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-1 biggest-row-11" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-12" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-13" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-14" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-15" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-16" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-17" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-18" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-2 biggest-row-19" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-20" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-21" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-22" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-23" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-24" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-25" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-26" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-27" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-28" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-29" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-30" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-31" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-1 biggest-row-32" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-33" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-34" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-35" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-36" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-37" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-38" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-39" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-2 biggest-row-40" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-41" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-42" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-43" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-44" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-45" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-46" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-47" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-48" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-49" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-10 biggest-row-50" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-51" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-52" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-53" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-1 biggest-row-54" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-55" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-56" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-57" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-58" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-59" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-60" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-61" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-2 biggest-row-62" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-63" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-64" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-65" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-66" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-1 biggest-row-67" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-68" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-69" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-70" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-71" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-72" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-73" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-74" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-1 biggest-row-75" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-76" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-77" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-78" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-79" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-80" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-81" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-82" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-2 biggest-row-83" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-84" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-85" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-86" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-87" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-1 biggest-row-88" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-89" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-90" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-91" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-92" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-93" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-94" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-95" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-2 biggest-row-96" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-97" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-98" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-99" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-10 biggest-row-100" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-101" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-102" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-103" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-104" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-0 biggest-row-105" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-2 biggest-row-106" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-107" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-108" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-109" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-110" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-1 biggest-row-111" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-112" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-113" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-114" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-115" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-116" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-117" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-118" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-2 biggest-row-119" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-120" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-121" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-122" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-123" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-124" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-125" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-126" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-127" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-128" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-129" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-130" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-131" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-1 biggest-row-132" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-133" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-134" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-135" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-136" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-137" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-138" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-139" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-2 biggest-row-140" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-141" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-142" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-143" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-144" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-145" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-146" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-147" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-148" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-149" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-10 biggest-row-150" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-151" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-152" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-153" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-1 biggest-row-154" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-155" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-156" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-157" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-158" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-159" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-160" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-161" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-2 biggest-row-162" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-163" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-164" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-165" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-166" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-1 biggest-row-167" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-168" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-169" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-170" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-171" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-172" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-173" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-174" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-1 biggest-row-175" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-176" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-177" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-178" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-179" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-180" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-181" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-182" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-2 biggest-row-183" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-184" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-185" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-186" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-187" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-1 biggest-row-188" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-189" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-190" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-191" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-192" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-193" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-194" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-195" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-2 biggest-row-196" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-197" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-198" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-199" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-10 biggest-row-200" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-201" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-202" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-203" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-204" hittest="false" />
+                </Panel>
+                </Panel>
+                </Panel>
+                </Panel>
+                </Panel>
+                </Panel>
+                </Panel>
+                </Panel>
+              </Panel>
+              <Panel class="biggest-final" hittest="false">
+                <Panel id="casino_round_biggest_symbol15" class="biggest-symbol" hittest="false" />
+                <Panel id="casino_round_biggest_symbol16" class="biggest-symbol" hittest="false" />
+                <Panel id="casino_round_biggest_symbol17" class="biggest-symbol" hittest="false" />
+                <Panel id="casino_round_biggest_symbol18" class="biggest-symbol" hittest="false" />
+                <Panel id="casino_round_biggest_symbol19" class="biggest-symbol" hittest="false" />
+              </Panel>
+            </Panel>
+            <Panel class="biggest-reel biggest-reel-4" hittest="false">
+              <Panel id="casino_round_biggest_offset4" class="biggest-offset" hittest="false">
+                <Panel id="casino_round_biggest_shift4_0" class="biggest-shift biggest-shift-0" hittest="false">
+                <Panel id="casino_round_biggest_shift4_1" class="biggest-shift biggest-shift-1" hittest="false">
+                <Panel id="casino_round_biggest_shift4_2" class="biggest-shift biggest-shift-2" hittest="false">
+                <Panel id="casino_round_biggest_shift4_3" class="biggest-shift biggest-shift-3" hittest="false">
+                <Panel id="casino_round_biggest_shift4_4" class="biggest-shift biggest-shift-4" hittest="false">
+                <Panel id="casino_round_biggest_shift4_5" class="biggest-shift biggest-shift-5" hittest="false">
+                <Panel id="casino_round_biggest_shift4_6" class="biggest-shift biggest-shift-6" hittest="false">
+                <Panel class="biggest-motion" hittest="false">
+                  <Panel class="biggest-symbol biggest-symbol-10 biggest-row-0" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-1" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-2" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-3" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-4" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-0 biggest-row-5" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-6" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-7" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-2 biggest-row-8" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-9" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-10" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-11" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-12" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-13" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-14" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-15" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-16" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-17" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-18" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-19" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-20" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-1 biggest-row-21" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-22" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-23" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-24" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-25" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-26" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-27" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-28" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-2 biggest-row-29" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-30" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-31" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-32" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-33" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-34" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-35" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-36" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-37" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-38" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-39" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-40" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-41" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-1 biggest-row-42" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-43" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-44" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-45" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-46" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-47" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-48" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-49" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-10 biggest-row-50" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-2 biggest-row-51" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-52" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-53" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-54" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-55" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-1 biggest-row-56" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-57" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-58" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-59" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-60" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-61" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-62" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-63" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-1 biggest-row-64" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-65" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-66" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-67" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-68" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-69" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-70" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-71" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-2 biggest-row-72" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-73" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-74" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-75" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-76" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-1 biggest-row-77" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-78" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-79" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-80" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-81" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-82" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-83" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-84" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-2 biggest-row-85" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-86" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-87" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-88" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-89" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-90" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-91" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-92" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-2 biggest-row-93" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-94" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-95" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-96" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-97" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-1 biggest-row-98" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-99" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-10 biggest-row-100" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-101" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-102" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-103" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-104" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-0 biggest-row-105" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-106" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-107" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-2 biggest-row-108" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-109" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-110" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-111" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-112" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-113" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-114" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-115" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-116" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-117" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-118" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-119" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-120" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-1 biggest-row-121" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-122" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-123" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-124" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-125" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-126" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-127" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-128" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-2 biggest-row-129" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-130" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-131" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-132" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-133" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-134" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-135" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-136" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-137" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-138" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-139" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-140" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-141" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-1 biggest-row-142" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-143" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-144" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-145" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-146" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-147" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-148" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-149" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-10 biggest-row-150" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-2 biggest-row-151" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-152" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-153" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-154" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-155" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-1 biggest-row-156" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-157" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-158" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-159" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-160" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-161" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-162" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-163" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-1 biggest-row-164" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-165" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-166" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-167" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-168" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-169" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-170" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-171" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-2 biggest-row-172" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-173" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-174" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-175" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-176" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-1 biggest-row-177" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-178" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-179" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-180" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-181" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-182" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-183" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-184" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-2 biggest-row-185" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-186" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-187" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-188" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-189" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-190" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-5 biggest-row-191" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-192" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-2 biggest-row-193" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-194" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-195" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-4 biggest-row-196" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-197" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-1 biggest-row-198" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-6 biggest-row-199" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-10 biggest-row-200" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-8 biggest-row-201" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-3 biggest-row-202" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-7 biggest-row-203" hittest="false" />
+                  <Panel class="biggest-symbol biggest-symbol-9 biggest-row-204" hittest="false" />
+                </Panel>
+                </Panel>
+                </Panel>
+                </Panel>
+                </Panel>
+                </Panel>
+                </Panel>
+                </Panel>
+              </Panel>
+              <Panel class="biggest-final" hittest="false">
+                <Panel id="casino_round_biggest_symbol20" class="biggest-symbol" hittest="false" />
+                <Panel id="casino_round_biggest_symbol21" class="biggest-symbol" hittest="false" />
+                <Panel id="casino_round_biggest_symbol22" class="biggest-symbol" hittest="false" />
+                <Panel id="casino_round_biggest_symbol23" class="biggest-symbol" hittest="false" />
+                <Panel id="casino_round_biggest_symbol24" class="biggest-symbol" hittest="false" />
+              </Panel>
+            </Panel>
+          </Panel>
+          <Label id="casino_round_biggest_win" class="biggest-win" text="GEWINN: 0 AP" hittest="false" />
+          <Label id="casino_round_biggest_bonus" class="biggest-bonus" text="3+ Gesichter: 10 Freispiele" hittest="false" />
+        </Panel>
         <Panel class="book-table">
           <Panel class="book-reels">
             <Panel id="casino_round_reel0" class="book-reel reel-0">
