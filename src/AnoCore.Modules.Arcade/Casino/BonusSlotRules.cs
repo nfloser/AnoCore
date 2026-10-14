@@ -175,7 +175,7 @@ public static class BonusSlotRules
             }
         }
 
-        return new BonusSlotSpinResult(copy, scatters, wins.MoveToImmutable(), payout, 0,
+        return new BonusSlotSpinResult(copy, scatters, wins.ToImmutable(), payout, 0,
             new BonusSlotRoundState(stake, 0, 0, 0, payout, null, Version));
     }
 
