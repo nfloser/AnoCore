@@ -74,3 +74,16 @@ replace the in-memory storage boundary with a transactional database adapter,
 verify permissions/session ownership at each caller, restore after restart,
 and resolve every saved MapId against the live eligible catalog.
 `AnoVetoPresetCatalogTests` covers isolation, stale revisions and limits.
+
+## Repository adapter contract
+
+`IAnoVetoPresetRepository` now defines cancellation-aware asynchronous list/read,
+create, replace and delete operations. Each write must be atomic, owner-scoped
+and revision-checked. `AnoVetoPresetCatalog` implements the same contract for
+offline unit tests, but is still **in-memory only**.
+
+Before server use, introduce the concrete MySQL/MariaDB adapter and a retry-safe
+migration using existing AnoCore persistence conventions, hook the adapter into
+plugin composition and run MariaDB integration tests (including races, rollback,
+restart recovery and revision conflicts). Merely satisfying the interface in an
+in-memory catalog does not persist any records across restarts.
