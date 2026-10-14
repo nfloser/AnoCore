@@ -59,3 +59,23 @@ class CasinoResourcesTests(unittest.TestCase):
         self.assertIn('overflow:clip',css)
         self.assertIn('max-height:92%',css)
         self.assertIn('overflow:squish scroll',css)
+    def test_round_games_have_all_server_buttons_and_bounded_book_grid(self):
+        root=ET.parse(UI/'layout/custom_game/anocore/ano_casino_rounds.xml').getroot()
+        ids=[p.attrib['id'] for p in root.iter() if 'id' in p.attrib]
+        self.assertEqual(len(ids),len(set(ids)))
+        for name in ['root','title','account','bankroll','payout','detail','dealer','stake','status',
+                     'play','minus','plus','hit','stand','double','split','risk','bank','free',
+                     'retry','close','back','refresh','rules']:
+            self.assertIn('casino_round_'+name,ids)
+        self.assertEqual(15,len([name for name in ids if name.startswith('casino_round_symbol')]))
+        self.assertEqual(5,len([p for p in root.iter('Panel') if p.attrib.get('class','').startswith('book-reel reel-')]))
+        self.assertFalse(any(p.tag=='scripts' for p in root.iter()))
+        css=(UI/'styles/custom_game/anocore/ano_casino_rounds.css').read_text()
+        for key in ['book-roll-a','book-roll-b','card-deal-a','card-deal-b','risk-turn-a','risk-turn-b']:
+            self.assertIn('@keyframes '+key,css)
+        for selector in ['.active.view-book .book-actions','.active.view-blackjack .blackjack-actions',
+                         '.active.view-risk .risk-actions','.can-double .double-action','.can-split .split-action',
+                         '.uncertain .retry','.motion-a .reel-final','.motion-b .reel-final']:
+            self.assertIn(selector,css)
+        for build in ['build.ps1','build-casino.ps1']:
+            self.assertIn('ano_casino_rounds',(UI/build).read_text())
