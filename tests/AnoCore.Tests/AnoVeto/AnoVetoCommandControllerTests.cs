@@ -42,6 +42,41 @@ public sealed class AnoVetoCommandControllerTests
     }
 
     [TestMethod]
+    public async Task RandomCommand_ExplicitlyPreservesLegacyFastStart()
+    {
+        var permissions = new ManagerPermissionEvaluator(allow: true);
+        var commands = new CommandRegistry(permissions);
+        var hud = new TestCustomHudService();
+        var players = new StubPlayerRegistry([Snapshot(Manager, "Manager"), Snapshot(PlayerA, "Player A")]);
+        var coordinator = CreateCoordinator(permissions);
+        using var controller = new AnoVetoCommandController(commands, hud, players, coordinator, new FixedTimeProvider(Now));
+
+        var result = await commands.ExecuteAsync("!anoveto random", Manager);
+
+        Assert.IsTrue(result.Success, result.Message);
+        Assert.IsTrue(coordinator.TryGetStatus(out var maps));
+        Assert.HasCount(8, maps);
+        Assert.HasCount(2, hud.VisiblePlayers(AnoVetoHudController.HudId));
+    }
+
+    [TestMethod]
+    public async Task RandomCommand_RequiresSameManagerPermissionAsCreate()
+    {
+        var permissions = new ManagerPermissionEvaluator(allow: false);
+        var commands = new CommandRegistry(permissions);
+        var hud = new TestCustomHudService();
+        var players = new StubPlayerRegistry([Snapshot(Manager, "Manager")]);
+        var coordinator = CreateCoordinator(permissions);
+        using var controller = new AnoVetoCommandController(commands, hud, players, coordinator, new FixedTimeProvider(Now));
+
+        var result = await commands.ExecuteAsync("!anoveto random", Manager);
+
+        Assert.IsFalse(result.Success);
+        Assert.AreEqual(CommandFailureReason.Forbidden, result.FailureReason);
+        Assert.IsFalse(coordinator.TryGetStatus(out _));
+    }
+
+    [TestMethod]
     public async Task CreateCommand_RejectsUnauthorizedPlayer()
     {
         var permissions = new ManagerPermissionEvaluator(allow: false);
