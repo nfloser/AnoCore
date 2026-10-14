@@ -107,16 +107,36 @@ public sealed class CasinoPresenterTests
         Assert.AreEqual("500 AP", f.Text("bank"));
     }
 
+    [TestMethod]
+    public async Task StorageFailuresReturnCasinoSpecificMessageAndReachServerErrorSink()
+    {
+        using var f = await Fixture.Create();
+
+        f.Wallet.FailRead = true;
+        var open = await f.Commands.ExecuteAsync("!anocasino", Player);
+        Assert.IsFalse(open.Success);
+        StringAssert.Contains(open.Message, "Casino-Speicher");
+        Assert.AreEqual(1, f.Errors.Count);
+
+        f.Wallet.FailRead = false;
+        f.Wallet.FailApply = new InvalidOperationException("casino database unavailable");
+        var credit = await f.Commands.ExecuteAsync("!anoapcredit 76561198000911901 100", null);
+        Assert.IsFalse(credit.Success);
+        StringAssert.Contains(credit.Message, "Casino-Speicher");
+        Assert.AreEqual(2, f.Errors.Count);
+    }
+
     private sealed class Clock : TimeProvider { private DateTimeOffset _now = DateTimeOffset.UtcNow; public override DateTimeOffset GetUtcNow() => _now; public void Advance() => AdvanceMilliseconds(4000); public void AdvanceMilliseconds(int milliseconds) => _now = _now.AddMilliseconds(milliseconds); }
     private sealed class Permission : IPermissionEvaluator { public bool Allowed = true; public ValueTask<bool> HasPermissionAsync(PlayerId p, PermissionId x, CancellationToken t = default) => ValueTask.FromResult(Allowed); }
     private sealed class Wallet : ICasinoWallet
     {
         public CasinoBalance Balance = new(1000, 0, 0); public bool FailRead;
-        public Exception? RejectOnce; public CasinoOperation? Last; public Dictionary<Guid, CasinoReceipt> Operations = [];
+        public Exception? RejectOnce; public Exception? FailApply; public CasinoOperation? Last; public Dictionary<Guid, CasinoReceipt> Operations = [];
         public ValueTask<CasinoBalance> ReadAsync(PlayerId p, CancellationToken t = default) => FailRead ? ValueTask.FromException<CasinoBalance>(new InvalidOperationException("Connection lost")) : ValueTask.FromResult(Balance);
         public ValueTask<IReadOnlyList<CasinoReceipt>> HistoryAsync(PlayerId p, CancellationToken t = default) => ValueTask.FromResult<IReadOnlyList<CasinoReceipt>>(Operations.Values.Reverse().ToArray());
         public ValueTask<CasinoReceipt> ApplyAsync(CasinoOperation o, CancellationToken t = default)
         {
+            if (FailApply is { } failure) { FailApply = null; throw failure; }
             if (RejectOnce is { } rejection) { RejectOnce = null; throw rejection; }
             Last = o; if (Operations.TryGetValue(o.Id, out var old)) return ValueTask.FromResult(old);
             CasinoOutcome? result = null; var a = Balance.Available; var b = Balance.Allocated;
@@ -127,8 +147,9 @@ public sealed class CasinoPresenterTests
     private sealed class Fixture : IDisposable
     {
         public readonly Clock Clock = new(); public readonly Permission Permission = new(); public readonly Wallet Wallet = new(); public readonly TestCustomHudService Hud = new();
+        public readonly List<Exception> Errors = [];
         public readonly PlayerRegistry Players; public readonly CommandRegistry Commands; public readonly CasinoPresenter Presenter;
-        private Fixture() { var events = new AnoEventBus(); Players = new(events); Commands = new(Permission); Presenter = new(Hud, Players, Permission, Wallet, Commands, events, _ => { }, Clock); }
+        private Fixture() { var events = new AnoEventBus(); Players = new(events); Commands = new(Permission); Presenter = new(Hud, Players, Permission, Wallet, Commands, events, _ => { }, Clock, reportError: Errors.Add); }
         public static async Task<Fixture> Create() { var f = new Fixture(); await f.Players.ConnectAsync(new(Player, "Tester", PlayerTeam.Terrorist, true, DateTimeOffset.UtcNow)); Assert.IsTrue((await f.Commands.ExecuteAsync("!anocasino", Player)).Success); return f; }
         public ValueTask Click(string id) => Hud.ClickAsync(Player, CasinoPresenter.HudId, "casino_" + id);
         public string? Text(string id) => Hud.Text(Player, CasinoPresenter.HudId, "casino_" + id);

@@ -1,3 +1,42 @@
+## Custom HUD initial client-sync race (#450) — 2026-10-14
+
+Local Casino acceptance now narrows the remaining failure to the first HUD sync:
+current compiled Casino VXML/VCSS files are present locally with matching hashes,
+and only the first `!anocasino` after the HUD entity is created emits missing-panel
+messages. Subsequent opens no longer repeat that panel-error cascade.
+
+The shared native HUD adapter used to spawn `custom_hud_layout` lazily and mutate
+named panels immediately in the same world-update cycle. Commit
+`fc3ca5a3375da4db16067ebe9feff5d3da13b205` on
+`fix/446-casino-persistence-bootstrap` now suppresses that same-tick mutation,
+reapplies the complete desired player state after 350 ms, and performs one bounded
+idempotent retry at 1.25 s. Map-change/unregister cleanup clears the warm-up state;
+there is no polling loop.
+
+Next gate: exact-head CI, then a local-client CS2 retest before any Workshop update.
+The Workshop addon must remain unchanged until this local acceptance passes.
+
+## Casino persistence recovery after live command failure (#446) — 2026-10-14
+
+DatHost acceptance reproduced generic failures for both `!anocasino` and console
+`css_anoapcredit` after `ano.casino.play` had been granted successfully. Both
+commands enter the AP/Casino persistence path; the shared command registry was
+masking the underlying handler exception.
+
+Branch `fix/446-casino-persistence-bootstrap` stacks on `fix/arcade-ui-delivery`.
+Casino startup now replays the CREATE-IF-NOT-EXISTS 027/028 schema definitions after
+normal migration bookkeeping and probes all four required table shapes before live
+presenters are registered. This repairs missing physical tables when migration
+history is stale/partial without changing AP balances, receipts or game rules.
+Casino command storage failures now reach the server logger and return a bounded
+Casino-specific message instead of the generic command failure; raw DB details are
+not exposed to players.
+
+Regression coverage adds missing-table recovery plus `anocasino` / `anoapcredit`
+storage-failure reporting. Exact-head CI and the DatHost retest (credit AP, open
+Casino, reconnect/reopen) remain pending. Workshop/visual acceptance is still the
+separate #441/#442 native gate.
+
 ## Backup-matched CSS profile preparation (#354) — 2026-10-09
 
 Separate offline prepare_css_profile.py prepares three files from old CustomTags
