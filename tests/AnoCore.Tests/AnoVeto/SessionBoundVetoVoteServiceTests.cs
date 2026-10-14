@@ -54,6 +54,42 @@ public sealed class SessionBoundVetoVoteServiceTests
     }
 
     [TestMethod]
+    public async Task AuthorizedCreateSession_SurvivesHudCallbackLookupButCanBeRevoked()
+    {
+        var fixture = await Fixture.CreateAsync();
+
+        Assert.IsTrue(await fixture.RunBool(
+            fixture.Votes.AuthorizeCreateSessionAsync(Host)));
+
+        fixture.Allowed = false;
+        Assert.IsTrue((await fixture.Run(
+            fixture.Votes.CreateAsync(Host, Definition(), Now))).Accepted);
+
+        fixture.Votes.RevokeCreateSession(Host);
+        Assert.AreEqual(
+            VoteOperationFailure.Forbidden,
+            (await fixture.Run(
+                fixture.Votes.CancelAsync(Host, AnoVetoCoordinator.VoteId, Now))).Failure);
+    }
+
+    [TestMethod]
+    public async Task AuthorizedCreateSession_DoesNotSurviveReconnect()
+    {
+        var fixture = await Fixture.CreateAsync();
+
+        Assert.IsTrue(await fixture.RunBool(
+            fixture.Votes.AuthorizeCreateSessionAsync(Host)));
+
+        await fixture.Connect(Host);
+        fixture.Allowed = false;
+
+        Assert.AreEqual(
+            VoteOperationFailure.Forbidden,
+            (await fixture.Run(
+                fixture.Votes.CreateAsync(Host, Definition(), Now))).Failure);
+    }
+
+    [TestMethod]
     public async Task Scope_CancellationAndLookupFailureCannotCreateVotes()
     {
         var fixture = await Fixture.CreateAsync();
@@ -97,6 +133,12 @@ public sealed class SessionBoundVetoVoteServiceTests
             new PlayerConnection(id, "Player", PlayerTeam.Terrorist, true, Now));
 
         public async Task<VoteOperationResult> Run(ValueTask<VoteOperationResult> result)
+        {
+            while (Queue.TryDequeue(out var action)) action();
+            return await result;
+        }
+
+        public async Task<bool> RunBool(ValueTask<bool> result)
         {
             while (Queue.TryDequeue(out var action)) action();
             return await result;
