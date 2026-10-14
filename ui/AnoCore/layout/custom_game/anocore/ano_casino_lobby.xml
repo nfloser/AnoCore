@@ -1,0 +1,46 @@
+<root>
+  <styles><include src="s2r://panorama/styles/custom_game/anocore/ano_casino_lobby.vcss_c" /></styles>
+  <Panel class="ano-hud-host" hittest="false">
+    <Panel id="casino_lobby_root" class="casino-overlay" hittest="true">
+      <Panel class="casino-dim" hittest="false" />
+      <Panel class="casino-window" hittest="true">
+        <Panel class="casino-header">
+          <Panel class="casino-banner" hittest="false" />
+          <Panel class="casino-header-copy">
+            <Label class="casino-title" text="ANOMEME · ANOCASINO" />
+            <Label id="casino_lobby_profile" class="casino-subtitle" text="{s:text}" />
+          </Panel>
+          <Button id="casino_lobby_close" class="casino-button"><Label text="SCHLIESSEN" /></Button>
+        </Panel>
+        <Panel class="casino-row">
+          <Panel class="casino-counter"><Label text="PROFILKONTO" /><Label id="casino_lobby_account" text="{s:text}" /></Panel>
+          <Panel class="casino-counter"><Label text="AUTOMAT" /><Label id="casino_lobby_bank" text="{s:text}" /></Panel>
+        </Panel>
+        <Label class="casino-section" text="SPIEL WÄHLEN" />
+        <Panel class="casino-grid">
+          <Button id="casino_lobby_slots" class="casino-game"><Label text="SLOTS" /></Button>
+          <Button id="casino_lobby_coinflip" class="casino-game"><Label text="COINFLIP" /></Button>
+          <Button id="casino_lobby_roulette" class="casino-game"><Label text="ROULETTE" /></Button>
+          <Button id="casino_lobby_blackjack" class="casino-game"><Label text="BLACKJACK" /></Button>
+          <Button id="casino_lobby_book" class="casino-game"><Label text="BOOK · FREISPIELE" /></Button>
+          <Button id="casino_lobby_risk" class="casino-game"><Label text="RISK" /></Button>
+        </Panel>
+        <Label class="casino-section" text="AP-KONTO" />
+        <Panel class="casino-row">
+          <Button id="casino_lobby_loadminus" class="casino-button"><Label text="−" /></Button>
+          <Label id="casino_lobby_loadamount" class="casino-value" text="{s:text}" />
+          <Button id="casino_lobby_loadplus" class="casino-button"><Label text="+" /></Button>
+          <Button id="casino_lobby_load" class="casino-button casino-primary"><Label text="AUFLADEN" /></Button>
+          <Button id="casino_lobby_return" class="casino-button"><Label text="ALLES ZURÜCK" /></Button>
+        </Panel>
+        <Label id="casino_lobby_status" class="casino-status" text="{s:text}" />
+        <Panel class="casino-row">
+          <Button id="casino_lobby_refresh" class="casino-button"><Label text="AKTUALISIEREN" /></Button>
+          <Button id="casino_lobby_history" class="casino-button"><Label text="VERLAUF" /></Button>
+          <Button id="casino_lobby_menu" class="casino-button"><Label text="ANOMENU" /></Button>
+        </Panel>
+        <Label class="casino-note" text="Nur virtuelle AP · keine Echtgeld-Auszahlung" />
+      </Panel>
+    </Panel>
+  </Panel>
+</root>
