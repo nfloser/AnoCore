@@ -1051,3 +1051,22 @@ Full Roslyn formatting likewise needs named-pipe access; folder whitespace
 formatting and git diff checks work locally. Native resourcecompiler, Workshop
 upload and CS2 two-client lifecycle acceptance remain manual. Do not merge or
 claim native ready before relevant CI/native gates. See casino-test-install.md.
+
+
+## Missing Arcade window / compiled HUD resource repair (#441)
+
+Client reports all ano_arcade text IDs missing despite command acknowledgement.
+Actual source IDs match; server entity creation is not client resource validation.
+Inspection found the adapter passed source .xml verbatim to the CSS schema setter.
+The additive CompiledLayoutResource property now supplies .vxml_c while preserving
+the SDK source contract; entity cleanup recognizes both old and corrected names.
+Independent review confirmed the installed CSS1.0.376 setter performs no extension
+conversion. New contract cases and native-adapter source regression cover the fix.
+
+repair-arcade.ps1 stages only the original probe's five compiled client resources,
+requires fresh compiler output, backs up old overrides, verifies hashes and rolls
+back transfer failures. BuildOnly and UseWorkshop provide a narrow delivery check;
+visible marker ARCADE UI CHECK2026-10-14 identifies the source version. Existing
+combined/separate builders now reject stale outputs too. Owner must update the
+plugin and test client/Workshop rendering before native acceptance; CasinoEnabled
+is unnecessary for the original probe. Keep the fix PR draft until native proof.

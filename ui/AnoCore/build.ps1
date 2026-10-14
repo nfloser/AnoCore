@@ -1,5 +1,6 @@
 param(
     [string]$Cs2 = "",
+    [ValidatePattern('^[a-z][a-z0-9_]*$')]
     [string]$Addon = "anomeme_ui",
     [string]$PreviewSource = "",
     [ValidateRange(128, 4096)]
@@ -156,6 +157,8 @@ foreach ($symbol in @("cherry", "lemon", "plum", "orange", "grapes", "watermelon
     foreach ($extension in @(".png", ".vtex")) {
         Copy-Item (Join-Path $src "styles\custom_game\anocore\arcade\$symbol$extension") (Join-Path $arcadeDir "$symbol$extension") -Force
     }
+    $compiled = Join-Path $Cs2 "game\csgo_addons\$Addon\panorama\styles\custom_game\anocore\arcade\$symbol.vtex_c"
+    if (Test-Path $compiled -PathType Leaf) { Remove-Item -LiteralPath $compiled -Force }
     & $compiler -i (Join-Path $arcadeDir "$symbol.vtex") -f -r
     if ($LASTEXITCODE -ne 0) { throw "Failed to compile arcade symbol $symbol" }
     $compiled = Join-Path $Cs2 "game\csgo_addons\$Addon\panorama\styles\custom_game\anocore\arcade\$symbol.vtex_c"
@@ -173,14 +176,17 @@ foreach ($name in @("ano_veto_cards", "ano_veto", "menu", "ano_tournament", "ano
     Copy-Item (Join-Path $src "layout\custom_game\anocore\$name.xml") $layoutTarget -Force
     Copy-Item (Join-Path $src "styles\custom_game\anocore\$name.css") $styleTarget -Force
 
+    $gameRoot = Join-Path $Cs2 "game\csgo_addons\$Addon\panorama"
+    $outLayout = Join-Path $gameRoot "layout\custom_game\anocore\$name.vxml_c"
+    $outStyle = Join-Path $gameRoot "styles\custom_game\anocore\$name.vcss_c"
+    foreach ($compiledOutput in @($outLayout, $outStyle)) {
+        if (Test-Path $compiledOutput -PathType Leaf) { Remove-Item -LiteralPath $compiledOutput -Force }
+    }
     & $compiler -i $styleTarget -f -r
     if ($LASTEXITCODE -ne 0) { throw "Failed to compile $name.css" }
     & $compiler -i $layoutTarget -f -r
     if ($LASTEXITCODE -ne 0) { throw "Failed to compile $name.xml" }
 
-    $gameRoot = Join-Path $Cs2 "game\csgo_addons\$Addon\panorama"
-    $outLayout = Join-Path $gameRoot "layout\custom_game\anocore\$name.vxml_c"
-    $outStyle = Join-Path $gameRoot "styles\custom_game\anocore\$name.vcss_c"
     foreach ($required in @($outLayout, $outStyle)) {
         if (-not (Test-Path $required)) { throw "Expected compiled resource missing: $required" }
     }

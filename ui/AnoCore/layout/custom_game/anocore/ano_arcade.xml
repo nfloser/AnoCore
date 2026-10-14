@@ -5,7 +5,7 @@
       <Panel class="arcade-window" hittest="true">
         <Panel class="arcade-header" hittest="false">
           <Panel class="arcade-heading" hittest="false">
-            <Label class="arcade-brand" text="ANOMEME / ANO ARCADE" />
+            <Label class="arcade-brand" text="ARCADE UI CHECK 2026-10-14" />
             <Label class="arcade-title" text="ANO ARCADE" />
             <Label id="ano_arcade_profile" text="{s:text}" />
           </Panel>
