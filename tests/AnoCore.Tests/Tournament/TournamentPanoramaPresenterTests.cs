@@ -63,6 +63,47 @@ public sealed class TournamentPanoramaPresenterTests
     }
 
     [TestMethod]
+    public async Task OfflineRosterShowsConfiguredNicknameAndSteamIdWithoutInventingPresence()
+    {
+        var bus = new AnoEventBus();
+        var players = new PlayerRegistry(bus);
+        await players.ConnectAsync(new(Viewer, "Viewer", PlayerTeam.Terrorist, true, DateTimeOffset.UtcNow));
+        var definition = Definition();
+        var steam = definition.Teams[0].Starters[0];
+        definition.Teams[0].PlayerNames[steam] = "Test Pilot";
+        var repository = new MemoryEvents(definition);
+        var hud = new TestCustomHudService();
+        var commands = new CommandRegistry(new Allow());
+        using var presenter = new TournamentPanoramaPresenter(hud, repository, players, commands, bus);
+
+        Assert.IsTrue((await commands.ExecuteAsync("!anotournament", Viewer)).Success);
+        var label = hud.Text(Viewer, TournamentPanoramaPresenter.HudId, "ano_tournament_roster_0")!;
+        StringAssert.Contains(label, $"Test Pilot ({steam})");
+        StringAssert.Contains(label, "Nicht auf diesem Server");
+        StringAssert.Contains(hud.Text(Viewer, TournamentPanoramaPresenter.HudId, "ano_tournament_team_status")!, "Fehlen 5");
+    }
+
+    [TestMethod]
+    public async Task ConnectedPlayerNameIsShownWhenNoRosterNicknameWasConfigured()
+    {
+        var bus = new AnoEventBus();
+        var players = new PlayerRegistry(bus);
+        await players.ConnectAsync(new(Viewer, "Viewer", PlayerTeam.Terrorist, true, DateTimeOffset.UtcNow));
+        var definition = Definition();
+        var steam = definition.Teams[0].Starters[0];
+        await players.ConnectAsync(new(new PlayerId(steam), "Live Player", PlayerTeam.CounterTerrorist,
+            true, DateTimeOffset.UtcNow));
+        var repository = new MemoryEvents(definition);
+        var hud = new TestCustomHudService();
+        var commands = new CommandRegistry(new Allow());
+        using var presenter = new TournamentPanoramaPresenter(hud, repository, players, commands, bus);
+
+        Assert.IsTrue((await commands.ExecuteAsync("!anotournament", Viewer)).Success);
+        StringAssert.Contains(hud.Text(Viewer, TournamentPanoramaPresenter.HudId, "ano_tournament_roster_0")!,
+            $"Live Player ({steam})");
+    }
+
+    [TestMethod]
     public async Task ChangedRevisionRefreshesExistingHudAndCloseClearsCursor()
     {
         var bus = new AnoEventBus();
