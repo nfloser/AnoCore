@@ -66,8 +66,10 @@ jobs:
         run: |
           $tokens = $null
           $errors = $null
-          [System.Management.Automation.Language.Parser]::ParseFile("$PWD/ui/AnoCore/build.ps1", [ref]$tokens, [ref]$errors) | Out-Null
-          if ($errors.Count -gt 0) { throw ($errors | Out-String) }
+          foreach ($script in @("build.ps1", "build-casino.ps1")) {
+            [System.Management.Automation.Language.Parser]::ParseFile("$PWD/ui/AnoCore/$script", [ref]$tokens, [ref]$errors) | Out-Null
+            if ($errors.Count -gt 0) { throw ($errors | Out-String) }
+          }
 
       - name: Verify formatting
         run: dotnet format AnoCore.sln --verify-no-changes --no-restore
@@ -195,6 +197,7 @@ jobs:
           test -s artifacts/plugins/AnoCore/AnoCore.dll
           test -s artifacts/plugins/AnoCore/AnoCore.Runtime.dll
           test -s artifacts/plugins/AnoCore/AnoCore.Abstractions.dll
+          test -s artifacts/plugins/AnoCore/AnoCore.Modules.Arcade.dll
           test -s artifacts/plugins/AnoCore/AnoCore.Modules.Admin.dll
           test -s artifacts/plugins/AnoCore/AnoCore.Modules.Stats.dll
           test -s artifacts/plugins/AnoCore/AnoCore.Modules.Progression.dll

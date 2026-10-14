@@ -1,0 +1,98 @@
+<root>
+  <styles><include src="s2r://panorama/styles/custom_game/anocore/ano_arcade.vcss_c" /></styles>
+  <Panel class="arcade-host" hittest="false">
+    <Panel id="ano_arcade_root" class="arcade-overlay" hittest="true">
+      <Panel class="arcade-window" hittest="true">
+        <Panel class="arcade-header" hittest="false">
+          <Panel class="arcade-heading" hittest="false">
+            <Label class="arcade-brand" text="ANOMEME / ANO ARCADE" />
+            <Label class="arcade-title" text="ANO ARCADE" />
+            <Label id="ano_arcade_profile" text="{s:text}" />
+          </Panel>
+          <Panel class="arcade-account" hittest="false">
+            <Label text="TESTKONTO" /><Label id="ano_arcade_account" class="arcade-value" text="{s:text}" />
+          </Panel>
+        </Panel>
+        <Panel class="arcade-home" hittest="true">
+          <Panel class="arcade-cards" hittest="true">
+            <Button id="ano_arcade_slots" class="arcade-card"><Panel class="arcade-card-art symbol-cherry" hittest="false" /><Label text="SLOTS" /></Button>
+            <Button id="ano_arcade_coinflip" class="arcade-card planned"><Label class="arcade-card-mark" text="●" /><Label text="COINFLIP · GEPLANT" /></Button>
+            <Button id="ano_arcade_roulette" class="arcade-card planned"><Label class="arcade-card-mark" text="◎" /><Label text="ROULETTE · GEPLANT" /></Button>
+          </Panel>
+          <Button id="ano_arcade_cases" class="arcade-button"><Label text="KISTENSIMULATOR · GEPLANT" /></Button>
+          <Label class="arcade-note" text="Drehverlauf und Profilkonto folgen mit der dauerhaften AP-Anbindung." />
+        </Panel>
+        <Panel class="arcade-slots" hittest="true">
+          <Label class="arcade-subtitle" text="ANOMEME TRIPLE · ANIMATIONSTEST" />
+          <Panel class="arcade-reels" hittest="false">
+          <Panel class="arcade-reel-window" hittest="false">
+            <Panel id="ano_arcade_reel_0" class="arcade-reel-strip stop-0" hittest="false">
+                <Panel class="arcade-symbol symbol-lemon" hittest="false" />
+                <Panel class="arcade-symbol symbol-cherry" hittest="false" />
+                <Panel class="arcade-symbol symbol-plum" hittest="false" />
+                <Panel class="arcade-symbol symbol-lemon" hittest="false" />
+                <Panel class="arcade-symbol symbol-cherry" hittest="false" />
+                <Panel class="arcade-symbol symbol-plum" hittest="false" />
+                <Panel class="arcade-symbol symbol-lemon" hittest="false" />
+                <Panel class="arcade-symbol symbol-cherry" hittest="false" />
+                <Panel class="arcade-symbol symbol-plum" hittest="false" />
+                <Panel class="arcade-symbol symbol-lemon" hittest="false" />
+                <Panel class="arcade-symbol symbol-cherry" hittest="false" />
+                <Panel class="arcade-symbol symbol-plum" hittest="false" />
+            </Panel>
+          </Panel>
+          <Panel class="arcade-reel-window" hittest="false">
+            <Panel id="ano_arcade_reel_1" class="arcade-reel-strip stop-0" hittest="false">
+                <Panel class="arcade-symbol symbol-lemon" hittest="false" />
+                <Panel class="arcade-symbol symbol-cherry" hittest="false" />
+                <Panel class="arcade-symbol symbol-plum" hittest="false" />
+                <Panel class="arcade-symbol symbol-lemon" hittest="false" />
+                <Panel class="arcade-symbol symbol-cherry" hittest="false" />
+                <Panel class="arcade-symbol symbol-plum" hittest="false" />
+                <Panel class="arcade-symbol symbol-lemon" hittest="false" />
+                <Panel class="arcade-symbol symbol-cherry" hittest="false" />
+                <Panel class="arcade-symbol symbol-plum" hittest="false" />
+                <Panel class="arcade-symbol symbol-lemon" hittest="false" />
+                <Panel class="arcade-symbol symbol-cherry" hittest="false" />
+                <Panel class="arcade-symbol symbol-plum" hittest="false" />
+            </Panel>
+          </Panel>
+          <Panel class="arcade-reel-window" hittest="false">
+            <Panel id="ano_arcade_reel_2" class="arcade-reel-strip stop-0" hittest="false">
+                <Panel class="arcade-symbol symbol-lemon" hittest="false" />
+                <Panel class="arcade-symbol symbol-cherry" hittest="false" />
+                <Panel class="arcade-symbol symbol-plum" hittest="false" />
+                <Panel class="arcade-symbol symbol-lemon" hittest="false" />
+                <Panel class="arcade-symbol symbol-cherry" hittest="false" />
+                <Panel class="arcade-symbol symbol-plum" hittest="false" />
+                <Panel class="arcade-symbol symbol-lemon" hittest="false" />
+                <Panel class="arcade-symbol symbol-cherry" hittest="false" />
+                <Panel class="arcade-symbol symbol-plum" hittest="false" />
+                <Panel class="arcade-symbol symbol-lemon" hittest="false" />
+                <Panel class="arcade-symbol symbol-cherry" hittest="false" />
+                <Panel class="arcade-symbol symbol-plum" hittest="false" />
+            </Panel>
+          </Panel>
+          </Panel>
+          <Panel class="arcade-counters" hittest="true">
+            <Panel class="arcade-counter" hittest="false"><Label text="AUTOMATENGUTHABEN" /><Label id="ano_arcade_bank" class="arcade-value" text="{s:text}" /></Panel>
+            <Panel class="arcade-counter" hittest="true"><Label text="EINSATZ PRO SPIN" /><Panel class="arcade-stake-controls" hittest="true"><Button id="ano_arcade_minus" class="arcade-small"><Label text="−" /></Button><Label id="ano_arcade_stake" class="arcade-value" text="{s:text}" /><Button id="ano_arcade_plus" class="arcade-small"><Label text="+" /></Button></Panel></Panel>
+            <Panel class="arcade-counter" hittest="false"><Label text="GEWINN DIESES SPINS" /><Label id="ano_arcade_win" class="arcade-value" text="{s:text}" /></Panel>
+          </Panel>
+          <Panel class="arcade-controls" hittest="true">
+            <Button id="ano_arcade_load" class="arcade-button"><Label text="500 TEST-AP AUFLADEN" /></Button>
+            <Button id="ano_arcade_return" class="arcade-button"><Label text="ALLES ZURÜCKBUCHEN" /></Button>
+            <Button id="ano_arcade_spin" class="arcade-button arcade-primary"><Label text="DREHEN" /></Button>
+          </Panel>
+        </Panel>
+        <Label id="ano_arcade_status" class="arcade-status" text="{s:text}" />
+        <Panel class="arcade-controls" hittest="true">
+          <Button id="ano_arcade_home" class="arcade-button"><Label text="ZURÜCK ZUR AUSWAHL" /></Button>
+          <Button id="ano_arcade_refresh" class="arcade-button"><Label text="TEXTUPDATE TESTEN" /></Button>
+          <Button id="ano_arcade_close" class="arcade-button"><Label text="SCHLIESSEN" /></Button>
+        </Panel>
+        <Label class="arcade-note" text="Nur flüchtiges Testguthaben. Feste Testsequenz. Keine echten AP-Buchungen." />
+      </Panel>
+    </Panel>
+  </Panel>
+</root>

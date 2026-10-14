@@ -7,6 +7,7 @@ using AnoCore.Abstractions.Players;
 using AnoCore.Abstractions.Stats;
 using AnoCore.Modules.Admin;
 using AnoCore.Modules.AnoVeto;
+using AnoCore.Modules.Arcade;
 using AnoCore.Modules.Progression;
 using AnoCore.Modules.Progression.Persistence;
 using AnoCore.Modules.Stats;
@@ -95,6 +96,9 @@ public sealed class AnoCorePlugin : BasePlugin
     private ModerationWebhookPump? _webhooks;
     private CounterStrikeSharp.API.Modules.Timers.Timer? _roleExpiryTimer;
     private bool _panoramaMenusEnabled;
+    private bool _arcadeProbeEnabled;
+    private ArcadeProbePresenter? _arcadeProbe;
+    private CounterStrikeSharp.API.Modules.Timers.Timer? _arcadeProbeTimer;
     private bool _tournamentDashboardEnabled;
     private TournamentMatchRuntime? _tournamentMatch;
     private TournamentTeamEnforcement? _tournamentTeamEnforcement;
@@ -294,6 +298,10 @@ public sealed class AnoCorePlugin : BasePlugin
             _tournamentEventCommands = null;
             _tournamentRefreshTimer?.Kill();
             _tournamentRefreshTimer = null;
+            _arcadeProbeTimer?.Kill();
+            _arcadeProbeTimer = null;
+            _arcadeProbe?.Dispose();
+            _arcadeProbe = null;
             _tournamentPanorama?.Dispose();
             _tournamentPanorama = null;
             _tournamentSpectatorEnforcement?.Dispose();
@@ -448,6 +456,9 @@ public sealed class AnoCorePlugin : BasePlugin
             var externalModules = await configuration.LoadAsync("modules", () => new ExternalModuleConfiguration(),
                 ExternalModuleConfiguration.Validate, cancellationToken).ConfigureAwait(false);
             _panoramaMenusEnabled = settings.PanoramaMenusEnabled;
+            _arcadeProbeEnabled = settings.ArcadeAnimationProbeEnabled;
+            if (_arcadeProbeEnabled && !_panoramaMenusEnabled)
+                throw new InvalidOperationException("ArcadeAnimationProbeEnabled requires PanoramaMenusEnabled in core.json.");
             _tournamentDashboardEnabled = settings.TournamentDashboardEnabled;
             if (_tournamentDashboardEnabled && !_panoramaMenusEnabled)
                 throw new InvalidOperationException("TournamentDashboardEnabled requires PanoramaMenusEnabled in core.json.");
@@ -1144,6 +1155,8 @@ public sealed class AnoCorePlugin : BasePlugin
             TournamentSpectatorEnforcement? tournamentSpectatorEnforcement = null;
             TournamentCommandController? tournamentCommands = null;
             TournamentEventCommandController? tournamentEventCommands = null;
+            ArcadeProbePresenter? arcadeProbe = null;
+            CounterStrikeSharp.API.Modules.Timers.Timer? arcadeProbeTimer = null;
             TournamentPanoramaPresenter? tournamentPanorama = null;
             CounterStrikeSharp.API.Modules.Timers.Timer? tournamentRefreshTimer = null;
             TournamentAdminMenuModule? tournamentAdminMenu = null;
@@ -1184,6 +1197,17 @@ public sealed class AnoCorePlugin : BasePlugin
 
             try
             {
+                if (_arcadeProbeEnabled && _customHud is not null)
+                {
+                    arcadeProbe = new ArcadeProbePresenter(_customHud, runtime.Players, runtime.Authorization, runtime.Commands, _eventBus!,
+                        beforeOpen: playerId =>
+                        {
+                            runtime.Menus.Close(playerId);
+                            presenter.Reconcile();
+                        });
+                    var activeArcadeProbe = arcadeProbe;
+                    arcadeProbeTimer = AddTimer(0.25f, activeArcadeProbe.Tick, TimerFlags.REPEAT);
+                }
                 try
                 {
                     _webhooks = ModerationWebhookPump.Create((AnoCore.Abstractions.Persistence.IDatabase)runtime.GetService(typeof(AnoCore.Abstractions.Persistence.IDatabase))!, _webhookPolicy);
@@ -1639,6 +1663,8 @@ public sealed class AnoCorePlugin : BasePlugin
                 _tournamentSpectatorEnforcement = tournamentSpectatorEnforcement;
                 _tournamentCommands = tournamentCommands;
                 _tournamentEventCommands = tournamentEventCommands;
+                _arcadeProbe = arcadeProbe;
+                _arcadeProbeTimer = arcadeProbeTimer;
                 _tournamentPanorama = tournamentPanorama;
                 _tournamentRefreshTimer = tournamentRefreshTimer;
                 _tournamentAdminMenu = tournamentAdminMenu;
@@ -1736,6 +1762,8 @@ public sealed class AnoCorePlugin : BasePlugin
                 tournamentAssignmentCommands?.Dispose();
                 tournamentEventCommands?.Dispose();
                 tournamentRefreshTimer?.Kill();
+                arcadeProbeTimer?.Kill();
+                arcadeProbe?.Dispose();
                 tournamentPanorama?.Dispose();
                 tournamentSpectatorEnforcement?.Dispose();
                 tournamentSpectatorPolicies?.Dispose();
@@ -1877,6 +1905,8 @@ public sealed class AnoCorePlugin : BasePlugin
         public string ConnectionString { get; set; } = string.Empty;
 
         public bool PanoramaMenusEnabled { get; set; }
+
+        public bool ArcadeAnimationProbeEnabled { get; set; }
 
         // Requires the compiled ano_tournament.xml in the mounted Workshop addon.
         // Keep disabled until the one-time native client acceptance has passed.
@@ -2612,6 +2642,7 @@ public sealed class AnoCorePlugin : BasePlugin
 
     private void OnMapEnd()
     {
+        _arcadeProbe?.Reset();
         _warmupState.Reset();
         FlushCombatDetails("combat_detail_map_end");
         Interlocked.Exchange(ref _rankRoundGeneration, 0);
