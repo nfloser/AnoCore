@@ -126,7 +126,7 @@ public sealed class AnoVetoCommandController : IDisposable
         if (context.Caller is null || _presetRepository is null)
             return CommandResult.Fail(CommandFailureReason.InvalidInput, "Personal Veto presets require a player and database.");
 
-        if (!context.TryGet<string>("action", out var action))
+        if (!context.TryGet<string>("action", out var action) || string.IsNullOrWhiteSpace(action))
             return CommandResult.Fail(CommandFailureReason.InvalidInput, "Use list, rename or delete.");
 
         var owner = context.Caller.SteamId64;
@@ -141,7 +141,9 @@ public sealed class AnoVetoCommandController : IDisposable
                         : "Your saved vetos: " + string.Join(", ", presets.Select(p => p.Preset.Name)));
                 case "rename":
                     if (!context.TryGet<string>("name", out var oldName)
-                        || !context.TryGet<string>("newname", out var newName))
+                        || string.IsNullOrWhiteSpace(oldName)
+                        || !context.TryGet<string>("newname", out var newName)
+                        || string.IsNullOrWhiteSpace(newName))
                         return CommandResult.Fail(CommandFailureReason.InvalidInput,
                             "Usage: !anovetopreset rename <oldname> <newname>. Quote names containing spaces.");
                     var stored = await _presetRepository.GetAsync(owner, oldName).ConfigureAwait(false);
@@ -152,7 +154,8 @@ public sealed class AnoVetoCommandController : IDisposable
                         context.CancellationToken).ConfigureAwait(false);
                     return CommandResult.Ok($"Renamed Veto to {newName}.");
                 case "delete":
-                    if (!context.TryGet<string>("name", out var toDelete))
+                    if (!context.TryGet<string>("name", out var toDelete)
+                        || string.IsNullOrWhiteSpace(toDelete))
                         return CommandResult.Fail(CommandFailureReason.InvalidInput,
                             "Usage: !anovetopreset delete <name>. Quote names containing spaces.");
                     return CommandResult.Fail(CommandFailureReason.InvalidInput,
@@ -169,7 +172,7 @@ public sealed class AnoVetoCommandController : IDisposable
 
     private CommandResult FindInPicker(CommandContext context)
     {
-        var query = context.TryGet<string>("query", out var value) ? value : string.Empty;
+        var query = context.TryGet<string>("query", out var value) && value is not null ? value : string.Empty;
         if (query.Length > 80)
             return CommandResult.Fail(CommandFailureReason.InvalidInput, "Search term is too long.");
         return _createHud.ApplyChatFilter(context.Caller!, query)
