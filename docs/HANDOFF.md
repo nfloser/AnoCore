@@ -1,3 +1,12 @@
+## Slots CustomHud inline-style rejection (#473) — 2026-10-14
+
+Owner CS2 log rejects Panel style attributes before opening the Slots HUD.
+Moved all 16 strip positions to named CSS classes, preserving symbol order
+and downward animation. Added a regression covering every native XML layout.
+This is a resource-only fix on #471; rebuild/reinstall the matching addon
+locally, then test Slots opening and two spins before Workshop publication.
+No plugin/config/AP changes. Native acceptance remains outstanding.
+
 ## Backup-matched CSS profile preparation (#354) — 2026-10-09
 
 Separate offline prepare_css_profile.py prepares three files from old CustomTags

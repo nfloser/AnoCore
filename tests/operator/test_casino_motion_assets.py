@@ -54,8 +54,10 @@ class CasinoMotionAssetsTests(unittest.TestCase):
             panels = tree.find('.//*[@id="casino_slots_reel'+str(reel)+'"]').find('./Panel').findall('./Panel')
             self.assertEqual(len(panels),16)
             for row,panel in enumerate(panels):
-                self.assertEqual(panel.attrib['style'],f'position: 0px {row*112}px 0px;')
-            self.assertEqual([p.attrib['class'] for p in panels[:8]], [p.attrib['class'] for p in panels[8:]])
+                self.assertNotIn('style', panel.attrib)
+                self.assertIn(f'slot-row-{row}', panel.attrib['class'].split())
+                self.assertIn(f'.slot-row-{row} {{ position: 0px {row*112}px 0px; }}', css)
+            self.assertEqual([p.attrib['class'].split()[1] for p in panels[:8]], [p.attrib['class'].split()[1] for p in panels[8:]])
 
     def test_round_shell_has_explicit_size_and_each_game_still_has_controls(self):
         css = (STYLE/'ano_casino_rounds.css').read_text()
