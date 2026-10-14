@@ -15,6 +15,8 @@ public sealed class AnoVetoCommandController : IDisposable
     private readonly AnoVetoCreateHudController _createHud;
     private readonly TimeProvider _timeProvider;
     private IDisposable? _commandRegistration;
+    private IDisposable? _presetCommandRegistration;
+    private readonly IAnoVetoPresetRepository? _presetRepository;
 
     public AnoVetoCommandController(
         IAnoCommandRegistry commands,
@@ -28,6 +30,7 @@ public sealed class AnoVetoCommandController : IDisposable
         _players = players ?? throw new ArgumentNullException(nameof(players));
         _coordinator = coordinator ?? throw new ArgumentNullException(nameof(coordinator));
         _timeProvider = timeProvider ?? TimeProvider.System;
+        _presetRepository = presetRepository;
         _hud = new AnoVetoHudController(
             hud ?? throw new ArgumentNullException(nameof(hud)),
             coordinator,
@@ -49,6 +52,20 @@ public sealed class AnoVetoCommandController : IDisposable
                         required: false),
                 ]),
             HandleAsync);
+
+        if (_presetRepository is not null)
+            _presetCommandRegistration = commands.Register(
+                Owner,
+                new CommandDescriptor(
+                    "anovetopreset",
+                    "List, rename, or delete your own saved Veto pools.",
+                    arguments:
+                    [
+                        new CommandArgumentDescriptor("action", CommandArgumentKind.String, "list, rename or delete"),
+                        new CommandArgumentDescriptor("name", CommandArgumentKind.String, "Existing preset name", required: false),
+                        new CommandArgumentDescriptor("newname", CommandArgumentKind.String, "New preset name", required: false),
+                    ]),
+                HandlePresetCommandAsync);
     }
 
     public async ValueTask<AnoVetoOperationResult?> ExpireAsync(CancellationToken cancellationToken = default)
@@ -67,6 +84,7 @@ public sealed class AnoVetoCommandController : IDisposable
     public void Dispose()
     {
         Interlocked.Exchange(ref _commandRegistration, null)?.Dispose();
+        Interlocked.Exchange(ref _presetCommandRegistration, null)?.Dispose();
         _createHud.Dispose();
         _hud.Dispose();
     }
@@ -95,6 +113,52 @@ public sealed class AnoVetoCommandController : IDisposable
                 CommandFailureReason.InvalidInput,
                 $"Unknown AnoVeto action '{action}'.")),
         };
+    }
+
+    private async ValueTask<CommandResult> HandlePresetCommandAsync(CommandContext context)
+    {
+        if (context.Caller is null || _presetRepository is null)
+            return CommandResult.Fail(CommandFailureReason.InvalidInput, "Personal Veto presets require a player and database.");
+
+        if (!context.TryGet<string>("action", out var action))
+            return CommandResult.Fail(CommandFailureReason.InvalidInput, "Use list, rename or delete.");
+
+        var owner = context.Caller.SteamId64;
+        try
+        {
+            switch (action.Trim().ToLowerInvariant())
+            {
+                case "list":
+                    var presets = await _presetRepository.ListAsync(owner, context.CancellationToken).ConfigureAwait(false);
+                    return CommandResult.Ok(presets.Count == 0
+                        ? "You have no saved Veto presets."
+                        : "Your saved vetos: " + string.Join(", ", presets.Select(p => p.Preset.Name)));
+                case "rename":
+                    if (!context.TryGet<string>("name", out var oldName)
+                        || !context.TryGet<string>("newname", out var newName))
+                        return CommandResult.Fail(CommandFailureReason.InvalidInput,
+                            "Usage: !anovetopreset rename <oldname> <newname>. Quote names containing spaces.");
+                    var stored = await _presetRepository.GetAsync(owner, oldName).ConfigureAwait(false);
+                    if (stored is null)
+                        return CommandResult.Fail(CommandFailureReason.InvalidInput, "Saved Veto not found.");
+                    await _presetRepository.ReplaceAsync(
+                        owner, oldName, stored.Value.Revision, stored.Value.Preset.Rename(newName),
+                        context.CancellationToken).ConfigureAwait(false);
+                    return CommandResult.Ok($"Renamed Veto to {newName}.");
+                case "delete":
+                    if (!context.TryGet<string>("name", out var toDelete))
+                        return CommandResult.Fail(CommandFailureReason.InvalidInput,
+                            "Usage: !anovetopreset delete <name>. Quote names containing spaces.");
+                    return CommandResult.Fail(CommandFailureReason.InvalidInput,
+                        "Delete through Use Veto with two-click confirmation.");
+                default:
+                    return CommandResult.Fail(CommandFailureReason.InvalidInput, "Use list or rename.");
+            }
+        }
+        catch (Exception error) when (error is not OperationCanceledException)
+        {
+            return CommandResult.Fail(CommandFailureReason.HandlerFailed, "Preset operation failed.");
+        }
     }
 
     private CommandResult OpenCreateHud(PlayerId player)
