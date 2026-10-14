@@ -46,6 +46,30 @@ public sealed class AnoVetoCommandControllerTests
     }
 
     [TestMethod]
+    public async Task CreateCommand_RejectsBeforeOpeningPickerWhenSessionAuthorizationFails()
+    {
+        var permissions = new ManagerPermissionEvaluator(allow: true);
+        var commands = new CommandRegistry(permissions);
+        var hud = new TestCustomHudService();
+        var players = new StubPlayerRegistry([Snapshot(Manager, "Manager")]);
+        var coordinator = CreateCoordinator(permissions);
+        using var controller = new AnoVetoCommandController(
+            commands,
+            hud,
+            players,
+            coordinator,
+            new FixedTimeProvider(Now),
+            authorizeCreate: (_, _) => ValueTask.FromResult(false));
+
+        var result = await commands.ExecuteAsync("!anoveto create", Manager);
+
+        Assert.IsFalse(result.Success);
+        Assert.AreEqual(CommandFailureReason.Forbidden, result.FailureReason);
+        Assert.IsFalse(hud.VisiblePlayers(AnoVetoCreateHudController.HudId).Contains(Manager));
+        Assert.IsFalse(coordinator.TryGetStatus(out _));
+    }
+
+    [TestMethod]
     public async Task PendingPickerButtons_NeverStartUnconfiguredVote()
     {
         var permissions = new ManagerPermissionEvaluator(allow: true);
