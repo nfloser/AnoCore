@@ -1,26 +1,42 @@
-# Biggest Boy Bücher – originales 5×5-Regelprofil
+# Biggest Boy Bücher – 5×5-Regelprofil v2
 
-Eigenständige siebte AnoCasino-Kachel; AnoBook bleibt unverändert. Einstieg:
-`!anocasino` → **BIGGEST BOY BÜCHER**. Ausschließlich virtuelle AnoPoints.
-Die neuesten elf vom Nutzer gelieferten Bilder ersetzen die frühere Symbolidee:
-Kebap ist Wild und expandiert im Bonus, das Gesicht ist ausschließlich Scatter.
-Ein zusätzliches Buchsymbol gehört nicht zu diesem Profil.
+Eigenständige AnoCasino-Slot neben AnoBook. Einstieg:
+`!anocasino` → **BIGGEST BOY BÜCHER**.
 
-## Einsatz und Gewinnplan
+Alle angezeigten €-Beträge sind ausschließlich virtuelle Casino-Werte. Es gibt
+keine Echtgeld-Einzahlung, Auszahlung oder Umrechnung.
 
-Gesamteinsatz: 50–10.000 AP in 50er-Schritten. Die Runtime-Konfiguration
-`BiggestBoyMaximumStake` begrenzt ihn serverseitig und in der Oberfläche;
-Standard: 10.000 AP. Änderung wird beim Pluginstart übernommen. Bereits aktive
-Bonusrunden behalten ihren gespeicherten Einsatz auch nach einer Absenkung.
-Andere Spiele behalten ihre bisherigen Einsatzgrenzen.
+## Symbole
 
-Zehn immer aktive Linien; Linieneinsatz = Gesamteinsatz / 10. Mindestens drei
-zusammenhängende gleiche Gewinnsymbole ab der linken Walze. Kebap ersetzt alle
-Gewinnsymbole, niemals Scatter. Pro Linie zählt genau die höchstwertige passende
-Kombination; Liniengewinne werden addiert. Keine Vergütung für rechte,
-unterbrochene oder nicht auf einer aktiven Linie liegende Kombinationen.
+- Kebap: Wild; ersetzt jedes normale Gewinnsymbol, niemals Scatter.
+- Bier, Zigarette, Butter, Shot, Trinktrichter, G, O, A, T: normale Gewinnsymbole.
+- Gesicht: Scatter; zahlt nicht direkt und wird nie durch Wild oder Expansion ersetzt.
 
-| Symbol | 3 gleiche | 4 gleiche | 5 gleiche |
+## Einsatz
+
+Zugelassene Einsatzstufen:
+
+`100 / 250 / 500 / 1.000 / 2.500 / 5.000 / 10.000 €`
+
+`BiggestBoyMaximumStake` kann die maximal auswählbare Stufe serverseitig
+begrenzen. Bereits laufende Bonusrunden behalten ihren gespeicherten Einsatz.
+
+## Feld und Gewinnlinien
+
+- 5 Walzen × 5 sichtbare Symbole.
+- 25 immer aktive Gewinnlinien.
+- Linieneinsatz = Gesamteinsatz / 25.
+- Gewinne laufen ausschließlich von links nach rechts.
+- Mindestens drei zusammenhängende passende Symbole ab Walze 1.
+- Kebap kann normale Symbole ersetzen.
+- Pro Basislinie zählt nur die höchstwertige passende Kombination.
+
+Die 25 Linien sind in `BiggestBoyRules.Paylines` eingefroren und Teil der
+Regelversion `anocore-biggest-boy-5x5-v2`.
+
+## Basis-Gewinnplan
+
+| Symbol | 3 | 4 | 5 |
 |---|---:|---:|---:|
 | Kebap / Wild | 225× | 1125× | 2500× |
 | Bier | 170× | 675× | 2250× |
@@ -33,136 +49,116 @@ unterbrochene oder nicht auf einer aktiven Linie liegende Kombinationen.
 | A | 11× | 45× | 113× |
 | T | 11× | 45× | 113× |
 
-Die Faktoren beziehen sich auf den **Linieneinsatz**, nicht den Gesamteinsatz.
-Beispiel: Einsatz 100 AP; eine Linie mit fünf Bier-Symbolen zahlt
-100 / 10 × 2250 = **22.500 AP brutto**. Gibt es keine weiteren Gewinne, beträgt
-der Nettogewinn des bezahlten Spins 22.400 AP. Die große Gewinnanzeige zeigt
-die Bruttoauszahlung des aktuellen Spins. Kontoauszahlung und Bonusgesamtgewinn
-werden zusätzlich getrennt angezeigt.
+Die Multiplikatoren beziehen sich auf den Linieneinsatz.
 
-## Gewinnlinien
+## Freispiele
 
-Zeilen 1 bis 5 von oben; jede Tabellenzeile nennt die Zeile auf Walze 1 bis 5.
+Der Scatter-Trigger wird über das vollständige 5×5-Feld gezählt:
 
-| Linie | Walze 1 | Walze 2 | Walze 3 | Walze 4 | Walze 5 |
-|---|---:|---:|---:|---:|---:|
-| 1 | 1 | 1 | 1 | 1 | 1 |
-| 2 | 2 | 2 | 2 | 2 | 2 |
-| 3 | 3 | 3 | 3 | 3 | 3 |
-| 4 | 4 | 4 | 4 | 4 | 4 |
-| 5 | 5 | 5 | 5 | 5 | 5 |
-| 6 | 1 | 2 | 3 | 4 | 5 |
-| 7 | 5 | 4 | 3 | 2 | 1 |
-| 8 | 1 | 2 | 3 | 2 | 1 |
-| 9 | 5 | 4 | 3 | 4 | 5 |
-| 10 | 3 | 2 | 1 | 2 | 3 |
+- 3 Scatter: 10 Freispiele.
+- 4 Scatter: 15 Freispiele.
+- 5 Scatter: 20 Freispiele.
 
-## Freispiele und Expansion
+Während der Freispiele geben mindestens 3 Scatter jeweils **+5 Freispiele**.
+Über die gesamte Bonusrunde werden höchstens **30 Freispiele** vergeben.
 
-- Drei, vier oder fünf Gesicht-Scatter irgendwo auf dem Feld: **10 Freispiele**.
-- Im Bonus lösen erneut mindestens drei Gesichter **+5 Freispiele** aus.
-- Höchstens **30 Freispiele insgesamt**, höchstens **20 verbleibende**; am Limit
-  werden nur noch die tatsächlich verfügbaren zusätzlichen Spins vergeben.
-- Der Scatter selbst zahlt keinen AP-Gewinn und ersetzt keine Gewinnsymbole.
-- Nur in Freispielen expandiert ein Kebap auf alle Nicht-Scatter-Felder seiner
-  Walze. Gesichter bleiben sichtbar und können erneut Freispiele auslösen.
-- Linien werden anhand des endgültigen, gegebenenfalls expandierten Feldes
-  bewertet. Es gibt keine zusätzliche zweite Vergütung des Rohfelds.
-- Nur der erste Spin wird bezahlt. Einsatz und Regelversion bleiben gespeichert.
-  Alle Bruttogewinne der Runde werden am Bonusende einmal gutgeschrieben.
+Nur der bezahlte Startspin belastet den Automaten. Symbolauswahl und Freispiele
+haben keinen zusätzlichen Einsatz. Der Einsatz bleibt für die komplette
+Bonusrunde gesperrt und wird zusammen mit der Regelversion persistiert.
 
-## Walzen und mathematische Prüfung
+## Expanding-Symbol
 
-Fünf feste kreisförmige Streifen mit jeweils 100 Positionen; je Walze ein
-kryptografisch gleichverteilter Startindex. Die fünf sichtbaren Felder sind
-aufeinanderfolgende Positionen desselben Streifens. Je Streifen: ein Kebap,
-zwei mindestens fünf Felder voneinander entfernte Scatter, 6 Bier, 6 Zigaretten,
-7 Butter, 10 Shots, 10 Trichter, 14 G, 14 O, 15 A, 15 T.
+Nach einem Bonus-Trigger muss genau einmal eines dieser Symbole gewählt werden:
 
-`BiggestBoyRules` enthält den vollständigen deterministischen Streifenaufbau.
-Panorama verwendet dieselben Streifen mit zwei Kopien plus fünf Randfeldern.
-Vier vollständige Umläufe laufen nach unten; Walzen enden zeitversetzt bei den
-gebuchten Stopppositionen. Die Endansicht zeigt das autoritative Feld und markiert
-Gewinnfelder sowie expandierte Walzen. Animation erzeugt keine Ergebnisse.
+Bier, Zigarette, Butter, Shot, Trinktrichter, G, O, A oder T.
 
-`python3 tools/audit_biggest_boy.py` liest Linien, Faktoren und Häufigkeiten aus
-den Regeln, summiert die exakt möglichen Liniengewinne und berechnet die
-begrenzte Bonuslänge rekursiv. Keine Übernahme proprietärer Automaten-Odds.
+Kebap und Scatter sind nicht auswählbar.
 
-| Messgröße | Wert |
-|---|---:|
-| Bonuschance je bezahltem Spin | 0,856 % |
-| Mittlerer Abstand zwischen Bonusstarts | 116,8224 bezahlte Spins |
-| Erwartete Bonuslänge einschließlich Retrigger | 10,4471136 Freispiele |
-| Basis-RTP | 76,54132755 % |
-| Gesamt-RTP einschließlich Bonus | **94,18222789 %** |
-| Konservative maximale Rundenauszahlung | 77.500 × Gesamteinsatz |
+Wenn das gewählte Symbol in einem Freispin auf einer Walze vorkommt, füllt es
+alle Nicht-Scatter-Felder dieser Walze. Scatter bleiben an ihrer ursprünglichen
+Position sichtbar und zählen weiterhin für Retrigger.
 
-Bonuswahrscheinlichkeit: jede Walze zeigt mit 10/100 Wahrscheinlichkeit genau
-einen Scatter, also P(mindestens 3 von 5) = 0,00856. Linienkorrelationen ändern
-den Erwartungswert ihrer Summe nicht. Die Audit-Rechnung berücksichtigt pro
-Linie den höchsten kompatiblen Gewinn und die Bonus-Expansion. Erwarteter RTP
-ist kein garantierter Gewinn einzelner Sessions. Das frühere 94,25-%-Konzept war
-vorläufig; dieses endgültige Profil hat die oben berechneten Werte.
+Der gespeicherte Spin enthält sowohl `RawGrid` als auch das expandierte
+`Grid`. Dadurch bleiben Ergebnis, Retrigger und Darstellung nachvollziehbar.
 
-## Persistenz und Kompatibilität
+Die Expansion verwendet einen eigenen kleinen Zusatz-Gewinnplan. Basisgewinne
+werden auf dem unveränderten Rohfeld bewertet; Expansion-Gewinne werden separat
+addiert. Dadurch bleiben häufige Buchstaben mathematisch kontrolliert.
 
-Neue Enum-Werte werden angehängt; bestehende numerische Spielarten bleiben
-unverändert. Das vorhandene `game_kind`-Feld unterstützt das neue Spiel ohne
-Schemaänderung. Regelversion: `anocore-biggest-boy-5x5-v1`. Vorhandene Bonus-
-und Blackjack-/Risk-Runden werden weiter durch ihre ursprünglichen Regeln
-geführt. Account-/Rundenlocks, Revisionsprüfung, Permission-Prüfung und
-idempotente Aktions-IDs bleiben auf dem bestehenden Buchungsweg.
+| Gewähltes Symbol | Expansion 3 | Expansion 4 | Expansion 5 |
+|---|---:|---:|---:|
+| Bier | 15× | 59× | 198× |
+| Zigarette | 16× | 54× | 204× |
+| Butter | 11× | 32× | 106× |
+| Shot | 2× | 8× | 24× |
+| Trinktrichter | 3× | 8× | 26× |
+| G | 1× | 2× | 6× |
+| O | 1× | 2× | 6× |
+| A | 1× | 2× | 5× |
+| T | 1× | 2× | 5× |
 
-## Native Abnahme vor Workshop-Veröffentlichung
+## Walzen und Animation
 
-1. Passendes Plugin und vollständiges Addon aus demselben Build verwenden.
-   `build.ps1 -Addon anomeme_ui -InstallLocalClient` kompiliert alle elf Texturen,
-   Casino-Ansichten und das bisherige Veto. Die bisherigen Serverkonfigurationen
-   beibehalten; nur den neuen Einsatzparameter bei Bedarf ergänzen.
-2. Lokal `!anocasino` öffnen. Siebte Kachel durch Scrollen erreichen, Biggest Boy
-   öffnen; 25 lesbare Bilder und Regelnansicht prüfen. Alle sechs alten Spiele
-   weiterhin öffnen. Keine CustomHud-/Valve-Parserfehler.
-3. Mehrfach spielen: vier vollständige kontinuierliche Umläufe nach unten,
-   zeitversetzte Stops und Neustart der Animation beim folgenden Spin prüfen.
-   Gebühren und angezeigte Endbilder mit den Serverbelegen abgleichen.
-4. Gewinne anhand der Linien im Gewinnplan nachrechnen. Gewinnfelder, große
-   Bruttoanzeige und Bonusgesamtgewinn müssen übereinstimmen. Ungewinnende Spins
-   dürfen keinen Gewinn melden.
-5. Im Testserver Bonus abnehmen: Scatter, +5, Expansion mit erhaltenen Gesichtern,
-   gesperrter Einsatz und genau eine Kontoauszahlung am Bonusende. Menü schließen,
-   wieder öffnen, reconnecten und Plugin neu starten: gespeicherte Runde muss
-   fortgesetzt werden. Einsatzlimit absenken: vorhandene Runde bleibt spielbar.
-6. Doppelklick, fehlende AP, Spieler ohne Casino-Recht, Konto nahe dem AP-Limit
-   und andere aktive Rundenspiele prüfen. Kein Doppelabbuchen. Veto mitprüfen.
-7. Erst nach dieser Abnahme bestehendes Workshop-Addon aktualisieren; danach
-   ohne lokale Overrides die tatsächliche Workshop-Auslieferung testen.
+Jede Walze besitzt einen festen kreisförmigen Streifen mit 100 Positionen.
+Der Server wählt pro Walze kryptografisch gleichverteilt einen Stop.
 
-Valve-Ressourcenkompilierung und echte CS2-Eingabe/Performance lassen sich durch
-Quelltests allein nicht bestätigen. Keine automatische Produktionsfreigabe.
+Die native Panorama-Darstellung verwendet denselben festen Streifen, vier
+vollständige Abwärts-Umläufe und zeitversetzte Stops. Die Animation entscheidet
+niemals über das Ergebnis; sie zeigt ausschließlich das bereits serverseitig
+gebuchte Ergebnis.
 
-## Lokale Qualitätsprüfung dieses Kandidaten
+## Mathematischer Audit
 
-- Vollständiger Release-Build: erfolgreich, 0 Warnungen/Fehler.
-- 1.364 .NET-Tests mit lokalem MariaDB 10.11.14: erfolgreich, 0 übersprungen.
-  Dabei ist ausschließlich `ManagementPipeBridgeTests` ausgenommen: die
-  Umgebung erlaubt die nötigen Unix-Sockets nicht. Ein ungefilterter Lauf
-  scheitert bei sechs Pipe-Tests mit `Permission denied`; keine Tests entfernt.
-- Alle neuen Regeln-, Presenter-, Routing-, Einsatz- und MariaDB-Replaytests
-  bestanden, inklusive Wiederaufnahme nach reduziertem Einsatzmaximum.
-- Python-Operatorprüfungen: 60 erfolgreich, 18 PowerShell-Prüfungen mangels
-  PowerShell übersprungen (78 insgesamt).
-- Whitespace-Formatprüfung und `git diff --check`: erfolgreich. Die vollständige
-  semantische `dotnet format`-Prüfung ist lokal ebenfalls wegen der benötigten
-  MSBuild-Pipe blockiert; sie bleibt Bestandteil der vorhandenen GitHub-CI.
-- Originaltreue aller elf PNGs byteweise geprüft; beide Addon-Builder enthalten
-  sämtliche elf Texturdeskriptoren.
-- Eigenreview: getrennte Spielart/Version, erhaltene Legacy-Grenzen, auf
-  775 Mio. AP begrenzte maximale Reserve bei 10.000 AP Einsatz, erhaltene
-  Scatter bei Expansion, nur ein Gewinn pro Linie, gesperrte Animation,
-  Konto-/Rundenlocks und idempotente Wiederholung. HUD-Klassenänderungen werden
-  zwischengespeichert; sieben verschachtelte Verschiebungen statt 100 möglicher
-  Positionsklassen je Walze reduzieren laufende Updates.
-- GitHub-Push, PR, CI und Merge stehen aus: automatische Freigabeprüfung
-  verlangt die ausdrückliche Freigabe für die öffentliche Veröffentlichung
-  der beigefügten Bilder. Native Valve-/CS2-Abnahme steht ebenfalls aus.
+`python3 tools/audit_biggest_boy.py` liest Linien, Paytables und
+Walzenhäufigkeiten direkt aus dem C#-Regelprofil und berechnet den Erwartungswert
+ohne Monte-Carlo-Abhängigkeit.
+
+Wesentliche Werte:
+
+- Bonuschance pro bezahltem Spin: **0,856 %**
+- mittlerer Abstand zwischen Bonusstarts: **116,8224 Spins**
+- erwartete Bonuslänge inklusive 10/15/20-Start und Retrigger:
+  **10,7338847142 Freispiele**
+- Basis-RTP: **76,54132755 %**
+- Gesamt-RTP abhängig vom gewählten Expanding-Symbol:
+  ungefähr **93,90 % bis 94,89 %**
+- Bier als Expanding-Symbol: **94,1747510434 %**
+- konservative maximale Rundenauszahlung:
+  höchstens **83.824 × Einsatz**
+
+Der Erwartungswert beschreibt lange Serien und garantiert keinen Gewinn in
+einer einzelnen Session.
+
+## Persistenz und Sicherheit
+
+- Regelversion: `anocore-biggest-boy-5x5-v2`.
+- Eigene persistente Spielart `CasinoRoundKind.BiggestBoy`.
+- Symbolauswahl wird als eigene idempotente Rundenaktion gespeichert.
+- Die Auswahl belastet das Guthaben nicht erneut.
+- Freispins verwenden den gespeicherten Einsatz.
+- Account-/Rundenlocks, Revisionsprüfung, Permission-Prüfung und Replay-Schutz
+  bleiben auf dem bestehenden Casino-Buchungsweg.
+- Auszahlung erfolgt serverseitig; Panorama ist reine Darstellung.
+
+## Native Abnahme
+
+Vor einem Workshop-/Produktions-Update:
+
+1. Plugin und `anomeme_ui` aus demselben Commit bauen.
+2. `!anocasino` öffnen und Biggest Boy aufrufen.
+3. Alle 25 Symbole sichtbar und ohne Panorama-Parserfehler prüfen.
+4. Einsatzstufen vollständig durchschalten.
+5. 3/4/5-Scatter-Trigger prüfen.
+6. Bonuspicker für alle neun erlaubten Symbole prüfen; Kebap/Scatter dürfen
+   nicht auswählbar sein.
+7. Vier Abwärts-Umläufe, zeitversetzte Stops und wiederholte Spins prüfen.
+8. Raw-/Expanded-Ergebnis, markierte Gewinnlinien und Gewinnanzeige gegen
+   Serverbelege vergleichen.
+9. Menü schließen, reconnecten und Plugin neu starten: aktive Bonusrunde und
+   ausgewähltes Symbol müssen fortgesetzt werden.
+10. Kein Doppelabbuchen bei Doppelklick, Retry oder Symbolauswahl.
+11. Danach vollständiges Addon im Workshop aktualisieren und erneut ohne lokale
+    Overrides testen.
+
+Native Valve-Kompilierung, tatsächliche CS2-Eingabe und Rendering-Performance
+müssen weiterhin im Client abgenommen werden.
