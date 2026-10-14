@@ -19,17 +19,18 @@ public sealed class CasinoPresenter : IDisposable
     private readonly IAnoCommandRegistry _commands;
     private readonly Action<PlayerId> _beforeOpen;
     private readonly TimeProvider _clock;
+    private readonly Func<PlayerId, CasinoRoundGame, CancellationToken, ValueTask<bool>>? _openRound;
     private readonly object _gate = new();
     private readonly Dictionary<PlayerId, State> _states = [];
     private readonly List<IDisposable> _owned = [];
     private bool _disposed;
     private static readonly int[][] WinningLines = [[0, 3, 6], [1, 4, 7], [2, 5, 8], [0, 4, 8], [2, 4, 6]];
     private static readonly HashSet<int> RouletteReds = [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36];
-    private static readonly string[] Buttons = ["close", "home", "menu", "slots", "coinflip", "roulette", "load", "return", "loadminus", "loadplus", "minus", "plus", "play", "head", "tail", "numberminus", "numberplus", "number", "refresh", "history", "rules", "retry", .. Enumerable.Range(37, 12).Select(n => "bet" + n), .. Enumerable.Range(0, 37).Select(n => "r" + n)];
+    private static readonly string[] Buttons = ["close", "home", "menu", "blackjack", "risk", "book", "slots", "coinflip", "roulette", "load", "return", "loadminus", "loadplus", "minus", "plus", "play", "head", "tail", "numberminus", "numberplus", "number", "refresh", "history", "rules", "retry", .. Enumerable.Range(37, 12).Select(n => "bet" + n), .. Enumerable.Range(0, 37).Select(n => "r" + n)];
     public CasinoPresenter(ICustomHudService hud, IPlayerRegistry players, IPermissionEvaluator permissions,
-        ICasinoWallet wallet, IAnoCommandRegistry commands, IAnoEventBus events, Action<PlayerId> beforeOpen, TimeProvider? clock = null)
+        ICasinoWallet wallet, IAnoCommandRegistry commands, IAnoEventBus events, Action<PlayerId> beforeOpen, TimeProvider? clock = null, Func<PlayerId, CasinoRoundGame, CancellationToken, ValueTask<bool>>? openRound = null)
     {
-        _hud = hud; _players = players; _permissions = permissions; _wallet = wallet; _commands = commands; _beforeOpen = beforeOpen; _clock = clock ?? TimeProvider.System;
+        _hud = hud; _players = players; _permissions = permissions; _wallet = wallet; _commands = commands; _beforeOpen = beforeOpen; _clock = clock ?? TimeProvider.System; _openRound = openRound;
         try
         {
             _owned.Add(hud.Register(new("ano.casino"), new(HudId, "panorama/layout/custom_game/anocore/ano_casino.xml", "casino_root", Buttons.Select(x => "casino_" + x).ToArray(), captureInput: true), ClickAsync));
@@ -84,7 +85,7 @@ public sealed class CasinoPresenter : IDisposable
         State state;
         lock (_gate) if (_disposed || !_states.TryGetValue(c.PlayerId, out state!) || !state.Visible) return;
         var allowed = await _permissions.HasPermissionAsync(c.PlayerId, Permission, c.CancellationToken).ConfigureAwait(false);
-        CasinoOperation? operation = null; var history = false; var refresh = false; var menu = false;
+        CasinoOperation? operation = null; var history = false; var refresh = false; var menu = false; CasinoRoundGame? roundGame = null;
         lock (_gate)
         {
             if (!Current(state) || !state.Visible) return;
@@ -98,6 +99,9 @@ public sealed class CasinoPresenter : IDisposable
                 if (state.Unconfirmed is not null && action is not ("retry" or "refresh" or "history")) { state.Status = "Unbestätigte Buchung: BUCHUNG PRÜFEN verwenden. Es wird nicht erneut gewürfelt."; Render(state); return; }
                 switch (action)
                 {
+                    case "blackjack": roundGame = CasinoRoundGame.Blackjack; break;
+                    case "risk": roundGame = CasinoRoundGame.Risk; break;
+                    case "book": roundGame = CasinoRoundGame.Book; break;
                     case "home": state.Game = null; break;
                     case "slots": state.Game = CasinoGame.Slots; break;
                     case "coinflip": state.Game = CasinoGame.Coinflip; break;
@@ -128,6 +132,13 @@ public sealed class CasinoPresenter : IDisposable
                 if (operation is not null) state.Unconfirmed = operation;
                 Render(state);
             }
+        }
+        if (roundGame is { } selected && _openRound is not null)
+        {
+            try { await _openRound(c.PlayerId, selected, c.CancellationToken).ConfigureAwait(false); }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            { lock (_gate) if (Current(state)) { state.Status = "Spiel konnte nicht geladen werden. Bitte aktualisieren."; Render(state); } }
+            return;
         }
         if (menu) { await _commands.ExecuteAsync("!anomenu", c.PlayerId, c.CancellationToken).ConfigureAwait(false); return; }
         if (operation is null && !refresh && !history) return;
@@ -239,6 +250,7 @@ public sealed class CasinoPresenter : IDisposable
     private void Class(State s, string id, string name, bool value) => _hud.SetClass(s.Player.Id, HudId, "casino_" + id, name, value);
     private bool Current(State s) => !_disposed && _states.TryGetValue(s.Player.Id, out var current) && ReferenceEquals(s, current) && _players.TryGet(s.Player.Id, out var p) && p is { IsConnected: true } && p.SessionId == s.Player.SessionId;
     private void ForgetSession(PlayerSnapshot p) { lock (_gate) if (_states.TryGetValue(p.Id, out var s) && s.Player.SessionId == p.SessionId) { _states.Remove(p.Id); _hud.Hide(p.Id, HudId); } }
+    public void CloseForPlayer(PlayerId player) { lock (_gate) { if (_states.TryGetValue(player, out var state)) state.Visible = false; _hud.Hide(player, HudId); } }
     public void Reset() { lock (_gate) { _hud.HideAll(HudId); _states.Clear(); } }
     public void Dispose() { lock (_gate) { if (_disposed) return; Reset(); _disposed = true; foreach (var x in _owned) x.Dispose(); } }
     private sealed class State(PlayerSnapshot player)

@@ -100,6 +100,7 @@ public sealed class AnoCorePlugin : BasePlugin
     private bool _arcadeProbeEnabled;
     private ArcadeProbePresenter? _arcadeProbe;
     private CasinoPresenter? _casino;
+    private CasinoRoundPresenter? _casinoRounds;
     private CounterStrikeSharp.API.Modules.Timers.Timer? _casinoTimer;
     private bool _casinoEnabled;
     private CounterStrikeSharp.API.Modules.Timers.Timer? _arcadeProbeTimer;
@@ -306,6 +307,8 @@ public sealed class AnoCorePlugin : BasePlugin
             _casinoTimer = null;
             _casino?.Dispose();
             _casino = null;
+            _casinoRounds?.Dispose();
+            _casinoRounds = null;
             _arcadeProbeTimer?.Kill();
             _arcadeProbeTimer = null;
             _arcadeProbe?.Dispose();
@@ -1169,6 +1172,7 @@ public sealed class AnoCorePlugin : BasePlugin
             TournamentCommandController? tournamentCommands = null;
             TournamentEventCommandController? tournamentEventCommands = null;
             CasinoPresenter? casino = null;
+            CasinoRoundPresenter? casinoRounds = null;
             CounterStrikeSharp.API.Modules.Timers.Timer? casinoTimer = null;
             ArcadeProbePresenter? arcadeProbe = null;
             CounterStrikeSharp.API.Modules.Timers.Timer? arcadeProbeTimer = null;
@@ -1215,16 +1219,25 @@ public sealed class AnoCorePlugin : BasePlugin
                 if (_casinoEnabled && _customHud is not null)
                 {
                     var casinoDatabase = (IDatabase)runtime.GetService(typeof(IDatabase))!;
+                    var wallet = new MySqlCasinoWallet(casinoDatabase);
                     casino = new CasinoPresenter(_customHud, runtime.Players, runtime.Authorization,
-                        new MySqlCasinoWallet(casinoDatabase), runtime.Commands, _eventBus!, playerId =>
+                        wallet, runtime.Commands, _eventBus!, playerId =>
                         {
+                            casinoRounds?.Close(playerId);
                             _homeMenu?.CloseForPlayer(playerId);
                             runtime.Menus.Close(playerId);
                             presenter.Reconcile();
                             _arcadeProbe?.CloseForPlayer(playerId);
+                        }, openRound: (playerId, game, token) => casinoRounds!.OpenAsync(playerId, game, token));
+                    casinoRounds = new CasinoRoundPresenter(_customHud, runtime.Players, runtime.Authorization,
+                        wallet, new CasinoRoundService(new MySqlCasinoRoundStore(casinoDatabase)), _eventBus!,
+                        playerId => casino.CloseForPlayer(playerId), async (playerId, token) =>
+                        {
+                            await runtime.Commands.ExecuteAsync("!anocasino", playerId, token).ConfigureAwait(false);
                         });
                     var activeCasino = casino;
-                    casinoTimer = AddTimer(0.25f, activeCasino.Tick, TimerFlags.REPEAT);
+                    var activeRounds = casinoRounds;
+                    casinoTimer = AddTimer(0.25f, () => { activeCasino.Tick(); activeRounds.Tick(); }, TimerFlags.REPEAT);
                 }
                 if (_arcadeProbeEnabled && _customHud is not null)
                 {
@@ -1694,6 +1707,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 _tournamentCommands = tournamentCommands;
                 _tournamentEventCommands = tournamentEventCommands;
                 _casino = casino;
+                _casinoRounds = casinoRounds;
                 _casinoTimer = casinoTimer;
                 _arcadeProbe = arcadeProbe;
                 _arcadeProbeTimer = arcadeProbeTimer;
@@ -1796,6 +1810,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 tournamentRefreshTimer?.Kill();
                 casinoTimer?.Kill();
                 casino?.Dispose();
+                casinoRounds?.Dispose();
                 arcadeProbeTimer?.Kill();
                 arcadeProbe?.Dispose();
                 tournamentPanorama?.Dispose();
@@ -2679,6 +2694,7 @@ public sealed class AnoCorePlugin : BasePlugin
     private void OnMapEnd()
     {
         _casino?.Reset();
+        _casinoRounds?.Reset();
         _arcadeProbe?.Reset();
         _warmupState.Reset();
         FlushCombatDetails("combat_detail_map_end");

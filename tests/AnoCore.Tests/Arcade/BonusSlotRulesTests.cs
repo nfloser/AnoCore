@@ -88,6 +88,25 @@ public sealed class BonusSlotRulesTests
     }
 
     [TestMethod]
+    public void RepeatedRetriggersAtRemainingCapPreserveReplayableStateUntilCompletion()
+    {
+        var state = BonusSlotRules.StartRound(100,
+            Grid(BonusSlotSymbol.Book, BonusSlotSymbol.Book, BonusSlotSymbol.Book).Next).State;
+        for (var spin = 0; state.FreeSpinsRemaining > 0; spin++)
+        {
+            Assert.IsTrue(spin < BonusSlotRules.MaximumFreeSpinsAwarded);
+            state = BonusSlotRules.PlayFreeSpin(state,
+                Grid(BonusSlotSymbol.Book, BonusSlotSymbol.Book, BonusSlotSymbol.Book).Next).State;
+            Assert.AreEqual(state.SpinsPlayed - 1, state.FreeSpinsAwarded - state.FreeSpinsRemaining);
+            Assert.IsTrue(state.FreeSpinsRemaining <= BonusSlotRules.MaximumFreeSpinsRemaining);
+            Assert.IsTrue(state.FreeSpinsAwarded <= BonusSlotRules.MaximumFreeSpinsAwarded);
+            state = JsonSerializer.Deserialize<BonusSlotRoundState>(JsonSerializer.Serialize(state))!;
+        }
+        Assert.AreEqual(30, state.FreeSpinsAwarded);
+        Assert.AreEqual(31, state.SpinsPlayed);
+    }
+
+    [TestMethod]
     public void MaximumExposureIsBoundedAndArithmeticOverflowIsRejected()
     {
         Assert.AreEqual((long)BonusSlotRules.MaximumPerSpinPayout(100) * 31,
