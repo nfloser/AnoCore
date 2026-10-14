@@ -96,7 +96,11 @@ public static class BonusSlotRules
         if (state.LockedStake is < 10 or > MaximumStake || state.LockedStake % 10 != 0
             || state.FreeSpinsRemaining <= 0 || state.FreeSpinsRemaining > MaximumFreeSpinsRemaining
             || state.FreeSpinsAwarded < state.FreeSpinsRemaining || state.FreeSpinsAwarded > MaximumFreeSpinsAwarded
-            || state.SpinsPlayed < 1 || state.ExpandingSymbol is BonusSlotSymbol.Book)
+            || state.SpinsPlayed < 1 || state.SpinsPlayed > MaximumFreeSpinsAwarded + 1
+            || state.FreeSpinsAwarded - state.FreeSpinsRemaining != state.SpinsPlayed - 1
+            || (state.FreeSpinsAwarded == 0) != (state.ExpandingSymbol is null)
+            || state.ExpandingSymbol is BonusSlotSymbol.Book
+            || state.TotalPayout < 0 || state.TotalPayout > MaximumRoundExposure(state.LockedStake))
             throw new ArgumentException("Invalid bonus-slot round state.", nameof(state));
 
         var grid = DrawGrid(random);
