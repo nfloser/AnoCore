@@ -125,6 +125,28 @@ public sealed class CasinoRoundPresenterTests
     }
 
     [TestMethod]
+    public async Task CloseDuringBookingDoesNotReleasePendingGuardOrReadAnotherSnapshot()
+    {
+        using var f = await Fixture.Create();
+        await f.Presenter.OpenAsync(Player, CasinoRoundGame.Risk);
+        var delayed = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        f.Rounds.DelayedApply = delayed.Task;
+        var booking = f.Click("play").AsTask();
+        try
+        {
+            await f.Click("close");
+            Assert.AreEqual(1, f.Rounds.ReadCalls, "Closing must not start another read while booking is pending.");
+            Assert.IsFalse(await f.Presenter.OpenAsync(Player, CasinoRoundGame.Blackjack));
+        }
+        finally
+        {
+            delayed.SetResult(true);
+            await booking;
+        }
+        Assert.AreEqual(0, f.Hud.VisiblePlayers(CasinoRoundPresenter.HudId).Count);
+    }
+
+    [TestMethod]
     public async Task StakeBoundsAndActiveRoundPreventChangingReservedStake()
     {
         using var f = await Fixture.Create();
@@ -172,16 +194,22 @@ public sealed class CasinoRoundPresenterTests
         public DurableCasinoRoundOperation? Last;
         public Exception? RejectOnce;
         public Task<DurableCasinoRoundSnapshot?>? DelayedRead;
+        public Task? DelayedApply;
+        public int ReadCalls;
         public List<DurableCasinoRoundOperation> Calls { get; } = [];
         public Dictionary<Guid, DurableCasinoRoundReceipt> Receipts { get; } = [];
         public ValueTask<DurableCasinoRoundSnapshot?> ReadAsync(PlayerId player, CancellationToken token = default)
-            => DelayedRead is { } delayed ? new(delayed) : ValueTask.FromResult(Current is { IsComplete: false } ? Current : null);
-        public ValueTask<DurableCasinoRoundReceipt> ApplyAsync(DurableCasinoRoundOperation operation, CancellationToken token = default)
         {
+            ReadCalls++;
+            return DelayedRead is { } delayed ? new(delayed) : ValueTask.FromResult(Current is { IsComplete: false } ? Current : null);
+        }
+        public async ValueTask<DurableCasinoRoundReceipt> ApplyAsync(DurableCasinoRoundOperation operation, CancellationToken token = default)
+        {
+            if (DelayedApply is { } delayed) await delayed;
             Last = operation;
             Calls.Add(operation);
             if (RejectOnce is { } rejected) { RejectOnce = null; throw rejected; }
-            if (Receipts.TryGetValue(operation.Id, out var replay)) return ValueTask.FromResult(replay);
+            if (Receipts.TryGetValue(operation.Id, out var replay)) return replay;
             var start = operation.Action == CasinoRoundAction.Start;
             var previous = Current is null ? null : JsonSerializer.Deserialize<RiskRoundState>(Current.StateJson);
             var state = start ? RiskRules.Start(operation.Stake) : RiskRules.Bank(previous!, previous!.Revision);
@@ -196,7 +224,7 @@ public sealed class CasinoRoundPresenterTests
                 (Current?.Revision ?? 0) + 1, complete, operation.Stake, payout, JsonSerializer.Serialize(state));
             var receipt = new DurableCasinoRoundReceipt(operation.Id, wallet.Balance, Current);
             Receipts.Add(operation.Id, receipt);
-            return ValueTask.FromResult(receipt);
+            return receipt;
         }
     }
 

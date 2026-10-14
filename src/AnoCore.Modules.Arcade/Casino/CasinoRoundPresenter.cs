@@ -79,14 +79,14 @@ public sealed class CasinoRoundPresenter : IDisposable
         State state;
         lock (_gate) if (_disposed || !_states.TryGetValue(context.PlayerId, out state!) || !state.Visible) return;
         var allowed = await _permissions.HasPermissionAsync(context.PlayerId, Permission, context.CancellationToken).ConfigureAwait(false);
-        DurableCasinoRoundOperation? operation = null; var back = false;
+        DurableCasinoRoundOperation? operation = null; var back = false; var closed = false;
         lock (_gate)
         {
             if (!Current(state) || !state.Visible) return;
             if (!allowed) { Forget(state.Player); return; }
             var action = context.ButtonId.StartsWith("casino_round_", StringComparison.Ordinal) ? context.ButtonId[13..] : "";
             if (!Buttons.Contains(action, StringComparer.Ordinal)) return;
-            if (action is "close" or "back") { Close(context.PlayerId); back = action == "back"; }
+            if (action is "close" or "back") { Close(context.PlayerId); back = action == "back"; closed = true; }
             else
             {
                 if (state.Pending || state.AnimatingUntil is not null) return;
@@ -110,7 +110,7 @@ public sealed class CasinoRoundPresenter : IDisposable
             }
         }
         if (back) { await _back(context.PlayerId, context.CancellationToken).ConfigureAwait(false); return; }
-        if (!state.Pending) return;
+        if (closed || !state.Pending) return;
         try
         {
             var receipt = operation is null ? null : await _rounds.ApplyAsync(operation, context.CancellationToken).ConfigureAwait(false);
