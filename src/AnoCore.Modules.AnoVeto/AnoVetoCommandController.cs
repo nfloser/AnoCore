@@ -50,6 +50,11 @@ public sealed class AnoVetoCommandController : IDisposable
                         CommandArgumentKind.String,
                         "Optional management action such as create, status or cancel.",
                         required: false),
+                    new CommandArgumentDescriptor(
+                        "query",
+                        CommandArgumentKind.String,
+                        "Optional search term for find.",
+                        required: false),
                 ]),
             HandleAsync);
 
@@ -108,6 +113,7 @@ public sealed class AnoVetoCommandController : IDisposable
             "create" => ValueTask.FromResult(OpenCreateHud(context.Caller)),
             "random" => CreateAsync(context),
             "status" => ValueTask.FromResult(GetStatus()),
+            "find" => ValueTask.FromResult(FindInPicker(context)),
             "cancel" => CancelAsync(context),
             _ => ValueTask.FromResult(CommandResult.Fail(
                 CommandFailureReason.InvalidInput,
@@ -159,6 +165,17 @@ public sealed class AnoVetoCommandController : IDisposable
         {
             return CommandResult.Fail(CommandFailureReason.HandlerFailed, "Preset operation failed.");
         }
+    }
+
+    private CommandResult FindInPicker(CommandContext context)
+    {
+        var query = context.TryGet<string>("query", out var value) ? value : string.Empty;
+        if (query.Length > 80)
+            return CommandResult.Fail(CommandFailureReason.InvalidInput, "Search term is too long.");
+        return _createHud.ApplyChatFilter(context.Caller!, query)
+            ? CommandResult.Ok("Veto map list filtered.")
+            : CommandResult.Fail(CommandFailureReason.InvalidInput,
+                "Open Create Veto and select the manual map list first.");
     }
 
     private CommandResult OpenCreateHud(PlayerId player)
