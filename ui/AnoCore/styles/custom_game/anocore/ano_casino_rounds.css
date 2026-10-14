@@ -162,3 +162,262 @@ Label { color:#e9efed; font-family:Arial; font-size:17px; margin:4px; }
 .book-row-13 { position: 0px 1040px 0px; }
 .book-row-14 { position: 0px 1120px 0px; }
 .book-row-15 { position: 0px 1200px 0px; }
+
+/* Biggest Boy: 100-stop circular strips, four complete downward laps. */
+.biggest-table { visibility:collapse; width:100%; flow-children:down; }
+.view-biggestboy .biggest-table { visibility:visible; }
+.active.view-biggestboy .book-actions { visibility:visible; }
+.biggest-reels { flow-children:right; horizontal-align:center; }
+.biggest-reel { width:82px; height:400px; min-height:400px; overflow:clip; border:1px solid #aa8c47; margin:0px 4px; background-color:#07150e; }
+.biggest-offset { width:80px; height:16400px; overflow:noclip; visibility:collapse; }
+.biggest-motion { width:80px; height:16400px; overflow:noclip; flow-children:none; }
+.biggest-final { width:80px; height:400px; flow-children:down; }
+.biggest-symbol { width:80px; height:80px; min-height:80px; background-size:contain; background-position:center; background-repeat:no-repeat; }
+.motion-a .biggest-offset, .motion-b .biggest-offset { visibility:visible; }
+.motion-a .biggest-final, .motion-b .biggest-final { visibility:collapse; }
+.motion-a .biggest-motion { animation-name:'biggest-down-a'; animation-iteration-count:4; animation-timing-function:linear; }
+.motion-b .biggest-motion { animation-name:'biggest-down-b'; animation-iteration-count:4; animation-timing-function:linear; }
+@keyframes 'biggest-down-a' { 0% { transform:translateY(-8000px); } 100% { transform:translateY(0px); } }
+@keyframes 'biggest-down-b' { 0% { transform:translateY(-8000px); } 100% { transform:translateY(0px); } }
+.biggest-symbol.winning { border:3px solid #54ff9a; }
+.biggest-symbol.expanded { box-shadow:inset #f5d366 0px 0px 3px 1px; }
+.biggest-win { font-size:38px; font-weight:bold; horizontal-align:center; color:#54ff9a; }
+.biggest-bonus { horizontal-align:center; font-size:19px; color:#f5d366; }
+.view-biggestboy .round-cover { visibility:collapse; }
+.view-biggestboy .round-detail { font-size:15px; max-height:72px; overflow:scroll; white-space:normal; }
+.biggest-reel-0 .biggest-motion { animation-duration:0.55s; }
+.biggest-reel-1 .biggest-motion { animation-duration:0.60s; }
+.biggest-reel-2 .biggest-motion { animation-duration:0.65s; }
+.biggest-reel-3 .biggest-motion { animation-duration:0.70s; }
+.biggest-reel-4 .biggest-motion { animation-duration:0.75s; }
+.biggest-row-0 { position:0px 0px 0px; }
+.biggest-row-1 { position:0px 80px 0px; }
+.biggest-row-2 { position:0px 160px 0px; }
+.biggest-row-3 { position:0px 240px 0px; }
+.biggest-row-4 { position:0px 320px 0px; }
+.biggest-row-5 { position:0px 400px 0px; }
+.biggest-row-6 { position:0px 480px 0px; }
+.biggest-row-7 { position:0px 560px 0px; }
+.biggest-row-8 { position:0px 640px 0px; }
+.biggest-row-9 { position:0px 720px 0px; }
+.biggest-row-10 { position:0px 800px 0px; }
+.biggest-row-11 { position:0px 880px 0px; }
+.biggest-row-12 { position:0px 960px 0px; }
+.biggest-row-13 { position:0px 1040px 0px; }
+.biggest-row-14 { position:0px 1120px 0px; }
+.biggest-row-15 { position:0px 1200px 0px; }
+.biggest-row-16 { position:0px 1280px 0px; }
+.biggest-row-17 { position:0px 1360px 0px; }
+.biggest-row-18 { position:0px 1440px 0px; }
+.biggest-row-19 { position:0px 1520px 0px; }
+.biggest-row-20 { position:0px 1600px 0px; }
+.biggest-row-21 { position:0px 1680px 0px; }
+.biggest-row-22 { position:0px 1760px 0px; }
+.biggest-row-23 { position:0px 1840px 0px; }
+.biggest-row-24 { position:0px 1920px 0px; }
+.biggest-row-25 { position:0px 2000px 0px; }
+.biggest-row-26 { position:0px 2080px 0px; }
+.biggest-row-27 { position:0px 2160px 0px; }
+.biggest-row-28 { position:0px 2240px 0px; }
+.biggest-row-29 { position:0px 2320px 0px; }
+.biggest-row-30 { position:0px 2400px 0px; }
+.biggest-row-31 { position:0px 2480px 0px; }
+.biggest-row-32 { position:0px 2560px 0px; }
+.biggest-row-33 { position:0px 2640px 0px; }
+.biggest-row-34 { position:0px 2720px 0px; }
+.biggest-row-35 { position:0px 2800px 0px; }
+.biggest-row-36 { position:0px 2880px 0px; }
+.biggest-row-37 { position:0px 2960px 0px; }
+.biggest-row-38 { position:0px 3040px 0px; }
+.biggest-row-39 { position:0px 3120px 0px; }
+.biggest-row-40 { position:0px 3200px 0px; }
+.biggest-row-41 { position:0px 3280px 0px; }
+.biggest-row-42 { position:0px 3360px 0px; }
+.biggest-row-43 { position:0px 3440px 0px; }
+.biggest-row-44 { position:0px 3520px 0px; }
+.biggest-row-45 { position:0px 3600px 0px; }
+.biggest-row-46 { position:0px 3680px 0px; }
+.biggest-row-47 { position:0px 3760px 0px; }
+.biggest-row-48 { position:0px 3840px 0px; }
+.biggest-row-49 { position:0px 3920px 0px; }
+.biggest-row-50 { position:0px 4000px 0px; }
+.biggest-row-51 { position:0px 4080px 0px; }
+.biggest-row-52 { position:0px 4160px 0px; }
+.biggest-row-53 { position:0px 4240px 0px; }
+.biggest-row-54 { position:0px 4320px 0px; }
+.biggest-row-55 { position:0px 4400px 0px; }
+.biggest-row-56 { position:0px 4480px 0px; }
+.biggest-row-57 { position:0px 4560px 0px; }
+.biggest-row-58 { position:0px 4640px 0px; }
+.biggest-row-59 { position:0px 4720px 0px; }
+.biggest-row-60 { position:0px 4800px 0px; }
+.biggest-row-61 { position:0px 4880px 0px; }
+.biggest-row-62 { position:0px 4960px 0px; }
+.biggest-row-63 { position:0px 5040px 0px; }
+.biggest-row-64 { position:0px 5120px 0px; }
+.biggest-row-65 { position:0px 5200px 0px; }
+.biggest-row-66 { position:0px 5280px 0px; }
+.biggest-row-67 { position:0px 5360px 0px; }
+.biggest-row-68 { position:0px 5440px 0px; }
+.biggest-row-69 { position:0px 5520px 0px; }
+.biggest-row-70 { position:0px 5600px 0px; }
+.biggest-row-71 { position:0px 5680px 0px; }
+.biggest-row-72 { position:0px 5760px 0px; }
+.biggest-row-73 { position:0px 5840px 0px; }
+.biggest-row-74 { position:0px 5920px 0px; }
+.biggest-row-75 { position:0px 6000px 0px; }
+.biggest-row-76 { position:0px 6080px 0px; }
+.biggest-row-77 { position:0px 6160px 0px; }
+.biggest-row-78 { position:0px 6240px 0px; }
+.biggest-row-79 { position:0px 6320px 0px; }
+.biggest-row-80 { position:0px 6400px 0px; }
+.biggest-row-81 { position:0px 6480px 0px; }
+.biggest-row-82 { position:0px 6560px 0px; }
+.biggest-row-83 { position:0px 6640px 0px; }
+.biggest-row-84 { position:0px 6720px 0px; }
+.biggest-row-85 { position:0px 6800px 0px; }
+.biggest-row-86 { position:0px 6880px 0px; }
+.biggest-row-87 { position:0px 6960px 0px; }
+.biggest-row-88 { position:0px 7040px 0px; }
+.biggest-row-89 { position:0px 7120px 0px; }
+.biggest-row-90 { position:0px 7200px 0px; }
+.biggest-row-91 { position:0px 7280px 0px; }
+.biggest-row-92 { position:0px 7360px 0px; }
+.biggest-row-93 { position:0px 7440px 0px; }
+.biggest-row-94 { position:0px 7520px 0px; }
+.biggest-row-95 { position:0px 7600px 0px; }
+.biggest-row-96 { position:0px 7680px 0px; }
+.biggest-row-97 { position:0px 7760px 0px; }
+.biggest-row-98 { position:0px 7840px 0px; }
+.biggest-row-99 { position:0px 7920px 0px; }
+.biggest-row-100 { position:0px 8000px 0px; }
+.biggest-row-101 { position:0px 8080px 0px; }
+.biggest-row-102 { position:0px 8160px 0px; }
+.biggest-row-103 { position:0px 8240px 0px; }
+.biggest-row-104 { position:0px 8320px 0px; }
+.biggest-row-105 { position:0px 8400px 0px; }
+.biggest-row-106 { position:0px 8480px 0px; }
+.biggest-row-107 { position:0px 8560px 0px; }
+.biggest-row-108 { position:0px 8640px 0px; }
+.biggest-row-109 { position:0px 8720px 0px; }
+.biggest-row-110 { position:0px 8800px 0px; }
+.biggest-row-111 { position:0px 8880px 0px; }
+.biggest-row-112 { position:0px 8960px 0px; }
+.biggest-row-113 { position:0px 9040px 0px; }
+.biggest-row-114 { position:0px 9120px 0px; }
+.biggest-row-115 { position:0px 9200px 0px; }
+.biggest-row-116 { position:0px 9280px 0px; }
+.biggest-row-117 { position:0px 9360px 0px; }
+.biggest-row-118 { position:0px 9440px 0px; }
+.biggest-row-119 { position:0px 9520px 0px; }
+.biggest-row-120 { position:0px 9600px 0px; }
+.biggest-row-121 { position:0px 9680px 0px; }
+.biggest-row-122 { position:0px 9760px 0px; }
+.biggest-row-123 { position:0px 9840px 0px; }
+.biggest-row-124 { position:0px 9920px 0px; }
+.biggest-row-125 { position:0px 10000px 0px; }
+.biggest-row-126 { position:0px 10080px 0px; }
+.biggest-row-127 { position:0px 10160px 0px; }
+.biggest-row-128 { position:0px 10240px 0px; }
+.biggest-row-129 { position:0px 10320px 0px; }
+.biggest-row-130 { position:0px 10400px 0px; }
+.biggest-row-131 { position:0px 10480px 0px; }
+.biggest-row-132 { position:0px 10560px 0px; }
+.biggest-row-133 { position:0px 10640px 0px; }
+.biggest-row-134 { position:0px 10720px 0px; }
+.biggest-row-135 { position:0px 10800px 0px; }
+.biggest-row-136 { position:0px 10880px 0px; }
+.biggest-row-137 { position:0px 10960px 0px; }
+.biggest-row-138 { position:0px 11040px 0px; }
+.biggest-row-139 { position:0px 11120px 0px; }
+.biggest-row-140 { position:0px 11200px 0px; }
+.biggest-row-141 { position:0px 11280px 0px; }
+.biggest-row-142 { position:0px 11360px 0px; }
+.biggest-row-143 { position:0px 11440px 0px; }
+.biggest-row-144 { position:0px 11520px 0px; }
+.biggest-row-145 { position:0px 11600px 0px; }
+.biggest-row-146 { position:0px 11680px 0px; }
+.biggest-row-147 { position:0px 11760px 0px; }
+.biggest-row-148 { position:0px 11840px 0px; }
+.biggest-row-149 { position:0px 11920px 0px; }
+.biggest-row-150 { position:0px 12000px 0px; }
+.biggest-row-151 { position:0px 12080px 0px; }
+.biggest-row-152 { position:0px 12160px 0px; }
+.biggest-row-153 { position:0px 12240px 0px; }
+.biggest-row-154 { position:0px 12320px 0px; }
+.biggest-row-155 { position:0px 12400px 0px; }
+.biggest-row-156 { position:0px 12480px 0px; }
+.biggest-row-157 { position:0px 12560px 0px; }
+.biggest-row-158 { position:0px 12640px 0px; }
+.biggest-row-159 { position:0px 12720px 0px; }
+.biggest-row-160 { position:0px 12800px 0px; }
+.biggest-row-161 { position:0px 12880px 0px; }
+.biggest-row-162 { position:0px 12960px 0px; }
+.biggest-row-163 { position:0px 13040px 0px; }
+.biggest-row-164 { position:0px 13120px 0px; }
+.biggest-row-165 { position:0px 13200px 0px; }
+.biggest-row-166 { position:0px 13280px 0px; }
+.biggest-row-167 { position:0px 13360px 0px; }
+.biggest-row-168 { position:0px 13440px 0px; }
+.biggest-row-169 { position:0px 13520px 0px; }
+.biggest-row-170 { position:0px 13600px 0px; }
+.biggest-row-171 { position:0px 13680px 0px; }
+.biggest-row-172 { position:0px 13760px 0px; }
+.biggest-row-173 { position:0px 13840px 0px; }
+.biggest-row-174 { position:0px 13920px 0px; }
+.biggest-row-175 { position:0px 14000px 0px; }
+.biggest-row-176 { position:0px 14080px 0px; }
+.biggest-row-177 { position:0px 14160px 0px; }
+.biggest-row-178 { position:0px 14240px 0px; }
+.biggest-row-179 { position:0px 14320px 0px; }
+.biggest-row-180 { position:0px 14400px 0px; }
+.biggest-row-181 { position:0px 14480px 0px; }
+.biggest-row-182 { position:0px 14560px 0px; }
+.biggest-row-183 { position:0px 14640px 0px; }
+.biggest-row-184 { position:0px 14720px 0px; }
+.biggest-row-185 { position:0px 14800px 0px; }
+.biggest-row-186 { position:0px 14880px 0px; }
+.biggest-row-187 { position:0px 14960px 0px; }
+.biggest-row-188 { position:0px 15040px 0px; }
+.biggest-row-189 { position:0px 15120px 0px; }
+.biggest-row-190 { position:0px 15200px 0px; }
+.biggest-row-191 { position:0px 15280px 0px; }
+.biggest-row-192 { position:0px 15360px 0px; }
+.biggest-row-193 { position:0px 15440px 0px; }
+.biggest-row-194 { position:0px 15520px 0px; }
+.biggest-row-195 { position:0px 15600px 0px; }
+.biggest-row-196 { position:0px 15680px 0px; }
+.biggest-row-197 { position:0px 15760px 0px; }
+.biggest-row-198 { position:0px 15840px 0px; }
+.biggest-row-199 { position:0px 15920px 0px; }
+.biggest-row-200 { position:0px 16000px 0px; }
+.biggest-row-201 { position:0px 16080px 0px; }
+.biggest-row-202 { position:0px 16160px 0px; }
+.biggest-row-203 { position:0px 16240px 0px; }
+.biggest-row-204 { position:0px 16320px 0px; }
+.biggest-symbol-0 { background-image:url("s2r://panorama/styles/custom_game/anocore/casino/biggest_kebap.vtex"); }
+.biggest-symbol-1 { background-image:url("s2r://panorama/styles/custom_game/anocore/casino/biggest_beer.vtex"); }
+.biggest-symbol-2 { background-image:url("s2r://panorama/styles/custom_game/anocore/casino/biggest_cigarette.vtex"); }
+.biggest-symbol-3 { background-image:url("s2r://panorama/styles/custom_game/anocore/casino/biggest_butter.vtex"); }
+.biggest-symbol-4 { background-image:url("s2r://panorama/styles/custom_game/anocore/casino/biggest_shot.vtex"); }
+.biggest-symbol-5 { background-image:url("s2r://panorama/styles/custom_game/anocore/casino/biggest_funnel.vtex"); }
+.biggest-symbol-6 { background-image:url("s2r://panorama/styles/custom_game/anocore/casino/biggest_g.vtex"); }
+.biggest-symbol-7 { background-image:url("s2r://panorama/styles/custom_game/anocore/casino/biggest_o.vtex"); }
+.biggest-symbol-8 { background-image:url("s2r://panorama/styles/custom_game/anocore/casino/biggest_a.vtex"); }
+.biggest-symbol-9 { background-image:url("s2r://panorama/styles/custom_game/anocore/casino/biggest_t.vtex"); }
+.biggest-symbol-10 { background-image:url("s2r://panorama/styles/custom_game/anocore/casino/biggest_scatter.vtex"); }
+
+.biggest-rule-table { visibility:collapse; width:100%; height:480px; min-height:480px; flow-children:down; overflow:scroll; padding:12px; background-color:#07150e; border:1px solid #aa8c47; }
+.biggest-rule-table Label { width:100%; white-space:normal; font-size:17px; min-height:26px; }
+.view-biggestboy.biggest-rules .biggest-rule-table { visibility:visible; }
+.view-biggestboy.biggest-rules .biggest-table { visibility:collapse; }
+.biggest-offset, .biggest-motion { min-height:16400px; }
+
+.biggest-shift { width:80px; height:16400px; min-height:16400px; overflow:noclip; }
+.biggest-shift-0.shifted { transform:translateY(-80px); }
+.biggest-shift-1.shifted { transform:translateY(-160px); }
+.biggest-shift-2.shifted { transform:translateY(-320px); }
+.biggest-shift-3.shifted { transform:translateY(-640px); }
+.biggest-shift-4.shifted { transform:translateY(-1280px); }
+.biggest-shift-5.shifted { transform:translateY(-2560px); }
+.biggest-shift-6.shifted { transform:translateY(-5120px); }

@@ -9,6 +9,28 @@ public sealed class CasinoRoundServiceTests
     private static readonly PlayerId Player = new(76561198000911603);
 
     [TestMethod]
+    public async Task BiggestBoyHasSeparateVersionAndConfigurableStakeWhileBookKeepsItsLimit()
+    {
+        var store = new MemoryStore();
+        var service = new CasinoRoundService(store, 1000);
+        var op = new DurableCasinoRoundOperation(Guid.NewGuid(), Player, Guid.NewGuid(),
+            CasinoRoundGame.BiggestBoy, CasinoRoundAction.Start, 1000, 0);
+        var receipt = await service.ApplyAsync(op);
+        Assert.AreEqual(CasinoRoundGame.BiggestBoy, receipt.Round.Game);
+        Assert.AreEqual(CasinoRoundKind.BiggestBoy, store.Current!.Kind);
+        Assert.AreEqual(BiggestBoyRules.Version, store.Current.RulesVersion);
+        Assert.AreEqual(1000L, receipt.Round.TotalStake);
+        Assert.AreEqual(BiggestBoyRules.MaximumRoundExposure(1000), store.LastPlan!.MaximumPayoutExposure);
+        Assert.AreEqual(1000, System.Text.Json.JsonSerializer.Deserialize<BiggestBoySpinResult>(receipt.Round.StateJson)!.State.LockedStake);
+        var before = store.Transitions;
+        await Assert.ThrowsExactlyAsync<CasinoRejectedException>(async () => await service.ApplyAsync(op with
+        { Id = Guid.NewGuid(), SessionId = Guid.NewGuid(), Stake = 1050 }));
+        await Assert.ThrowsExactlyAsync<CasinoRejectedException>(async () => await service.ApplyAsync(op with
+        { Id = Guid.NewGuid(), SessionId = Guid.NewGuid(), Game = CasinoRoundGame.Book }));
+        Assert.AreEqual(before, store.Transitions);
+    }
+
+    [TestMethod]
     public async Task RiskDebitsOnceAndBankCreditsExactlyHeldStake()
     {
         var store = new MemoryStore();

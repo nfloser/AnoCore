@@ -34,7 +34,7 @@ foreach ($symbol in @("cherry", "lemon", "plum", "orange", "grapes", "watermelon
     Compile-Resource "$style\arcade\$symbol.vtex" "$style\arcade\$symbol.vtex_c"
 }
 New-Item -ItemType Directory -Force -Path (Join-Path $content "$style\casino") | Out-Null
-foreach ($texture in @("slots", "coinflip", "roulette", "blackjack", "book", "risk", "wheel")) {
+foreach ($texture in @("slots", "coinflip", "roulette", "blackjack", "book", "risk", "wheel", "biggest_kebap", "biggest_beer", "biggest_cigarette", "biggest_butter", "biggest_shot", "biggest_funnel", "biggest_g", "biggest_o", "biggest_a", "biggest_t", "biggest_scatter")) {
     Copy-Item (Join-Path $src "$style\casino\$texture.png") (Join-Path $content "$style\casino\$texture.png") -Force
     Compile-Resource "$style\casino\$texture.vtex" "$style\casino\$texture.vtex_c"
 }

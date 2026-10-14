@@ -452,3 +452,6 @@
 .casino-preview-book { background-image: url("s2r://panorama/styles/custom_game/anocore/casino/book.vtex"); background-size: contain; background-position: center; background-repeat: no-repeat; background-color: #070c08; }
 .casino-preview-risk { background-image: url("s2r://panorama/styles/custom_game/anocore/casino/risk.vtex"); background-size: contain; background-position: center; background-repeat: no-repeat; background-color: #070c08; }
  .casino-preview Panel, .casino-preview Label { visibility: collapse; }
+
+.casino-game-grid { overflow:scroll; }
+.casino-preview-biggestboy { background-image:url("s2r://panorama/styles/custom_game/anocore/casino/biggest_scatter.vtex"); background-size:contain; background-position:center; background-repeat:no-repeat; }

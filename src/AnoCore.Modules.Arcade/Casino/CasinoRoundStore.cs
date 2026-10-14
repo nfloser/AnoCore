@@ -6,7 +6,7 @@ using AnoCore.Abstractions.Players;
 
 namespace AnoCore.Modules.Arcade.Casino;
 
-public enum CasinoRoundKind { Blackjack, Risk, BonusSlot }
+public enum CasinoRoundKind { Blackjack, Risk, BonusSlot, BiggestBoy }
 public enum CasinoRoundStatus { Active, Completed }
 
 public sealed record CasinoRoundSnapshot(

@@ -173,7 +173,7 @@ foreach ($symbol in @("cherry", "lemon", "plum", "orange", "grapes", "watermelon
 # Casino covers and exact numbered roulette wheel belong to the matching HUD build.
 $casinoTextureDir = Join-Path $styleDir "casino"
 New-Item -ItemType Directory -Force -Path $casinoTextureDir | Out-Null
-foreach ($texture in @("slots", "coinflip", "roulette", "blackjack", "book", "risk", "wheel")) {
+foreach ($texture in @("slots", "coinflip", "roulette", "blackjack", "book", "risk", "wheel", "biggest_kebap", "biggest_beer", "biggest_cigarette", "biggest_butter", "biggest_shot", "biggest_funnel", "biggest_g", "biggest_o", "biggest_a", "biggest_t", "biggest_scatter")) {
     foreach ($extension in @(".png", ".vtex")) {
         Copy-Item (Join-Path $src "styles\custom_game\anocore\casino\$texture$extension") (Join-Path $casinoTextureDir "$texture$extension") -Force
     }

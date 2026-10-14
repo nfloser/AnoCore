@@ -26,13 +26,13 @@ public sealed class CasinoLobbyRoundRoutingTests
             openRound: (player, game, _) => { selected.Add((player, game)); return ValueTask.FromResult(true); });
         await players.ConnectAsync(new(Player, "Tester", PlayerTeam.Terrorist, true, DateTimeOffset.UtcNow));
         Assert.IsTrue((await commands.ExecuteAsync("!anocasino", Player)).Success);
-        foreach (var card in new[] { "blackjack", "risk", "book" })
+        foreach (var card in new[] { "blackjack", "risk", "book", "biggestboy" })
             await hud.ClickAsync(Player, CasinoPresenter.LobbyHudId, "casino_lobby_" + card);
-        CollectionAssert.AreEqual(new[] { CasinoRoundGame.Blackjack, CasinoRoundGame.Risk, CasinoRoundGame.Book }, selected.Select(x => x.Game).ToArray());
+        CollectionAssert.AreEqual(new[] { CasinoRoundGame.Blackjack, CasinoRoundGame.Risk, CasinoRoundGame.Book, CasinoRoundGame.BiggestBoy }, selected.Select(x => x.Game).ToArray());
         Assert.IsTrue(selected.All(x => x.Player == Player));
         permission.Allowed = false;
         await hud.ClickAsync(Player, CasinoPresenter.LobbyHudId, "casino_lobby_blackjack");
-        Assert.AreEqual(3, selected.Count);
+        Assert.AreEqual(4, selected.Count);
         Assert.AreEqual(0, hud.VisiblePlayers(CasinoPresenter.LobbyHudId).Count);
     }
 

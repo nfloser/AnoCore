@@ -4,7 +4,7 @@ using AnoCore.Abstractions.Players;
 
 namespace AnoCore.Modules.Arcade.Casino;
 
-public enum CasinoRoundGame { Blackjack, Risk, Book }
+public enum CasinoRoundGame { Blackjack, Risk, Book, BiggestBoy }
 public enum CasinoRoundAction { Start, Hit, Stand, Double, Split, Risk, Bank, FreeSpin }
 public sealed record DurableCasinoRoundOperation(Guid Id, PlayerId Player, Guid SessionId,
     CasinoRoundGame Game, CasinoRoundAction Action, int Stake, long ExpectedRevision);
@@ -19,7 +19,7 @@ public interface ICasinoRounds
 }
 
 /// <summary>Adapts versioned native rules to account-serialized durable rounds.</summary>
-public sealed class CasinoRoundService(ICasinoRoundStore store) : ICasinoRounds
+public sealed class CasinoRoundService(ICasinoRoundStore store, int biggestBoyMaximumStake = BiggestBoyRules.MaximumStake) : ICasinoRounds
 {
     public async ValueTask<DurableCasinoRoundSnapshot?> ReadAsync(PlayerId player, CancellationToken token = default)
     {
@@ -29,15 +29,21 @@ public sealed class CasinoRoundService(ICasinoRoundStore store) : ICasinoRounds
 
     public async ValueTask<DurableCasinoRoundReceipt> ApplyAsync(DurableCasinoRoundOperation operation, CancellationToken token = default)
     {
+        var maximumStake = operation.Game == CasinoRoundGame.BiggestBoy
+            ? operation.Action == CasinoRoundAction.Start
+                ? Math.Clamp(biggestBoyMaximumStake, 50, BiggestBoyRules.MaximumStake)
+                : BiggestBoyRules.MaximumStake
+            : 500;
         if (operation.Id == Guid.Empty || operation.SessionId == Guid.Empty || operation.Player is null
             || !Enum.IsDefined(operation.Game) || !Enum.IsDefined(operation.Action)
-            || operation.Stake is < 50 or > 500 || operation.Stake % 50 != 0 || operation.ExpectedRevision < 0
+            || operation.Stake < 50 || operation.Stake > maximumStake || operation.Stake % 50 != 0 || operation.ExpectedRevision < 0
             || (operation.Action == CasinoRoundAction.Start) != (operation.ExpectedRevision == 0))
             throw new CasinoRejectedException("Ungültige Spielaktion.");
         var kind = operation.Game switch
         {
             CasinoRoundGame.Blackjack => CasinoRoundKind.Blackjack,
             CasinoRoundGame.Risk => CasinoRoundKind.Risk,
+            CasinoRoundGame.BiggestBoy => CasinoRoundKind.BiggestBoy,
             _ => CasinoRoundKind.BonusSlot,
         };
         var request = new CasinoRoundOperation(operation.Id, operation.SessionId, operation.Player,
@@ -51,7 +57,7 @@ public sealed class CasinoRoundService(ICasinoRoundStore store) : ICasinoRounds
     {
         if (current is null) return new(op.Stake, Exposure(op.Game, op.Stake));
         var view = View(current);
-        if (view.Stake != op.Stake || current.RulesVersion != Version(op.Game))
+        if (view.Game != op.Game || view.Stake != op.Stake || current.RulesVersion != Version(op.Game))
             throw new CasinoRejectedException("Einsatz oder gespeicherte Spielregeln stimmen nicht überein.");
         long debit = 0;
         switch (op.Game)
@@ -71,6 +77,10 @@ public sealed class CasinoRoundService(ICasinoRoundStore store) : ICasinoRounds
                     || op.Action == CasinoRoundAction.Risk && (risk.Gambles >= RiskRules.MaximumGambles
                         || risk.HeldPayout > RiskRules.MaximumHeldExposure / 2))
                     throw new CasinoRejectedException("Diese Risk-Aktion ist nicht möglich.");
+                break;
+            case CasinoRoundGame.BiggestBoy:
+                if (op.Action != CasinoRoundAction.FreeSpin || Read<BiggestBoySpinResult>(current).State.FreeSpinsRemaining <= 0)
+                    throw new CasinoRejectedException("Keine Freispiele verfügbar.");
                 break;
             case CasinoRoundGame.Book:
                 if (op.Action != CasinoRoundAction.FreeSpin || Read<BonusSlotSpinResult>(current).State.FreeSpinsRemaining <= 0)
@@ -106,6 +116,14 @@ public sealed class CasinoRoundService(ICasinoRoundStore store) : ICasinoRounds
                 complete = risk.Status != RiskRoundStatus.Active;
                 payout = risk.FinalPayout ?? 0;
                 debit = previous is null ? op.Stake : 0;
+                break;
+            case CasinoRoundGame.BiggestBoy:
+                var biggest = current is null ? BiggestBoyRules.StartRound(op.Stake, RandomNumberGenerator.GetInt32)
+                    : BiggestBoyRules.PlayFreeSpin(Read<BiggestBoySpinResult>(current).State, RandomNumberGenerator.GetInt32);
+                state = biggest;
+                complete = biggest.State.FreeSpinsRemaining == 0;
+                payout = biggest.State.TotalPayout;
+                debit = biggest.ChargedStake;
                 break;
             default:
                 var bonus = current is null ? BonusSlotRules.StartRound(op.Stake, RandomNumberGenerator.GetInt32)
@@ -143,6 +161,13 @@ public sealed class CasinoRoundService(ICasinoRoundStore store) : ICasinoRounds
                 totalStake = stake;
                 payout = risk.FinalPayout ?? 0;
                 break;
+            case CasinoRoundKind.BiggestBoy:
+                var biggest = Read<BiggestBoySpinResult>(round);
+                game = CasinoRoundGame.BiggestBoy;
+                stake = biggest.State.LockedStake;
+                totalStake = stake;
+                payout = biggest.State.TotalPayout;
+                break;
             default:
                 var bonus = Read<BonusSlotSpinResult>(round);
                 game = CasinoRoundGame.Book;
@@ -161,12 +186,14 @@ public sealed class CasinoRoundService(ICasinoRoundStore store) : ICasinoRounds
     {
         CasinoRoundGame.Blackjack => BlackjackRules.RulesVersion,
         CasinoRoundGame.Risk => RiskRules.Version,
+        CasinoRoundGame.BiggestBoy => BiggestBoyRules.Version,
         _ => BonusSlotRules.Version,
     };
     private static long Exposure(CasinoRoundGame game, int stake) => game switch
     {
         CasinoRoundGame.Blackjack => stake * 8L,
         CasinoRoundGame.Risk => stake * (1L << RiskRules.MaximumGambles),
+        CasinoRoundGame.BiggestBoy => BiggestBoyRules.MaximumRoundExposure(stake),
         _ => BonusSlotRules.MaximumRoundExposure(stake),
     };
     private static BlackjackAction BlackjackActionFor(CasinoRoundAction action) => action switch
