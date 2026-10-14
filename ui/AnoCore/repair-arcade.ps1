@@ -37,13 +37,22 @@ $client = Join-Path $Cs2 "game/csgo/panorama"
 $backup = Join-Path $Cs2 ("anocore-ui-backups/arcade-" + (Get-Date -Format "yyyyMMdd-HHmmss-fff") + "-" + [guid]::NewGuid().ToString("N").Substring(0, 8))
 
 if ($Mode -eq "UseWorkshop") {
-    foreach ($relative in $resources) {
-        $file = Join-Path $client $relative
-        if (Test-Path $file -PathType Leaf) {
-            $saved = Join-Path $backup $relative
-            New-Item -ItemType Directory -Force -Path (Split-Path -Parent $saved) | Out-Null
-            Move-Item -LiteralPath $file -Destination $saved
+    $moved = @()
+    try {
+        foreach ($relative in $resources) {
+            $file = Join-Path $client $relative
+            if (Test-Path $file -PathType Leaf) {
+                $saved = Join-Path $backup $relative
+                New-Item -ItemType Directory -Force -Path (Split-Path -Parent $saved) | Out-Null
+                Move-Item -LiteralPath $file -Destination $saved
+                $moved += $relative
+            }
         }
+    } catch {
+        foreach ($relative in $moved) {
+            Copy-Item -LiteralPath (Join-Path $backup $relative) -Destination (Join-Path $client $relative) -Force
+        }
+        throw
     }
     Write-Output "Lokale Arcade-Overrides gesichert: $backup"
     Write-Output "Jetzt liefert nur das gemountete Workshop-Addon die Arcade-UI. CS2 neu starten und !anoarcadetest testen."
@@ -51,7 +60,7 @@ if ($Mode -eq "UseWorkshop") {
 }
 
 # Validate the source actually expected by the installed original probe.
-[xml]$xml = Get-Content (Join-Path $src "layout/custom_game/anocore/ano_arcade.xml") -Raw
+[xml]$xml = Get-Content (Join-Path $src "layout/custom_game/anocore/ano_arcade.xml") -Raw -Encoding UTF8
 $ids = @($xml.SelectNodes("//*[@id]") | ForEach-Object { $_.GetAttribute("id") })
 foreach ($id in @("root", "account", "profile", "bank", "stake", "win", "status", "close", "slots", "load", "spin")) {
     if ($ids -notcontains "ano_arcade_$id") { throw "Arcade-Quelldatei unpassend: ano_arcade_$id fehlt. Kein Client-Update."
