@@ -170,7 +170,7 @@ foreach ($symbol in @("cherry", "lemon", "plum", "orange", "grapes", "watermelon
     }
 }
 
-foreach ($name in @("ano_veto_cards", "ano_veto", "menu", "ano_tournament", "ano_arcade", "ano_casino", "ano_casino_rounds")) {
+foreach ($name in @("ano_veto_cards", "ano_veto", "ano_veto_create", "menu", "ano_tournament", "ano_arcade", "ano_casino", "ano_casino_rounds")) {
     $layoutTarget = Join-Path $layoutDir "$name.xml"
     $styleTarget = Join-Path $styleDir "$name.css"
     Copy-Item (Join-Path $src "layout\custom_game\anocore\$name.xml") $layoutTarget -Force
