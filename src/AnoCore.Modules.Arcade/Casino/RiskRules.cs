@@ -51,8 +51,14 @@ public static class RiskRules
 
         var nextRevision = checked(state.Revision + 1);
         if (!won)
-            return state with { Revision = nextRevision, HeldPayout = 0, Gambles = state.Gambles + 1,
-                Status = RiskRoundStatus.Lost, FinalPayout = 0 };
+            return state with
+            {
+                Revision = nextRevision,
+                HeldPayout = 0,
+                Gambles = state.Gambles + 1,
+                Status = RiskRoundStatus.Lost,
+                FinalPayout = 0,
+            };
 
         return state with { Revision = nextRevision, HeldPayout = checked(state.HeldPayout * 2), Gambles = state.Gambles + 1 };
     }
@@ -61,8 +67,12 @@ public static class RiskRules
     public static RiskRoundState Bank(RiskRoundState state, long expectedRevision)
     {
         ValidateAction(state, expectedRevision);
-        return state with { Revision = checked(state.Revision + 1), Status = RiskRoundStatus.Banked,
-            FinalPayout = state.HeldPayout };
+        return state with
+        {
+            Revision = checked(state.Revision + 1),
+            Status = RiskRoundStatus.Banked,
+            FinalPayout = state.HeldPayout,
+        };
     }
 
     private static void ValidateAction(RiskRoundState state, long expectedRevision)
