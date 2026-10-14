@@ -89,6 +89,30 @@ public sealed class AnoVetoCommandControllerTests
     }
 
     [TestMethod]
+    public async Task ManualPicker_IncompleteSelectionAndMissingStorageReportWhyActionsCannotRun()
+    {
+        var permissions = new ManagerPermissionEvaluator(allow: true);
+        var commands = new CommandRegistry(permissions);
+        var hud = new TestCustomHudService();
+        var players = new StubPlayerRegistry([Snapshot(Manager, "Manager"), Snapshot(PlayerA, "Player A")]);
+        var coordinator = CreateCoordinator(permissions);
+        using var controller = new AnoVetoCommandController(commands, hud, players, coordinator, new FixedTimeProvider(Now));
+        await commands.ExecuteAsync("!anoveto create", Manager);
+        await hud.ClickAsync(Manager, AnoVetoCreateHudController.HudId, "ano_veto_create_manual");
+        await hud.ClickAsync(Manager, AnoVetoCreateHudController.HudId, "ano_veto_create_map_0");
+        await hud.ClickAsync(Manager, AnoVetoCreateHudController.HudId, "ano_veto_create_confirm");
+        Assert.IsFalse(coordinator.TryGetStatus(out _));
+        Assert.AreEqual("Bitte genau acht Maps auswählen (aktuell 1/8).", hud.Text(Manager, AnoVetoCreateHudController.HudId, "ano_veto_create_status"));
+        await hud.ClickAsync(Manager, AnoVetoCreateHudController.HudId, "ano_veto_create_save");
+        Assert.AreEqual("Speichern nicht verfügbar: Veto-Datenbank ist nicht eingerichtet.", hud.Text(Manager, AnoVetoCreateHudController.HudId, "ano_veto_create_status"));
+        for (var i = 1; i < 8; i++)
+            await hud.ClickAsync(Manager, AnoVetoCreateHudController.HudId, $"ano_veto_create_map_{i}");
+        Assert.AreEqual("Acht Maps ausgewählt. Die Abstimmung kann gestartet werden.", hud.Text(Manager, AnoVetoCreateHudController.HudId, "ano_veto_create_status"));
+        await hud.ClickAsync(Manager, AnoVetoCreateHudController.HudId, "ano_veto_create_confirm");
+        Assert.IsTrue(coordinator.TryGetStatus(out _));
+    }
+
+    [TestMethod]
     public async Task ManualPicker_EightUniqueMapClicksStartSharedVote()
     {
         var permissions = new ManagerPermissionEvaluator(allow: true);

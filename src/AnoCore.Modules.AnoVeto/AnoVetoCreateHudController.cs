@@ -120,6 +120,13 @@ public sealed class AnoVetoCreateHudController : IDisposable
                   : $"{selectedMaps.Count}/8 selected · Page {state.Page + 1}");
         _hud.SetText(player, HudId, "ano_veto_create_confirm_text",
             saved ? "START SAVED VETO" : "START SELECTED VETO");
+        var ready = saved ? state.SelectedSavedName is not null : state.Session.Draft.CanConfirm;
+        _hud.SetClass(player, HudId, "ano_veto_create_confirm", "not-ready", !ready);
+        _hud.SetClass(player, HudId, "ano_veto_create_save", "not-ready", saved || !ready || _presets is null);
+        _hud.SetText(player, HudId, "ano_veto_create_status", saved
+            ? ready ? "Gespeicherte Auswahl bereit. Die Abstimmung kann gestartet werden." : "Bitte eine gespeicherte Abstimmung auswählen."
+            : ready ? "Acht Maps ausgewählt. Die Abstimmung kann gestartet werden."
+                : $"Bitte genau acht Maps auswählen (aktuell {selectedMaps.Count}/8).");
 
         for (var i = 0; i < PageSize; i++)
         {
@@ -222,11 +229,15 @@ public sealed class AnoVetoCreateHudController : IDisposable
         if (context.ButtonId == "ano_veto_create_confirm")
         {
             IReadOnlyList<string>? selected = null;
+            var selectedCount = 0;
+            var savedScreen = false;
             lock (_gate)
             {
                 if (_states.TryGetValue(player, out var state))
                 {
-                    if (state.Session.CurrentScreen == AnoVetoCreateSession.Screen.Saved)
+                    selectedCount = state.Session.Draft.SelectedMapIds.Count;
+                    savedScreen = state.Session.CurrentScreen == AnoVetoCreateSession.Screen.Saved;
+                    if (savedScreen)
                         selected = state.Saved.FirstOrDefault(x =>
                             string.Equals(x.Preset.Name, state.SelectedSavedName, StringComparison.OrdinalIgnoreCase))
                             .Preset?.MapIds;
@@ -236,13 +247,23 @@ public sealed class AnoVetoCreateHudController : IDisposable
             }
             if (selected is null)
             {
-                _hud.SetText(player, HudId, "ano_veto_create_status", "Select a valid map pool first.");
+                _hud.SetText(player, HudId, "ano_veto_create_status", savedScreen
+                    ? "Bitte eine gespeicherte Abstimmung auswählen."
+                    : $"Bitte genau acht Maps auswählen (aktuell {selectedCount}/8).");
                 return;
             }
-            if (await _startSelected(player, selected, context.CancellationToken).ConfigureAwait(false))
-                Hide(player);
-            else
-                _hud.SetText(player, HudId, "ano_veto_create_status", "Cannot start vote. Check maps and permissions.");
+            _hud.SetText(player, HudId, "ano_veto_create_status", "Abstimmung wird gestartet …");
+            try
+            {
+                if (await _startSelected(player, selected, context.CancellationToken).ConfigureAwait(false))
+                    Hide(player);
+                else
+                    _hud.SetText(player, HudId, "ano_veto_create_status", "Start abgelehnt: aktive Abstimmung, Maps oder Berechtigung prüfen.");
+            }
+            catch (Exception error) when (error is not OperationCanceledException)
+            {
+                _hud.SetText(player, HudId, "ano_veto_create_status", "Abstimmung konnte nicht gestartet werden. Bitte erneut versuchen.");
+            }
             return;
         }
 
@@ -330,7 +351,11 @@ public sealed class AnoVetoCreateHudController : IDisposable
 
     private async ValueTask SaveCurrentAsync(PlayerId player, CancellationToken token)
     {
-        if (_presets is null) return;
+        if (_presets is null)
+        {
+            _hud.SetText(player, HudId, "ano_veto_create_status", "Speichern nicht verfügbar: Veto-Datenbank ist nicht eingerichtet.");
+            return;
+        }
         IReadOnlyList<string>? maps = null;
         lock (_gate)
         {
@@ -346,6 +371,7 @@ public sealed class AnoVetoCreateHudController : IDisposable
         }
         try
         {
+            _hud.SetText(player, HudId, "ano_veto_create_status", "Auswahl wird gespeichert …");
             var list = await _presets.ListAsync(player.SteamId64, token).ConfigureAwait(false);
             var name = NextPresetName(list);
             await _presets.CreateAsync(new AnoVetoPreset(player.SteamId64, name, maps), token)
