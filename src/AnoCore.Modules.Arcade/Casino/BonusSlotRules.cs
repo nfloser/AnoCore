@@ -14,7 +14,7 @@ public sealed record BonusSlotRoundState(
     int FreeSpinsAwarded,
     int SpinsPlayed,
     long TotalPayout,
-    BonusSlotSymbol? ExpandingSymbol);
+    BonusSlotSymbol? ExpandingSymbol,\n    string RulesVersion);
 
 public sealed record BonusSlotSpinResult(
     ImmutableArray<BonusSlotSymbol> Grid,
@@ -85,7 +85,7 @@ public static class BonusSlotRules
         var expanding = evaluated.ScatterCount >= TriggerScatterCount
             ? DrawExpandingSymbol(random) : (BonusSlotSymbol?)null;
         var awarded = expanding.HasValue ? InitialFreeSpins : 0;
-        var state = new BonusSlotRoundState(stake, awarded, awarded, 1, evaluated.Payout, expanding);
+        var state = new BonusSlotRoundState(stake, awarded, awarded, 1, evaluated.Payout, expanding, Version);
         return evaluated with { ChargedStake = stake, State = state };
     }
 
@@ -99,7 +99,7 @@ public static class BonusSlotRules
             || state.SpinsPlayed < 1 || state.SpinsPlayed > MaximumFreeSpinsAwarded + 1
             || state.FreeSpinsAwarded - state.FreeSpinsRemaining != state.SpinsPlayed - 1
             || (state.FreeSpinsAwarded == 0) != (state.ExpandingSymbol is null)
-            || state.ExpandingSymbol is BonusSlotSymbol.Book
+            || state.ExpandingSymbol is BonusSlotSymbol.Book || state.RulesVersion != Version
             || state.TotalPayout < 0 || state.TotalPayout > MaximumRoundExposure(state.LockedStake))
             throw new ArgumentException("Invalid bonus-slot round state.", nameof(state));
 
@@ -175,7 +175,7 @@ public static class BonusSlotRules
         }
 
         return new BonusSlotSpinResult(copy, scatters, wins.MoveToImmutable(), payout, 0,
-            new BonusSlotRoundState(stake, 0, 0, 0, payout, null));
+            new BonusSlotRoundState(stake, 0, 0, 0, payout, null, Version));
     }
 
     private static BonusSlotSymbol[] DrawGrid(Func<int, int> random)
