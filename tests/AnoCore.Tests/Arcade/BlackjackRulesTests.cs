@@ -55,7 +55,7 @@ public sealed class BlackjackRulesTests
             C(BlackjackSuit.Hearts, BlackjackRank.Six),
             C(BlackjackSuit.Spades, BlackjackRank.Five),
             C(BlackjackSuit.Diamonds, BlackjackRank.Ten),
-            C(BlackjackSuit.Clubs, BlackjackRank.Nine)));
+            C(BlackjackSuit.Clubs, BlackjackRank.Ten)));
         state = BlackjackRules.Apply(state, 0, BlackjackAction.Hit);
 
         Assert.AreEqual(16, state.PlayerHands[0].BestTotal);
