@@ -10,6 +10,13 @@ CSS = ASSETS / "styles" / "custom_game" / "anocore" / "ano_veto_create.css"
 
 
 class AnoVetoCreateResourcesTest(unittest.TestCase):
+    def test_veto_authorization_survives_startup_ownership_transfer(self):
+        plugin = (ROOT / "src/AnoCore.Plugin/AnoCorePlugin.cs").read_text()
+        self.assertIn("created = null;", plugin)
+        self.assertIn("createdAnoVeto = null;", plugin)
+        self.assertNotIn("() => ReferenceEquals(_runtime, created) && createdAnoVeto?.IsActive == true", plugin)
+        self.assertIn("() => ReferenceEquals(_runtime, vetoRuntime) && _anoVeto?.IsActive == true", plugin)
+
     def test_all_buttons_exist_once(self):
         tree = ET.parse(LAYOUT)
         ids = [element.attrib.get("id") for element in tree.iter() if element.tag == "Button"]
