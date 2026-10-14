@@ -87,3 +87,11 @@ migration using existing AnoCore persistence conventions, hook the adapter into
 plugin composition and run MariaDB integration tests (including races, rollback,
 restart recovery and revision conflicts). Merely satisfying the interface in an
 in-memory catalog does not persist any records across restarts.
+
+## Native create landing screen integration
+
+`!anoveto create` now opens the registered `ano.veto.create` CustomHud rather than immediately starting a vote. Clicking **Random Veto** invokes the existing server-authoritative `AnoVetoCoordinator.CreateAsync`, retaining the normal `ano.vote.manage` permission and public voting UI. The explicit `!anoveto random` command remains an immediate fast path. Closing the create HUD makes no vote. The **Create Veto** and **Use Veto** buttons currently display a clear not-yet-integrated message, not a fake successful action.
+
+The command itself currently exposes the non-mutating landing screen before permission verification; the Random click is checked by `VoteService`. Native UI access control and complete per-session creation lifecycle must be hardened before production release.
+
+This is not the finished picker: the map browser, owner-persisted presets, scrolling/keyboard and three-vote feature branch remain to be integrated and verified together with the Casino HUD fix.
