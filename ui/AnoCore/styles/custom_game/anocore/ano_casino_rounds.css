@@ -67,10 +67,6 @@ Label { color:#e9efed; font-family:Arial; font-size:17px; margin:4px; }
 .book-symbol.symbol-7 { color:#6f3a10; background-color:#fff1bf; border:3px solid #bf8d35; font-size:22px; font-weight:bold; }
 .motion-a .book-reel.stopped .reel-motion, .motion-b .book-reel.stopped .reel-motion { visibility:collapse; }
 .motion-a .book-reel.stopped .reel-final, .motion-b .book-reel.stopped .reel-final { visibility:visible; }
-.motion-a .book-reel.stopped .reel-final { animation-name:'book-stop-a'; animation-duration:0.25s; }
-.motion-b .book-reel.stopped .reel-final { animation-name:'book-stop-b'; animation-duration:0.25s; }
-@keyframes 'book-stop-a' { 0% { transform:translateY(-12px); } 70% { transform:translateY(3px); } 100% { transform:translateY(0px); } }
-@keyframes 'book-stop-b' { 0% { transform:translateY(-12px); } 70% { transform:translateY(3px); } 100% { transform:translateY(0px); } }
 
 #casino_round_risk { visibility:collapse; }
 .can-risk #casino_round_risk { visibility:visible; }
@@ -87,3 +83,82 @@ Label { color:#e9efed; font-family:Arial; font-size:17px; margin:4px; }
 .view-blackjack .round-cover { background-image: url("s2r://panorama/styles/custom_game/anocore/casino/blackjack.vtex"); }
 .view-book .round-cover { background-image: url("s2r://panorama/styles/custom_game/anocore/casino/book.vtex"); }
 .view-risk .round-cover { background-image: url("s2r://panorama/styles/custom_game/anocore/casino/risk.vtex"); }
+
+/* Native reference adaptation: full repeated downward strip and booked-result ribbon. */
+.reel-motion { flow-children: none; height: 1280px; min-height: 1280px; }
+.reel-final { height: 480px; min-height: 480px; }
+.motion-a .reel-motion { animation-name: 'book-down-a'; }
+.motion-b .reel-motion { animation-name: 'book-down-b'; }
+@keyframes 'book-down-a' { 0% { transform: translateY(-640px); } 100% { transform: translateY(0px); } }
+@keyframes 'book-down-b' { 0% { transform: translateY(-640px); } 100% { transform: translateY(0px); } }
+.motion-a .book-reel.settling .reel-motion, .motion-b .book-reel.settling .reel-motion { visibility: collapse; }
+.motion-a .book-reel.settling .reel-final, .motion-b .book-reel.settling .reel-final { visibility: visible; animation-duration: 0.45s; animation-timing-function: ease-out; }
+.motion-a .book-reel.settling .reel-final { animation-name: 'book-settle-a'; }
+.motion-b .book-reel.settling .reel-final { animation-name: 'book-settle-b'; }
+@keyframes 'book-settle-a' { 0% { transform: translateY(-240px); } 100% { transform: translateY(0px); } }
+@keyframes 'book-settle-b' { 0% { transform: translateY(-240px); } 100% { transform: translateY(0px); } }
+/* Compact banner leaves room for both split hands and the navigation. */
+.round-cover { width: 72px; height: 72px; min-height: 72px; margin-bottom: 4px; }
+.title { margin-bottom: 6px; }
+.blackjack-table { padding: 10px; }
+.dealer-cards { font-size: 16px; margin: 2px; }
+.card-row { width: 100%; height: 64px; min-height: 64px; flow-children: right; margin-bottom: 4px; }
+.playing-card { visibility: collapse; width: 38px; min-width: 38px; height: 60px; min-height: 60px; margin: 0px 4px 0px 0px; border: 1px solid #bdbdac; border-radius: 4px; background-color: #f5f0df; color: #152019; font-size: 19px; font-weight: bold; text-align: center; padding-top: 5px; white-space: normal; }
+.playing-card.present { visibility: visible; }
+.playing-card.red { color: #aa243b; }
+.playing-card.face-down { color: #98f277; background-color: #163b29; border-color: #98f277; }
+.playing-card.deal-a { animation-name: 'native-card-a'; animation-duration: 0.35s; animation-timing-function: ease-out; }
+.playing-card.deal-b { animation-name: 'native-card-b'; animation-duration: 0.35s; animation-timing-function: ease-out; }
+@keyframes 'native-card-a' { 0% { opacity: 0; transform: translateX(45px) rotateZ(8deg); } 100% { opacity: 1; transform: translateX(0px) rotateZ(0deg); } }
+@keyframes 'native-card-b' { 0% { opacity: 0; transform: translateX(45px) rotateZ(8deg); } 100% { opacity: 1; transform: translateX(0px) rotateZ(0deg); } }
+.player-hand { visibility: collapse; width: 100%; flow-children: down; padding: 4px; border: 1px solid #245b36; margin-top: 4px; }
+.player-hand.present { visibility: visible; }
+.player-hand.active-hand { border-color: #98f277; background-color: #174532; }
+.hand-summary { font-size: 15px; margin: 1px; }
+.view-blackjack .round-detail { visibility: collapse; }
+.bonus-summary { font-size: 18px; color: #98f277; horizontal-align: center; }
+.risk-amount { font-size: 34px; color: #98f277; horizontal-align: center; }
+.risk-steps { flow-children: right; horizontal-align: center; }
+.risk-step { width: 46px; height: 36px; text-align: center; padding-top: 6px; border: 1px solid #287547; color: #9faea7; background-color: #132019; }
+.risk-step.reached { color: #98f277; border-color: #98f277; background-color: #173d28; }
+.view-risk .round-detail { visibility: collapse; }
+.motion-a.view-risk .risk-amount, .motion-b.view-risk .risk-amount, .motion-a.view-risk .risk-steps, .motion-b.view-risk .risk-steps, .motion-a.view-risk #casino_round_next, .motion-b.view-risk #casino_round_next, .motion-a.view-book .bonus-summary, .motion-b.view-book .bonus-summary { opacity: 0; }
+.card-index-0 { animation-delay: 0.00s; }
+.card-index-1 { animation-delay: 0.02s; }
+.card-index-2 { animation-delay: 0.04s; }
+.card-index-3 { animation-delay: 0.06s; }
+.card-index-4 { animation-delay: 0.08s; }
+.card-index-5 { animation-delay: 0.10s; }
+.card-index-6 { animation-delay: 0.12s; }
+.card-index-7 { animation-delay: 0.14s; }
+.card-index-8 { animation-delay: 0.16s; }
+.card-index-9 { animation-delay: 0.18s; }
+.card-index-10 { animation-delay: 0.20s; }
+.card-index-11 { animation-delay: 0.22s; }
+.card-index-12 { animation-delay: 0.24s; }
+.card-index-13 { animation-delay: 0.26s; }
+.card-index-14 { animation-delay: 0.28s; }
+.card-index-15 { animation-delay: 0.30s; }
+.card-index-16 { animation-delay: 0.32s; }
+.card-index-17 { animation-delay: 0.34s; }
+.card-index-18 { animation-delay: 0.36s; }
+.card-index-19 { animation-delay: 0.38s; }
+.card-index-20 { animation-delay: 0.40s; }
+
+/* Native XML does not permit inline styles. */
+.book-row-0 { position: 0px 0px 0px; }
+.book-row-1 { position: 0px 80px 0px; }
+.book-row-2 { position: 0px 160px 0px; }
+.book-row-3 { position: 0px 240px 0px; }
+.book-row-4 { position: 0px 320px 0px; }
+.book-row-5 { position: 0px 400px 0px; }
+.book-row-6 { position: 0px 480px 0px; }
+.book-row-7 { position: 0px 560px 0px; }
+.book-row-8 { position: 0px 640px 0px; }
+.book-row-9 { position: 0px 720px 0px; }
+.book-row-10 { position: 0px 800px 0px; }
+.book-row-11 { position: 0px 880px 0px; }
+.book-row-12 { position: 0px 960px 0px; }
+.book-row-13 { position: 0px 1040px 0px; }
+.book-row-14 { position: 0px 1120px 0px; }
+.book-row-15 { position: 0px 1200px 0px; }

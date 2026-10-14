@@ -563,11 +563,20 @@ public sealed class CasinoPresenter : IDisposable
                 {
                     for (var i = 0; i < 3; i++)
                     {
+                        if ((state.ReelSettles & (1 << i)) == 0
+                            && elapsed >= TimeSpan.FromMilliseconds(2150 + i * 500)
+                            && elapsed < TimeSpan.FromMilliseconds(2600 + i * 500))
+                        {
+                            state.ReelSettles |= 1 << i;
+                            SlotsClass(state, "reel" + i, "rolling", false);
+                            SlotsClass(state, "reel" + i, "settling", true);
+                        }
                         if ((state.ReelStops & (1 << i)) != 0
                             || elapsed < TimeSpan.FromMilliseconds(2600 + i * 500))
                             continue;
                         state.ReelStops |= 1 << i;
                         SlotsClass(state, "reel" + i, "rolling", false);
+                        SlotsClass(state, "reel" + i, "settling", false);
                         SlotsClass(state, "reel" + i, "settled", true);
                     }
                 }
@@ -725,6 +734,7 @@ public sealed class CasinoPresenter : IDisposable
     private void ClearAnimationClasses(State state)
     {
         state.ReelStops = 0;
+        state.ReelSettles = 0;
         state.LandingApplied = false;
         state.LinesRevealed = false;
 
@@ -733,6 +743,7 @@ public sealed class CasinoPresenter : IDisposable
             for (var i = 0; i < 3; i++)
             {
                 SlotsClass(state, "reel" + i, "rolling", false);
+                SlotsClass(state, "reel" + i, "settling", false);
                 SlotsClass(state, "reel" + i, "settled", false);
             }
             for (var line = 0; line < WinningLines.Length; line++)
@@ -902,6 +913,7 @@ public sealed class CasinoPresenter : IDisposable
         public int Bet { get; set; } = 37;
         public int Spin { get; set; }
         public int ReelStops { get; set; }
+        public int ReelSettles { get; set; }
         public bool LandingApplied { get; set; }
         public bool LinesRevealed { get; set; }
         public long Win { get; set; }

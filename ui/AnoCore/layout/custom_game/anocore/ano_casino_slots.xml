@@ -9,7 +9,7 @@
         <Panel class="casino-header">
           <Label class="casino-title" text="ANOCASINO · SLOTS" />
           <Button id="casino_slots_close" class="casino-button">
-            <Label text="SCHLIESSEN" />
+            <Label text="SCHLIESSEN" hittest="false" />
           </Button>
         </Panel>
         <Panel class="casino-game-banner">
@@ -51,6 +51,9 @@
               <Panel id="casino_slots_symbol0" class="casino-symbol symbol-cherry" />
               <Panel id="casino_slots_symbol1" class="casino-symbol symbol-cherry" />
               <Panel id="casino_slots_symbol2" class="casino-symbol symbol-cherry" />
+              <Panel class="casino-symbol symbol-bell" hittest="false" />
+              <Panel class="casino-symbol symbol-seven" hittest="false" />
+              <Panel class="casino-symbol symbol-cherry" hittest="false" />
             </Panel>
           </Panel>
           <Panel id="casino_slots_reel1" class="casino-reel">
@@ -76,6 +79,9 @@
               <Panel id="casino_slots_symbol3" class="casino-symbol symbol-cherry" />
               <Panel id="casino_slots_symbol4" class="casino-symbol symbol-cherry" />
               <Panel id="casino_slots_symbol5" class="casino-symbol symbol-cherry" />
+              <Panel class="casino-symbol symbol-bell" hittest="false" />
+              <Panel class="casino-symbol symbol-seven" hittest="false" />
+              <Panel class="casino-symbol symbol-cherry" hittest="false" />
             </Panel>
           </Panel>
           <Panel id="casino_slots_reel2" class="casino-reel">
@@ -101,6 +107,9 @@
               <Panel id="casino_slots_symbol6" class="casino-symbol symbol-cherry" />
               <Panel id="casino_slots_symbol7" class="casino-symbol symbol-cherry" />
               <Panel id="casino_slots_symbol8" class="casino-symbol symbol-cherry" />
+              <Panel class="casino-symbol symbol-bell" hittest="false" />
+              <Panel class="casino-symbol symbol-seven" hittest="false" />
+              <Panel class="casino-symbol symbol-cherry" hittest="false" />
             </Panel>
           </Panel>
         </Panel>
@@ -113,29 +122,29 @@
         </Panel>
         <Panel class="casino-row">
           <Button id="casino_slots_minus" class="casino-button">
-            <Label text="−" />
+            <Label text="−" hittest="false" />
           </Button>
           <Label id="casino_slots_stake" text="{s:text}" />
           <Button id="casino_slots_plus" class="casino-button">
-            <Label text="+" />
+            <Label text="+" hittest="false" />
           </Button>
           <Button id="casino_slots_play" class="casino-button casino-primary">
-            <Label text="SPIELEN" />
+            <Label text="SPIELEN" hittest="false" />
           </Button>
         </Panel>
         <Label id="casino_slots_status" class="casino-status" text="{s:text}" />
         <Panel class="casino-row">
           <Button id="casino_slots_back" class="casino-button">
-            <Label text="SPIELAUSWAHL" />
+            <Label text="SPIELAUSWAHL" hittest="false" />
           </Button>
           <Button id="casino_slots_refresh" class="casino-button">
-            <Label text="AKTUALISIEREN" />
+            <Label text="AKTUALISIEREN" hittest="false" />
           </Button>
           <Button id="casino_slots_rules" class="casino-button">
-            <Label text="REGELN" />
+            <Label text="REGELN" hittest="false" />
           </Button>
           <Button id="casino_slots_retry" class="casino-button">
-            <Label text="BUCHUNG PRÜFEN" />
+            <Label text="BUCHUNG PRÜFEN" hittest="false" />
           </Button>
         </Panel>
       </Panel>

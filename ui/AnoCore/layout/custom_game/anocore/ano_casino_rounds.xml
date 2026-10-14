@@ -1,97 +1,331 @@
 <root>
-  <styles><include src="s2r://panorama/styles/custom_game/anocore/ano_casino_rounds.vcss_c" /></styles>
-  <Panel class="round-host" hittest="false"><Panel id="casino_round_root" class="round-overlay" hittest="true"><Panel class="round-dim" hittest="false" /><Panel class="round-window" hittest="true">
-    <Panel class="round-header"><Label class="brand" text="ANOMEME · ANOCASINO" /><Button id="casino_round_close" class="button"><Label text="SCHLIESSEN" /></Button></Panel>
-    <Panel class="round-cover" hittest="false" />
-    <Label id="casino_round_title" class="title" text="{s:text}" />
-    <Panel class="row"><Panel class="counter"><Label text="PROFILKONTO" /><Label id="casino_round_account" text="{s:text}" /></Panel><Panel class="counter"><Label text="AUTOMATENGUTHABEN" /><Label id="casino_round_bankroll" text="{s:text}" /></Panel><Panel class="counter"><Label text="AUSZAHLUNG" /><Label id="casino_round_payout" text="{s:text}" /></Panel></Panel>
-    <Panel class="book-table"><Panel class="book-reels">
-<Panel id="casino_round_reel0" class="book-reel reel-0"><Panel class="reel-motion" hittest="false">
-<Label class="book-symbol symbol-7" text="BUCH" />
-<Label class="book-symbol symbol-0" text="" />
-<Label class="book-symbol symbol-6" text="" />
-<Label class="book-symbol symbol-5" text="" />
-<Label class="book-symbol symbol-4" text="" />
-<Label class="book-symbol symbol-1" text="" />
-<Label class="book-symbol symbol-7" text="BUCH" />
-<Label class="book-symbol symbol-0" text="" />
-<Label class="book-symbol symbol-6" text="" />
-</Panel><Panel class="reel-final">
-<Label id="casino_round_symbol0" class="book-symbol" text="—" />
-<Label id="casino_round_symbol1" class="book-symbol" text="—" />
-<Label id="casino_round_symbol2" class="book-symbol" text="—" />
-</Panel></Panel>
-<Panel id="casino_round_reel1" class="book-reel reel-1"><Panel class="reel-motion" hittest="false">
-<Label class="book-symbol symbol-7" text="BUCH" />
-<Label class="book-symbol symbol-0" text="" />
-<Label class="book-symbol symbol-6" text="" />
-<Label class="book-symbol symbol-5" text="" />
-<Label class="book-symbol symbol-4" text="" />
-<Label class="book-symbol symbol-1" text="" />
-<Label class="book-symbol symbol-7" text="BUCH" />
-<Label class="book-symbol symbol-0" text="" />
-<Label class="book-symbol symbol-6" text="" />
-</Panel><Panel class="reel-final">
-<Label id="casino_round_symbol3" class="book-symbol" text="—" />
-<Label id="casino_round_symbol4" class="book-symbol" text="—" />
-<Label id="casino_round_symbol5" class="book-symbol" text="—" />
-</Panel></Panel>
-<Panel id="casino_round_reel2" class="book-reel reel-2"><Panel class="reel-motion" hittest="false">
-<Label class="book-symbol symbol-7" text="BUCH" />
-<Label class="book-symbol symbol-0" text="" />
-<Label class="book-symbol symbol-6" text="" />
-<Label class="book-symbol symbol-5" text="" />
-<Label class="book-symbol symbol-4" text="" />
-<Label class="book-symbol symbol-1" text="" />
-<Label class="book-symbol symbol-7" text="BUCH" />
-<Label class="book-symbol symbol-0" text="" />
-<Label class="book-symbol symbol-6" text="" />
-</Panel><Panel class="reel-final">
-<Label id="casino_round_symbol6" class="book-symbol" text="—" />
-<Label id="casino_round_symbol7" class="book-symbol" text="—" />
-<Label id="casino_round_symbol8" class="book-symbol" text="—" />
-</Panel></Panel>
-<Panel id="casino_round_reel3" class="book-reel reel-3"><Panel class="reel-motion" hittest="false">
-<Label class="book-symbol symbol-7" text="BUCH" />
-<Label class="book-symbol symbol-0" text="" />
-<Label class="book-symbol symbol-6" text="" />
-<Label class="book-symbol symbol-5" text="" />
-<Label class="book-symbol symbol-4" text="" />
-<Label class="book-symbol symbol-1" text="" />
-<Label class="book-symbol symbol-7" text="BUCH" />
-<Label class="book-symbol symbol-0" text="" />
-<Label class="book-symbol symbol-6" text="" />
-</Panel><Panel class="reel-final">
-<Label id="casino_round_symbol9" class="book-symbol" text="—" />
-<Label id="casino_round_symbol10" class="book-symbol" text="—" />
-<Label id="casino_round_symbol11" class="book-symbol" text="—" />
-</Panel></Panel>
-<Panel id="casino_round_reel4" class="book-reel reel-4"><Panel class="reel-motion" hittest="false">
-<Label class="book-symbol symbol-7" text="BUCH" />
-<Label class="book-symbol symbol-0" text="" />
-<Label class="book-symbol symbol-6" text="" />
-<Label class="book-symbol symbol-5" text="" />
-<Label class="book-symbol symbol-4" text="" />
-<Label class="book-symbol symbol-1" text="" />
-<Label class="book-symbol symbol-7" text="BUCH" />
-<Label class="book-symbol symbol-0" text="" />
-<Label class="book-symbol symbol-6" text="" />
-</Panel><Panel class="reel-final">
-<Label id="casino_round_symbol12" class="book-symbol" text="—" />
-<Label id="casino_round_symbol13" class="book-symbol" text="—" />
-<Label id="casino_round_symbol14" class="book-symbol" text="—" />
-</Panel></Panel>
-</Panel><Label class="table-note" text="10 GEWINNLINIEN · 3+ BÜCHER STARTEN FREISPIELE · WILD ERSETZT SYMBOLE" /></Panel>
-    <Panel class="blackjack-table"><Label class="table-heading" text="DEALER" /><Label id="casino_round_dealer" class="dealer-cards" text="{s:text}" /><Panel class="table-line" /><Label class="table-heading" text="DEINE HÄNDE · BLACKJACK 3:2" /></Panel>
-    <Panel class="risk-table"><Panel class="risk-chip" hittest="false"><Label text="×2" /></Panel><Label class="table-note" text="VERDOPPELN ODER BANK · 50 % CHANCE · MAXIMAL 5 STUFEN" /></Panel>
-    <Label id="casino_round_detail" class="round-detail" text="{s:text}" />
-    <Panel class="row stake-controls"><Label text="EINSATZ" /><Button id="casino_round_minus" class="button"><Label text="−" /></Button><Label id="casino_round_stake" text="{s:text}" /><Button id="casino_round_plus" class="button"><Label text="+" /></Button><Button id="casino_round_play" class="button primary"><Label text="NEUE RUNDE" /></Button></Panel>
-    <Panel class="row blackjack-actions"><Button id="casino_round_hit" class="button primary"><Label text="KARTE" /></Button><Button id="casino_round_stand" class="button"><Label text="STEHEN" /></Button><Button id="casino_round_double" class="button double-action"><Label text="VERDOPPELN" /></Button><Button id="casino_round_split" class="button split-action"><Label text="TEILEN" /></Button></Panel>
-    <Panel class="row risk-actions"><Button id="casino_round_risk" class="button primary"><Label text="RISIKO · ×2" /></Button><Button id="casino_round_bank" class="button"><Label text="BANK · AUSZAHLEN" /></Button></Panel>
-    <Panel class="row book-actions"><Button id="casino_round_free" class="button primary"><Label text="NÄCHSTES FREISPIEL" /></Button></Panel>
-    <Label id="casino_round_status" class="status" text="{s:text}" />
-    <Panel class="row navigation"><Button id="casino_round_back" class="button"><Label text="SPIELAUSWAHL" /></Button><Button id="casino_round_refresh" class="button"><Label text="AKTUALISIEREN" /></Button><Button id="casino_round_rules" class="button"><Label text="GEWINNREGELN" /></Button></Panel>
-    <Button id="casino_round_retry" class="button retry"><Label text="BUCHUNG PRÜFEN" /></Button>
-    <Label class="note" text="Nur virtuelle AP · Runde wird dauerhaft gespeichert · keine Echtgeld-Auszahlung" />
-  </Panel></Panel></Panel>
+  <styles>
+    <include src="s2r://panorama/styles/custom_game/anocore/ano_casino_rounds.vcss_c" />
+  </styles>
+  <Panel class="round-host" hittest="false">
+    <Panel id="casino_round_root" class="round-overlay" hittest="true">
+      <Panel class="round-dim" hittest="false" />
+      <Panel class="round-window" hittest="true">
+        <Panel class="round-header">
+          <Label class="brand" text="ANOMEME · ANOCASINO" />
+          <Button id="casino_round_close" class="button">
+            <Label text="SCHLIESSEN" hittest="false" />
+          </Button>
+        </Panel>
+        <Panel class="round-cover" hittest="false" />
+        <Label id="casino_round_title" class="title" text="{s:text}" />
+        <Panel class="row">
+          <Panel class="counter">
+            <Label text="PROFILKONTO" />
+            <Label id="casino_round_account" text="{s:text}" />
+          </Panel>
+          <Panel class="counter">
+            <Label text="AUTOMATENGUTHABEN" />
+            <Label id="casino_round_bankroll" text="{s:text}" />
+          </Panel>
+          <Panel class="counter">
+            <Label text="AUSZAHLUNG" />
+            <Label id="casino_round_payout" text="{s:text}" />
+          </Panel>
+        </Panel>
+        <Panel class="book-table">
+          <Panel class="book-reels">
+            <Panel id="casino_round_reel0" class="book-reel reel-0">
+              <Panel class="reel-motion" hittest="false">
+                <Label class="book-symbol symbol-0 book-row-0" text="" hittest="false" />
+                <Label class="book-symbol symbol-1 book-row-1" text="" hittest="false" />
+                <Label class="book-symbol symbol-2 book-row-2" text="" hittest="false" />
+                <Label class="book-symbol symbol-3 book-row-3" text="" hittest="false" />
+                <Label class="book-symbol symbol-4 book-row-4" text="" hittest="false" />
+                <Label class="book-symbol symbol-5 book-row-5" text="" hittest="false" />
+                <Label class="book-symbol symbol-6 book-row-6" text="" hittest="false" />
+                <Label class="book-symbol symbol-7 book-row-7" text="BUCH" hittest="false" />
+                <Label class="book-symbol symbol-0 book-row-8" text="" hittest="false" />
+                <Label class="book-symbol symbol-1 book-row-9" text="" hittest="false" />
+                <Label class="book-symbol symbol-2 book-row-10" text="" hittest="false" />
+                <Label class="book-symbol symbol-3 book-row-11" text="" hittest="false" />
+                <Label class="book-symbol symbol-4 book-row-12" text="" hittest="false" />
+                <Label class="book-symbol symbol-5 book-row-13" text="" hittest="false" />
+                <Label class="book-symbol symbol-6 book-row-14" text="" hittest="false" />
+                <Label class="book-symbol symbol-7 book-row-15" text="BUCH" hittest="false" />
+              </Panel>
+              <Panel class="reel-final">
+                <Label id="casino_round_symbol0" class="book-symbol" text="—" />
+                <Label id="casino_round_symbol1" class="book-symbol" text="—" />
+                <Label id="casino_round_symbol2" class="book-symbol" text="—" />
+                <Label class="book-symbol symbol-7" text="BUCH" hittest="false" />
+                <Label class="book-symbol symbol-6" text="" hittest="false" />
+                <Label class="book-symbol symbol-0" text="" hittest="false" />
+              </Panel>
+            </Panel>
+            <Panel id="casino_round_reel1" class="book-reel reel-1">
+              <Panel class="reel-motion" hittest="false">
+                <Label class="book-symbol symbol-1 book-row-0" text="" hittest="false" />
+                <Label class="book-symbol symbol-2 book-row-1" text="" hittest="false" />
+                <Label class="book-symbol symbol-3 book-row-2" text="" hittest="false" />
+                <Label class="book-symbol symbol-4 book-row-3" text="" hittest="false" />
+                <Label class="book-symbol symbol-5 book-row-4" text="" hittest="false" />
+                <Label class="book-symbol symbol-6 book-row-5" text="" hittest="false" />
+                <Label class="book-symbol symbol-7 book-row-6" text="BUCH" hittest="false" />
+                <Label class="book-symbol symbol-0 book-row-7" text="" hittest="false" />
+                <Label class="book-symbol symbol-1 book-row-8" text="" hittest="false" />
+                <Label class="book-symbol symbol-2 book-row-9" text="" hittest="false" />
+                <Label class="book-symbol symbol-3 book-row-10" text="" hittest="false" />
+                <Label class="book-symbol symbol-4 book-row-11" text="" hittest="false" />
+                <Label class="book-symbol symbol-5 book-row-12" text="" hittest="false" />
+                <Label class="book-symbol symbol-6 book-row-13" text="" hittest="false" />
+                <Label class="book-symbol symbol-7 book-row-14" text="BUCH" hittest="false" />
+                <Label class="book-symbol symbol-0 book-row-15" text="" hittest="false" />
+              </Panel>
+              <Panel class="reel-final">
+                <Label id="casino_round_symbol3" class="book-symbol" text="—" />
+                <Label id="casino_round_symbol4" class="book-symbol" text="—" />
+                <Label id="casino_round_symbol5" class="book-symbol" text="—" />
+                <Label class="book-symbol symbol-7" text="BUCH" hittest="false" />
+                <Label class="book-symbol symbol-6" text="" hittest="false" />
+                <Label class="book-symbol symbol-0" text="" hittest="false" />
+              </Panel>
+            </Panel>
+            <Panel id="casino_round_reel2" class="book-reel reel-2">
+              <Panel class="reel-motion" hittest="false">
+                <Label class="book-symbol symbol-2 book-row-0" text="" hittest="false" />
+                <Label class="book-symbol symbol-3 book-row-1" text="" hittest="false" />
+                <Label class="book-symbol symbol-4 book-row-2" text="" hittest="false" />
+                <Label class="book-symbol symbol-5 book-row-3" text="" hittest="false" />
+                <Label class="book-symbol symbol-6 book-row-4" text="" hittest="false" />
+                <Label class="book-symbol symbol-7 book-row-5" text="BUCH" hittest="false" />
+                <Label class="book-symbol symbol-0 book-row-6" text="" hittest="false" />
+                <Label class="book-symbol symbol-1 book-row-7" text="" hittest="false" />
+                <Label class="book-symbol symbol-2 book-row-8" text="" hittest="false" />
+                <Label class="book-symbol symbol-3 book-row-9" text="" hittest="false" />
+                <Label class="book-symbol symbol-4 book-row-10" text="" hittest="false" />
+                <Label class="book-symbol symbol-5 book-row-11" text="" hittest="false" />
+                <Label class="book-symbol symbol-6 book-row-12" text="" hittest="false" />
+                <Label class="book-symbol symbol-7 book-row-13" text="BUCH" hittest="false" />
+                <Label class="book-symbol symbol-0 book-row-14" text="" hittest="false" />
+                <Label class="book-symbol symbol-1 book-row-15" text="" hittest="false" />
+              </Panel>
+              <Panel class="reel-final">
+                <Label id="casino_round_symbol6" class="book-symbol" text="—" />
+                <Label id="casino_round_symbol7" class="book-symbol" text="—" />
+                <Label id="casino_round_symbol8" class="book-symbol" text="—" />
+                <Label class="book-symbol symbol-7" text="BUCH" hittest="false" />
+                <Label class="book-symbol symbol-6" text="" hittest="false" />
+                <Label class="book-symbol symbol-0" text="" hittest="false" />
+              </Panel>
+            </Panel>
+            <Panel id="casino_round_reel3" class="book-reel reel-3">
+              <Panel class="reel-motion" hittest="false">
+                <Label class="book-symbol symbol-3 book-row-0" text="" hittest="false" />
+                <Label class="book-symbol symbol-4 book-row-1" text="" hittest="false" />
+                <Label class="book-symbol symbol-5 book-row-2" text="" hittest="false" />
+                <Label class="book-symbol symbol-6 book-row-3" text="" hittest="false" />
+                <Label class="book-symbol symbol-7 book-row-4" text="BUCH" hittest="false" />
+                <Label class="book-symbol symbol-0 book-row-5" text="" hittest="false" />
+                <Label class="book-symbol symbol-1 book-row-6" text="" hittest="false" />
+                <Label class="book-symbol symbol-2 book-row-7" text="" hittest="false" />
+                <Label class="book-symbol symbol-3 book-row-8" text="" hittest="false" />
+                <Label class="book-symbol symbol-4 book-row-9" text="" hittest="false" />
+                <Label class="book-symbol symbol-5 book-row-10" text="" hittest="false" />
+                <Label class="book-symbol symbol-6 book-row-11" text="" hittest="false" />
+                <Label class="book-symbol symbol-7 book-row-12" text="BUCH" hittest="false" />
+                <Label class="book-symbol symbol-0 book-row-13" text="" hittest="false" />
+                <Label class="book-symbol symbol-1 book-row-14" text="" hittest="false" />
+                <Label class="book-symbol symbol-2 book-row-15" text="" hittest="false" />
+              </Panel>
+              <Panel class="reel-final">
+                <Label id="casino_round_symbol9" class="book-symbol" text="—" />
+                <Label id="casino_round_symbol10" class="book-symbol" text="—" />
+                <Label id="casino_round_symbol11" class="book-symbol" text="—" />
+                <Label class="book-symbol symbol-7" text="BUCH" hittest="false" />
+                <Label class="book-symbol symbol-6" text="" hittest="false" />
+                <Label class="book-symbol symbol-0" text="" hittest="false" />
+              </Panel>
+            </Panel>
+            <Panel id="casino_round_reel4" class="book-reel reel-4">
+              <Panel class="reel-motion" hittest="false">
+                <Label class="book-symbol symbol-4 book-row-0" text="" hittest="false" />
+                <Label class="book-symbol symbol-5 book-row-1" text="" hittest="false" />
+                <Label class="book-symbol symbol-6 book-row-2" text="" hittest="false" />
+                <Label class="book-symbol symbol-7 book-row-3" text="BUCH" hittest="false" />
+                <Label class="book-symbol symbol-0 book-row-4" text="" hittest="false" />
+                <Label class="book-symbol symbol-1 book-row-5" text="" hittest="false" />
+                <Label class="book-symbol symbol-2 book-row-6" text="" hittest="false" />
+                <Label class="book-symbol symbol-3 book-row-7" text="" hittest="false" />
+                <Label class="book-symbol symbol-4 book-row-8" text="" hittest="false" />
+                <Label class="book-symbol symbol-5 book-row-9" text="" hittest="false" />
+                <Label class="book-symbol symbol-6 book-row-10" text="" hittest="false" />
+                <Label class="book-symbol symbol-7 book-row-11" text="BUCH" hittest="false" />
+                <Label class="book-symbol symbol-0 book-row-12" text="" hittest="false" />
+                <Label class="book-symbol symbol-1 book-row-13" text="" hittest="false" />
+                <Label class="book-symbol symbol-2 book-row-14" text="" hittest="false" />
+                <Label class="book-symbol symbol-3 book-row-15" text="" hittest="false" />
+              </Panel>
+              <Panel class="reel-final">
+                <Label id="casino_round_symbol12" class="book-symbol" text="—" />
+                <Label id="casino_round_symbol13" class="book-symbol" text="—" />
+                <Label id="casino_round_symbol14" class="book-symbol" text="—" />
+                <Label class="book-symbol symbol-7" text="BUCH" hittest="false" />
+                <Label class="book-symbol symbol-6" text="" hittest="false" />
+                <Label class="book-symbol symbol-0" text="" hittest="false" />
+              </Panel>
+            </Panel>
+          </Panel>
+          <Label class="table-note" text="10 GEWINNLINIEN · 3+ BÜCHER STARTEN FREISPIELE · WILD ERSETZT SYMBOLE" />
+          <Label id="casino_round_bonus" class="bonus-summary" text="{s:text}" hittest="false" />
+        </Panel>
+        <Panel class="blackjack-table">
+          <Label class="table-heading" text="DEALER · STEHT AUF SOFT 17" hittest="false" />
+          <Label id="casino_round_dealer" class="dealer-cards" text="{s:text}" hittest="false" />
+          <Panel class="card-row" hittest="false">
+            <Label id="casino_round_dealer_card0" class="playing-card card-index-0" text="" hittest="false" />
+            <Label id="casino_round_dealer_card1" class="playing-card card-index-1" text="" hittest="false" />
+            <Label id="casino_round_dealer_card2" class="playing-card card-index-2" text="" hittest="false" />
+            <Label id="casino_round_dealer_card3" class="playing-card card-index-3" text="" hittest="false" />
+            <Label id="casino_round_dealer_card4" class="playing-card card-index-4" text="" hittest="false" />
+            <Label id="casino_round_dealer_card5" class="playing-card card-index-5" text="" hittest="false" />
+            <Label id="casino_round_dealer_card6" class="playing-card card-index-6" text="" hittest="false" />
+            <Label id="casino_round_dealer_card7" class="playing-card card-index-7" text="" hittest="false" />
+            <Label id="casino_round_dealer_card8" class="playing-card card-index-8" text="" hittest="false" />
+            <Label id="casino_round_dealer_card9" class="playing-card card-index-9" text="" hittest="false" />
+            <Label id="casino_round_dealer_card10" class="playing-card card-index-10" text="" hittest="false" />
+            <Label id="casino_round_dealer_card11" class="playing-card card-index-11" text="" hittest="false" />
+            <Label id="casino_round_dealer_card12" class="playing-card card-index-12" text="" hittest="false" />
+            <Label id="casino_round_dealer_card13" class="playing-card card-index-13" text="" hittest="false" />
+            <Label id="casino_round_dealer_card14" class="playing-card card-index-14" text="" hittest="false" />
+            <Label id="casino_round_dealer_card15" class="playing-card card-index-15" text="" hittest="false" />
+            <Label id="casino_round_dealer_card16" class="playing-card card-index-16" text="" hittest="false" />
+            <Label id="casino_round_dealer_card17" class="playing-card card-index-17" text="" hittest="false" />
+            <Label id="casino_round_dealer_card18" class="playing-card card-index-18" text="" hittest="false" />
+            <Label id="casino_round_dealer_card19" class="playing-card card-index-19" text="" hittest="false" />
+            <Label id="casino_round_dealer_card20" class="playing-card card-index-20" text="" hittest="false" />
+          </Panel>
+          <Panel id="casino_round_hand0" class="player-hand" hittest="false">
+            <Label id="casino_round_hand0_summary" class="hand-summary" text="" hittest="false" />
+            <Panel class="card-row" hittest="false">
+              <Label id="casino_round_hand0_card0" class="playing-card card-index-0" text="" hittest="false" />
+              <Label id="casino_round_hand0_card1" class="playing-card card-index-1" text="" hittest="false" />
+              <Label id="casino_round_hand0_card2" class="playing-card card-index-2" text="" hittest="false" />
+              <Label id="casino_round_hand0_card3" class="playing-card card-index-3" text="" hittest="false" />
+              <Label id="casino_round_hand0_card4" class="playing-card card-index-4" text="" hittest="false" />
+              <Label id="casino_round_hand0_card5" class="playing-card card-index-5" text="" hittest="false" />
+              <Label id="casino_round_hand0_card6" class="playing-card card-index-6" text="" hittest="false" />
+              <Label id="casino_round_hand0_card7" class="playing-card card-index-7" text="" hittest="false" />
+              <Label id="casino_round_hand0_card8" class="playing-card card-index-8" text="" hittest="false" />
+              <Label id="casino_round_hand0_card9" class="playing-card card-index-9" text="" hittest="false" />
+              <Label id="casino_round_hand0_card10" class="playing-card card-index-10" text="" hittest="false" />
+              <Label id="casino_round_hand0_card11" class="playing-card card-index-11" text="" hittest="false" />
+              <Label id="casino_round_hand0_card12" class="playing-card card-index-12" text="" hittest="false" />
+              <Label id="casino_round_hand0_card13" class="playing-card card-index-13" text="" hittest="false" />
+              <Label id="casino_round_hand0_card14" class="playing-card card-index-14" text="" hittest="false" />
+              <Label id="casino_round_hand0_card15" class="playing-card card-index-15" text="" hittest="false" />
+              <Label id="casino_round_hand0_card16" class="playing-card card-index-16" text="" hittest="false" />
+              <Label id="casino_round_hand0_card17" class="playing-card card-index-17" text="" hittest="false" />
+              <Label id="casino_round_hand0_card18" class="playing-card card-index-18" text="" hittest="false" />
+              <Label id="casino_round_hand0_card19" class="playing-card card-index-19" text="" hittest="false" />
+              <Label id="casino_round_hand0_card20" class="playing-card card-index-20" text="" hittest="false" />
+            </Panel>
+          </Panel>
+          <Panel id="casino_round_hand1" class="player-hand" hittest="false">
+            <Label id="casino_round_hand1_summary" class="hand-summary" text="" hittest="false" />
+            <Panel class="card-row" hittest="false">
+              <Label id="casino_round_hand1_card0" class="playing-card card-index-0" text="" hittest="false" />
+              <Label id="casino_round_hand1_card1" class="playing-card card-index-1" text="" hittest="false" />
+              <Label id="casino_round_hand1_card2" class="playing-card card-index-2" text="" hittest="false" />
+              <Label id="casino_round_hand1_card3" class="playing-card card-index-3" text="" hittest="false" />
+              <Label id="casino_round_hand1_card4" class="playing-card card-index-4" text="" hittest="false" />
+              <Label id="casino_round_hand1_card5" class="playing-card card-index-5" text="" hittest="false" />
+              <Label id="casino_round_hand1_card6" class="playing-card card-index-6" text="" hittest="false" />
+              <Label id="casino_round_hand1_card7" class="playing-card card-index-7" text="" hittest="false" />
+              <Label id="casino_round_hand1_card8" class="playing-card card-index-8" text="" hittest="false" />
+              <Label id="casino_round_hand1_card9" class="playing-card card-index-9" text="" hittest="false" />
+              <Label id="casino_round_hand1_card10" class="playing-card card-index-10" text="" hittest="false" />
+              <Label id="casino_round_hand1_card11" class="playing-card card-index-11" text="" hittest="false" />
+              <Label id="casino_round_hand1_card12" class="playing-card card-index-12" text="" hittest="false" />
+              <Label id="casino_round_hand1_card13" class="playing-card card-index-13" text="" hittest="false" />
+              <Label id="casino_round_hand1_card14" class="playing-card card-index-14" text="" hittest="false" />
+              <Label id="casino_round_hand1_card15" class="playing-card card-index-15" text="" hittest="false" />
+              <Label id="casino_round_hand1_card16" class="playing-card card-index-16" text="" hittest="false" />
+              <Label id="casino_round_hand1_card17" class="playing-card card-index-17" text="" hittest="false" />
+              <Label id="casino_round_hand1_card18" class="playing-card card-index-18" text="" hittest="false" />
+              <Label id="casino_round_hand1_card19" class="playing-card card-index-19" text="" hittest="false" />
+              <Label id="casino_round_hand1_card20" class="playing-card card-index-20" text="" hittest="false" />
+            </Panel>
+          </Panel>
+        </Panel>
+        <Panel class="risk-table">
+          <Panel class="risk-chip" hittest="false">
+            <Label text="×2" />
+          </Panel>
+          <Label class="table-note" text="VERDOPPELN ODER BANK · 50 % CHANCE · MAXIMAL 5 STUFEN" />
+          <Label id="casino_round_held" class="risk-amount" text="{s:text}" hittest="false" />
+          <Label id="casino_round_next" class="table-note" text="{s:text}" hittest="false" />
+          <Panel class="risk-steps" hittest="false">
+            <Label id="casino_round_step0" class="risk-step" text="1" hittest="false" />
+            <Label id="casino_round_step1" class="risk-step" text="2" hittest="false" />
+            <Label id="casino_round_step2" class="risk-step" text="3" hittest="false" />
+            <Label id="casino_round_step3" class="risk-step" text="4" hittest="false" />
+            <Label id="casino_round_step4" class="risk-step" text="5" hittest="false" />
+          </Panel>
+        </Panel>
+        <Label id="casino_round_detail" class="round-detail" text="{s:text}" />
+        <Panel class="row stake-controls">
+          <Label text="EINSATZ" />
+          <Button id="casino_round_minus" class="button">
+            <Label text="−" hittest="false" />
+          </Button>
+          <Label id="casino_round_stake" text="{s:text}" />
+          <Button id="casino_round_plus" class="button">
+            <Label text="+" hittest="false" />
+          </Button>
+          <Button id="casino_round_play" class="button primary">
+            <Label text="NEUE RUNDE" hittest="false" />
+          </Button>
+        </Panel>
+        <Panel class="row blackjack-actions">
+          <Button id="casino_round_hit" class="button primary">
+            <Label text="KARTE" hittest="false" />
+          </Button>
+          <Button id="casino_round_stand" class="button">
+            <Label text="STEHEN" hittest="false" />
+          </Button>
+          <Button id="casino_round_double" class="button double-action">
+            <Label text="VERDOPPELN" hittest="false" />
+          </Button>
+          <Button id="casino_round_split" class="button split-action">
+            <Label text="TEILEN" hittest="false" />
+          </Button>
+        </Panel>
+        <Panel class="row risk-actions">
+          <Button id="casino_round_risk" class="button primary">
+            <Label text="RISIKO · ×2" hittest="false" />
+          </Button>
+          <Button id="casino_round_bank" class="button">
+            <Label text="BANK · AUSZAHLEN" hittest="false" />
+          </Button>
+        </Panel>
+        <Panel class="row book-actions">
+          <Button id="casino_round_free" class="button primary">
+            <Label text="NÄCHSTES FREISPIEL" hittest="false" />
+          </Button>
+        </Panel>
+        <Label id="casino_round_status" class="status" text="{s:text}" />
+        <Panel class="row navigation">
+          <Button id="casino_round_back" class="button">
+            <Label text="SPIELAUSWAHL" hittest="false" />
+          </Button>
+          <Button id="casino_round_refresh" class="button">
+            <Label text="AKTUALISIEREN" hittest="false" />
+          </Button>
+          <Button id="casino_round_rules" class="button">
+            <Label text="GEWINNREGELN" hittest="false" />
+          </Button>
+        </Panel>
+        <Button id="casino_round_retry" class="button retry">
+          <Label text="BUCHUNG PRÜFEN" hittest="false" />
+        </Button>
+        <Label class="note" text="Nur virtuelle AP · Runde wird dauerhaft gespeichert · keine Echtgeld-Auszahlung" />
+      </Panel>
+    </Panel>
+  </Panel>
 </root>
