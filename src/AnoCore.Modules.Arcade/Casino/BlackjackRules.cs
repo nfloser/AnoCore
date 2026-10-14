@@ -49,6 +49,8 @@ public sealed record BlackjackHand(
 }
 
 public sealed record BlackjackState(
+    string RulesVersion,
+    long Revision,
     long InitialStake,
     ImmutableArray<BlackjackHand> PlayerHands,
     ImmutableArray<BlackjackCard> DealerCards,
@@ -66,6 +68,7 @@ public static class BlackjackRules
     public const long MinimumStake = 50;
     public const long MaximumStake = 500;
     public const int MaximumHands = 2;
+    public const string RulesVersion = "anoblackjack-v1";
 
     public static BlackjackState Start(long stake, IEnumerable<BlackjackCard> shuffledDeck)
     {
@@ -73,7 +76,7 @@ public static class BlackjackRules
         ArgumentNullException.ThrowIfNull(shuffledDeck);
         var deck = shuffledDeck.ToImmutableArray();
         ValidateDeck(deck);
-        if (deck.Length < 4) throw new ArgumentException("A round requires at least four cards.", nameof(shuffledDeck));
+        if (deck.Length != 52) throw new ArgumentException("A complete 52-card deck is required.", nameof(shuffledDeck));
 
         var remaining = deck;
         var player = ImmutableArray.CreateBuilder<BlackjackCard>(2);
@@ -88,7 +91,7 @@ public static class BlackjackRules
         dealer.Add(dealerHole);
 
         var hand = new BlackjackHand(player.MoveToImmutable(), stake, false, false, false);
-        var state = new BlackjackState(stake, [hand], dealer.MoveToImmutable(), remaining, 0,
+        var state = new BlackjackState(RulesVersion, 0, stake, [hand], dealer.MoveToImmutable(), remaining, 0,
             BlackjackRoundStatus.PlayerTurn, 0);
 
         var playerNatural = IsNatural(hand);
@@ -118,12 +121,19 @@ public static class BlackjackRules
         return actions;
     }
 
-    public static BlackjackState Apply(BlackjackState state, BlackjackAction action)
+    public static BlackjackState Apply(BlackjackState state, long expectedRevision, BlackjackAction action)
     {
         ValidateState(state);
+        if (state.Revision != expectedRevision)
+            throw new InvalidOperationException($"Expected state revision {expectedRevision}, but current revision is {state.Revision}.");
         if (!LegalActions(state).Contains(action))
             throw new InvalidOperationException($"Action {action} is not legal in the current state.");
 
+        return ApplyTransition(state, action) with { Revision = checked(state.Revision + 1) };
+    }
+
+    private static BlackjackState ApplyTransition(BlackjackState state, BlackjackAction action)
+    {
         var hands = state.PlayerHands;
         var hand = hands[state.ActiveHandIndex];
         var deck = state.RemainingDeck;
@@ -207,7 +217,7 @@ public static class BlackjackRules
         var dealerHand = new BlackjackHand(dealer, state.InitialStake, false, false, false);
         if (!dealerAlreadyFinal && state.PlayerHands.Any(hand => !hand.IsBust))
         {
-            while (dealerHand.BestTotal < 17 || dealerHand.BestTotal == 17 && dealerHand.IsSoft)
+            while (dealerHand.BestTotal < 17)
             {
                 (var card, deck) = Draw(deck);
                 dealer = dealer.Add(card);
@@ -262,8 +272,8 @@ public static class BlackjackRules
 
     private static void ValidateDeck(ImmutableArray<BlackjackCard> deck)
     {
-        if (deck.IsDefault || deck.Length > 52)
-            throw new ArgumentException("Deck must contain between 4 and 52 cards.", nameof(deck));
+        if (deck.IsDefault || deck.Length != 52)
+            throw new ArgumentException("A complete 52-card deck is required.", nameof(deck));
         if (deck.Any(card => !Enum.IsDefined(card.Suit) || !Enum.IsDefined(card.Rank)))
             throw new ArgumentException("Deck contains an invalid card.", nameof(deck));
         if (deck.Distinct().Count() != deck.Length)
@@ -274,7 +284,8 @@ public static class BlackjackRules
     {
         ArgumentNullException.ThrowIfNull(state);
         ValidateStake(state.InitialStake);
-        if (state.PlayerHands.IsDefaultOrEmpty || state.PlayerHands.Length > MaximumHands
+        if (state.RulesVersion != RulesVersion || state.Revision < 0
+            || state.PlayerHands.IsDefaultOrEmpty || state.PlayerHands.Length > MaximumHands
             || state.DealerCards.IsDefault || state.DealerCards.Length < 2
             || state.RemainingDeck.IsDefault || state.ActiveHandIndex < 0
             || state.ActiveHandIndex >= state.PlayerHands.Length || state.TotalPayout < 0
@@ -284,5 +295,10 @@ public static class BlackjackRules
             || hand.Stake < state.InitialStake || hand.Stake > state.InitialStake * 2
             || hand.Stake % state.InitialStake != 0))
             throw new ArgumentException("Blackjack state contains an invalid hand.", nameof(state));
+        var cards = state.PlayerHands.SelectMany(hand => hand.Cards)
+            .Concat(state.DealerCards).Concat(state.RemainingDeck).ToArray();
+        if (cards.Any(card => !Enum.IsDefined(card.Suit) || !Enum.IsDefined(card.Rank))
+            || cards.Distinct().Count() != cards.Length || cards.Length > 52)
+            throw new ArgumentException("Blackjack state contains duplicate or invalid physical cards.", nameof(state));
     }
 }
