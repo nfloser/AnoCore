@@ -1,58 +1,54 @@
 param(
-    [string]$Cs2 = "",
+    [Parameter(Mandatory = $true)]
+    [string]$Cs2,
     [ValidatePattern('^[a-z][a-z0-9_]*$')]
-    [string]$Addon = "anomeme_ui",
-    [switch]$InstallLocalClient
+    [string]$Addon = "anocasino_ui"
 )
 
 $ErrorActionPreference = "Stop"
 $src = Split-Path -Parent $MyInvocation.MyCommand.Path
-
-if (-not $Cs2) {
-    $Cs2 = "C:\Program Files (x86)\Steam\steamapps\common\Counter-Strike Global Offensive"
-}
-if (-not (Test-Path $Cs2)) { throw "Counter-Strike 2 was not found. Pass -Cs2 '<path-to-CS2>'." }
-
 $compiler = Join-Path $Cs2 "game\bin\win64\resourcecompiler.exe"
-if (-not (Test-Path $compiler)) { throw "CS2 Workshop Tools are not installed (resourcecompiler.exe missing)." }
+if (-not (Test-Path $compiler)) {
+    throw "CS2 Workshop Tools missing. Pass -Cs2 '<path-to-CS2>'."
+}
+$content = Join-Path $Cs2 "content\csgo_addons\$Addon\panorama"
+$game = Join-Path $Cs2 "game\csgo_addons\$Addon\panorama"
+$layout = "layout\custom_game\anocore"
+$style = "styles\custom_game\anocore"
+New-Item -ItemType Directory -Force -Path (Join-Path $content $layout), (Join-Path $content "$style\arcade") | Out-Null
 
-$contentRoot = Join-Path $Cs2 "content\csgo_addons\$Addon"
-$layoutDir = Join-Path $contentRoot "panorama\layout\custom_game\anocore"
-$styleDir = Join-Path $contentRoot "panorama\styles\custom_game\anocore"
-New-Item -ItemType Directory -Force -Path $layoutDir, $styleDir | Out-Null
-
-$views = @(
-    "ano_casino_lobby",
-    "ano_casino_slots",
-    "ano_casino_coinflip",
-    "ano_casino_roulette",
-    "ano_casino_rounds"
-)
-
-foreach ($name in $views) {
-    $layoutTarget = Join-Path $layoutDir "$name.xml"
-    $styleTarget = Join-Path $styleDir "$name.css"
-    Copy-Item (Join-Path $src "layout\custom_game\anocore\$name.xml") $layoutTarget -Force
-    Copy-Item (Join-Path $src "styles\custom_game\anocore\$name.css") $styleTarget -Force
-
-    & $compiler -i $styleTarget -f -r
-    if ($LASTEXITCODE -ne 0) { throw "Failed to compile $name.css" }
-    & $compiler -i $layoutTarget -f -r
-    if ($LASTEXITCODE -ne 0) { throw "Failed to compile $name.xml" }
-
-    $outLayout = Join-Path $Cs2 "game\csgo_addons\$Addon\panorama\layout\custom_game\anocore\$name.vxml_c"
-    $outStyle = Join-Path $Cs2 "game\csgo_addons\$Addon\panorama\styles\custom_game\anocore\$name.vcss_c"
-    if (-not (Test-Path $outLayout) -or -not (Test-Path $outStyle)) {
-        throw "Compiled Casino resource missing for $name"
-    }
-
-    if ($InstallLocalClient) {
-        $clientLayout = Join-Path $Cs2 "game\csgo\panorama\layout\custom_game\anocore"
-        $clientStyle = Join-Path $Cs2 "game\csgo\panorama\styles\custom_game\anocore"
-        New-Item -ItemType Directory -Force -Path $clientLayout, $clientStyle | Out-Null
-        Copy-Item $outLayout (Join-Path $clientLayout "$name.vxml_c") -Force
-        Copy-Item $outStyle (Join-Path $clientStyle "$name.vcss_c") -Force
+function Compile-Resource([string]$RelativePath, [string]$OutputPath) {
+    $target = Join-Path $content $RelativePath
+    Copy-Item (Join-Path $src $RelativePath) $target -Force
+    $compiledOutput = Join-Path $game $OutputPath
+    if (Test-Path $compiledOutput -PathType Leaf) { Remove-Item -LiteralPath $compiledOutput -Force }
+    & $compiler -i $target -f -r
+    if ($LASTEXITCODE -ne 0) { throw "Compilation failed: $RelativePath" }
+    if (-not (Test-Path (Join-Path $game $OutputPath))) {
+        throw "Compiled resource missing: $OutputPath"
     }
 }
 
-Write-Output "AnoCasino modular Panorama HUDs compiled successfully."
+foreach ($symbol in @("cherry", "lemon", "plum", "orange", "grapes", "watermelon", "bell", "seven")) {
+    Copy-Item (Join-Path $src "$style\arcade\$symbol.png") (Join-Path $content "$style\arcade\$symbol.png") -Force
+    Compile-Resource "$style\arcade\$symbol.vtex" "$style\arcade\$symbol.vtex_c"
+}
+Compile-Resource "$style\ano_arcade.css" "$style\ano_arcade.vcss_c"
+Compile-Resource "$layout\ano_arcade.xml" "$layout\ano_arcade.vxml_c"
+
+
+Compile-Resource "$style\ano_casino.css" "$style\ano_casino.vcss_c"
+Compile-Resource "$layout\ano_casino.xml" "$layout\ano_casino.vxml_c"
+Compile-Resource "$style\ano_casino_native_v2.css" "$style\ano_casino_native_v2.vcss_c"
+Compile-Resource "$layout\ano_casino_native_v2.xml" "$layout\ano_casino_native_v2.vxml_c"
+foreach ($view in @("ano_casino_lobby", "ano_casino_slots", "ano_casino_coinflip", "ano_casino_roulette", "ano_casino_rounds")) {
+    Compile-Resource "$style\$view.css" "$style\$view.vcss_c"
+    Compile-Resource "$layout\$view.xml" "$layout\$view.vxml_c"
+}
+
+Copy-Item (Join-Path $src "$style\anomeme_banner.png") (Join-Path $content "$style\anomeme_banner.png") -Force
+Compile-Resource "$style\anomeme_banner.vtex" "$style\anomeme_banner.vtex_c"
+
+Write-Output "Casino resources compiled: $game"
+Write-Output "Publish '$Addon' with Workshop Tools and mount it alongside anomeme_ui."
+Write-Output "Use exactly one provider for ano_arcade resources: separate casino addon OR the combined build."
