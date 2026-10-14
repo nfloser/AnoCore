@@ -1031,3 +1031,23 @@ License, NOTICE and source provenance must remain intact.
   sanitized recovery state to the presenter and add the Blackjack, bonus and
   Risk controls/history. Native Windows resourcecompiler, Workshop, two-client
   CS2 and DatHost acceptance remains open and no release was created.
+
+
+## Six-game casino integration (#437) — 2026-10-14
+
+Branch feat/casino-playable-suite builds on dc4fafd (the latest casino-games
+foundation), preserving migration028 and all v1 receipts. A CasinoRoundService
+adapts native Blackjack/Risk/Bonus engines to the account-locked round store.
+Native lobby routes all six games; round views recover active state, gate legal
+actions, preserve retry IDs, and expose bounded native animations. The bonus
+retrigger count bug was reproduced and fixed: only spins that fit both caps
+are awarded, keeping persisted rounds playable. Cases remain excluded.
+
+Local Release/plugin build passes. New presenter/lobby tests pass; operator
+suite passes 38 with 8 PowerShell skips. Full local run: 1119 passed,191 skipped,
+6 management pipe tests fail because this runtime denies Unix sockets (not casino
+failures). New actual MariaDB service recovery/idempotence tests require CI.
+Full Roslyn formatting likewise needs named-pipe access; folder whitespace
+formatting and git diff checks work locally. Native resourcecompiler, Workshop
+upload and CS2 two-client lifecycle acceptance remain manual. Do not merge or
+claim native ready before relevant CI/native gates. See casino-test-install.md.

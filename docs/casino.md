@@ -8,7 +8,7 @@
 Diese Version ergänzt den separaten Drei-Frucht-Animationstest. Der bestehende Stand
 `anocasino-v1` bleibt der Legacy-Vertrag für gespeicherte Vorgänge; neue
 Spiel-Engines dürfen dessen Auswertungen und Belege nicht verändern. Slots, Coinflip
-und Roulette sind serverseitig spielbar. Die native CS2-Darstellung und alle
+und Roulette sowie Blackjack, Risk und Book-Freispiele sind über die native Lobby angebunden. Die native CS2-Darstellung und alle
 Workshop-Ressourcen müssen auf dem Testserver abgenommen werden; Sourcechecks
 und CI ersetzen diese Abnahme nicht. Keine Echtgeld-Einzahlung oder Auszahlung.
 
@@ -23,7 +23,7 @@ bestehenden `config/core.json` die übrigen Werte erhalten und ergänzen:
 "ArcadeAnimationProbeEnabled": false
 ```
 
-Server neu starten. Schema-Migration 27 erzeugt AP-Konten und Vorgangsledger;
+Server neu starten. Schema-Migrationen 27/28 erzeugen AP-Konten, Vorgangsledger und dauerhafte Runden;
 sie wird vor Aktivierung des Casinos angewendet. Das gemeinsame Konto hängt an
 der SteamID64, nicht am Namen, Slot oder an einer CS2-Sitzung. Es ist unabhängig
 von XP und Rangpunkten. Ein neues Profil startet mit null AP.
@@ -184,3 +184,38 @@ Die Engines aus #424 (Blackjack), #425 (Risk / Double-or-Bank) und #426
 Funktionen. Sie gelten erst nach #429 einschließlich Persistenz-, UI- und
 CI-Integration als spielbar. Diese Dokumentation behauptet keine native
 CS2-Abnahme der erweiterten Automaten.
+
+## Erweiterte Spiele in der Lobby (#437)
+
+Die Lobby öffnet Blackjack, Risk und Book neben den bestehenden drei Spielen.
+Guthaben zuerst in der Lobby aufladen. Die neuen Ansichten nutzen denselben
+Automatenbetrag und dieselbe Berechtigung `ano.casino.play`. **Zur Lobby** erhält
+jede laufende Runde; beim nächsten Öffnen eines erweiterten Spiels wird die
+aktive Runde automatisch fortgesetzt. Es gibt pro Spieler höchstens eine aktive
+mehrstufige Runde. Einsätze bleiben bis zum Abschluss fix. Karten, verbleibendes
+Deck, Bonusraster, Freispiele und Risk-Zwischenstände bleiben auf dem Server.
+
+Blackjack: ein zufällig gemischtes vollständiges Deck, Dealer steht auf Soft 17,
+Blackjack 3:2, höchstens zwei Hände, Split-Asse bekommen eine Karte. Hit, Stand,
+Double und Split werden anhand der legalen Aktionen angeboten. Double und Split
+buchen den zusätzlichen Handeinsatz atomar; die Endauszahlung erfolgt einmal.
+
+Risk: Start reserviert den gewählten Einsatz als Zwischenstand. **Risk** hat
+50 % Gewinnchance (Verdoppelung), sonst Verlust; **Bank** bucht den Zwischenstand
+zurück. Nach fünf Versuchen bleibt Bank. Sofortiges Bank gibt den Einsatz zurück.
+
+Book: fünf Walzen, drei Reihen, zehn Linien. Buch ist Wild und Scatter; drei
+Bücher starten zehn Freispiele. Neue Scatter vergeben bis zu fünf weitere Spins,
+mit höchstens 20 gleichzeitig verbleibenden und insgesamt 30 Freispielen. Das
+expandierende Symbol bleibt fest. Freispiele kosten keinen zusätzlichen Einsatz;
+die gesammelte Auszahlung wird am Rundenende gebucht. Die mathematischen Regeln
+sind eigene versionierte Regeln und keine kommerzielle Automatenkopie.
+
+**Buchung prüfen** wiederholt die unveränderte Aktion mit derselben ID. Ein
+unbestätigter Vorgang blockiert weitere Spielaktionen. Die Buchungsgrenzen
+reservieren auch während einer laufenden Runde den maximalen Auszahlungsraum.
+Die Lobby-Verlaufsliste zeigt weiterhin die bisherigen Einzelspiele; die neuen
+Runden besitzen ein separates dauerhaftes Aktionsledger. Native Windows-Builds,
+Workshop-Auslieferung und Zwei-Client-Abnahme sind noch durchzuführen.
+
+Die konkrete Installation steht in [casino-test-install.md](casino-test-install.md).
