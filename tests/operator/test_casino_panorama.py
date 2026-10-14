@@ -39,7 +39,7 @@ class CasinoResourcesTests(unittest.TestCase):
         self.assertIn('.line-indicator.active',css)
         presenter=(ROOT/'src/AnoCore.Modules.Arcade/Casino/CasinoPresenter.cs').read_text()
         tick=presenter.split('public void Tick()',1)[1].split('private void SetOutcome',1)[0]
-        for marker in ['2.6 + i * .5','elapsed.TotalSeconds >= 3.6','elapsed.TotalSeconds < 4','state.LinesRevealed']:
+        for marker in ['TimeSpan.FromMilliseconds(2600 + i * 500)','TimeSpan.FromMilliseconds(3600)','TimeSpan.FromMilliseconds(4000)','state.LinesRevealed']:
             self.assertIn(marker,tick)
         self.assertNotIn('_wallet',tick)
         self.assertIn('WinningLines = [[0, 3, 6], [1, 4, 7], [2, 5, 8], [0, 4, 8], [2, 4, 6]]',presenter)
