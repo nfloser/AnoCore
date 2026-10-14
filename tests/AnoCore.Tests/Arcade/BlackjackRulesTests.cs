@@ -15,7 +15,7 @@ public sealed class BlackjackRulesTests
     {
         var deck = Deck(C(BlackjackSuit.Clubs, BlackjackRank.Ten),
             C(BlackjackSuit.Hearts, BlackjackRank.Six),
-            C(BlackjackSuit.Spades, BlackjackRank.Ace),
+            C(BlackjackSuit.Spades, BlackjackRank.Five),
             C(BlackjackSuit.Diamonds, BlackjackRank.Nine),
             C(BlackjackSuit.Clubs, BlackjackRank.Two));
         var state = BlackjackRules.Start(100, deck);
