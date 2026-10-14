@@ -8,10 +8,32 @@ Workshop-Addon allein beweist ebenso wenig, dass dessen aktuelle Datei greift.
 Die beobachteten Meldungen passen zu fehlenden/veralteten oder überschriebenen
 Clientressourcen; die konkrete native Ursache ist damit noch nicht bewiesen.
 
-## Gezielter Test ohne neues Server-Plugin
+## Korrigierter Laufzeitpfad
 
-1. CS2 vollständig schließen. Die bereits laufende Serverversion mit aktiviertem
-   `ArcadeAnimationProbeEnabled` und `ano.casino.test` kann unverändert bleiben.
+Der gemeinsame Adapter hat bisher den Quellnamen `.xml` unmittelbar in
+`CCSCustomHudLayout.StrLayout` geschrieben. Die kompilierte Ausgabe heißt
+`.vxml_c`. Der Fix löst jetzt diesen kompilierten Namen auf, behält den bisherigen
+SDK-Quellpfad aber unverändert. Alte Entities mit dem Quellnamen werden beim
+Neuaufbau ebenfalls bereinigt. Damit profitieren auch Menü, Veto, Turnier und
+beide Casino-Ansichten vom gleichen korrigierten Ladeweg.
+
+Die native Referenz [PanoramaLayout](https://github.com/laper32/PanoramaLayout)
+dokumentiert die erforderliche kompilierte Endung für dynamische Entities. Der
+installierte CounterStrikeSharp-1.0.376-Setter reicht den String ohne eigene
+Endungsumwandlung ins Schema durch. Dies korrigiert einen konkreten Vertrag;
+welche zusätzlichen veralteten Clientdateien auf dem betroffenen Rechner liegen,
+bleibt separat mit der sichtbaren Kennung zu prüfen.
+
+## Plugin und gezielte Arcade-UI installieren
+
+
+1. CS2 vollständig schließen und den Testserver stoppen. Den Inhalt von
+   `plugins/AnoCore` aus dem Fixpaket nach
+   `game/csgo/addons/counterstrikesharp/plugins/AnoCore` kopieren. Alle passenden
+   DLLs zusammen aktualisieren; vorhandene `config` und Datenbankwerte behalten.
+   `PanoramaMenusEnabled` und `ArcadeAnimationProbeEnabled` müssen für den alten
+   Test aktiv sein. `CasinoEnabled` ist dafür weiterhin nicht erforderlich.
+   Server neu starten; im Log muss der Arcade-Pfad jetzt auf `.vxml_c` enden.
 2. Das Arcade-Reparaturpaket entpacken. PowerShell im Ordner öffnen, der `ui`
    enthält, und ausführen:
 

@@ -21,6 +21,13 @@ FILES = (
 
 
 class ArcadeRepairResourceTests(unittest.TestCase):
+    def test_native_entity_uses_compiled_resource_and_cleans_legacy_source_names(self):
+        adapter = (ROOT / "src/AnoCore.Plugin/Hud/CounterStrikeCustomHudService.cs").read_text()
+        self.assertIn("var layoutResource = registration.Definition.CompiledLayoutResource;", adapter)
+        self.assertIn("entity.StrLayout = layoutResource;", adapter)
+        self.assertNotIn("entity.StrLayout = registration.Definition.LayoutResource;", adapter)
+        self.assertIn("existing.StrLayout,", adapter)
+
     def test_arcade_has_all_presenter_targets_and_visible_delivery_marker(self):
         layout = ET.parse(ROOT / "ui/AnoCore/layout/custom_game/anocore/ano_arcade.xml").getroot()
         ids = [node.attrib["id"] for node in layout.iter() if "id" in node.attrib]
@@ -184,18 +191,18 @@ target.write_bytes(b'fresh-compiled:'+source.name.encode())
         wrapper = Path(self.temp.name) / (operation + "-failure.ps1")
         source_prefix = self.local if operation == "Move" else self.addon
         shim = r"""param([string]$LiteralPath, [string]$Destination, [switch]$Force)
-    if ($LiteralPath.StartsWith($script:sourcePrefix) -and
-        ($script:operation -eq 'Move' -or $Destination.StartsWith($script:clientPrefix))) {
-        $script:transferCount++
-        if ($script:transferCount -eq 2) { throw 'Injected second transfer failure' }
+    if ($LiteralPath.StartsWith($global:arcadeFixtureSourcePrefix) -and
+        ($global:arcadeFixtureOperation -eq 'Move' -or $Destination.StartsWith($global:arcadeFixtureClientPrefix))) {
+        $global:arcadeFixtureTransferCount++
+        if ($global:arcadeFixtureTransferCount -eq 2) { throw 'Injected second transfer failure' }
     }
 """
         wrapper.write_text(
             "$ErrorActionPreference = 'Stop'\n"
-            + "$script:transferCount = 0\n"
-            + "$script:operation = " + literal(operation) + "\n"
-            + "$script:sourcePrefix = " + literal(source_prefix) + "\n"
-            + "$script:clientPrefix = " + literal(self.local) + "\n"
+            + "$global:arcadeFixtureTransferCount = 0\n"
+            + "$global:arcadeFixtureOperation = " + literal(operation) + "\n"
+            + "$global:arcadeFixtureSourcePrefix = " + literal(source_prefix) + "\n"
+            + "$global:arcadeFixtureClientPrefix = " + literal(self.local) + "\n"
             + "function " + operation + "-Item {\n" + shim
             + "    Microsoft.PowerShell.Management\\" + operation + "-Item @PSBoundParameters\n}\n"
             + "& " + literal(ROOT / "ui/AnoCore/repair-arcade.ps1")

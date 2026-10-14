@@ -133,7 +133,7 @@ if ($Mode -eq "InstallLocalClient") {
     Write-Output "Arcade-UI direkt im lokalen Client installiert; SHA256 stimmt fuer alle 5 Dateien."
     Write-Output "Sicherung und Build-Nachweis: $backup"
     Write-Output "CS2 starten, Server beitreten, !anoarcadetest. Erwartete sichtbare Kennung: ARCADE UI CHECK 2026-10-14"
-    Write-Output "Kein Plugin-/Server-Update erforderlich. Dies prueft nur diesen Client; Workshop bleibt separat."
+    Write-Output "Server muss den HUD-Pfad .vxml_c verwenden (Plugin-Fix). Dieser Schritt prueft den lokalen Client; Workshop bleibt separat."
 } else {
     Write-Output "Arcade-UI frisch gebaut: $game"
     Write-Output "Build-Nachweis: $backup/manifest.json"
