@@ -550,7 +550,7 @@ public sealed class AnoCorePlugin : BasePlugin
             if (_casinoEnabled)
             {
                 await new AnoCore.Runtime.Persistence.Migrations.MigrationRunner((IDatabase)created.GetService(typeof(IDatabase))!,
-                    [new CasinoSchemaMigration027()]).ApplyPendingAsync(timeout.Token).ConfigureAwait(false);
+                    [new CasinoSchemaMigration027(), new CasinoSchemaMigration028()]).ApplyPendingAsync(timeout.Token).ConfigureAwait(false);
             }
 
             if (managementConfiguration.Enabled)
