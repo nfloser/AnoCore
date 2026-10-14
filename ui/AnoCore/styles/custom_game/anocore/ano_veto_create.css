@@ -4,7 +4,7 @@
 .ano-create-overlay.shown { opacity: 1; visibility: visible; }
 .ano-create-dim { width: 4000px; height: 2400px; horizontal-align: center; vertical-align: center; background-color: #10251bcc; }
 .ano-create-window {
-    width: 760px; height: 680px; horizontal-align: center; vertical-align: center;
+    width: 760px; height: 780px; horizontal-align: center; vertical-align: center;
     flow-children: down; padding: 24px; background-color: #080b09fc;
     border: 2px solid #2b893dff; border-radius: 6px; box-shadow: #000000b0 0px 12px 40px 0px;
 }
@@ -35,7 +35,7 @@
 .ano-create-help { font-size: 15px; color: #a6b9aaff; }
 
 /* Picker is shown only after an authorized host chooses manual creation. */
-.ano-create-picker { width: 100%; height: 360px; flow-children: down; visibility: collapse; }
+.ano-create-picker { width: 100%; height: 475px; flow-children: down; visibility: collapse; }
 .ano-create-picker.active { visibility: visible; }
 .ano-create-choices.inactive { visibility: collapse; }
 .ano-create-picker-controls { width: 100%; height: 44px; flow-children: right; }
@@ -52,3 +52,13 @@
 .ano-create-confirm { width: 100%; height: 43px; background-color: #246b37ff; margin-top: 8px; }
 .ano-create-confirm:hover { background-color: #348748ff; }
 .ano-create-confirm Label { horizontal-align: center; vertical-align: center; color: #ffffffff; font-size: 17px; font-weight: bold; }
+
+.ano-create-picker-actions { width: 100%; height: 46px; flow-children: right; margin-top: 6px; }
+.ano-create-action {
+    width: 215px; height: 40px; margin-right: 9px;
+    background-color: #13291aff; border: 1px solid #2b893d88;
+}
+.ano-create-action:hover { background-color: #28683dff; }
+.ano-create-action Label {
+    horizontal-align: center; vertical-align: center; font-size: 15px; color: #cdf5d2ff;
+}
