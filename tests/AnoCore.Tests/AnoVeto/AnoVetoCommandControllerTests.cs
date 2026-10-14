@@ -65,6 +65,30 @@ public sealed class AnoVetoCommandControllerTests
     }
 
     [TestMethod]
+    public async Task ManualPicker_EightUniqueMapClicksStartSharedVote()
+    {
+        var permissions = new ManagerPermissionEvaluator(allow: true);
+        var commands = new CommandRegistry(permissions);
+        var hud = new TestCustomHudService();
+        var players = new StubPlayerRegistry([Snapshot(Manager, "Manager"), Snapshot(PlayerA, "Player A")]);
+        var coordinator = CreateCoordinator(permissions);
+        using var controller = new AnoVetoCommandController(commands, hud, players, coordinator, new FixedTimeProvider(Now));
+
+        Assert.IsTrue((await commands.ExecuteAsync("!anoveto create", Manager)).Success);
+        await hud.ClickAsync(Manager, AnoVetoCreateHudController.HudId, "ano_veto_create_manual");
+        for (var i = 0; i < 8; i++)
+            await hud.ClickAsync(Manager, AnoVetoCreateHudController.HudId, $"ano_veto_create_map_{i}");
+
+        Assert.IsFalse(coordinator.TryGetStatus(out _));
+        await hud.ClickAsync(Manager, AnoVetoCreateHudController.HudId, "ano_veto_create_confirm");
+
+        Assert.IsTrue(coordinator.TryGetStatus(out var maps));
+        Assert.HasCount(8, maps);
+        Assert.HasCount(2, hud.VisiblePlayers(AnoVetoHudController.HudId));
+        Assert.IsFalse(hud.VisiblePlayers(AnoVetoCreateHudController.HudId).Contains(Manager));
+    }
+
+    [TestMethod]
     public async Task RandomCommand_ExplicitlyPreservesLegacyFastStart()
     {
         var permissions = new ManagerPermissionEvaluator(allow: true);
