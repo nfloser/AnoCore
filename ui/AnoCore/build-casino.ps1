@@ -20,6 +20,8 @@ New-Item -ItemType Directory -Force -Path (Join-Path $content $layout), (Join-Pa
 function Compile-Resource([string]$RelativePath, [string]$OutputPath) {
     $target = Join-Path $content $RelativePath
     Copy-Item (Join-Path $src $RelativePath) $target -Force
+    $compiledOutput = Join-Path $game $OutputPath
+    if (Test-Path $compiledOutput -PathType Leaf) { Remove-Item -LiteralPath $compiledOutput -Force }
     & $compiler -i $target -f -r
     if ($LASTEXITCODE -ne 0) { throw "Compilation failed: $RelativePath" }
     if (-not (Test-Path (Join-Path $game $OutputPath))) {
