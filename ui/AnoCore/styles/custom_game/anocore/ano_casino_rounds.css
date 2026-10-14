@@ -56,3 +56,18 @@ Label { color:#e9efed; font-family:Arial; font-size:17px; margin:4px; }
 .motion-a.view-risk .round-detail, .motion-b.view-risk .round-detail, .motion-a.view-book .round-detail, .motion-b.view-book .round-detail { opacity:0; }
 .status { color:#39e38c; width:100%; max-height:110px; white-space:normal; }
 .note { color:#9faea7; font-size:14px; }
+
+.book-symbol.symbol-0 { color:#00000000; background-image:url("s2r://panorama/styles/custom_game/anocore/arcade/cherry.vtex"); background-size:contain; background-position:center; background-repeat:no-repeat; }
+.book-symbol.symbol-1 { color:#00000000; background-image:url("s2r://panorama/styles/custom_game/anocore/arcade/lemon.vtex"); background-size:contain; background-position:center; background-repeat:no-repeat; }
+.book-symbol.symbol-2 { color:#00000000; background-image:url("s2r://panorama/styles/custom_game/anocore/arcade/plum.vtex"); background-size:contain; background-position:center; background-repeat:no-repeat; }
+.book-symbol.symbol-3 { color:#00000000; background-image:url("s2r://panorama/styles/custom_game/anocore/arcade/orange.vtex"); background-size:contain; background-position:center; background-repeat:no-repeat; }
+.book-symbol.symbol-4 { color:#00000000; background-image:url("s2r://panorama/styles/custom_game/anocore/arcade/grapes.vtex"); background-size:contain; background-position:center; background-repeat:no-repeat; }
+.book-symbol.symbol-5 { color:#00000000; background-image:url("s2r://panorama/styles/custom_game/anocore/arcade/bell.vtex"); background-size:contain; background-position:center; background-repeat:no-repeat; }
+.book-symbol.symbol-6 { color:#00000000; background-image:url("s2r://panorama/styles/custom_game/anocore/arcade/seven.vtex"); background-size:contain; background-position:center; background-repeat:no-repeat; }
+.book-symbol.symbol-7 { color:#6f3a10; background-color:#fff1bf; border:3px solid #bf8d35; font-size:22px; font-weight:bold; }
+.motion-a .book-reel.stopped .reel-motion, .motion-b .book-reel.stopped .reel-motion { visibility:collapse; }
+.motion-a .book-reel.stopped .reel-final, .motion-b .book-reel.stopped .reel-final { visibility:visible; }
+.motion-a .book-reel.stopped .reel-final { animation-name:book-stop-a; animation-duration:0.25s; }
+.motion-b .book-reel.stopped .reel-final { animation-name:book-stop-b; animation-duration:0.25s; }
+@keyframes book-stop-a { 0% { transform:translateY(-12px); } 70% { transform:translateY(3px); } 100% { transform:translateY(0px); } }
+@keyframes book-stop-b { 0% { transform:translateY(-12px); } 70% { transform:translateY(3px); } 100% { transform:translateY(0px); } }

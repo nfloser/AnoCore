@@ -5,76 +5,76 @@
     <Label id="casino_round_title" class="title" text="{s:text}" />
     <Panel class="row"><Panel class="counter"><Label text="PROFILKONTO" /><Label id="casino_round_account" text="{s:text}" /></Panel><Panel class="counter"><Label text="AUTOMATENGUTHABEN" /><Label id="casino_round_bankroll" text="{s:text}" /></Panel><Panel class="counter"><Label text="AUSZAHLUNG" /><Label id="casino_round_payout" text="{s:text}" /></Panel></Panel>
     <Panel class="book-table"><Panel class="book-reels">
-<Panel class="book-reel reel-0"><Panel class="reel-motion" hittest="false">
-<Label class="book-symbol" text="BUCH" />
-<Label class="book-symbol" text="KOMPASS" />
-<Label class="book-symbol" text="WILD" />
-<Label class="book-symbol" text="KRONE" />
-<Label class="book-symbol" text="TEMPEL" />
-<Label class="book-symbol" text="ROLLE" />
-<Label class="book-symbol" text="BUCH" />
-<Label class="book-symbol" text="KOMPASS" />
-<Label class="book-symbol" text="WILD" />
+<Panel id="casino_round_reel0" class="book-reel reel-0"><Panel class="reel-motion" hittest="false">
+<Label class="book-symbol symbol-7" text="BUCH" />
+<Label class="book-symbol symbol-0" text="" />
+<Label class="book-symbol symbol-6" text="" />
+<Label class="book-symbol symbol-5" text="" />
+<Label class="book-symbol symbol-4" text="" />
+<Label class="book-symbol symbol-1" text="" />
+<Label class="book-symbol symbol-7" text="BUCH" />
+<Label class="book-symbol symbol-0" text="" />
+<Label class="book-symbol symbol-6" text="" />
 </Panel><Panel class="reel-final">
 <Label id="casino_round_symbol0" class="book-symbol" text="—" />
 <Label id="casino_round_symbol1" class="book-symbol" text="—" />
 <Label id="casino_round_symbol2" class="book-symbol" text="—" />
 </Panel></Panel>
-<Panel class="book-reel reel-1"><Panel class="reel-motion" hittest="false">
-<Label class="book-symbol" text="BUCH" />
-<Label class="book-symbol" text="KOMPASS" />
-<Label class="book-symbol" text="WILD" />
-<Label class="book-symbol" text="KRONE" />
-<Label class="book-symbol" text="TEMPEL" />
-<Label class="book-symbol" text="ROLLE" />
-<Label class="book-symbol" text="BUCH" />
-<Label class="book-symbol" text="KOMPASS" />
-<Label class="book-symbol" text="WILD" />
+<Panel id="casino_round_reel1" class="book-reel reel-1"><Panel class="reel-motion" hittest="false">
+<Label class="book-symbol symbol-7" text="BUCH" />
+<Label class="book-symbol symbol-0" text="" />
+<Label class="book-symbol symbol-6" text="" />
+<Label class="book-symbol symbol-5" text="" />
+<Label class="book-symbol symbol-4" text="" />
+<Label class="book-symbol symbol-1" text="" />
+<Label class="book-symbol symbol-7" text="BUCH" />
+<Label class="book-symbol symbol-0" text="" />
+<Label class="book-symbol symbol-6" text="" />
 </Panel><Panel class="reel-final">
 <Label id="casino_round_symbol3" class="book-symbol" text="—" />
 <Label id="casino_round_symbol4" class="book-symbol" text="—" />
 <Label id="casino_round_symbol5" class="book-symbol" text="—" />
 </Panel></Panel>
-<Panel class="book-reel reel-2"><Panel class="reel-motion" hittest="false">
-<Label class="book-symbol" text="BUCH" />
-<Label class="book-symbol" text="KOMPASS" />
-<Label class="book-symbol" text="WILD" />
-<Label class="book-symbol" text="KRONE" />
-<Label class="book-symbol" text="TEMPEL" />
-<Label class="book-symbol" text="ROLLE" />
-<Label class="book-symbol" text="BUCH" />
-<Label class="book-symbol" text="KOMPASS" />
-<Label class="book-symbol" text="WILD" />
+<Panel id="casino_round_reel2" class="book-reel reel-2"><Panel class="reel-motion" hittest="false">
+<Label class="book-symbol symbol-7" text="BUCH" />
+<Label class="book-symbol symbol-0" text="" />
+<Label class="book-symbol symbol-6" text="" />
+<Label class="book-symbol symbol-5" text="" />
+<Label class="book-symbol symbol-4" text="" />
+<Label class="book-symbol symbol-1" text="" />
+<Label class="book-symbol symbol-7" text="BUCH" />
+<Label class="book-symbol symbol-0" text="" />
+<Label class="book-symbol symbol-6" text="" />
 </Panel><Panel class="reel-final">
 <Label id="casino_round_symbol6" class="book-symbol" text="—" />
 <Label id="casino_round_symbol7" class="book-symbol" text="—" />
 <Label id="casino_round_symbol8" class="book-symbol" text="—" />
 </Panel></Panel>
-<Panel class="book-reel reel-3"><Panel class="reel-motion" hittest="false">
-<Label class="book-symbol" text="BUCH" />
-<Label class="book-symbol" text="KOMPASS" />
-<Label class="book-symbol" text="WILD" />
-<Label class="book-symbol" text="KRONE" />
-<Label class="book-symbol" text="TEMPEL" />
-<Label class="book-symbol" text="ROLLE" />
-<Label class="book-symbol" text="BUCH" />
-<Label class="book-symbol" text="KOMPASS" />
-<Label class="book-symbol" text="WILD" />
+<Panel id="casino_round_reel3" class="book-reel reel-3"><Panel class="reel-motion" hittest="false">
+<Label class="book-symbol symbol-7" text="BUCH" />
+<Label class="book-symbol symbol-0" text="" />
+<Label class="book-symbol symbol-6" text="" />
+<Label class="book-symbol symbol-5" text="" />
+<Label class="book-symbol symbol-4" text="" />
+<Label class="book-symbol symbol-1" text="" />
+<Label class="book-symbol symbol-7" text="BUCH" />
+<Label class="book-symbol symbol-0" text="" />
+<Label class="book-symbol symbol-6" text="" />
 </Panel><Panel class="reel-final">
 <Label id="casino_round_symbol9" class="book-symbol" text="—" />
 <Label id="casino_round_symbol10" class="book-symbol" text="—" />
 <Label id="casino_round_symbol11" class="book-symbol" text="—" />
 </Panel></Panel>
-<Panel class="book-reel reel-4"><Panel class="reel-motion" hittest="false">
-<Label class="book-symbol" text="BUCH" />
-<Label class="book-symbol" text="KOMPASS" />
-<Label class="book-symbol" text="WILD" />
-<Label class="book-symbol" text="KRONE" />
-<Label class="book-symbol" text="TEMPEL" />
-<Label class="book-symbol" text="ROLLE" />
-<Label class="book-symbol" text="BUCH" />
-<Label class="book-symbol" text="KOMPASS" />
-<Label class="book-symbol" text="WILD" />
+<Panel id="casino_round_reel4" class="book-reel reel-4"><Panel class="reel-motion" hittest="false">
+<Label class="book-symbol symbol-7" text="BUCH" />
+<Label class="book-symbol symbol-0" text="" />
+<Label class="book-symbol symbol-6" text="" />
+<Label class="book-symbol symbol-5" text="" />
+<Label class="book-symbol symbol-4" text="" />
+<Label class="book-symbol symbol-1" text="" />
+<Label class="book-symbol symbol-7" text="BUCH" />
+<Label class="book-symbol symbol-0" text="" />
+<Label class="book-symbol symbol-6" text="" />
 </Panel><Panel class="reel-final">
 <Label id="casino_round_symbol12" class="book-symbol" text="—" />
 <Label id="casino_round_symbol13" class="book-symbol" text="—" />
