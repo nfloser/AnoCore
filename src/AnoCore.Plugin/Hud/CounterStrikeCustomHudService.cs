@@ -351,7 +351,17 @@ public sealed class CounterStrikeCustomHudService : ICustomHudService, IDisposab
 
         foreach (var registration in registrations)
         {
-            ApplyPlayerState(registration, playerId);
+            var visible = false;
+            lock (_gate)
+            {
+                visible = registration.PlayerStates.TryGetValue(playerId, out var state)
+                    && state.Visible;
+            }
+
+            if (visible)
+            {
+                ApplyPlayerState(registration, playerId, allowCreate: true);
+            }
         }
     }
 
