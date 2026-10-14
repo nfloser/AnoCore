@@ -1,0 +1,97 @@
+using AnoCore.Abstractions.Players;
+using AnoCore.Modules.Arcade.Casino;
+
+namespace AnoCore.Tests.Arcade;
+
+[TestClass]
+public sealed class CasinoRoundServiceTests
+{
+    private static readonly PlayerId Player = new(76561198000911603);
+
+    [TestMethod]
+    public async Task RiskDebitsOnceAndBankCreditsExactlyHeldStake()
+    {
+        var store = new MemoryStore();
+        var service = new CasinoRoundService(store);
+        var start = new DurableCasinoRoundOperation(Guid.NewGuid(), Player, Guid.NewGuid(),
+            CasinoRoundGame.Risk, CasinoRoundAction.Start, 100, 0);
+        var receipt = await service.ApplyAsync(start);
+        Assert.AreEqual(900L, receipt.Balance.Allocated);
+        Assert.AreEqual(3200L, store.Current!.ReservedPayout);
+        Assert.AreEqual(receipt.Round, await new CasinoRoundService(store).ReadAsync(Player));
+        var banked = await service.ApplyAsync(start with
+        {
+            Id = Guid.NewGuid(),
+            Action = CasinoRoundAction.Bank,
+            ExpectedRevision = receipt.Round.Revision,
+        });
+        Assert.IsTrue(banked.Round.IsComplete);
+        Assert.AreEqual(100L, banked.Round.Payout);
+        Assert.AreEqual(1000L, banked.Balance.Allocated);
+        Assert.AreEqual(0L, store.Current!.ReservedPayout);
+        Assert.IsNull(await service.ReadAsync(Player));
+    }
+
+    [TestMethod]
+    public async Task WrongGameActionAndChangedStakeFailBeforeTransition()
+    {
+        var store = new MemoryStore();
+        var service = new CasinoRoundService(store);
+        var start = new DurableCasinoRoundOperation(Guid.NewGuid(), Player, Guid.NewGuid(),
+            CasinoRoundGame.Risk, CasinoRoundAction.Start, 100, 0);
+        await service.ApplyAsync(start);
+        foreach (var action in new[]
+        {
+            start with { Id = Guid.NewGuid(), Action = CasinoRoundAction.Hit, ExpectedRevision = 1 },
+            start with { Id = Guid.NewGuid(), Action = CasinoRoundAction.Bank, ExpectedRevision = 1, Stake = 150 },
+        })
+        {
+            await Assert.ThrowsExactlyAsync<CasinoRejectedException>(async () => await service.ApplyAsync(action));
+        }
+        Assert.AreEqual(1, store.Transitions);
+        Assert.AreEqual(900L, store.Allocated);
+    }
+
+    [TestMethod]
+    public async Task BlackjackStartsWithUniqueCompleteShuffledDeckAndBoundedExposure()
+    {
+        var store = new MemoryStore();
+        var service = new CasinoRoundService(store);
+        var receipt = await service.ApplyAsync(new(Guid.NewGuid(), Player, Guid.NewGuid(),
+            CasinoRoundGame.Blackjack, CasinoRoundAction.Start, 100, 0));
+        var state = System.Text.Json.JsonSerializer.Deserialize<BlackjackState>(receipt.Round.StateJson)!;
+        var cards = state.PlayerHands.SelectMany(hand => hand.Cards).Concat(state.DealerCards)
+            .Concat(state.RemainingDeck).ToArray();
+        Assert.AreEqual(52, cards.Length);
+        Assert.AreEqual(52, cards.Distinct().Count());
+        Assert.AreEqual(800L, store.LastPlan!.MaximumPayoutExposure);
+        Assert.AreEqual(100L, receipt.Round.TotalStake);
+    }
+
+    private sealed class MemoryStore : ICasinoRoundStore
+    {
+        public CasinoRoundSnapshot? Current { get; private set; }
+        public long Allocated { get; private set; } = 1000;
+        public int Transitions { get; private set; }
+        public CasinoRoundPlan? LastPlan { get; private set; }
+        public ValueTask<CasinoRoundSnapshot?> ReadActiveAsync(PlayerId player, CancellationToken token = default)
+            => ValueTask.FromResult(Current?.Status == CasinoRoundStatus.Active ? Current : null);
+        public ValueTask<CasinoRoundReceipt> ApplyAsync(CasinoRoundOperation operation,
+            Func<CasinoRoundSnapshot?, CasinoRoundPlan> plan, Func<CasinoRoundSnapshot?, CasinoRoundMutation> transition,
+            CancellationToken token = default)
+        {
+            LastPlan = plan(Current);
+            if (Allocated < LastPlan.AdditionalDebit) throw new CasinoRejectedException("Insufficient funds.");
+            var mutation = transition(Current);
+            Transitions++;
+            Assert.AreEqual(LastPlan.AdditionalDebit, mutation.AdditionalDebit);
+            Assert.IsTrue(mutation.Payout + mutation.ReservedPayout <= LastPlan.MaximumPayoutExposure);
+            Allocated = Allocated - mutation.AdditionalDebit + mutation.Payout;
+            Current = new(operation.RoundId, operation.Player, operation.Kind, mutation.RulesVersion,
+                mutation.StateJson, mutation.Completed ? CasinoRoundStatus.Completed : CasinoRoundStatus.Active,
+                operation.ExpectedRevision + 1, mutation.ReservedPayout);
+            return ValueTask.FromResult(new CasinoRoundReceipt(operation.Id, Current,
+                new CasinoBalance(0, Allocated, Transitions), mutation.OutcomeJson));
+        }
+    }
+}

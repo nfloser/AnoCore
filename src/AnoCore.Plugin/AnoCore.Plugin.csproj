@@ -5,6 +5,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="..\AnoCore.Modules.Arcade\AnoCore.Modules.Arcade.csproj" />
     <ProjectReference Include="..\AnoCore.Runtime\AnoCore.Runtime.csproj" />
     <ProjectReference Include="..\AnoCore.Modules.Admin\AnoCore.Modules.Admin.csproj" />
     <ProjectReference Include="..\AnoCore.Modules.Stats\AnoCore.Modules.Stats.csproj" />

@@ -91,3 +91,16 @@ dotnet format AnoCore.sln --verify-no-changes --no-restore
 ## License
 
 GNU GPL v3.0. Copyright and attribution notices are preserved in [NOTICE.md](NOTICE.md) and [LICENSE.md](LICENSE.md).
+
+### Arcade animation prototype
+
+A default-off, administrator-only native Triple animation probe is available with
+replaceable fruit images and isolated Test-AP. It is not a production wallet or
+case simulator. See [the setup, native acceptance checklist and AP/case design](docs/arcade.md).
+
+### AnoCasino candidate
+
+Optional server-authoritative Slots, Coinflip and single-bet European Roulette,
+with a persistent SteamID AP wallet and replaceable fruit textures. Default off;
+requires a rebuilt matching Workshop addon and native acceptance. See
+[Casino rules and installation](docs/casino.md).

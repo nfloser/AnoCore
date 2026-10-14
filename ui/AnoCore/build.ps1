@@ -1,5 +1,6 @@
 param(
     [string]$Cs2 = "",
+    [ValidatePattern('^[a-z][a-z0-9_]*$')]
     [string]$Addon = "anomeme_ui",
     [string]$PreviewSource = "",
     [ValidateRange(128, 4096)]
@@ -149,20 +150,43 @@ if ($InstallLocalClient) {
     Copy-Item $logo (Join-Path $clientStyleDir "anomeme_banner.vtex_c") -Force
 }
 
-foreach ($name in @("ano_veto_cards", "ano_veto", "menu", "ano_tournament")) {
+# Compile replaceable arcade fruit textures from source PNG/VTEX pairs.
+$arcadeDir = Join-Path $styleDir "arcade"
+New-Item -ItemType Directory -Force -Path $arcadeDir | Out-Null
+foreach ($symbol in @("cherry", "lemon", "plum", "orange", "grapes", "watermelon", "bell", "seven")) {
+    foreach ($extension in @(".png", ".vtex")) {
+        Copy-Item (Join-Path $src "styles\custom_game\anocore\arcade\$symbol$extension") (Join-Path $arcadeDir "$symbol$extension") -Force
+    }
+    $compiled = Join-Path $Cs2 "game\csgo_addons\$Addon\panorama\styles\custom_game\anocore\arcade\$symbol.vtex_c"
+    if (Test-Path $compiled -PathType Leaf) { Remove-Item -LiteralPath $compiled -Force }
+    & $compiler -i (Join-Path $arcadeDir "$symbol.vtex") -f -r
+    if ($LASTEXITCODE -ne 0) { throw "Failed to compile arcade symbol $symbol" }
+    $compiled = Join-Path $Cs2 "game\csgo_addons\$Addon\panorama\styles\custom_game\anocore\arcade\$symbol.vtex_c"
+    if (-not (Test-Path $compiled)) { throw "Compiled arcade symbol missing: $compiled" }
+    if ($InstallLocalClient) {
+        $clientArcadeDir = Join-Path $Cs2 "game\csgo\panorama\styles\custom_game\anocore\arcade"
+        New-Item -ItemType Directory -Force -Path $clientArcadeDir | Out-Null
+        Copy-Item $compiled (Join-Path $clientArcadeDir "$symbol.vtex_c") -Force
+    }
+}
+
+foreach ($name in @("ano_veto_cards", "ano_veto", "menu", "ano_tournament", "ano_arcade", "ano_casino", "ano_casino_native_v2", "ano_casino_rounds")) {
     $layoutTarget = Join-Path $layoutDir "$name.xml"
     $styleTarget = Join-Path $styleDir "$name.css"
     Copy-Item (Join-Path $src "layout\custom_game\anocore\$name.xml") $layoutTarget -Force
     Copy-Item (Join-Path $src "styles\custom_game\anocore\$name.css") $styleTarget -Force
 
+    $gameRoot = Join-Path $Cs2 "game\csgo_addons\$Addon\panorama"
+    $outLayout = Join-Path $gameRoot "layout\custom_game\anocore\$name.vxml_c"
+    $outStyle = Join-Path $gameRoot "styles\custom_game\anocore\$name.vcss_c"
+    foreach ($compiledOutput in @($outLayout, $outStyle)) {
+        if (Test-Path $compiledOutput -PathType Leaf) { Remove-Item -LiteralPath $compiledOutput -Force }
+    }
     & $compiler -i $styleTarget -f -r
     if ($LASTEXITCODE -ne 0) { throw "Failed to compile $name.css" }
     & $compiler -i $layoutTarget -f -r
     if ($LASTEXITCODE -ne 0) { throw "Failed to compile $name.xml" }
 
-    $gameRoot = Join-Path $Cs2 "game\csgo_addons\$Addon\panorama"
-    $outLayout = Join-Path $gameRoot "layout\custom_game\anocore\$name.vxml_c"
-    $outStyle = Join-Path $gameRoot "styles\custom_game\anocore\$name.vcss_c"
     foreach ($required in @($outLayout, $outStyle)) {
         if (-not (Test-Path $required)) { throw "Expected compiled resource missing: $required" }
     }
