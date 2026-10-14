@@ -14,7 +14,8 @@ public sealed record BonusSlotRoundState(
     int FreeSpinsAwarded,
     int SpinsPlayed,
     long TotalPayout,
-    BonusSlotSymbol? ExpandingSymbol,\n    string RulesVersion);
+    BonusSlotSymbol? ExpandingSymbol,
+    string RulesVersion);
 
 public sealed record BonusSlotSpinResult(
     ImmutableArray<BonusSlotSymbol> Grid,
