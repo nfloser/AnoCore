@@ -108,12 +108,12 @@ public static class BlackjackRules
         if (hand.IsStanding || hand.IsBust) return Array.Empty<BlackjackAction>();
 
         var actions = new List<BlackjackAction>(4);
-        if (hand.BestTotal < 21) actions.Add(BlackjackAction.Hit);
+        if (hand.BestTotal < 21 && state.RemainingDeck.Length >= 1) actions.Add(BlackjackAction.Hit);
         actions.Add(BlackjackAction.Stand);
-        if (hand.Cards.Length == 2 && hand.Stake <= MaximumStake)
+        if (hand.Cards.Length == 2 && hand.Stake <= MaximumStake && state.RemainingDeck.Length >= 1)
             actions.Add(BlackjackAction.Double);
         if (state.PlayerHands.Length < MaximumHands && hand.Cards.Length == 2
-            && hand.Cards[0].Rank == hand.Cards[1].Rank)
+            && hand.Cards[0].Rank == hand.Cards[1].Rank && state.RemainingDeck.Length >= 2)
             actions.Add(BlackjackAction.Split);
         return actions;
     }
