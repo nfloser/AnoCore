@@ -16,6 +16,7 @@ public sealed class AnoVetoCreateHudController : IDisposable
     private readonly Func<PlayerId, CancellationToken, ValueTask<bool>> _startRandom;
     private readonly Func<PlayerId, IReadOnlyList<string>, CancellationToken, ValueTask<bool>> _startSelected;
     private readonly Func<IReadOnlyList<MapDefinition>> _getCatalog;
+    private readonly IAnoVetoPresetRepository? _presets;
     private readonly Dictionary<PlayerId, PickerState> _states = [];
     private readonly object _gate = new();
     private readonly IDisposable _registration;
@@ -23,6 +24,9 @@ public sealed class AnoVetoCreateHudController : IDisposable
     {
         public AnoVetoCreateSession Session { get; } = session;
         public int Page { get; set; }
+        public IReadOnlyList<(AnoVetoPreset Preset, long Revision)> Saved { get; set; } = [];
+        public string? SelectedSavedName { get; set; }
+        public string? PendingDeleteName { get; set; }
         public Dictionary<int, string> ImageClasses { get; } = [];
     }
 
@@ -30,17 +34,20 @@ public sealed class AnoVetoCreateHudController : IDisposable
         ICustomHudService hud,
         Func<PlayerId, CancellationToken, ValueTask<bool>> startRandom,
         Func<IReadOnlyList<MapDefinition>> getCatalog,
-        Func<PlayerId, IReadOnlyList<string>, CancellationToken, ValueTask<bool>> startSelected)
+        Func<PlayerId, IReadOnlyList<string>, CancellationToken, ValueTask<bool>> startSelected,
+        IAnoVetoPresetRepository? presets = null)
     {
         _hud = hud ?? throw new ArgumentNullException(nameof(hud));
         _startRandom = startRandom ?? throw new ArgumentNullException(nameof(startRandom));
         _getCatalog = getCatalog ?? throw new ArgumentNullException(nameof(getCatalog));
         _startSelected = startSelected ?? throw new ArgumentNullException(nameof(startSelected));
+        _presets = presets;
         var buttons = new List<string>
         {
             "ano_veto_create_close", "ano_veto_create_random", "ano_veto_create_manual",
             "ano_veto_create_saved", "ano_veto_create_back", "ano_veto_create_prev",
-            "ano_veto_create_next", "ano_veto_create_confirm"
+            "ano_veto_create_next", "ano_veto_create_confirm", "ano_veto_create_save",
+            "ano_veto_create_duplicate", "ano_veto_create_delete"
         };
         buttons.AddRange(Enumerable.Range(0, PageSize).Select(i => $"ano_veto_create_map_{i}"));
         _registration = _hud.Register(Owner,
