@@ -60,3 +60,17 @@ migration, owner-checked CRUD endpoint or clickable saved-preset listing is
 wired. Preset map IDs must still be resolved against the current live catalog
 via `CreateSelectedAsync` when used. No stored preset is ever assumed valid
 merely because it was valid at creation time.
+
+## Revisioned owner-scoped preset catalog
+
+`AnoVetoPresetCatalog` adds a bounded 32-per-SteamID in-memory CRUD reference:
+case-insensitive names, owner-filtered list/read, create, optimistic-revision
+replace/rename and delete. Wrong owners cannot change entries; conflicting
+versions and name collisions reject rather than silently overwrite.
+
+**Important:** this class is an in-memory foundation, **not durable storage**.
+No MariaDB migration/repository has been introduced. Production use must
+replace the in-memory storage boundary with a transactional database adapter,
+verify permissions/session ownership at each caller, restore after restart,
+and resolve every saved MapId against the live eligible catalog.
+`AnoVetoPresetCatalogTests` covers isolation, stale revisions and limits.
