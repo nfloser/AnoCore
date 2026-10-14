@@ -1232,7 +1232,9 @@ public sealed class AnoCorePlugin : BasePlugin
                             runtime.Menus.Close(playerId);
                             presenter.Reconcile();
                             _arcadeProbe?.CloseForPlayer(playerId);
-                        }, openRound: (playerId, game, token) => casinoRounds!.OpenAsync(playerId, game, token));
+                        },
+                        openRound: (playerId, game, token) => casinoRounds!.OpenAsync(playerId, game, token),
+                        reportError: exception => Logger.LogError(exception, "Casino persistence command failed."));
                     casinoRounds = new CasinoRoundPresenter(_customHud, runtime.Players, runtime.Authorization,
                         wallet, new CasinoRoundService(new MySqlCasinoRoundStore(casinoDatabase)), _eventBus!,
                         playerId => casino.CloseForPlayer(playerId), async (playerId, token) =>
