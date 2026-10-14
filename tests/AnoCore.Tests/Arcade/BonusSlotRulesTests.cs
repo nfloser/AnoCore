@@ -65,7 +65,7 @@ public sealed class BonusSlotRulesTests
             BonusSlotSymbol.Plum, BonusSlotSymbol.Cherry, BonusSlotSymbol.Cherry,
             BonusSlotSymbol.Orange, BonusSlotSymbol.Cherry, BonusSlotSymbol.Cherry,
             BonusSlotSymbol.Grape, BonusSlotSymbol.Cherry, BonusSlotSymbol.Cherry };
-        var spin = BonusSlotRules.PlayFreeSpin(started.State, Grid(freeGrid).Next);
+        var spin = BonusSlotRules.PlayFreeSpin(started.State, GridFromSymbols(freeGrid).Next);
         Assert.IsTrue(spin.Grid.Take(3).All(symbol => symbol == expanding));
         Assert.IsTrue(spin.LineWins.Any(win => win.Symbol == BonusSlotSymbol.Cherry && win.Payout > 0));
         Assert.AreEqual(0, spin.ChargedStake);
@@ -96,10 +96,10 @@ public sealed class BonusSlotRulesTests
     {
         var symbols = Enumerable.Repeat(BonusSlotSymbol.Cherry, 15).ToArray();
         foreach (var (symbol, i) in books.Select((symbol, i) => (symbol, i))) symbols[i] = symbol;
-        return Grid(symbols);
+        return GridFromSymbols(symbols);
     }
 
-    private static Sequence Grid(BonusSlotSymbol[] symbols) => new(symbols.Select(s => (int)s).ToArray());
+    private static Sequence GridFromSymbols(BonusSlotSymbol[] symbols) => new(symbols.Select(s => (int)s).ToArray());
 
     private sealed class Sequence(int[] values)
     {
