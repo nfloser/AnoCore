@@ -20,6 +20,7 @@ public sealed class CasinoPresenter : IDisposable
     private readonly Action<PlayerId> _beforeOpen;
     private readonly TimeProvider _clock;
     private readonly Func<PlayerId, CasinoRoundGame, CancellationToken, ValueTask<bool>>? _openRound;
+    private readonly Action<Exception>? _reportError;
     private readonly object _gate = new();
     private readonly Dictionary<PlayerId, State> _states = [];
     private readonly List<IDisposable> _owned = [];
@@ -28,9 +29,12 @@ public sealed class CasinoPresenter : IDisposable
     private static readonly HashSet<int> RouletteReds = [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36];
     private static readonly string[] Buttons = ["close", "home", "menu", "blackjack", "risk", "book", "slots", "coinflip", "roulette", "load", "return", "loadminus", "loadplus", "minus", "plus", "play", "head", "tail", "numberminus", "numberplus", "number", "refresh", "history", "rules", "retry", .. Enumerable.Range(37, 12).Select(n => "bet" + n), .. Enumerable.Range(0, 37).Select(n => "r" + n)];
     public CasinoPresenter(ICustomHudService hud, IPlayerRegistry players, IPermissionEvaluator permissions,
-        ICasinoWallet wallet, IAnoCommandRegistry commands, IAnoEventBus events, Action<PlayerId> beforeOpen, TimeProvider? clock = null, Func<PlayerId, CasinoRoundGame, CancellationToken, ValueTask<bool>>? openRound = null)
+        ICasinoWallet wallet, IAnoCommandRegistry commands, IAnoEventBus events, Action<PlayerId> beforeOpen,
+        TimeProvider? clock = null,
+        Func<PlayerId, CasinoRoundGame, CancellationToken, ValueTask<bool>>? openRound = null,
+        Action<Exception>? reportError = null)
     {
-        _hud = hud; _players = players; _permissions = permissions; _wallet = wallet; _commands = commands; _beforeOpen = beforeOpen; _clock = clock ?? TimeProvider.System; _openRound = openRound;
+        _hud = hud; _players = players; _permissions = permissions; _wallet = wallet; _commands = commands; _beforeOpen = beforeOpen; _clock = clock ?? TimeProvider.System; _openRound = openRound; _reportError = reportError;
         try
         {
             _owned.Add(hud.Register(new("ano.casino"), new(HudId, "panorama/layout/custom_game/anocore/ano_casino.xml", "casino_root", Buttons.Select(x => "casino_" + x).ToArray(), captureInput: true), ClickAsync));
@@ -48,6 +52,13 @@ public sealed class CasinoPresenter : IDisposable
                     return CommandResult.Fail(CommandFailureReason.InvalidInput, "anoapcredit <SteamID64> <1–1000000 AP>");
                 try { await wallet.ApplyAsync(new(Guid.NewGuid(), new(id), CasinoAction.Credit, amount, null), c.CancellationToken).ConfigureAwait(false); }
                 catch (ArgumentException) { return CommandResult.Fail(CommandFailureReason.InvalidInput, "Ungültige SteamID/AP."); }
+                catch (OperationCanceledException) when (c.CancellationToken.IsCancellationRequested) { throw; }
+                catch (Exception exception)
+                {
+                    _reportError?.Invoke(exception);
+                    return CommandResult.Fail(CommandFailureReason.HandlerFailed,
+                        "[ANO] Casino-Speicher nicht verfügbar. Serverlog prüfen.");
+                }
                 return CommandResult.Ok("[ANO] AP-Gutschrift protokolliert. Anzeige mit Aktualisieren neu laden.");
             }));
             _owned.Add(events.Subscribe<PlayerDisconnectedEvent>((e, _) => { ForgetSession(e.Player); return ValueTask.CompletedTask; }));
@@ -77,6 +88,13 @@ public sealed class CasinoPresenter : IDisposable
                 for (var i = 0; i < 3; i++) Class(state, "reel" + i, "rolling", state.Started is not null && state.Game == CasinoGame.Slots); _beforeOpen(state.Player.Id); state.Visible = true; Render(state);
                 return _hud.Show(state.Player.Id, HudId) ? CommandResult.Ok("[ANO] Casino geöffnet.") : CommandResult.Fail(CommandFailureReason.Forbidden, "HUD nicht verfügbar.");
             }
+        }
+        catch (OperationCanceledException) when (c.CancellationToken.IsCancellationRequested) { throw; }
+        catch (Exception exception)
+        {
+            _reportError?.Invoke(exception);
+            return CommandResult.Fail(CommandFailureReason.HandlerFailed,
+                "[ANO] Casino-Speicher nicht verfügbar. Serverlog prüfen.");
         }
         finally { lock (_gate) state.Pending = false; }
     }
