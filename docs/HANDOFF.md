@@ -1,3 +1,24 @@
+## Custom HUD initial client-sync race (#450) — 2026-10-14
+
+Local Casino acceptance confirmed that the current compiled `ano_casino.vxml_c`
+and `ano_casino.vcss_c` are present in both the retail base Panorama path and the
+local `anomeme_ui` addon with identical hashes, with no third Workshop copy found.
+Despite that, the first `!anocasino` state push reports missing panel IDs.
+
+The shared native HUD adapter previously spawned `custom_hud_layout` lazily from
+the first SetText/SetClass call and immediately mutated named panels in the same
+world-update cycle. The client can still be loading the compiled Panorama resource
+at that point. Branch `fix/450-custom-hud-initial-sync` now marks a newly spawned
+HUD as warming, suppresses same-tick named-panel mutations, reapplies the full
+desired per-player state after 350 ms, and performs one bounded idempotent retry
+at 1.25 s. There is no polling loop; map change, unregister and cleanup clear the
+warm-up state.
+
+Exact-head CI is required before the next native retest. Native acceptance remains:
+fully restart CS2, use the local-client build (not a Workshop update), run
+`!anocasino`, confirm no missing-panel messages and verify visibility/input.
+Only after local acceptance should the shared Workshop addon be updated.
+
 ## Casino persistence recovery after live command failure (#446) — 2026-10-14
 
 DatHost acceptance reproduced generic failures for both `!anocasino` and console
