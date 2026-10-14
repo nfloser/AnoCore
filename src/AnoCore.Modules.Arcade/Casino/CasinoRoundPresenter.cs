@@ -271,7 +271,7 @@ public sealed class CasinoRoundPresenter : IDisposable
         Class(state, "root", "needs-bonus-symbol", needsBonusSymbol);
         Text(state, "biggest_win", moving ? "WALZEN LAUFEN …" : "GEWINN: " + Points(spin?.Payout ?? 0));
         Text(state, "biggest_bonus", spin is null ? "3/4/5 Gesichter: 10/15/20 Freispiele · Kebap ist Wild" :
-            needsBonusSymbol ? $"{spin.State.FreeSpinsRemaining} Freispiele · BONNUSSYMBOL WÄHLEN" :
+            needsBonusSymbol ? $"{spin.State.FreeSpinsRemaining} Freispiele · BONUSSYMBOL WÄHLEN" :
             $"{spin.State.FreeSpinsRemaining} Freispiele · gesammelt {Points(spin.State.TotalPayout)} · {spin.ScatterCount} Scatter · Symbol: {(spin.State.ExpandingSymbol is { } expanding ? BiggestName(expanding) : "–")}");
         Text(state, "detail", moving ? "" : spin is null ? Rules(state.Game) :
             string.Join(" · ", spin.LineWins.Select(win => $"Linie {win.Payline + 1}: {win.MatchCount}× {BiggestName(win.Symbol)} = {Points(win.Payout)}")));
