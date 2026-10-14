@@ -178,13 +178,13 @@ public sealed class CasinoPresenter : IDisposable
             {
                 for (var i = 0; i < 3; i++)
                 {
-                    if ((state.ReelStops & (1 << i)) != 0 || elapsed.TotalSeconds < 2.6 + i * .5) continue;
+                    if ((state.ReelStops & (1 << i)) != 0 || elapsed < TimeSpan.FromMilliseconds(2600 + i * 500)) continue;
                     state.ReelStops |= 1 << i;
                     Class(state, "reel" + i, "rolling", false);
                     Class(state, "reel" + i, "settled", true);
                 }
             }
-            if (!state.LandingApplied && elapsed.TotalSeconds >= 3.6 && state.Outcome is { } settled)
+            if (!state.LandingApplied && elapsed >= TimeSpan.FromMilliseconds(3600) && state.Outcome is { } settled)
             {
                 state.LandingApplied = true;
                 Class(state, "coin", "flipping", false);
@@ -196,7 +196,7 @@ public sealed class CasinoPresenter : IDisposable
                 Class(state, "pointer", color, settled.Game == CasinoGame.Roulette);
                 for (var number = 0; number <= 36; number++) Class(state, "wheel", "land-n" + number, settled.Game == CasinoGame.Roulette && settled.Number == number);
             }
-            if (elapsed.TotalSeconds < 4) continue;
+            if (elapsed < TimeSpan.FromMilliseconds(4000)) continue;
             if (!state.LinesRevealed && state.Outcome is { Game: CasinoGame.Slots } slots)
             {
                 for (var line = 0; line < WinningLines.Length; line++)
