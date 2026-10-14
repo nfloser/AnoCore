@@ -34,6 +34,13 @@ public static class BiggestBoyRules
         [225, 1125, 2500], [170, 675, 2250], [135, 450, 1690], [113, 338, 1125],
         [68, 225, 675], [56, 169, 563], [22, 56, 169], [22, 56, 169], [11, 45, 113], [11, 45, 113],
     ];
+    // Extra payout for the selected expanding symbol. These values are deliberately
+    // separate from the base paytable so frequent low symbols cannot inflate bonus RTP.
+    private static readonly int[][] ExpansionPays =
+    [
+        [0, 0, 0], [15, 59, 198], [16, 54, 204], [11, 32, 106], [2, 8, 24],
+        [3, 8, 26], [1, 2, 6], [1, 2, 6], [1, 2, 5], [1, 2, 5],
+    ];
 
     public static IReadOnlyList<IReadOnlyList<int>> Paylines { get; } =
         Array.AsReadOnly(Lines.Select(line => (IReadOnlyList<int>)Array.AsReadOnly(line)).ToArray());
@@ -43,6 +50,10 @@ public static class BiggestBoyRules
     public static int Multiplier(BiggestBoySymbol symbol, int count) =>
         symbol is >= BiggestBoySymbol.Kebap and < BiggestBoySymbol.Scatter && count is >= 3 and <= 5
             ? Pays[(int)symbol][count - 3] : 0;
+
+    public static int ExpansionMultiplier(BiggestBoySymbol symbol, int count) =>
+        IsSelectableExpandingSymbol(symbol) && count is >= 3 and <= 5
+            ? ExpansionPays[(int)symbol][count - 3] : 0;
 
     public static int FreeSpinsForScatters(int scatterCount) => scatterCount switch
     {
@@ -141,23 +152,28 @@ public static class BiggestBoyRules
                     expandedGrid[reel * 5 + row] = expanding;
         }
 
-        var result = EvaluateGrid(state.LockedStake, expandedGrid);
+        var baseResult = EvaluateGrid(state.LockedStake, raw);
+        var expansionWins = EvaluateExpansionWins(state.LockedStake, expandedGrid, expanding);
+        var lineWins = baseResult.LineWins.AddRange(expansionWins);
+        var payout = checked(baseResult.Payout + expansionWins.Sum(win => win.Payout));
         var scatterCount = raw.Count(symbol => symbol == BiggestBoySymbol.Scatter);
         var remaining = state.FreeSpinsRemaining - 1;
         var added = scatterCount >= 3 ? Math.Min(5, MaximumFreeSpinsAwarded - state.FreeSpinsAwarded) : 0;
-        return result with
+        return baseResult with
         {
             RawGrid = raw.ToImmutableArray(),
             Grid = expandedGrid.ToImmutableArray(),
             Stops = drawn.Stops.ToImmutableArray(),
             ScatterCount = scatterCount,
             ExpandedReels = expanded.ToImmutable(),
+            LineWins = lineWins,
+            Payout = payout,
             State = state with
             {
                 FreeSpinsRemaining = remaining + added,
                 FreeSpinsAwarded = state.FreeSpinsAwarded + added,
                 SpinsPlayed = state.SpinsPlayed + 1,
-                TotalPayout = checked(state.TotalPayout + result.Payout),
+                TotalPayout = checked(state.TotalPayout + payout),
             },
         };
     }
@@ -192,6 +208,25 @@ public static class BiggestBoyRules
         var immutable = grid.ToImmutableArray();
         return new(immutable, [], grid.Count(symbol => symbol == BiggestBoySymbol.Scatter), [],
             wins.ToImmutable(), total, 0, new(stake, 0, 0, 0, total, Version, null), immutable);
+    }
+
+    private static ImmutableArray<BiggestBoyLineWin> EvaluateExpansionWins(
+        int stake, IReadOnlyList<BiggestBoySymbol> grid, BiggestBoySymbol selected)
+    {
+        var wins = ImmutableArray.CreateBuilder<BiggestBoyLineWin>();
+        for (var lineIndex = 0; lineIndex < Lines.Length; lineIndex++)
+        {
+            var count = 0;
+            foreach (var cell in Lines[lineIndex])
+            {
+                if (grid[cell] != selected && grid[cell] != BiggestBoySymbol.Kebap) break;
+                count++;
+            }
+            if (count < 3) continue;
+            var payout = checked(stake / PaylineCount * (long)ExpansionMultiplier(selected, count));
+            if (payout > 0) wins.Add(new(lineIndex, selected, count, payout));
+        }
+        return wins.ToImmutable();
     }
 
     private static BiggestBoySymbol[] BuildStrip(int reel)
