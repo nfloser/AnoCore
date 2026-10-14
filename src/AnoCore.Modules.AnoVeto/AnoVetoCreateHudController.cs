@@ -68,6 +68,23 @@ public sealed class AnoVetoCreateHudController : IDisposable
         return _hud.Show(player, HudId);
     }
 
+    public bool ApplyChatFilter(PlayerId player, string filter)
+    {
+        lock (_gate)
+        {
+            if (!_states.TryGetValue(player, out var state)
+                || state.Session.CurrentScreen != AnoVetoCreateSession.Screen.Create)
+                return false;
+            state.Session.ApplyFilter(filter);
+            state.Page = 0;
+            RenderPicker(player, state, _getCatalog());
+            _hud.SetText(player, HudId, "ano_veto_create_status",
+                string.IsNullOrWhiteSpace(filter) ? "Showing all eligible maps."
+                    : $"Filtered maps by {filter}.");
+            return true;
+        }
+    }
+
     public void Hide(PlayerId player)
     {
         lock (_gate) ClearState(player);
@@ -241,7 +258,7 @@ public sealed class AnoVetoCreateHudController : IDisposable
                     break;
                 case "ano_veto_create_next":
                     if ((state.Page + 1) * PageSize < (state.Session.CurrentScreen == AnoVetoCreateSession.Screen.Saved
-                        ? state.Saved.Count : state.Session.Draft.AvailableMapCount))
+                        ? state.Saved.Count : state.Session.VisibleMapCount))
                         state.Page++;
                     break;
                 default:
