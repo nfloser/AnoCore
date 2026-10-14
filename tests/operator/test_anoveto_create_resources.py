@@ -20,7 +20,7 @@ class AnoVetoCreateResourcesTest(unittest.TestCase):
              "ano_veto_create_next", "ano_veto_create_confirm",
              "ano_veto_create_save", "ano_veto_create_duplicate",
              "ano_veto_create_delete",
-             *(f"ano_veto_create_map_{i}" for i in range(8))},
+             *(f"ano_veto_create_map_{i}" for i in range(24))},
             set(ids),
         )
         self.assertEqual(len(ids), len(set(ids)))
