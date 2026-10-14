@@ -24,10 +24,17 @@ public sealed class AnoVetoCommandLifecycleTests
         Assert.IsTrue((await harness.Commands.ExecuteAsync("!anoveto random", Manager)).Success);
         Assert.HasCount(2, harness.Hud.VisiblePlayers(AnoVetoHudController.HudId));
 
-        await harness.Hud.ClickAsync(PlayerA, AnoVetoHudController.HudId, "ano_veto_map_0");
+        for (var i = 0; i < 2; i++)
+        {
+            await harness.Hud.ClickAsync(PlayerA, AnoVetoHudController.HudId, $"ano_veto_map_{i}");
+            Assert.IsTrue(harness.Hud.VisiblePlayers(AnoVetoHudController.HudId).Contains(PlayerA));
+        }
+        await harness.Hud.ClickAsync(PlayerA, AnoVetoHudController.HudId, "ano_veto_map_2");
         Assert.IsFalse(harness.Hud.VisiblePlayers(AnoVetoHudController.HudId).Contains(PlayerA));
         Assert.IsTrue(harness.Hud.VisiblePlayers(AnoVetoHudController.HudId).Contains(Manager));
-        await harness.Hud.ClickAsync(Manager, AnoVetoHudController.HudId, "ano_veto_map_0");
+
+        for (var i = 0; i < 3; i++)
+            await harness.Hud.ClickAsync(Manager, AnoVetoHudController.HudId, $"ano_veto_map_{i + 3}");
 
         Assert.IsFalse(harness.Coordinator.TryGetStatus(out _));
         Assert.IsEmpty(harness.Hud.VisiblePlayers(AnoVetoHudController.HudId));
