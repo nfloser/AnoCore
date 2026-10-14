@@ -979,3 +979,30 @@ License, NOTICE and source provenance must remain intact.
 ### CSS-owned individual team administration (#345)
 
 `anoteam`/`anoswap` now use the dedicated CSS `@anocore/team` flag, CSS targets/immunity and current-session engine writes. Other AnoCore permissions remain separate. Existing server developer/host groups need the flag appended; see [team administration](extended-inventory-team-admin.md). No MatchZy aliases or global side swaps are registered, and its roster handlers can restore a locked roster. Native CS2/DatHost acceptance is intentionally outstanding; no release, deployment or live config write occurred.
+## AnoCasino durable-round checkpoint (#423 / #429) — 2026-10-14
+
+- Integration branch `feature/429-casino-durable-rounds` keeps migration 027 and
+  all `anocasino-v1` request/receipt JSON immutable. Migration 028 adds separate
+  durable round/action tables with one active round per SteamID, optimistic
+  revisions, immutable operation receipts and a bounded outstanding-payout
+  reservation. No account-table columns were added because the v1 wallet uses a
+  positional insert.
+- Every writer locks the AP account before a round. A no-randomness plan proves
+  debit/liquidity and maximum gross payout exposure before the transition can
+  consume server randomness. Duplicate operation IDs replay the stored receipt;
+  stale different IDs fail without drawing. Intermediate bonus/Risk/Blackjack
+  winnings stay durably held and reserved; spendable AP is credited once on the
+  terminal action.
+- The legacy wallet now locks/checks an active round reservation after its account
+  lock, preventing credits or v1 games from consuming payout headroom. Migration
+  startup composes 027 then 028 in the Plugin, not Runtime.
+- MariaDB tests cover ten-way duplicate start/terminal replay, restart recovery,
+  competing same-revision actions and legacy-credit reservation enforcement.
+  Local `dotnet` is unavailable, so exact-head CI remains required. The existing
+  casino Panorama source suite passes (3 tests). No native Windows resourcecompiler,
+  Workshop, two-client CS2 or DatHost acceptance was performed.
+- Independent draft dependencies: #430 pins v1 compatibility, #431 adds Risk
+  rules, #432 adds Blackjack rules, #433 adds the bonus-slot rules and #434 adds
+  bounded fruit/coin/roulette animations. Their exact-head CI/reviews must pass
+  before integration. Presenter/plugin wiring for the three multi-action engines
+  remains next; none is yet claimed playable.

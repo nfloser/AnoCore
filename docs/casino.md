@@ -1,5 +1,10 @@
 # AnoCasino – spielbare Version und Bildertausch
 
+> Erweiterungsstatus: Blackjack, Risk und der Book-artige Bonus-Slot werden in
+> separaten Regel- und Persistenzpaketen entwickelt. Sie sind erst nach nativer
+> Presenter-/Plugin-Integration spielbar. Kistenöffnung und simuliertes Inventar
+> gehören ausdrücklich nicht zu AnoCasino.
+
 Diese Version ergänzt den separaten Drei-Frucht-Animationstest. Slots, Coinflip
 und Roulette sind serverseitig spielbar. Die native CS2-Darstellung und alle
 Workshop-Ressourcen müssen auf dem Testserver abgenommen werden; Sourcechecks
