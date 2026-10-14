@@ -49,6 +49,23 @@ public sealed class AnoVetoPresetCatalogTests
     }
 
     [TestMethod]
+    public async Task AsyncRepositoryContract_EnforcesOwnerScopeAndRevision()
+    {
+        IAnoVetoPresetRepository store = new AnoVetoPresetCatalog();
+        var preset = Make(10, "Saved");
+        Assert.AreEqual(1L, await store.CreateAsync(preset));
+        Assert.IsNull(await store.GetAsync(20, "Saved"));
+        var existing = await store.GetAsync(10, "saved");
+        Assert.IsNotNull(existing);
+        Assert.AreEqual(1L, existing.Value.Revision);
+        Assert.AreEqual(2L, await store.ReplaceAsync(10, "Saved", 1, preset.Rename("Updated")));
+        Assert.ThrowsExactly<InvalidOperationException>(
+            () => store.DeleteAsync(10, "Updated", 1).AsTask().GetAwaiter().GetResult());
+        await store.DeleteAsync(10, "Updated", 2);
+        Assert.HasCount(0, await store.ListAsync(10));
+    }
+
+    [TestMethod]
     public void EnforceBoundedPresetCount()
     {
         var store = new AnoVetoPresetCatalog();
