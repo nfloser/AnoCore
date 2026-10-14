@@ -17,6 +17,12 @@ class AnoVetoCreateResourcesTest(unittest.TestCase):
         self.assertNotIn("() => ReferenceEquals(_runtime, created) && createdAnoVeto?.IsActive == true", plugin)
         self.assertIn("() => ReferenceEquals(_runtime, vetoRuntime) && _anoVeto?.IsActive == true", plugin)
 
+    def test_button_labels_do_not_intercept_native_clicks(self):
+        tree = ET.parse(LAYOUT)
+        for button in tree.findall('.//Button'):
+            for label in button.findall('.//Label'):
+                self.assertEqual(label.attrib.get('hittest'), 'false', button.attrib['id'])
+
     def test_all_buttons_exist_once(self):
         tree = ET.parse(LAYOUT)
         ids = [element.attrib.get("id") for element in tree.iter() if element.tag == "Button"]
