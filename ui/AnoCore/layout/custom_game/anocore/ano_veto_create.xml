@@ -69,6 +69,70 @@
                         <Panel id="ano_veto_create_map_7_image" class="ano-create-map-image" hittest="false" />
                         <Label id="ano_veto_create_map_7_text" class="ano-create-map-name" text="{s:text}" />
                     </Button>
+                    <Button id="ano_veto_create_map_8" class="ano-create-map">
+                        <Panel id="ano_veto_create_map_8_image" class="ano-create-map-image" hittest="false" />
+                        <Label id="ano_veto_create_map_8_text" class="ano-create-map-name" text="{s:text}" />
+                    </Button>
+                    <Button id="ano_veto_create_map_9" class="ano-create-map">
+                        <Panel id="ano_veto_create_map_9_image" class="ano-create-map-image" hittest="false" />
+                        <Label id="ano_veto_create_map_9_text" class="ano-create-map-name" text="{s:text}" />
+                    </Button>
+                    <Button id="ano_veto_create_map_10" class="ano-create-map">
+                        <Panel id="ano_veto_create_map_10_image" class="ano-create-map-image" hittest="false" />
+                        <Label id="ano_veto_create_map_10_text" class="ano-create-map-name" text="{s:text}" />
+                    </Button>
+                    <Button id="ano_veto_create_map_11" class="ano-create-map">
+                        <Panel id="ano_veto_create_map_11_image" class="ano-create-map-image" hittest="false" />
+                        <Label id="ano_veto_create_map_11_text" class="ano-create-map-name" text="{s:text}" />
+                    </Button>
+                    <Button id="ano_veto_create_map_12" class="ano-create-map">
+                        <Panel id="ano_veto_create_map_12_image" class="ano-create-map-image" hittest="false" />
+                        <Label id="ano_veto_create_map_12_text" class="ano-create-map-name" text="{s:text}" />
+                    </Button>
+                    <Button id="ano_veto_create_map_13" class="ano-create-map">
+                        <Panel id="ano_veto_create_map_13_image" class="ano-create-map-image" hittest="false" />
+                        <Label id="ano_veto_create_map_13_text" class="ano-create-map-name" text="{s:text}" />
+                    </Button>
+                    <Button id="ano_veto_create_map_14" class="ano-create-map">
+                        <Panel id="ano_veto_create_map_14_image" class="ano-create-map-image" hittest="false" />
+                        <Label id="ano_veto_create_map_14_text" class="ano-create-map-name" text="{s:text}" />
+                    </Button>
+                    <Button id="ano_veto_create_map_15" class="ano-create-map">
+                        <Panel id="ano_veto_create_map_15_image" class="ano-create-map-image" hittest="false" />
+                        <Label id="ano_veto_create_map_15_text" class="ano-create-map-name" text="{s:text}" />
+                    </Button>
+                    <Button id="ano_veto_create_map_16" class="ano-create-map">
+                        <Panel id="ano_veto_create_map_16_image" class="ano-create-map-image" hittest="false" />
+                        <Label id="ano_veto_create_map_16_text" class="ano-create-map-name" text="{s:text}" />
+                    </Button>
+                    <Button id="ano_veto_create_map_17" class="ano-create-map">
+                        <Panel id="ano_veto_create_map_17_image" class="ano-create-map-image" hittest="false" />
+                        <Label id="ano_veto_create_map_17_text" class="ano-create-map-name" text="{s:text}" />
+                    </Button>
+                    <Button id="ano_veto_create_map_18" class="ano-create-map">
+                        <Panel id="ano_veto_create_map_18_image" class="ano-create-map-image" hittest="false" />
+                        <Label id="ano_veto_create_map_18_text" class="ano-create-map-name" text="{s:text}" />
+                    </Button>
+                    <Button id="ano_veto_create_map_19" class="ano-create-map">
+                        <Panel id="ano_veto_create_map_19_image" class="ano-create-map-image" hittest="false" />
+                        <Label id="ano_veto_create_map_19_text" class="ano-create-map-name" text="{s:text}" />
+                    </Button>
+                    <Button id="ano_veto_create_map_20" class="ano-create-map">
+                        <Panel id="ano_veto_create_map_20_image" class="ano-create-map-image" hittest="false" />
+                        <Label id="ano_veto_create_map_20_text" class="ano-create-map-name" text="{s:text}" />
+                    </Button>
+                    <Button id="ano_veto_create_map_21" class="ano-create-map">
+                        <Panel id="ano_veto_create_map_21_image" class="ano-create-map-image" hittest="false" />
+                        <Label id="ano_veto_create_map_21_text" class="ano-create-map-name" text="{s:text}" />
+                    </Button>
+                    <Button id="ano_veto_create_map_22" class="ano-create-map">
+                        <Panel id="ano_veto_create_map_22_image" class="ano-create-map-image" hittest="false" />
+                        <Label id="ano_veto_create_map_22_text" class="ano-create-map-name" text="{s:text}" />
+                    </Button>
+                    <Button id="ano_veto_create_map_23" class="ano-create-map">
+                        <Panel id="ano_veto_create_map_23_image" class="ano-create-map-image" hittest="false" />
+                        <Label id="ano_veto_create_map_23_text" class="ano-create-map-name" text="{s:text}" />
+                    </Button>
                     </Panel>
                     <Panel class="ano-create-picker-actions">
                         <Button id="ano_veto_create_save" class="ano-create-action"><Label text="SAVE PRESET" /></Button>
