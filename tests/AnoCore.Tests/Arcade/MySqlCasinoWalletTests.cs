@@ -17,13 +17,18 @@ public sealed class MySqlCasinoWalletTests
         var cs = Environment.GetEnvironmentVariable("ANOCORE_TEST_MYSQL");
         if (string.IsNullOrWhiteSpace(cs)) Assert.Inconclusive("ANOCORE_TEST_MYSQL is not configured.");
         _db = new(cs!); _wallet = new(_db);
-        await _db.WithConnectionAsync(async (c, t) => { await new CasinoSchemaMigration027().ApplyAsync(c, t); return true; });
+        await _db.WithConnectionAsync(async (c, t) =>
+        {
+            await new CasinoSchemaMigration027().ApplyAsync(c, t);
+            await new CasinoSchemaMigration028().ApplyAsync(c, t);
+            return true;
+        });
         await Clear();
     }
     [TestCleanup] public async Task Cleanup() { if (_db is not null) await Clear(); }
     private async Task Clear() => await _db.WithConnectionAsync(async (c, t) =>
     {
-        foreach (var table in new[] { "ano_casino_operations", "ano_ap_accounts" }) { await using var cmd = c.CreateCommand(); cmd.CommandText = $"DELETE FROM {table} WHERE player_steam_id={Player.SteamId64}"; await cmd.ExecuteNonQueryAsync(t); }
+        foreach (var table in new[] { "ano_casino_round_actions", "ano_casino_rounds", "ano_casino_operations", "ano_ap_accounts" }) { await using var cmd = c.CreateCommand(); cmd.CommandText = $"DELETE FROM {table} WHERE player_steam_id={Player.SteamId64}"; await cmd.ExecuteNonQueryAsync(t); }
         return true;
     });
     private ValueTask<CasinoReceipt> Credit(int amount) => _wallet.ApplyAsync(new(Guid.NewGuid(), Player, CasinoAction.Credit, amount, null));
@@ -62,5 +67,25 @@ public sealed class MySqlCasinoWalletTests
         await Assert.ThrowsExactlyAsync<CasinoRejectedException>(async () => await _wallet.ApplyAsync(new(id, Player, CasinoAction.Credit, 200, null)));
         await Assert.ThrowsExactlyAsync<CasinoRejectedException>(async () => await _wallet.ApplyAsync(new(Guid.NewGuid(), Player, CasinoAction.Play, 0, new(CasinoGame.Slots, 100, 0))));
         Assert.AreEqual(new CasinoBalance(100, 0, 1), await _wallet.ReadAsync(Player)); Assert.AreEqual(1, (await _wallet.HistoryAsync(Player)).Count);
+    }
+
+    [TestMethod]
+    public async Task ActiveRoundReservationProtectsAccountLimitFromLegacyCredits()
+    {
+        await _db.WithConnectionAsync(async (connection, token) =>
+        {
+            await using var command = connection.CreateCommand();
+            command.CommandText = $"INSERT INTO ano_ap_accounts VALUES ({Player.SteamId64},999999900,0,1)";
+            await command.ExecuteNonQueryAsync(token);
+            return true;
+        });
+        var store = new MySqlCasinoRoundStore(_db);
+        await store.ApplyAsync(new(Guid.NewGuid(), Guid.NewGuid(), Player, CasinoRoundKind.Risk, 0, "{\"action\":\"start\"}"),
+            _ => new(0, 100),
+            _ => new("anocasino-risk-v1", "{\"held\":100}", 0, 0, 100, false, "{\"started\":true}"));
+
+        await Assert.ThrowsExactlyAsync<CasinoRejectedException>(async () =>
+            await _wallet.ApplyAsync(new(Guid.NewGuid(), Player, CasinoAction.Credit, 1, null)));
+        Assert.AreEqual(999_999_900, (await _wallet.ReadAsync(Player)).Available);
     }
 }

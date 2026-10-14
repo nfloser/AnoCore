@@ -1,5 +1,10 @@
 # AnoCasino – spielbare Version und Bildertausch
 
+> Erweiterungsstatus: Blackjack, Risk und der Book-artige Bonus-Slot werden in
+> separaten Regel- und Persistenzpaketen entwickelt. Sie sind erst nach nativer
+> Presenter-/Plugin-Integration spielbar. Kistenöffnung und simuliertes Inventar
+> gehören ausdrücklich nicht zu AnoCasino.
+
 Diese Version ergänzt den separaten Drei-Frucht-Animationstest. Der bestehende Stand
 `anocasino-v1` bleibt der Legacy-Vertrag für gespeicherte Vorgänge; neue
 Spiel-Engines dürfen dessen Auswertungen und Belege nicht verändern. Slots, Coinflip
@@ -163,7 +168,8 @@ vollständigen Serverneustart testen. AP dürfen nicht entstehen/verschwinden,
 außer durch dokumentierte Spielverluste/-gewinne oder Konsolengutschriften.
 Konto nach Neustart und den letzten Beleg mit dem Zustand vor Abbruch vergleichen.
 
-Kistensimulator, Wettzentrale und Book-Automat bleiben getrennte Folgearbeiten.
+Kistensimulator und Wettzentrale bleiben getrennte Folgearbeiten. Der Book-artige
+Bonus-Slot gehört zum Pflichtumfang, ist aber erst nach #429 spielbar.
 
 ## Kompatibilität und erweiterte Automaten
 

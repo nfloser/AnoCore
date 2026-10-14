@@ -42,6 +42,7 @@ public sealed class MySqlCasinoWallet(IDatabase database) : ICasinoWallet
                     return JsonSerializer.Deserialize<CasinoReceipt>(reader.GetString(1))!;
                 }
             }
+            var reservedPayout = await ReservedPayoutAsync(connection, transaction, op.Player, ct).ConfigureAwait(false);
             var available = before.Available; var allocated = before.Allocated; CasinoOutcome? outcome = null;
             switch (op.Action)
             {
@@ -52,12 +53,12 @@ public sealed class MySqlCasinoWallet(IDatabase database) : ICasinoWallet
                 case CasinoAction.Credit: available = checked(available + op.Amount); break;
                 case CasinoAction.Play:
                     if (allocated < op.Game!.Stake) throw new CasinoRejectedException("Nicht genügend Automatenguthaben.");
-                    if (available + allocated - op.Game.Stake + CasinoRules.MaximumPayout(op.Game) > 1000000000L)
+                    if (available + allocated - op.Game.Stake + CasinoRules.MaximumPayout(op.Game) + reservedPayout > 1000000000L)
                         throw new CasinoRejectedException("Kontolimit: nicht genügend Spielraum für die maximale Auszahlung.");
                     outcome = CasinoRules.Draw(op.Game);
                     allocated = checked(allocated - op.Game.Stake + outcome.Payout); break;
             }
-            if (available + allocated > 1000000000L) throw new CasinoRejectedException("AP-Kontolimit erreicht.");
+            if (available + allocated + reservedPayout > 1000000000L) throw new CasinoRejectedException("AP-Kontolimit erreicht.");
             var result = new CasinoReceipt(op.Id, new(available, allocated, checked(before.Revision + 1)), outcome);
             await using (var update = Command(connection, transaction, "UPDATE ano_ap_accounts SET available=@available, allocated=@allocated, revision=@revision WHERE player_steam_id=@player", op.Player))
             {
@@ -86,6 +87,13 @@ public sealed class MySqlCasinoWallet(IDatabase database) : ICasinoWallet
         await using var cmd = Command(connection, transaction, "SELECT available,allocated,revision FROM ano_ap_accounts WHERE player_steam_id=@player" + (locked ? " FOR UPDATE" : ""), player);
         await using var reader = await cmd.ExecuteReaderAsync(token).ConfigureAwait(false);
         return await reader.ReadAsync(token).ConfigureAwait(false) ? new(reader.GetInt64(0), reader.GetInt64(1), reader.GetInt64(2)) : new(0, 0, 0);
+    }
+    private static async ValueTask<long> ReservedPayoutAsync(DbConnection connection, DbTransaction transaction, PlayerId player, CancellationToken token)
+    {
+        await using var cmd = Command(connection, transaction,
+            "SELECT reserved_payout FROM ano_casino_rounds WHERE active_player_steam_id=@player FOR UPDATE", player);
+        var value = await cmd.ExecuteScalarAsync(token).ConfigureAwait(false);
+        return value is null or DBNull ? 0 : Convert.ToInt64(value, CultureInfo.InvariantCulture);
     }
     private static async ValueTask ExecuteAsync(DbConnection c, DbTransaction t, string sql, PlayerId player, CancellationToken token)
     { await using var cmd = Command(c, t, sql, player); await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false); }
