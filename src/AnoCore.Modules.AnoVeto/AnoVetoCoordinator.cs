@@ -91,6 +91,12 @@ public sealed class AnoVetoCoordinator
         return await PublishSelectedAsync(manager, distinctEligiblePlayers, selected, options, now, cancellationToken).ConfigureAwait(false);
     }
 
+    public IReadOnlyList<MapDefinition> GetAvailableMaps()
+    {
+        var catalog = _catalog() ?? throw new InvalidOperationException("AnoVeto map catalog unavailable.");
+        return catalog.All.ToArray();
+    }
+
     /// <summary>
     /// Starts a normal public vote from an explicitly confirmed eight-map pool.
     /// Maps are resolved from the live catalog, never trusted from the HUD or preset labels.
