@@ -83,6 +83,7 @@ public sealed class AnoVetoCommandController : IDisposable
         return action.Trim().ToLowerInvariant() switch
         {
             "create" => CreateAsync(context),
+            "random" => CreateAsync(context),
             "status" => ValueTask.FromResult(GetStatus()),
             "cancel" => CancelAsync(context),
             _ => ValueTask.FromResult(CommandResult.Fail(
