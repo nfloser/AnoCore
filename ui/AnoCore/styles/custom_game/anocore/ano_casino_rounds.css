@@ -31,10 +31,10 @@ Label { color:#e9efed; font-family:Arial; font-size:17px; margin:4px; }
 .reel-motion { visibility:collapse; }
 .motion-a .reel-motion, .motion-b .reel-motion { visibility:visible; }
 .motion-a .reel-final, .motion-b .reel-final { visibility:collapse; }
-.motion-a .reel-motion { animation-name:book-roll-a; animation-duration:0.4s; animation-timing-function:linear; animation-iteration-count:infinite; }
-.motion-b .reel-motion { animation-name:book-roll-b; animation-duration:0.4s; animation-timing-function:linear; animation-iteration-count:infinite; }
-@keyframes book-roll-a { 0% { transform:translateY(0px); } 100% { transform:translateY(-480px); } }
-@keyframes book-roll-b { 0% { transform:translateY(0px); } 100% { transform:translateY(-480px); } }
+.motion-a .reel-motion { animation-name:'book-roll-a'; animation-duration:0.4s; animation-timing-function:linear; animation-iteration-count:infinite; }
+.motion-b .reel-motion { animation-name:'book-roll-b'; animation-duration:0.4s; animation-timing-function:linear; animation-iteration-count:infinite; }
+@keyframes 'book-roll-a' { 0% { transform:translateY(0px); } 100% { transform:translateY(-480px); } }
+@keyframes 'book-roll-b' { 0% { transform:translateY(0px); } 100% { transform:translateY(-480px); } }
 .table-note { horizontal-align:center; font-size:14px; color:#b4cbbd; }
 .blackjack-table { width:100%; flow-children:down; background-color:#0e3b2b; border:2px solid #287547; border-radius:16px; padding:20px; }
 .table-heading { color:#a4c8b4; font-size:15px; horizontal-align:center; }
@@ -42,17 +42,17 @@ Label { color:#e9efed; font-family:Arial; font-size:17px; margin:4px; }
 .table-line { width:80%; height:1px; background-color:#287547; horizontal-align:center; margin-bottom:12px; }
 .round-detail { width:100%; max-height:190px; white-space:normal; font-size:21px; color:#e9efed; margin:12px 0px; }
 .view-blackjack .round-detail { background-color:#0e3b2b; padding:15px; border-radius:8px; }
-.motion-a.view-blackjack .round-detail { animation-name:card-deal-a; animation-duration:0.6s; }
-.motion-b.view-blackjack .round-detail { animation-name:card-deal-b; animation-duration:0.6s; }
-@keyframes card-deal-a { 0% { opacity:0; transform:translateX(70px); } 100% { opacity:1; transform:translateX(0px); } }
-@keyframes card-deal-b { 0% { opacity:0; transform:translateX(70px); } 100% { opacity:1; transform:translateX(0px); } }
+.motion-a.view-blackjack .round-detail { animation-name:'card-deal-a'; animation-duration:0.6s; }
+.motion-b.view-blackjack .round-detail { animation-name:'card-deal-b'; animation-duration:0.6s; }
+@keyframes 'card-deal-a' { 0% { opacity:0; transform:translateX(70px); } 100% { opacity:1; transform:translateX(0px); } }
+@keyframes 'card-deal-b' { 0% { opacity:0; transform:translateX(70px); } 100% { opacity:1; transform:translateX(0px); } }
 .risk-table { horizontal-align:center; flow-children:down; }
 .risk-chip { width:130px; height:130px; border-radius:65px; background-color:#165e3a; border:6px solid #39e38c; horizontal-align:center; margin:14px; }
 .risk-chip Label { horizontal-align:center; vertical-align:center; font-size:48px; font-weight:bold; }
-.motion-a.view-risk .risk-chip { animation-name:risk-turn-a; animation-duration:0.6s; }
-.motion-b.view-risk .risk-chip { animation-name:risk-turn-b; animation-duration:0.6s; }
-@keyframes risk-turn-a { 0% { transform:rotateY(0deg); } 100% { transform:rotateY(360deg); } }
-@keyframes risk-turn-b { 0% { transform:rotateY(0deg); } 100% { transform:rotateY(360deg); } }
+.motion-a.view-risk .risk-chip { animation-name:'risk-turn-a'; animation-duration:0.6s; }
+.motion-b.view-risk .risk-chip { animation-name:'risk-turn-b'; animation-duration:0.6s; }
+@keyframes 'risk-turn-a' { 0% { transform:rotateY(0deg); } 100% { transform:rotateY(360deg); } }
+@keyframes 'risk-turn-b' { 0% { transform:rotateY(0deg); } 100% { transform:rotateY(360deg); } }
 .motion-a.view-risk .round-detail, .motion-b.view-risk .round-detail, .motion-a.view-book .round-detail, .motion-b.view-book .round-detail { opacity:0; }
 .status { color:#39e38c; width:100%; max-height:110px; white-space:normal; }
 .note { color:#9faea7; font-size:14px; }
@@ -67,10 +67,10 @@ Label { color:#e9efed; font-family:Arial; font-size:17px; margin:4px; }
 .book-symbol.symbol-7 { color:#6f3a10; background-color:#fff1bf; border:3px solid #bf8d35; font-size:22px; font-weight:bold; }
 .motion-a .book-reel.stopped .reel-motion, .motion-b .book-reel.stopped .reel-motion { visibility:collapse; }
 .motion-a .book-reel.stopped .reel-final, .motion-b .book-reel.stopped .reel-final { visibility:visible; }
-.motion-a .book-reel.stopped .reel-final { animation-name:book-stop-a; animation-duration:0.25s; }
-.motion-b .book-reel.stopped .reel-final { animation-name:book-stop-b; animation-duration:0.25s; }
-@keyframes book-stop-a { 0% { transform:translateY(-12px); } 70% { transform:translateY(3px); } 100% { transform:translateY(0px); } }
-@keyframes book-stop-b { 0% { transform:translateY(-12px); } 70% { transform:translateY(3px); } 100% { transform:translateY(0px); } }
+.motion-a .book-reel.stopped .reel-final { animation-name:'book-stop-a'; animation-duration:0.25s; }
+.motion-b .book-reel.stopped .reel-final { animation-name:'book-stop-b'; animation-duration:0.25s; }
+@keyframes 'book-stop-a' { 0% { transform:translateY(-12px); } 70% { transform:translateY(3px); } 100% { transform:translateY(0px); } }
+@keyframes 'book-stop-b' { 0% { transform:translateY(-12px); } 70% { transform:translateY(3px); } 100% { transform:translateY(0px); } }
 
 #casino_round_risk { visibility:collapse; }
 .can-risk #casino_round_risk { visibility:visible; }
