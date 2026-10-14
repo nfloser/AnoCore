@@ -177,6 +177,44 @@ target.write_bytes(b'fresh-compiled:'+source.name.encode())
             self.assertEqual(b"stale-addon:" + relative.encode(), (self.addon / relative).read_bytes())
         self.assert_unrelated_preserved()
 
+    def run_with_transfer_failure(self, operation):
+        def literal(value):
+            return "'" + str(value).replace("'", "''") + "'"
+
+        wrapper = Path(self.temp.name) / (operation + "-failure.ps1")
+        source_prefix = self.local if operation == "Move" else self.addon
+        shim = r"""param([string]$LiteralPath, [string]$Destination, [switch]$Force)
+    if ($LiteralPath.StartsWith($script:sourcePrefix) -and
+        ($script:operation -eq 'Move' -or $Destination.StartsWith($script:clientPrefix))) {
+        $script:transferCount++
+        if ($script:transferCount -eq 2) { throw 'Injected second transfer failure' }
+    }
+"""
+        wrapper.write_text(
+            "$ErrorActionPreference = 'Stop'\n"
+            + "$script:transferCount = 0\n"
+            + "$script:operation = " + literal(operation) + "\n"
+            + "$script:sourcePrefix = " + literal(source_prefix) + "\n"
+            + "$script:clientPrefix = " + literal(self.local) + "\n"
+            + "function " + operation + "-Item {\n" + shim
+            + "    Microsoft.PowerShell.Management\\" + operation + "-Item @PSBoundParameters\n}\n"
+            + "& " + literal(ROOT / "ui/AnoCore/repair-arcade.ps1")
+            + " -Cs2 " + literal(self.cs2)
+            + " -Mode " + ("UseWorkshop" if operation == "Move" else "InstallLocalClient") + "\n")
+        return self.run_repair(script=str(wrapper))
+
+    def test_workshop_second_move_failure_restores_all_original_client_files(self):
+        result = self.run_with_transfer_failure("Move")
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn("Injected second transfer failure", result.stdout + result.stderr)
+        self.assert_original_client()
+
+    def test_install_second_copy_failure_restores_all_original_client_files(self):
+        result = self.run_with_transfer_failure("Copy")
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn("Injected second transfer failure", result.stdout + result.stderr)
+        self.assert_original_client()
+
     def test_invalid_addon_paths_are_rejected_before_any_compilation_or_client_change(self):
         for addon in ("../escape", "nested/addon", "nested\\addon", ".."):
             with self.subTest(addon=addon):
