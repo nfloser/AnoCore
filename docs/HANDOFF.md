@@ -1070,3 +1070,7 @@ visible marker ARCADE UI CHECK2026-10-14 identifies the source version. Existing
 combined/separate builders now reject stale outputs too. Owner must update the
 plugin and test client/Workshop rendering before native acceptance; CasinoEnabled
 is unnecessary for the original probe. Keep the fix PR draft until native proof.
+
+## Native acceptance regression, 14 October 2026 (#464)
+
+Veto's active predicate captured `created` and `createdAnoVeto`, both cleared during startup ownership transfer. Consequently all native Veto management requests failed closed after activation regardless of assigned CSS permissions. Capture the runtime value and check the installed `_anoVeto` module. Keep reconnect/session and permission checks intact. Regression: the operator source contract must reject the cleared-variable predicate. Retest `!anoveto create`, random/manual creation and cancellation as an authorized host, then as an ordinary player. Client interpolation warnings alone do not indicate an authorization failure.

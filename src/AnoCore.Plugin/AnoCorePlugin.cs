@@ -804,11 +804,14 @@ public sealed class AnoCorePlugin : BasePlugin
 
             try
             {
+                // Startup transfers ownership by clearing `created` below. Capture
+                // the runtime value, and consult the installed module for liveness.
+                var vetoRuntime = created;
                 var votes = new SessionBoundVetoVoteService(
-                    created.Players,
+                    vetoRuntime.Players,
                     action => Server.NextWorldUpdate(action),
                     CounterStrikeVetoAuthorization.HasPermission,
-                    () => ReferenceEquals(_runtime, created) && createdAnoVeto?.IsActive == true);
+                    () => ReferenceEquals(_runtime, vetoRuntime) && _anoVeto?.IsActive == true);
                 createdAnoVeto = await AnoVetoModuleRuntime.CreateAsync(
                     configuration,
                     created.Commands,
