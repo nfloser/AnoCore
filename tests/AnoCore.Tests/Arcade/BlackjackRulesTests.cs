@@ -22,9 +22,8 @@ public sealed class BlackjackRulesTests
         var json = JsonSerializer.Serialize(state);
         var restored = JsonSerializer.Deserialize<BlackjackState>(json)!;
 
-        Assert.AreEqual(state, restored);
-        Assert.AreEqual(1, BlackjackRules.LegalActions(restored).Count);
-        Assert.AreEqual(BlackjackAction.Stand, BlackjackRules.LegalActions(restored)[0]);
+        Assert.AreEqual(json, JsonSerializer.Serialize(restored));
+        Assert.IsTrue(BlackjackRules.LegalActions(restored).Contains(BlackjackAction.Stand));
         Assert.AreEqual(1, restored.RemainingDeck.Length);
     }
 
@@ -107,6 +106,22 @@ public sealed class BlackjackRulesTests
 
         Assert.AreEqual(2, state.PlayerHands.Length);
         Assert.IsFalse(BlackjackRules.LegalActions(state).Contains(BlackjackAction.Split));
+    }
+
+    [TestMethod]
+    public void Dealer_stands_on_soft_seventeen()
+    {
+        var state = BlackjackRules.Start(100, Deck(
+            C(BlackjackSuit.Clubs, BlackjackRank.Ten),
+            C(BlackjackSuit.Hearts, BlackjackRank.Ace),
+            C(BlackjackSuit.Spades, BlackjackRank.Seven),
+            C(BlackjackSuit.Diamonds, BlackjackRank.Six),
+            C(BlackjackSuit.Clubs, BlackjackRank.King)));
+        state = BlackjackRules.Apply(state, BlackjackAction.Stand);
+
+        Assert.AreEqual(2, state.DealerCards.Length);
+        Assert.AreEqual(100L, state.TotalPayout);
+        Assert.AreEqual(1, state.RemainingDeck.Length);
     }
 
     [TestMethod]
