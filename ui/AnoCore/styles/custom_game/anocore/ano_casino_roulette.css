@@ -1,1 +1,224 @@
 .ano-hud-host{width:100%;height:100%;overflow:noclip;}.casino-overlay{width:100%;height:100%;opacity:0;visibility:collapse;}.casino-overlay.shown{opacity:1;visibility:visible;}.casino-dim{width:4000px;height:2400px;horizontal-align:center;vertical-align:center;background-color:#06120ddd;}.casino-window{width:1040px;height:880px;padding:18px;horizontal-align:center;vertical-align:center;flow-children:down;background-color:#080d0afc;border:2px solid #2b893d;}.casino-window Label{color:#e9efed;font-size:16px;}.casino-header,.casino-row{flow-children:right;width:100%;margin-bottom:8px;}.casino-title{font-size:28px;color:#39e38c;width:820px;}.casino-button{padding:7px 10px;margin-right:6px;background-color:#132019;border:1px solid #2b893d;}.casino-primary{background-color:#173d28;}.casino-wheel{width:150px;height:150px;horizontal-align:center;border-radius:75px;border:5px solid #2b893d;background-color:#111714;}.casino-wheel-result{horizontal-align:center;vertical-align:center;font-size:38px;color:#39e38c;}.casino-pointer{horizontal-align:center;color:#39e38c;font-size:24px;}.spinning{animation-name:'wheel-spin';animation-duration:.65s;animation-iteration-count:infinite;}@keyframes 'wheel-spin'{0%{transform:rotateZ(0deg);}100%{transform:rotateZ(360deg);}}.land-red{background-color:#7b202c;}.land-black{background-color:#171d1a;}.land-green{background-color:#147443;}.casino-number-grid{flow-children:right-wrap;width:100%;height:230px;}.casino-number{width:7%;height:38px;margin:3px;background-color:#171d1a;border:1px solid #42544a;}.casino-number:hover,.casino-button:hover{border-color:#39e38c;}.casino-number Label{horizontal-align:center;vertical-align:center;}.casino-status{width:100%;min-height:38px;color:#9fd6b3;}.busy .casino-button,.busy .casino-number{opacity:.45;}
+
+/* Shared black, green and gold game cabinet. */
+.casino-game-banner { width: 100%; height: 112px; min-height: 112px; flow-children: right; margin-bottom: 12px; background-color: #101b12; border-bottom: 1px solid #b99b55; }
+.casino-cover { width: 112px; height: 112px; background-image: url("s2r://panorama/styles/custom_game/anocore/casino/roulette.vtex"); background-size: contain; background-repeat: no-repeat; }
+.casino-game-copy { flow-children: down; padding: 22px; }
+.casino-game-copy .casino-game-name { font-size: 28px; color: #98f277; font-weight: bold; }
+.casino-game-copy .casino-game-caption { font-size: 14px; color: #d7bd77; margin-top: 6px; }
+.casino-window { border: 2px solid #aa8c47; box-shadow: #000000cc 0px 8px 30px 0px; }
+.casino-button:hover, .casino-choice:hover { brightness: 1.3; border-color: #92ef72; }
+.casino-window { width: 1060px; height: 1000px; }
+.casino-wheel { width: 280px; height: 280px; min-height: 280px; border: 0px solid transparent; background-color: transparent; }
+.casino-wheel-rotor { width: 280px; height: 280px; background-image: url("s2r://panorama/styles/custom_game/anocore/casino/wheel.vtex"); background-size: contain; background-repeat: no-repeat; }
+.casino-wheel-result { background-color: #101d14; border: 2px solid #cdb36a; border-radius: 40px; width: 80px; height: 80px; text-align: center; padding-top: 17px; font-size: 34px; }
+.casino-wheel.spinning { animation-name: none; }
+.spinning .casino-wheel-rotor { animation-name: 'roulette-turn-a'; animation-duration: 0.7s; animation-timing-function: linear; animation-iteration-count: infinite; }
+.spinning.turn-b .casino-wheel-rotor { animation-name: 'roulette-turn-b'; }
+.spinning .casino-wheel-result { opacity: 0; }
+.casino-ball-orbit { width: 280px; height: 280px; }
+.casino-ball { width: 12px; height: 12px; horizontal-align: center; margin-top: 17px; border-radius: 6px; background-color: #fff4d2; box-shadow: #fff4d288 0px 0px 8px 0px; }
+.spinning .casino-ball-orbit { animation-name: 'roulette-ball'; animation-duration: 0.48s; animation-timing-function: linear; animation-iteration-count: infinite; }
+@keyframes 'roulette-turn-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(360deg); } }
+@keyframes 'roulette-turn-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(360deg); } }
+@keyframes 'roulette-ball' { 0% { transform: rotateZ(360deg); } 100% { transform: rotateZ(0deg); } }
+.land-red .casino-wheel-result { border-color: #e46264; }
+.land-black .casino-wheel-result { border-color: #cdb36a; }
+.land-green .casino-wheel-result { border-color: #92ef72; }
+.casino-wheel-rotor { transition-property: transform; transition-duration: 0.4s; transition-timing-function: ease-out; }
+.land-n0 .casino-wheel-rotor { transform: rotateZ(1440.000000deg); }
+.land-n32 .casino-wheel-rotor { transform: rotateZ(1430.270270deg); }
+.land-n15 .casino-wheel-rotor { transform: rotateZ(1420.540541deg); }
+.land-n19 .casino-wheel-rotor { transform: rotateZ(1410.810811deg); }
+.land-n4 .casino-wheel-rotor { transform: rotateZ(1401.081081deg); }
+.land-n21 .casino-wheel-rotor { transform: rotateZ(1391.351351deg); }
+.land-n2 .casino-wheel-rotor { transform: rotateZ(1381.621622deg); }
+.land-n25 .casino-wheel-rotor { transform: rotateZ(1371.891892deg); }
+.land-n17 .casino-wheel-rotor { transform: rotateZ(1362.162162deg); }
+.land-n34 .casino-wheel-rotor { transform: rotateZ(1352.432432deg); }
+.land-n6 .casino-wheel-rotor { transform: rotateZ(1342.702703deg); }
+.land-n27 .casino-wheel-rotor { transform: rotateZ(1332.972973deg); }
+.land-n13 .casino-wheel-rotor { transform: rotateZ(1323.243243deg); }
+.land-n36 .casino-wheel-rotor { transform: rotateZ(1313.513514deg); }
+.land-n11 .casino-wheel-rotor { transform: rotateZ(1303.783784deg); }
+.land-n30 .casino-wheel-rotor { transform: rotateZ(1294.054054deg); }
+.land-n8 .casino-wheel-rotor { transform: rotateZ(1284.324324deg); }
+.land-n23 .casino-wheel-rotor { transform: rotateZ(1274.594595deg); }
+.land-n10 .casino-wheel-rotor { transform: rotateZ(1264.864865deg); }
+.land-n5 .casino-wheel-rotor { transform: rotateZ(1255.135135deg); }
+.land-n24 .casino-wheel-rotor { transform: rotateZ(1245.405405deg); }
+.land-n16 .casino-wheel-rotor { transform: rotateZ(1235.675676deg); }
+.land-n33 .casino-wheel-rotor { transform: rotateZ(1225.945946deg); }
+.land-n1 .casino-wheel-rotor { transform: rotateZ(1216.216216deg); }
+.land-n20 .casino-wheel-rotor { transform: rotateZ(1206.486486deg); }
+.land-n14 .casino-wheel-rotor { transform: rotateZ(1196.756757deg); }
+.land-n31 .casino-wheel-rotor { transform: rotateZ(1187.027027deg); }
+.land-n9 .casino-wheel-rotor { transform: rotateZ(1177.297297deg); }
+.land-n22 .casino-wheel-rotor { transform: rotateZ(1167.567568deg); }
+.land-n18 .casino-wheel-rotor { transform: rotateZ(1157.837838deg); }
+.land-n29 .casino-wheel-rotor { transform: rotateZ(1148.108108deg); }
+.land-n7 .casino-wheel-rotor { transform: rotateZ(1138.378378deg); }
+.land-n28 .casino-wheel-rotor { transform: rotateZ(1128.648649deg); }
+.land-n12 .casino-wheel-rotor { transform: rotateZ(1118.918919deg); }
+.land-n35 .casino-wheel-rotor { transform: rotateZ(1109.189189deg); }
+.land-n3 .casino-wheel-rotor { transform: rotateZ(1099.459459deg); }
+.land-n26 .casino-wheel-rotor { transform: rotateZ(1089.729730deg); }
+
+/* One client-rendered eased spin per server receipt, aligned to the exact result. */
+.spinning .casino-wheel-rotor { animation-duration: 3.6s; animation-iteration-count: 1; animation-timing-function: ease-out; animation-fill-mode: both; }
+.spinning .casino-ball-orbit { animation-duration: 3.6s; animation-iteration-count: 1; animation-timing-function: ease-out; animation-fill-mode: both; }
+.spinning.target-n0 .casino-wheel-rotor { animation-name: 'roulette-0-a'; }
+@keyframes 'roulette-0-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1440.000000deg); } }
+.spinning.turn-b.target-n0 .casino-wheel-rotor { animation-name: 'roulette-0-b'; }
+@keyframes 'roulette-0-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1440.000000deg); } }
+.spinning.target-n32 .casino-wheel-rotor { animation-name: 'roulette-32-a'; }
+@keyframes 'roulette-32-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1430.270270deg); } }
+.spinning.turn-b.target-n32 .casino-wheel-rotor { animation-name: 'roulette-32-b'; }
+@keyframes 'roulette-32-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1430.270270deg); } }
+.spinning.target-n15 .casino-wheel-rotor { animation-name: 'roulette-15-a'; }
+@keyframes 'roulette-15-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1420.540541deg); } }
+.spinning.turn-b.target-n15 .casino-wheel-rotor { animation-name: 'roulette-15-b'; }
+@keyframes 'roulette-15-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1420.540541deg); } }
+.spinning.target-n19 .casino-wheel-rotor { animation-name: 'roulette-19-a'; }
+@keyframes 'roulette-19-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1410.810811deg); } }
+.spinning.turn-b.target-n19 .casino-wheel-rotor { animation-name: 'roulette-19-b'; }
+@keyframes 'roulette-19-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1410.810811deg); } }
+.spinning.target-n4 .casino-wheel-rotor { animation-name: 'roulette-4-a'; }
+@keyframes 'roulette-4-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1401.081081deg); } }
+.spinning.turn-b.target-n4 .casino-wheel-rotor { animation-name: 'roulette-4-b'; }
+@keyframes 'roulette-4-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1401.081081deg); } }
+.spinning.target-n21 .casino-wheel-rotor { animation-name: 'roulette-21-a'; }
+@keyframes 'roulette-21-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1391.351351deg); } }
+.spinning.turn-b.target-n21 .casino-wheel-rotor { animation-name: 'roulette-21-b'; }
+@keyframes 'roulette-21-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1391.351351deg); } }
+.spinning.target-n2 .casino-wheel-rotor { animation-name: 'roulette-2-a'; }
+@keyframes 'roulette-2-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1381.621622deg); } }
+.spinning.turn-b.target-n2 .casino-wheel-rotor { animation-name: 'roulette-2-b'; }
+@keyframes 'roulette-2-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1381.621622deg); } }
+.spinning.target-n25 .casino-wheel-rotor { animation-name: 'roulette-25-a'; }
+@keyframes 'roulette-25-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1371.891892deg); } }
+.spinning.turn-b.target-n25 .casino-wheel-rotor { animation-name: 'roulette-25-b'; }
+@keyframes 'roulette-25-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1371.891892deg); } }
+.spinning.target-n17 .casino-wheel-rotor { animation-name: 'roulette-17-a'; }
+@keyframes 'roulette-17-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1362.162162deg); } }
+.spinning.turn-b.target-n17 .casino-wheel-rotor { animation-name: 'roulette-17-b'; }
+@keyframes 'roulette-17-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1362.162162deg); } }
+.spinning.target-n34 .casino-wheel-rotor { animation-name: 'roulette-34-a'; }
+@keyframes 'roulette-34-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1352.432432deg); } }
+.spinning.turn-b.target-n34 .casino-wheel-rotor { animation-name: 'roulette-34-b'; }
+@keyframes 'roulette-34-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1352.432432deg); } }
+.spinning.target-n6 .casino-wheel-rotor { animation-name: 'roulette-6-a'; }
+@keyframes 'roulette-6-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1342.702703deg); } }
+.spinning.turn-b.target-n6 .casino-wheel-rotor { animation-name: 'roulette-6-b'; }
+@keyframes 'roulette-6-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1342.702703deg); } }
+.spinning.target-n27 .casino-wheel-rotor { animation-name: 'roulette-27-a'; }
+@keyframes 'roulette-27-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1332.972973deg); } }
+.spinning.turn-b.target-n27 .casino-wheel-rotor { animation-name: 'roulette-27-b'; }
+@keyframes 'roulette-27-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1332.972973deg); } }
+.spinning.target-n13 .casino-wheel-rotor { animation-name: 'roulette-13-a'; }
+@keyframes 'roulette-13-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1323.243243deg); } }
+.spinning.turn-b.target-n13 .casino-wheel-rotor { animation-name: 'roulette-13-b'; }
+@keyframes 'roulette-13-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1323.243243deg); } }
+.spinning.target-n36 .casino-wheel-rotor { animation-name: 'roulette-36-a'; }
+@keyframes 'roulette-36-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1313.513514deg); } }
+.spinning.turn-b.target-n36 .casino-wheel-rotor { animation-name: 'roulette-36-b'; }
+@keyframes 'roulette-36-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1313.513514deg); } }
+.spinning.target-n11 .casino-wheel-rotor { animation-name: 'roulette-11-a'; }
+@keyframes 'roulette-11-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1303.783784deg); } }
+.spinning.turn-b.target-n11 .casino-wheel-rotor { animation-name: 'roulette-11-b'; }
+@keyframes 'roulette-11-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1303.783784deg); } }
+.spinning.target-n30 .casino-wheel-rotor { animation-name: 'roulette-30-a'; }
+@keyframes 'roulette-30-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1294.054054deg); } }
+.spinning.turn-b.target-n30 .casino-wheel-rotor { animation-name: 'roulette-30-b'; }
+@keyframes 'roulette-30-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1294.054054deg); } }
+.spinning.target-n8 .casino-wheel-rotor { animation-name: 'roulette-8-a'; }
+@keyframes 'roulette-8-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1284.324324deg); } }
+.spinning.turn-b.target-n8 .casino-wheel-rotor { animation-name: 'roulette-8-b'; }
+@keyframes 'roulette-8-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1284.324324deg); } }
+.spinning.target-n23 .casino-wheel-rotor { animation-name: 'roulette-23-a'; }
+@keyframes 'roulette-23-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1274.594595deg); } }
+.spinning.turn-b.target-n23 .casino-wheel-rotor { animation-name: 'roulette-23-b'; }
+@keyframes 'roulette-23-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1274.594595deg); } }
+.spinning.target-n10 .casino-wheel-rotor { animation-name: 'roulette-10-a'; }
+@keyframes 'roulette-10-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1264.864865deg); } }
+.spinning.turn-b.target-n10 .casino-wheel-rotor { animation-name: 'roulette-10-b'; }
+@keyframes 'roulette-10-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1264.864865deg); } }
+.spinning.target-n5 .casino-wheel-rotor { animation-name: 'roulette-5-a'; }
+@keyframes 'roulette-5-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1255.135135deg); } }
+.spinning.turn-b.target-n5 .casino-wheel-rotor { animation-name: 'roulette-5-b'; }
+@keyframes 'roulette-5-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1255.135135deg); } }
+.spinning.target-n24 .casino-wheel-rotor { animation-name: 'roulette-24-a'; }
+@keyframes 'roulette-24-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1245.405405deg); } }
+.spinning.turn-b.target-n24 .casino-wheel-rotor { animation-name: 'roulette-24-b'; }
+@keyframes 'roulette-24-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1245.405405deg); } }
+.spinning.target-n16 .casino-wheel-rotor { animation-name: 'roulette-16-a'; }
+@keyframes 'roulette-16-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1235.675676deg); } }
+.spinning.turn-b.target-n16 .casino-wheel-rotor { animation-name: 'roulette-16-b'; }
+@keyframes 'roulette-16-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1235.675676deg); } }
+.spinning.target-n33 .casino-wheel-rotor { animation-name: 'roulette-33-a'; }
+@keyframes 'roulette-33-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1225.945946deg); } }
+.spinning.turn-b.target-n33 .casino-wheel-rotor { animation-name: 'roulette-33-b'; }
+@keyframes 'roulette-33-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1225.945946deg); } }
+.spinning.target-n1 .casino-wheel-rotor { animation-name: 'roulette-1-a'; }
+@keyframes 'roulette-1-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1216.216216deg); } }
+.spinning.turn-b.target-n1 .casino-wheel-rotor { animation-name: 'roulette-1-b'; }
+@keyframes 'roulette-1-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1216.216216deg); } }
+.spinning.target-n20 .casino-wheel-rotor { animation-name: 'roulette-20-a'; }
+@keyframes 'roulette-20-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1206.486486deg); } }
+.spinning.turn-b.target-n20 .casino-wheel-rotor { animation-name: 'roulette-20-b'; }
+@keyframes 'roulette-20-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1206.486486deg); } }
+.spinning.target-n14 .casino-wheel-rotor { animation-name: 'roulette-14-a'; }
+@keyframes 'roulette-14-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1196.756757deg); } }
+.spinning.turn-b.target-n14 .casino-wheel-rotor { animation-name: 'roulette-14-b'; }
+@keyframes 'roulette-14-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1196.756757deg); } }
+.spinning.target-n31 .casino-wheel-rotor { animation-name: 'roulette-31-a'; }
+@keyframes 'roulette-31-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1187.027027deg); } }
+.spinning.turn-b.target-n31 .casino-wheel-rotor { animation-name: 'roulette-31-b'; }
+@keyframes 'roulette-31-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1187.027027deg); } }
+.spinning.target-n9 .casino-wheel-rotor { animation-name: 'roulette-9-a'; }
+@keyframes 'roulette-9-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1177.297297deg); } }
+.spinning.turn-b.target-n9 .casino-wheel-rotor { animation-name: 'roulette-9-b'; }
+@keyframes 'roulette-9-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1177.297297deg); } }
+.spinning.target-n22 .casino-wheel-rotor { animation-name: 'roulette-22-a'; }
+@keyframes 'roulette-22-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1167.567568deg); } }
+.spinning.turn-b.target-n22 .casino-wheel-rotor { animation-name: 'roulette-22-b'; }
+@keyframes 'roulette-22-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1167.567568deg); } }
+.spinning.target-n18 .casino-wheel-rotor { animation-name: 'roulette-18-a'; }
+@keyframes 'roulette-18-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1157.837838deg); } }
+.spinning.turn-b.target-n18 .casino-wheel-rotor { animation-name: 'roulette-18-b'; }
+@keyframes 'roulette-18-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1157.837838deg); } }
+.spinning.target-n29 .casino-wheel-rotor { animation-name: 'roulette-29-a'; }
+@keyframes 'roulette-29-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1148.108108deg); } }
+.spinning.turn-b.target-n29 .casino-wheel-rotor { animation-name: 'roulette-29-b'; }
+@keyframes 'roulette-29-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1148.108108deg); } }
+.spinning.target-n7 .casino-wheel-rotor { animation-name: 'roulette-7-a'; }
+@keyframes 'roulette-7-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1138.378378deg); } }
+.spinning.turn-b.target-n7 .casino-wheel-rotor { animation-name: 'roulette-7-b'; }
+@keyframes 'roulette-7-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1138.378378deg); } }
+.spinning.target-n28 .casino-wheel-rotor { animation-name: 'roulette-28-a'; }
+@keyframes 'roulette-28-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1128.648649deg); } }
+.spinning.turn-b.target-n28 .casino-wheel-rotor { animation-name: 'roulette-28-b'; }
+@keyframes 'roulette-28-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1128.648649deg); } }
+.spinning.target-n12 .casino-wheel-rotor { animation-name: 'roulette-12-a'; }
+@keyframes 'roulette-12-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1118.918919deg); } }
+.spinning.turn-b.target-n12 .casino-wheel-rotor { animation-name: 'roulette-12-b'; }
+@keyframes 'roulette-12-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1118.918919deg); } }
+.spinning.target-n35 .casino-wheel-rotor { animation-name: 'roulette-35-a'; }
+@keyframes 'roulette-35-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1109.189189deg); } }
+.spinning.turn-b.target-n35 .casino-wheel-rotor { animation-name: 'roulette-35-b'; }
+@keyframes 'roulette-35-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1109.189189deg); } }
+.spinning.target-n3 .casino-wheel-rotor { animation-name: 'roulette-3-a'; }
+@keyframes 'roulette-3-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1099.459459deg); } }
+.spinning.turn-b.target-n3 .casino-wheel-rotor { animation-name: 'roulette-3-b'; }
+@keyframes 'roulette-3-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1099.459459deg); } }
+.spinning.target-n26 .casino-wheel-rotor { animation-name: 'roulette-26-a'; }
+@keyframes 'roulette-26-a' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1089.729730deg); } }
+.spinning.turn-b.target-n26 .casino-wheel-rotor { animation-name: 'roulette-26-b'; }
+@keyframes 'roulette-26-b' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(1089.729730deg); } }
+@keyframes 'roulette-ball-land' { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(-2160deg); } }
+.spinning .casino-ball-orbit { animation-name: 'roulette-ball-land'; }
+
+.casino-pointer.spinning { animation-name: none; }
+
+.casino-header .casino-title { font-size: 28px; color: #98f277; }
+ .casino-wheel .casino-wheel-result { font-size: 34px; color: #98f277; }

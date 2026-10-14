@@ -170,6 +170,25 @@ foreach ($symbol in @("cherry", "lemon", "plum", "orange", "grapes", "watermelon
     }
 }
 
+# Casino covers and exact numbered roulette wheel belong to the matching HUD build.
+$casinoTextureDir = Join-Path $styleDir "casino"
+New-Item -ItemType Directory -Force -Path $casinoTextureDir | Out-Null
+foreach ($texture in @("slots", "coinflip", "roulette", "blackjack", "book", "risk", "wheel")) {
+    foreach ($extension in @(".png", ".vtex")) {
+        Copy-Item (Join-Path $src "styles\custom_game\anocore\casino\$texture$extension") (Join-Path $casinoTextureDir "$texture$extension") -Force
+    }
+    $compiled = Join-Path $Cs2 "game\csgo_addons\$Addon\panorama\styles\custom_game\anocore\casino\$texture.vtex_c"
+    if (Test-Path $compiled -PathType Leaf) { Remove-Item -LiteralPath $compiled -Force }
+    & $compiler -i (Join-Path $casinoTextureDir "$texture.vtex") -f -r
+    if ($LASTEXITCODE -ne 0) { throw "Failed to compile casino texture $texture" }
+    if (-not (Test-Path $compiled -PathType Leaf)) { throw "Compiled casino texture missing: $compiled" }
+    if ($InstallLocalClient) {
+        $clientCasinoDir = Join-Path $Cs2 "game\csgo\panorama\styles\custom_game\anocore\casino"
+        New-Item -ItemType Directory -Force -Path $clientCasinoDir | Out-Null
+        Copy-Item $compiled (Join-Path $clientCasinoDir "$texture.vtex_c") -Force
+    }
+}
+
 foreach ($name in @("ano_veto_cards", "ano_veto", "ano_veto_create", "menu", "ano_tournament", "ano_arcade", "ano_casino", "ano_casino_native_v2", "ano_casino_lobby", "ano_casino_slots", "ano_casino_coinflip", "ano_casino_roulette", "ano_casino_rounds")) {
     $layoutTarget = Join-Path $layoutDir "$name.xml"
     $styleTarget = Join-Path $styleDir "$name.css"

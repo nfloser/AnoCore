@@ -497,10 +497,14 @@ public sealed class CasinoPresenter : IDisposable
                     }
                     else if (outcome.Game == CasinoGame.Coinflip)
                     {
+                        CoinClass(state, "coin", "toss-b", state.Spin % 2 == 0);
                         CoinClass(state, "coin", "flipping", true);
                     }
                     else if (outcome.Game == CasinoGame.Roulette)
                     {
+                        RouletteClass(state, "wheel", "turn-b", state.Spin % 2 == 0);
+                        for (var number = 0; number <= 36; number++)
+                            RouletteClass(state, "wheel", "target-n" + number, outcome.Number == number);
                         RouletteClass(state, "wheel", "spinning", true);
                         RouletteClass(state, "pointer", "spinning", true);
                     }

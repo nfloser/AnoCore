@@ -1,1 +1,26 @@
 .ano-hud-host{width:100%;height:100%;overflow:noclip;}.casino-overlay{width:100%;height:100%;opacity:0;visibility:collapse;}.casino-overlay.shown{opacity:1;visibility:visible;}.casino-dim{width:4000px;height:2400px;horizontal-align:center;vertical-align:center;background-color:#06120ddd;}.casino-window{width:960px;height:780px;padding:20px;horizontal-align:center;vertical-align:center;flow-children:down;background-color:#080d0afc;border:2px solid #2b893d;}.casino-window Label{color:#e9efed;font-size:18px;}.casino-header,.casino-row,.casino-reels,.casino-lines{flow-children:right;width:100%;margin-bottom:10px;}.casino-title{font-size:30px;color:#39e38c;width:760px;}.casino-button{padding:8px 12px;margin-right:8px;background-color:#132019;border:1px solid #2b893d;}.casino-primary{background-color:#173d28;}.casino-reels{horizontal-align:center;}.casino-reel{width:250px;height:300px;overflow:clip;background-color:#e9efed;margin-right:10px;border:2px solid #245b36;}.casino-motion,.casino-final{flow-children:down;}.casino-motion{visibility:collapse;}.rolling .casino-motion{visibility:visible;animation-name:'slot-roll';animation-duration:.7s;animation-iteration-count:infinite;animation-timing-function:linear;}.rolling .casino-final{visibility:collapse;}@keyframes 'slot-roll'{0%{transform:translateY(0px);}100%{transform:translateY(-800px);}}.casino-symbol{width:250px;height:100px;background-size:contain;background-position:center;background-repeat:no-repeat;}.symbol-cherry{background-image:url("s2r://panorama/styles/custom_game/anocore/arcade/cherry.vtex");}.symbol-lemon{background-image:url("s2r://panorama/styles/custom_game/anocore/arcade/lemon.vtex");}.symbol-plum{background-image:url("s2r://panorama/styles/custom_game/anocore/arcade/plum.vtex");}.symbol-orange{background-image:url("s2r://panorama/styles/custom_game/anocore/arcade/orange.vtex");}.symbol-grapes{background-image:url("s2r://panorama/styles/custom_game/anocore/arcade/grapes.vtex");}.symbol-watermelon{background-image:url("s2r://panorama/styles/custom_game/anocore/arcade/watermelon.vtex");}.symbol-bell{background-image:url("s2r://panorama/styles/custom_game/anocore/arcade/bell.vtex");}.symbol-seven{background-image:url("s2r://panorama/styles/custom_game/anocore/arcade/seven.vtex");}.line{visibility:collapse;border:1px solid #2b893d;padding:4px 8px;margin-right:5px;}.line.revealed{visibility:visible;}.line.active{color:#39e38c;border-color:#39e38c;}.settled{border-color:#39e38c;}.casino-status{width:100%;min-height:42px;color:#9fd6b3;}.busy .casino-button{opacity:.45;}
+
+/* Shared black, green and gold game cabinet. */
+.casino-game-banner { width: 100%; height: 112px; min-height: 112px; flow-children: right; margin-bottom: 12px; background-color: #101b12; border-bottom: 1px solid #b99b55; }
+.casino-cover { width: 112px; height: 112px; background-image: url("s2r://panorama/styles/custom_game/anocore/casino/slots.vtex"); background-size: contain; background-repeat: no-repeat; }
+.casino-game-copy { flow-children: down; padding: 22px; }
+.casino-game-copy .casino-game-name { font-size: 28px; color: #98f277; font-weight: bold; }
+.casino-game-copy .casino-game-caption { font-size: 14px; color: #d7bd77; margin-top: 6px; }
+.casino-window { border: 2px solid #aa8c47; box-shadow: #000000cc 0px 8px 30px 0px; }
+.casino-button:hover, .casino-choice:hover { brightness: 1.3; border-color: #92ef72; }
+.casino-window { width: 1000px; height: 880px; }
+.casino-reel { width: 280px; height: 336px; min-height: 336px; background-color: #ecebdc; border: 3px solid #b49a58; }
+.casino-reels { width: 100%; height: 336px; min-height: 336px; horizontal-align: center; }
+.casino-symbol { width: 274px; height: 112px; min-height: 112px; }
+.casino-motion { width: 274px; height: 1792px; min-height: 1792px; overflow: noclip; }
+.casino-final { width: 274px; height: 336px; }
+.rolling .casino-motion { animation-name: 'slot-fast-a'; animation-duration: 0.42s; animation-timing-function: linear; animation-iteration-count: infinite; }
+.roll-b.rolling .casino-motion { animation-name: 'slot-fast-b'; }
+#casino_slots_reel1.rolling .casino-motion { animation-duration: 0.46s; }
+#casino_slots_reel2.rolling .casino-motion { animation-duration: 0.39s; }
+@keyframes 'slot-fast-a' { 0% { transform: translateY(0px); } 100% { transform: translateY(-896px); } }
+@keyframes 'slot-fast-b' { 0% { transform: translateY(0px); } 100% { transform: translateY(-896px); } }
+.settled .casino-final { animation-name: 'slot-land'; animation-duration: 0.28s; animation-timing-function: ease-out; }
+@keyframes 'slot-land' { 0% { transform: translateY(-22px); } 65% { transform: translateY(6px); } 100% { transform: translateY(0px); } }
+
+.casino-header .casino-title { font-size: 28px; color: #98f277; }

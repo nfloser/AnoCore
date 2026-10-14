@@ -1074,3 +1074,11 @@ is unnecessary for the original probe. Keep the fix PR draft until native proof.
 ## Native acceptance regression, 14 October 2026 (#464)
 
 Veto's active predicate captured `created` and `createdAnoVeto`, both cleared during startup ownership transfer. Consequently all native Veto management requests failed closed after activation regardless of assigned CSS permissions. Capture the runtime value and check the installed `_anoVeto` module. Keep reconnect/session and permission checks intact. Regression: the operator source contract must reject the cleared-variable predicate. Retest `!anoveto create`, random/manual creation and cancellation as an authorized host, then as an ordinary player. Client interpolation warnings alone do not indicate an authorization failure.
+
+## Casino covers and client motion (#465)
+
+All six supplied cover artworks are included as 512px PNG textures, with source VTEX descriptors. Both combined and standalone builders compile and stage them plus the exact single-zero roulette wheel. Existing Workshop IDs and server configs remain unchanged. The shared Book/Blackjack/Risk presenter retains its durable round logic; its fixed 1100×940 shell replaces the percentage/auto-size scroll shell. Empty Book rounds now have a visual preview without booking AP.
+
+Slots use fixed 16-symbol strips, repeat after 896px, animate locally at 0.39–0.46s per loop, and stop separately with a bounce. Coinflip uses a vertical toss and 3D flip, hides the result during motion, and shows landing feedback. Roulette runs a 3.6s eased native spin, uses the correct European number order and aligns the rotor to the booked result; the ball moves independently. Alternate animation names restart consecutive spins even when class updates are coalesced. No per-frame server image updates or additional wallet operations are introduced.
+
+Native acceptance remains required: rebuild the complete matching addon with Workshop Tools, test locally first, and restart the client to exclude stale compiled resources. Confirm authorized and ordinary-player Veto behavior, all six game entries, rules/stake/buttons, two consecutive spins, result alignment, rapid clicks, close/reopen/reconnect and preserved AP. Only then publish the shared Workshop update. The Linux source/CI checks do not prove Valve rendering or FPS.

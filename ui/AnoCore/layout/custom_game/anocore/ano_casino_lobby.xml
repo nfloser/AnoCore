@@ -30,11 +30,7 @@
 
         <Panel class="casino-game-grid">
           <Button id="casino_lobby_slots" class="casino-game-card">
-            <Panel class="casino-preview casino-preview-slots">
-              <Panel class="casino-mini-reels">
-                <Label text="7" /><Label text="★" /><Label text="7" />
-              </Panel>
-            </Panel>
+            <Panel class="casino-preview casino-preview-slots" hittest="false" />
             <Panel class="casino-card-footer">
               <Panel class="casino-card-copy">
                 <Label class="casino-card-title" text="SLOTS" />
@@ -45,9 +41,7 @@
           </Button>
 
           <Button id="casino_lobby_coinflip" class="casino-game-card">
-            <Panel class="casino-preview casino-preview-coin">
-              <Panel class="casino-coin-art"><Label text="AP" /></Panel>
-            </Panel>
+            <Panel class="casino-preview casino-preview-coin" hittest="false" />
             <Panel class="casino-card-footer">
               <Panel class="casino-card-copy">
                 <Label class="casino-card-title" text="COINFLIP" />
@@ -58,11 +52,7 @@
           </Button>
 
           <Button id="casino_lobby_roulette" class="casino-game-card">
-            <Panel class="casino-preview casino-preview-roulette">
-              <Panel class="casino-wheel-art">
-                <Panel class="casino-wheel-core" />
-              </Panel>
-            </Panel>
+            <Panel class="casino-preview casino-preview-roulette" hittest="false" />
             <Panel class="casino-card-footer">
               <Panel class="casino-card-copy">
                 <Label class="casino-card-title" text="ROULETTE" />

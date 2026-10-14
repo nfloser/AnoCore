@@ -14,6 +14,23 @@ public sealed class CasinoRoundPresenterTests
     private static readonly PlayerId Player = new(76561198000911901);
 
     [TestMethod]
+    public async Task EveryRoundGameOpensWithRulesAndBookShowsPreviewBeforeBooking()
+    {
+        using var f = await Fixture.Create();
+        foreach (var game in Enum.GetValues<CasinoRoundGame>())
+        {
+            Assert.IsTrue(await f.Presenter.OpenAsync(Player, game));
+            Assert.AreEqual(1, f.Hud.VisiblePlayers(CasinoRoundPresenter.HudId).Count);
+            Assert.IsFalse(string.IsNullOrWhiteSpace(f.Text("detail")));
+            if (game == CasinoRoundGame.Book)
+                for (var index = 0; index < 15; index++)
+                    Assert.IsFalse(string.IsNullOrWhiteSpace(f.Text("symbol" + index)));
+            Assert.AreEqual(0, f.Rounds.Calls.Count, "Opening a game must not place a stake.");
+            f.Presenter.Close(Player);
+        }
+    }
+
+    [TestMethod]
     public async Task StartAndBankUseStoredRoundRevision_AndAnimationCannotRepeatSettlement()
     {
         using var f = await Fixture.Create();
