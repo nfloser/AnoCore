@@ -45,7 +45,7 @@ class CasinoResourcesTests(unittest.TestCase):
         self.assertIn('WinningLines = [[0, 3, 6], [1, 4, 7], [2, 5, 8], [0, 4, 8], [2, 4, 6]]',presenter)
 
         for number in range(37):
-            self.assertIn(f'#casino_wheel.land-n{number} .wheel-rim',css)
+            self.assertIn(f'#casino_wheel.land-n{number} .casino-wheel-rim',css)
         self.assertIn('#casino_coin.flipping #casino_result { visibility:collapse; }',css)
         self.assertIn('#casino_wheel.spinning #casino_wheelresult { visibility:collapse; }',css)
         self.assertIn('for (var number = 0; number <= 36; number++) Class(state, "wheel", "land-n" + number',presenter)
