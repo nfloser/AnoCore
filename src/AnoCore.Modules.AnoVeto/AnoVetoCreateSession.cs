@@ -11,6 +11,7 @@ public sealed class AnoVetoCreateSession
     public Screen CurrentScreen { get; private set; } = Screen.Home;
     public AnoVetoMapDraft Draft { get; }
     public string Filter { get; private set; } = string.Empty;
+    public int VisibleMapCount => Draft.CountMatches(Filter);
 
     public AnoVetoCreateSession(IEnumerable<(string MapId, string DisplayName)> availableMaps)
     {
