@@ -29,7 +29,8 @@ public sealed class CasinoV1CompatibilityTests
             Assert.AreEqual(action.Expected, Convert.ToInt32(action.Value), action.Name);
 
         var expectedVersion = new string(new[] { 'a', 'n', 'o', 'c', 'a', 's', 'i', 'n', 'o', '-', 'v', '1' });
-        Assert.AreEqual(expectedVersion, CasinoRules.Version);
+        var actualVersion = CasinoRules.Version;
+        Assert.AreEqual(expectedVersion, actualVersion);
         CollectionAssert.AreEqual(
             new[] { "cherry", "lemon", "plum", "orange", "grapes", "watermelon", "bell", "seven" },
             CasinoRules.Symbols);
