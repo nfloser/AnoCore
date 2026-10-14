@@ -17,6 +17,7 @@ public sealed class AnoVetoCreateHudController : IDisposable
     private readonly Func<PlayerId, IReadOnlyList<string>, CancellationToken, ValueTask<bool>> _startSelected;
     private readonly Func<IReadOnlyList<MapDefinition>> _getCatalog;
     private readonly IAnoVetoPresetRepository? _presets;
+    private readonly Action<PlayerId>? _revokeAuthorization;
     private readonly Dictionary<PlayerId, PickerState> _states = [];
     private readonly object _gate = new();
     private readonly IDisposable _registration;
@@ -35,13 +36,15 @@ public sealed class AnoVetoCreateHudController : IDisposable
         Func<PlayerId, CancellationToken, ValueTask<bool>> startRandom,
         Func<IReadOnlyList<MapDefinition>> getCatalog,
         Func<PlayerId, IReadOnlyList<string>, CancellationToken, ValueTask<bool>> startSelected,
-        IAnoVetoPresetRepository? presets = null)
+        IAnoVetoPresetRepository? presets = null,
+        Action<PlayerId>? revokeAuthorization = null)
     {
         _hud = hud ?? throw new ArgumentNullException(nameof(hud));
         _startRandom = startRandom ?? throw new ArgumentNullException(nameof(startRandom));
         _getCatalog = getCatalog ?? throw new ArgumentNullException(nameof(getCatalog));
         _startSelected = startSelected ?? throw new ArgumentNullException(nameof(startSelected));
         _presets = presets;
+        _revokeAuthorization = revokeAuthorization;
         var buttons = new List<string>
         {
             "ano_veto_create_close", "ano_veto_create_random", "ano_veto_create_manual",
@@ -88,6 +91,7 @@ public sealed class AnoVetoCreateHudController : IDisposable
     public void Hide(PlayerId player)
     {
         lock (_gate) ClearState(player);
+        _revokeAuthorization?.Invoke(player);
         _hud.Hide(player, HudId);
     }
 

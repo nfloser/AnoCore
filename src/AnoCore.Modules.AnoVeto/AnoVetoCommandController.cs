@@ -17,6 +17,7 @@ public sealed class AnoVetoCommandController : IDisposable
     private IDisposable? _commandRegistration;
     private IDisposable? _presetCommandRegistration;
     private readonly IAnoVetoPresetRepository? _presetRepository;
+    private readonly Func<PlayerId, CancellationToken, ValueTask<bool>>? _authorizeCreate;
 
     public AnoVetoCommandController(
         IAnoCommandRegistry commands,
@@ -24,19 +25,23 @@ public sealed class AnoVetoCommandController : IDisposable
         IPlayerRegistry players,
         AnoVetoCoordinator coordinator,
         TimeProvider? timeProvider = null,
-        IAnoVetoPresetRepository? presetRepository = null)
+        IAnoVetoPresetRepository? presetRepository = null,
+        Func<PlayerId, CancellationToken, ValueTask<bool>>? authorizeCreate = null,
+        Action<PlayerId>? revokeCreateAuthorization = null)
     {
         ArgumentNullException.ThrowIfNull(commands);
         _players = players ?? throw new ArgumentNullException(nameof(players));
         _coordinator = coordinator ?? throw new ArgumentNullException(nameof(coordinator));
         _timeProvider = timeProvider ?? TimeProvider.System;
         _presetRepository = presetRepository;
+        _authorizeCreate = authorizeCreate;
         _hud = new AnoVetoHudController(
             hud ?? throw new ArgumentNullException(nameof(hud)),
             coordinator,
             _timeProvider);
         _createHud = new AnoVetoCreateHudController(hud, StartRandomFromHudAsync,
-            _coordinator.GetAvailableMaps, StartSelectedFromHudAsync, presetRepository);
+            _coordinator.GetAvailableMaps, StartSelectedFromHudAsync, presetRepository,
+            revokeCreateAuthorization);
 
         _commandRegistration = commands.Register(
             Owner,
@@ -110,7 +115,7 @@ public sealed class AnoVetoCommandController : IDisposable
 
         return action.Trim().ToLowerInvariant() switch
         {
-            "create" => ValueTask.FromResult(OpenCreateHud(context.Caller)),
+            "create" => OpenCreateHudAsync(context.Caller, context.CancellationToken),
             "random" => CreateAsync(context),
             "status" => ValueTask.FromResult(GetStatus()),
             "find" => ValueTask.FromResult(FindInPicker(context)),
@@ -181,10 +186,17 @@ public sealed class AnoVetoCommandController : IDisposable
                 "Open Create Veto and select the manual map list first.");
     }
 
-    private CommandResult OpenCreateHud(PlayerId player)
+    private async ValueTask<CommandResult> OpenCreateHudAsync(
+        PlayerId player,
+        CancellationToken cancellationToken)
     {
         if (_coordinator.TryGetStatus(out _))
             return CommandResult.Fail(CommandFailureReason.InvalidInput, "An AnoVeto vote is already active.");
+
+        if (_authorizeCreate is not null
+            && !await _authorizeCreate(player, cancellationToken).ConfigureAwait(false))
+            return CommandResult.Fail(CommandFailureReason.Forbidden, "You are not allowed to create AnoVeto votes.");
+
         return _createHud.Show(player)
             ? CommandResult.Ok("AnoVeto creation menu opened.")
             : CommandResult.Fail(CommandFailureReason.HandlerFailed, "AnoVeto creation menu could not be opened.");

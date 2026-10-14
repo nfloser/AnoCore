@@ -27,13 +27,13 @@ public sealed class CasinoLobbyRoundRoutingTests
         await players.ConnectAsync(new(Player, "Tester", PlayerTeam.Terrorist, true, DateTimeOffset.UtcNow));
         Assert.IsTrue((await commands.ExecuteAsync("!anocasino", Player)).Success);
         foreach (var card in new[] { "blackjack", "risk", "book" })
-            await hud.ClickAsync(Player, CasinoPresenter.HudId, "casino_" + card);
+            await hud.ClickAsync(Player, CasinoPresenter.LobbyHudId, "casino_lobby_" + card);
         CollectionAssert.AreEqual(new[] { CasinoRoundGame.Blackjack, CasinoRoundGame.Risk, CasinoRoundGame.Book }, selected.Select(x => x.Game).ToArray());
         Assert.IsTrue(selected.All(x => x.Player == Player));
         permission.Allowed = false;
-        await hud.ClickAsync(Player, CasinoPresenter.HudId, "casino_blackjack");
+        await hud.ClickAsync(Player, CasinoPresenter.LobbyHudId, "casino_lobby_blackjack");
         Assert.AreEqual(3, selected.Count);
-        Assert.AreEqual(0, hud.VisiblePlayers(CasinoPresenter.HudId).Count);
+        Assert.AreEqual(0, hud.VisiblePlayers(CasinoPresenter.LobbyHudId).Count);
     }
 
     [TestMethod]
@@ -48,11 +48,11 @@ public sealed class CasinoLobbyRoundRoutingTests
             openRound: (_, _, _) => ValueTask.FromException<bool>(new InvalidOperationException("Connection lost")));
         await players.ConnectAsync(new(Player, "Tester", PlayerTeam.Terrorist, true, DateTimeOffset.UtcNow));
         Assert.IsTrue((await commands.ExecuteAsync("!anocasino", Player)).Success);
-        await hud.ClickAsync(Player, CasinoPresenter.HudId, "casino_book");
-        Assert.AreEqual(1, hud.VisiblePlayers(CasinoPresenter.HudId).Count);
-        Assert.AreEqual("Spiel konnte nicht geladen werden. Bitte aktualisieren.", hud.Text(Player, CasinoPresenter.HudId, "casino_status"));
-        await hud.ClickAsync(Player, CasinoPresenter.HudId, "casino_refresh");
-        Assert.AreEqual(1, hud.VisiblePlayers(CasinoPresenter.HudId).Count);
+        await hud.ClickAsync(Player, CasinoPresenter.LobbyHudId, "casino_lobby_book");
+        Assert.AreEqual(1, hud.VisiblePlayers(CasinoPresenter.LobbyHudId).Count);
+        Assert.AreEqual("Spiel konnte nicht geladen werden. Bitte aktualisieren.", hud.Text(Player, CasinoPresenter.LobbyHudId, "casino_lobby_status"));
+        await hud.ClickAsync(Player, CasinoPresenter.LobbyHudId, "casino_lobby_refresh");
+        Assert.AreEqual(1, hud.VisiblePlayers(CasinoPresenter.LobbyHudId).Count);
     }
 
     private sealed class Permission : IPermissionEvaluator

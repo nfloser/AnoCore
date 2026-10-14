@@ -147,13 +147,20 @@ public sealed class AnoVetoModuleRuntime : IDisposable
                 mapChanger,
                 randomSource,
                 settings.ToOptions());
+            var fixedSessionAuthorization = votes as SessionBoundVetoVoteService;
+            Func<PlayerId, CancellationToken, ValueTask<bool>>? fixedAuthorizeCreate =
+                fixedSessionAuthorization is null ? null : fixedSessionAuthorization.AuthorizeCreateSessionAsync;
+            Action<PlayerId>? fixedRevokeCreate =
+                fixedSessionAuthorization is null ? null : fixedSessionAuthorization.RevokeCreateSession;
             var fixedController = new AnoVetoCommandController(
                 commands,
                 hud,
                 players,
                 fixedCoordinator,
                 timeProvider,
-                presetRepository);
+                presetRepository,
+                fixedAuthorizeCreate,
+                fixedRevokeCreate);
             return new AnoVetoModuleRuntime(fixedCoordinator, fixedController);
         }
 
@@ -184,13 +191,20 @@ public sealed class AnoVetoModuleRuntime : IDisposable
                 mapChanger,
                 randomSource,
                 () => activeSettings.Current.ToOptions());
+            var sessionAuthorization = votes as SessionBoundVetoVoteService;
+            Func<PlayerId, CancellationToken, ValueTask<bool>>? authorizeCreate =
+                sessionAuthorization is null ? null : sessionAuthorization.AuthorizeCreateSessionAsync;
+            Action<PlayerId>? revokeCreate =
+                sessionAuthorization is null ? null : sessionAuthorization.RevokeCreateSession;
             controller = new AnoVetoCommandController(
                 commands,
                 hud,
                 players,
                 coordinator,
                 timeProvider,
-                presetRepository);
+                presetRepository,
+                authorizeCreate,
+                revokeCreate);
 
             return new AnoVetoModuleRuntime(
                 coordinator,

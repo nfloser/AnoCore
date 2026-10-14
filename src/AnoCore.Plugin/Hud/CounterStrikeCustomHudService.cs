@@ -82,7 +82,7 @@ public sealed class CounterStrikeCustomHudService : ICustomHudService, IDisposab
             state.Visible = true;
         }
 
-        Schedule(() => ApplyPlayerState(registration, playerId));
+        Schedule(() => ApplyPlayerState(registration, playerId, allowCreate: true));
         return true;
     }
 
@@ -100,7 +100,7 @@ public sealed class CounterStrikeCustomHudService : ICustomHudService, IDisposab
             registration.GetOrCreateState(playerId).Visible = false;
         }
 
-        Schedule(() => ApplyPlayerState(registration, playerId));
+        Schedule(() => ApplyPlayerState(registration, playerId, allowCreate: false));
         return true;
     }
 
@@ -126,7 +126,7 @@ public sealed class CounterStrikeCustomHudService : ICustomHudService, IDisposab
         {
             foreach (var playerId in players)
             {
-                ApplyPlayerState(registration, playerId);
+                ApplyPlayerState(registration, playerId, allowCreate: true);
             }
         });
     }
@@ -274,10 +274,20 @@ public sealed class CounterStrikeCustomHudService : ICustomHudService, IDisposab
                     continue;
                 }
 
-                EnsureEntity(registration);
-                foreach (var playerId in SnapshotVisiblePlayers(registration))
+                var visiblePlayers = SnapshotVisiblePlayers(registration);
+                if (visiblePlayers.Length == 0)
                 {
-                    ApplyPlayerState(registration, playerId);
+                    continue;
+                }
+
+                if (!EnsureEntity(registration))
+                {
+                    continue;
+                }
+
+                foreach (var playerId in visiblePlayers)
+                {
+                    ApplyPlayerState(registration, playerId, allowCreate: false);
                 }
             }
         });
@@ -308,19 +318,19 @@ public sealed class CounterStrikeCustomHudService : ICustomHudService, IDisposab
 
         foreach (var registration in registrations)
         {
-            if (!EnsureEntity(registration))
+            if (registration.Entity is not { IsValid: true })
             {
                 continue;
             }
 
-            registration.Entity!.SetHasClassForPlayer(
+            registration.Entity.SetHasClassForPlayer(
                 player,
                 registration.Definition.RootPanelId,
                 registration.Definition.VisibleClass,
                 false);
             if (registration.Definition.CaptureInput)
             {
-                registration.Entity!.SetInputCaptureEnabled(player, false);
+                registration.Entity.SetInputCaptureEnabled(player, false);
             }
         }
 
@@ -341,7 +351,17 @@ public sealed class CounterStrikeCustomHudService : ICustomHudService, IDisposab
 
         foreach (var registration in registrations)
         {
-            ApplyPlayerState(registration, playerId);
+            var visible = false;
+            lock (_gate)
+            {
+                visible = registration.PlayerStates.TryGetValue(playerId, out var state)
+                    && state.Visible;
+            }
+
+            if (visible)
+            {
+                ApplyPlayerState(registration, playerId, allowCreate: true);
+            }
         }
     }
 
@@ -413,9 +433,24 @@ public sealed class CounterStrikeCustomHudService : ICustomHudService, IDisposab
         }
     }
 
-    private void ApplyPlayerState(Registration registration, PlayerId playerId)
+    private void ApplyPlayerState(
+        Registration registration,
+        PlayerId playerId,
+        bool allowCreate)
     {
-        if (!IsCurrent(registration) || !EnsureEntity(registration))
+        if (!IsCurrent(registration))
+        {
+            return;
+        }
+
+        if (registration.Entity is not { IsValid: true })
+        {
+            if (!allowCreate || !EnsureEntity(registration))
+            {
+                return;
+            }
+        }
+        else if (registration.Warming)
         {
             return;
         }
@@ -476,7 +511,9 @@ public sealed class CounterStrikeCustomHudService : ICustomHudService, IDisposab
         string panelId,
         string variableName)
     {
-        if (!IsCurrent(registration) || !EnsureEntity(registration))
+        if (!IsCurrent(registration)
+            || registration.Entity is not { IsValid: true }
+            || registration.Warming)
         {
             return;
         }
@@ -508,7 +545,9 @@ public sealed class CounterStrikeCustomHudService : ICustomHudService, IDisposab
         string panelId,
         string className)
     {
-        if (!IsCurrent(registration) || !EnsureEntity(registration))
+        if (!IsCurrent(registration)
+            || registration.Entity is not { IsValid: true }
+            || registration.Warming)
         {
             return;
         }
@@ -616,7 +655,7 @@ public sealed class CounterStrikeCustomHudService : ICustomHudService, IDisposab
 
                 foreach (var playerId in SnapshotTrackedPlayers(registration))
                 {
-                    ApplyPlayerState(registration, playerId);
+                    ApplyPlayerState(registration, playerId, allowCreate: false);
                 }
             },
             TimerFlags.STOP_ON_MAPCHANGE);

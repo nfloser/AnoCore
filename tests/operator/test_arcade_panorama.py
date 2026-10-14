@@ -26,7 +26,7 @@ class ArcadeAssetsTests(unittest.TestCase):
     def test_animation_restarts_use_distinct_names_and_no_server_frame_loop(self):
         css = (UI / 'styles/custom_game/anocore/ano_arcade.css').read_text()
         for name in ('arcade-spin-a', 'arcade-spin-b'):
-            self.assertIn('@keyframes ' + name, css)
+            self.assertIn("@keyframes '" + name + "'", css)
         self.assertIn('overflow: clip;', css)
         source = (ROOT / 'src/AnoCore.Modules.Arcade/ArcadeProbePresenter.cs').read_text()
         self.assertNotIn('Task.Delay', source)

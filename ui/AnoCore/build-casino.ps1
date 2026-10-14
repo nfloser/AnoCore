@@ -41,8 +41,10 @@ Compile-Resource "$style\ano_casino.css" "$style\ano_casino.vcss_c"
 Compile-Resource "$layout\ano_casino.xml" "$layout\ano_casino.vxml_c"
 Compile-Resource "$style\ano_casino_native_v2.css" "$style\ano_casino_native_v2.vcss_c"
 Compile-Resource "$layout\ano_casino_native_v2.xml" "$layout\ano_casino_native_v2.vxml_c"
-Compile-Resource "$style\ano_casino_rounds.css" "$style\ano_casino_rounds.vcss_c"
-Compile-Resource "$layout\ano_casino_rounds.xml" "$layout\ano_casino_rounds.vxml_c"
+foreach ($view in @("ano_casino_lobby", "ano_casino_slots", "ano_casino_coinflip", "ano_casino_roulette", "ano_casino_rounds")) {
+    Compile-Resource "$style\$view.css" "$style\$view.vcss_c"
+    Compile-Resource "$layout\$view.xml" "$layout\$view.vxml_c"
+}
 
 Copy-Item (Join-Path $src "$style\anomeme_banner.png") (Join-Path $content "$style\anomeme_banner.png") -Force
 Compile-Resource "$style\anomeme_banner.vtex" "$style\anomeme_banner.vtex_c"

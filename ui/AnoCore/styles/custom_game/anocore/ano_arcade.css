@@ -33,10 +33,10 @@ Label { color: #e9efed; font-size: 20px; font-family: Arial; }
 .stop-1 { transform: translateY(-128px); }
 .stop-2 { transform: translateY(-256px); }
 /* Alternating names restart consecutive spins without same-tick remove/add collapse. */
-.spin-a { animation-name: arcade-spin-a; animation-duration: 0.32s; animation-timing-function: linear; animation-iteration-count: infinite; }
-.spin-b { animation-name: arcade-spin-b; animation-duration: 0.32s; animation-timing-function: linear; animation-iteration-count: infinite; }
-@keyframes arcade-spin-a { 0% { transform: translateY(0px); } 100% { transform: translateY(-384px); } }
-@keyframes arcade-spin-b { 0% { transform: translateY(0px); } 100% { transform: translateY(-384px); } }
+.spin-a { animation-name: 'arcade-spin-a'; animation-duration: 0.32s; animation-timing-function: linear; animation-iteration-count: infinite; }
+.spin-b { animation-name: 'arcade-spin-b'; animation-duration: 0.32s; animation-timing-function: linear; animation-iteration-count: infinite; }
+@keyframes 'arcade-spin-a' { 0% { transform: translateY(0px); } 100% { transform: translateY(-384px); } }
+@keyframes 'arcade-spin-b' { 0% { transform: translateY(0px); } 100% { transform: translateY(-384px); } }
 .arcade-counters { width: 100%; flow-children: right; margin-top: 12px; }
 .arcade-counter { width: 365px; height: 85px; flow-children: down; margin-right: 12px; background-color: #1a2421; padding: 8px; }
 .arcade-counter > Label { horizontal-align: center; font-size: 18px; }
