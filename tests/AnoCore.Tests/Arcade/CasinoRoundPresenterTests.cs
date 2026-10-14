@@ -67,6 +67,9 @@ public sealed class CasinoRoundPresenterTests
         Assert.AreEqual((int)BiggestBoySymbol.Beer, f.Rounds.Last.Choice);
         Assert.AreEqual(100, f.Rounds.Last.Stake);
         Assert.IsFalse(f.Class("needs-bonus-symbol"));
+        Assert.IsFalse(f.Class("motion-a"));
+        Assert.IsFalse(f.Class("motion-b"));
+        Assert.AreEqual("Bonussymbol gewählt · Freispiele bereit", f.Text("status"));
     }
 
     [TestMethod]
