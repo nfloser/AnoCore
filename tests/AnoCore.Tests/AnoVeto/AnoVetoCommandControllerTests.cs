@@ -128,6 +128,36 @@ public sealed class AnoVetoCommandControllerTests
     }
 
     [TestMethod]
+    public async Task SavedVeto_EditReplacesOneMapAndKeepsOriginalName()
+    {
+        var permissions = new ManagerPermissionEvaluator(allow: true);
+        var commands = new CommandRegistry(permissions);
+        var hud = new TestCustomHudService();
+        var players = new StubPlayerRegistry([Snapshot(Manager, "Manager")]);
+        var coordinator = CreateCoordinator(permissions, mapCount: 12);
+        IAnoVetoPresetRepository presets = new AnoVetoPresetCatalog();
+        await presets.CreateAsync(new AnoVetoPreset(
+            Manager.SteamId64, "My Pool", Enumerable.Range(1, 8).Select(i => $"de_map{i:00}")));
+        using var controller = new AnoVetoCommandController(
+            commands, hud, players, coordinator, new FixedTimeProvider(Now), presets);
+
+        Assert.IsTrue((await commands.ExecuteAsync("!anoveto create", Manager)).Success);
+        await hud.ClickAsync(Manager, AnoVetoCreateHudController.HudId, "ano_veto_create_saved");
+        await hud.ClickAsync(Manager, AnoVetoCreateHudController.HudId, "ano_veto_create_map_0");
+        await hud.ClickAsync(Manager, AnoVetoCreateHudController.HudId, "ano_veto_create_edit");
+        await hud.ClickAsync(Manager, AnoVetoCreateHudController.HudId, "ano_veto_create_map_0");
+        await hud.ClickAsync(Manager, AnoVetoCreateHudController.HudId, "ano_veto_create_map_8");
+        await hud.ClickAsync(Manager, AnoVetoCreateHudController.HudId, "ano_veto_create_save");
+
+        var stored = await presets.GetAsync(Manager.SteamId64, "My Pool");
+        Assert.IsNotNull(stored);
+        Assert.AreEqual(2L, stored.Value.Revision);
+        Assert.HasCount(8, stored.Value.Preset.MapIds);
+        CollectionAssert.Contains(stored.Value.Preset.MapIds.ToArray(), "de_map09");
+        CollectionAssert.DoesNotContain(stored.Value.Preset.MapIds.ToArray(), "de_map01");
+    }
+
+    [TestMethod]
     public async Task SavedVeto_DeleteNeedsSecondConfirmation()
     {
         var permissions = new ManagerPermissionEvaluator(allow: true);
@@ -320,9 +350,9 @@ public sealed class AnoVetoCommandControllerTests
         Assert.HasCount(2, hud.VisiblePlayers(AnoVetoHudController.HudId));
     }
 
-    private static AnoVetoCoordinator CreateCoordinator(IPermissionEvaluator permissions)
+    private static AnoVetoCoordinator CreateCoordinator(IPermissionEvaluator permissions, int mapCount = 8)
     {
-        var catalog = new MapCatalog(Enumerable.Range(1, 8)
+        var catalog = new MapCatalog(Enumerable.Range(1, mapCount)
             .Select(index => new MapDefinition($"Map {index:00}", $"de_map{index:00}")));
         return new AnoVetoCoordinator(
             catalog,
