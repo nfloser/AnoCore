@@ -50,7 +50,7 @@
                     </Button>
                 </Panel>
                 <Panel class="ano-footer" hittest="false">
-                    <Label class="ano-help" text="Select a map to vote. Close releases the cursor without voting." />
+                    <Label class="ano-help" text="Choose up to three different maps. Close to finish later before the vote ends." />
                 </Panel>
             </Panel>
         </Panel>

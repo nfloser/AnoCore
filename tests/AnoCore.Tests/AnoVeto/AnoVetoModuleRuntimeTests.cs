@@ -77,7 +77,7 @@ public sealed class AnoVetoModuleRuntimeTests
                 random: new StableRandomSource());
 
             Assert.IsNotNull(module);
-            var result = await commands.ExecuteAsync("!anoveto create", Manager);
+            var result = await commands.ExecuteAsync("!anoveto random", Manager);
             Assert.IsTrue(result.Success, result.Message);
             Assert.IsTrue(module.Coordinator.TryGetStatus(out var maps));
             Assert.HasCount(8, maps);
@@ -127,7 +127,7 @@ public sealed class AnoVetoModuleRuntimeTests
                 AnoVetoConfiguration.Validate);
             await reloads.ReloadAsync("anoveto");
 
-            var rejected = await commands.ExecuteAsync("!anoveto create", Manager);
+            var rejected = await commands.ExecuteAsync("!anoveto random", Manager);
             Assert.IsFalse(rejected.Success);
             StringAssert.Contains(rejected.Message, "minimum vote count");
 
@@ -137,7 +137,7 @@ public sealed class AnoVetoModuleRuntimeTests
                 AnoVetoConfiguration.Validate);
             await reloads.ReloadAsync("anoveto");
 
-            var accepted = await commands.ExecuteAsync("!anoveto create", Manager);
+            var accepted = await commands.ExecuteAsync("!anoveto random", Manager);
             Assert.IsTrue(accepted.Success, accepted.Message);
         }
         finally
@@ -179,14 +179,14 @@ public sealed class AnoVetoModuleRuntimeTests
                 new MapCatalogConfiguration(CreateMapDefinitions("Short", 7)));
             await reloads.ReloadAsync("maps");
 
-            var rejected = await commands.ExecuteAsync("!anoveto create", Manager);
+            var rejected = await commands.ExecuteAsync("!anoveto random", Manager);
             Assert.IsFalse(rejected.Success);
             StringAssert.Contains(rejected.Message, "eight configured maps");
 
             await config.SaveAsync("maps", CreateMaps("Reloaded"));
             await reloads.ReloadAsync("maps");
 
-            var accepted = await commands.ExecuteAsync("!anoveto create", Manager);
+            var accepted = await commands.ExecuteAsync("!anoveto random", Manager);
             Assert.IsTrue(accepted.Success, accepted.Message);
             Assert.IsTrue(module.Coordinator.TryGetStatus(out var maps));
             Assert.IsTrue(maps.All(map => map.DisplayName.StartsWith("Reloaded", StringComparison.Ordinal)));
@@ -233,7 +233,7 @@ public sealed class AnoVetoModuleRuntimeTests
             await Assert.ThrowsExactlyAsync<ConfigValidationException>(
                 async () => await reloads.ReloadAsync("anoveto"));
 
-            var stillActive = await commands.ExecuteAsync("!anoveto create", Manager);
+            var stillActive = await commands.ExecuteAsync("!anoveto random", Manager);
             Assert.IsTrue(stillActive.Success, stillActive.Message);
 
             Assert.IsTrue(module.IsActive);
@@ -274,7 +274,7 @@ public sealed class AnoVetoModuleRuntimeTests
                 reloads: reloads);
 
             Assert.IsNotNull(module);
-            var created = await commands.ExecuteAsync("!anoveto create", Manager);
+            var created = await commands.ExecuteAsync("!anoveto random", Manager);
             Assert.IsTrue(created.Success, created.Message);
 
             await config.SaveAsync("maps", CreateMaps("Reloaded"));
