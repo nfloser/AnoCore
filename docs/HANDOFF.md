@@ -1006,3 +1006,24 @@ License, NOTICE and source provenance must remain intact.
   bounded fruit/coin/roulette animations. Their exact-head CI/reviews must pass
   before integration. Presenter/plugin wiring for the three multi-action engines
   remains next; none is yet claimed playable.
+
+### 05:00 automation run — reviewed integration checkpoint
+
+- `feat/casino-games` now contains the reviewed, squash-merged PRs #430, #431,
+  #432, #433 and #434 at `b247ee553a84025c1cbdc11657fdb244244bc556`:
+  immutable v1 compatibility vectors, bounded Risk rules, Blackjack rules,
+  bounded Book-style bonus rules and repeatable native fruit/coin/roulette
+  outcome animations. The last component run, CI #967, passed 1,295/1,295
+  tests plus formatting, packages and Panorama source validation.
+- Durable-round PR #435 is on `feature/429-casino-durable-rounds`, code head
+  `01c026f41a91c1a8825c98280fa94751698907f9`. CI #955 was green before the
+  independent review. That review found and fixed two gaps: nonterminal
+  mutations can no longer credit spendable AP, and operation IDs are scoped to
+  a player so equal UUIDs on two accounts cannot collide after consuming both
+  transitions. MariaDB regression tests cover both fixes; exact-head CI is
+  required before #435 may merge.
+- The rule engines are intentionally not advertised as playable. Next work is
+  to integrate cryptographic engine adapters with the durable store, expose
+  sanitized recovery state to the presenter and add the Blackjack, bonus and
+  Risk controls/history. Native Windows resourcecompiler, Workshop, two-client
+  CS2 and DatHost acceptance remains open and no release was created.
