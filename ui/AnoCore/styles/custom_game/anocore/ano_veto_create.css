@@ -43,7 +43,7 @@
 .ano-create-small { width: 82px; height: 38px; margin-right: 8px; background-color: #15251aff; border: 1px solid #2b893d88; }
 .ano-create-small Label { horizontal-align: center; vertical-align: center; color: #a6efb5ff; font-size: 15px; }
 .ano-create-small:hover { background-color: #27683aff; }
-.ano-create-map-list { width: 100%; height: 254px; flow-children: right-wrap; }
+.ano-create-map-list { width: 100%; height: 254px; flow-children: right-wrap; overflow: squish scroll; }
 .ano-create-map { width: 166px; height: 118px; flow-children: down; margin-right: 8px; margin-bottom: 8px; border: 1px solid #2b893d88; background-color: #121e15ff; }
 .ano-create-map:hover { border: 2px solid #83eba0ff; }
 .ano-create-map.selected { border: 2px solid #a4ff93ff; background-color: #21492cff; }
