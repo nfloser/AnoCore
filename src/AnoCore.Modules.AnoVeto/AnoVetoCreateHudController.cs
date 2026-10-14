@@ -11,7 +11,7 @@ public sealed class AnoVetoCreateHudController : IDisposable
     public static readonly CustomHudId HudId = new("ano.veto.create");
     public const string LayoutResource = "panorama/layout/custom_game/anocore/ano_veto_create.xml";
     private static readonly ModuleId Owner = new("ano.veto");
-    private const int PageSize = 8;
+    private const int PageSize = 24;
     private readonly ICustomHudService _hud;
     private readonly Func<PlayerId, CancellationToken, ValueTask<bool>> _startRandom;
     private readonly Func<PlayerId, IReadOnlyList<string>, CancellationToken, ValueTask<bool>> _startSelected;
