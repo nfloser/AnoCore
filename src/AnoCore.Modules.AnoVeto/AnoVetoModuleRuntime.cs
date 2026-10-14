@@ -147,13 +147,16 @@ public sealed class AnoVetoModuleRuntime : IDisposable
                 mapChanger,
                 randomSource,
                 settings.ToOptions());
+            var fixedSessionAuthorization = votes as SessionBoundVetoVoteService;
             var fixedController = new AnoVetoCommandController(
                 commands,
                 hud,
                 players,
                 fixedCoordinator,
                 timeProvider,
-                presetRepository);
+                presetRepository,
+                fixedSessionAuthorization?.AuthorizeCreateSessionAsync,
+                fixedSessionAuthorization?.RevokeCreateSession);
             return new AnoVetoModuleRuntime(fixedCoordinator, fixedController);
         }
 
@@ -184,13 +187,16 @@ public sealed class AnoVetoModuleRuntime : IDisposable
                 mapChanger,
                 randomSource,
                 () => activeSettings.Current.ToOptions());
+            var sessionAuthorization = votes as SessionBoundVetoVoteService;
             controller = new AnoVetoCommandController(
                 commands,
                 hud,
                 players,
                 coordinator,
                 timeProvider,
-                presetRepository);
+                presetRepository,
+                sessionAuthorization?.AuthorizeCreateSessionAsync,
+                sessionAuthorization?.RevokeCreateSession);
 
             return new AnoVetoModuleRuntime(
                 coordinator,
