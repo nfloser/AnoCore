@@ -363,7 +363,7 @@ public sealed class TournamentPanoramaPresenter : IDisposable
             var displayName = selected is not null && selected.PlayerNames.TryGetValue(steam, out var configuredName)
                 ? configuredName
                 : remote is { Length: 1 } ? remote[0].Player.Name
-                : online && _players.TryGet(new PlayerId(steam), out var connected) ? connected.Name : null;
+                : online && _players.TryGet(new PlayerId(steam), out var connected) ? connected?.Name : null;
             var playerLabel = string.IsNullOrWhiteSpace(displayName)
                 ? steam.ToString()
                 : $"{displayName.Trim()} ({steam})";
