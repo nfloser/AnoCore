@@ -46,3 +46,17 @@ continues to start a random vote; `anoveto random` is an explicit alias
 until the manager window is fully implemented. The search field remains
 absent until keyboard capture is proven on real CS2 clients. Do not publish
 or describe the staged layout as an end-user feature.
+
+## Owner-scoped preset domain (next increment)
+
+`AnoVetoPreset` now validates an immutable owner SteamID64, normalized printable
+name and exactly eight case-insensitively distinct map IDs. Rename and map
+replacement create new value objects, never mutate existing snapshots.
+`AnoVetoPresetTests` covers defensive copying, identity, invalid data and
+immutable updates.
+
+This is intentionally not a database feature yet: no preset repository, schema
+migration, owner-checked CRUD endpoint or clickable saved-preset listing is
+wired. Preset map IDs must still be resolved against the current live catalog
+via `CreateSelectedAsync` when used. No stored preset is ever assumed valid
+merely because it was valid at creation time.
