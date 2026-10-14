@@ -11,6 +11,8 @@ namespace AnoCore.Plugin.Hud;
 
 public sealed class CounterStrikeCustomHudService : ICustomHudService, IDisposable
 {
+    private const float InitialSyncDelaySeconds = 0.35f;
+    private const float InitialSyncRetrySeconds = 1.25f;
     private readonly object _gate = new();
     private readonly BasePlugin _plugin;
     private readonly ILogger _logger;
@@ -255,6 +257,7 @@ public sealed class CounterStrikeCustomHudService : ICustomHudService, IDisposab
             foreach (var registration in registrations)
             {
                 registration.Entity = null;
+                registration.Warming = false;
                 foreach (var state in registration.PlayerStates.Values)
                 {
                     state.LastSlot = null;
@@ -540,7 +543,7 @@ public sealed class CounterStrikeCustomHudService : ICustomHudService, IDisposab
 
         if (registration.Entity is { IsValid: true })
         {
-            return true;
+            return !registration.Warming;
         }
 
         var layoutResource = registration.Definition.CompiledLayoutResource;
@@ -570,11 +573,14 @@ public sealed class CounterStrikeCustomHudService : ICustomHudService, IDisposab
             entity.StrLayout = layoutResource;
             entity.DispatchSpawn();
             registration.Entity = entity;
+            registration.Warming = true;
+            ScheduleInitialSync(registration, InitialSyncDelaySeconds, releaseWarmup: true);
+            ScheduleInitialSync(registration, InitialSyncRetrySeconds, releaseWarmup: false);
             _logger.LogInformation(
-                "Custom HUD {HudId} ready with layout {LayoutResource}.",
+                "Custom HUD {HudId} ready with layout {LayoutResource}; initial state sync deferred for client resource load.",
                 registration.Definition.Id,
                 layoutResource);
-            return true;
+            return false;
         }
         catch (Exception exception)
         {
@@ -585,6 +591,35 @@ public sealed class CounterStrikeCustomHudService : ICustomHudService, IDisposab
                 layoutResource);
             return false;
         }
+    }
+
+    private void ScheduleInitialSync(Registration registration, float delaySeconds, bool releaseWarmup)
+    {
+        _plugin.AddTimer(
+            delaySeconds,
+            () =>
+            {
+                if (!IsCurrent(registration) || registration.Entity is not { IsValid: true })
+                {
+                    return;
+                }
+
+                if (releaseWarmup)
+                {
+                    registration.Warming = false;
+                }
+
+                if (registration.Warming)
+                {
+                    return;
+                }
+
+                foreach (var playerId in SnapshotTrackedPlayers(registration))
+                {
+                    ApplyPlayerState(registration, playerId);
+                }
+            },
+            TimerFlags.STOP_ON_MAPCHANGE);
     }
 
     private void CleanupRegistration(Registration registration)
@@ -627,6 +662,7 @@ public sealed class CounterStrikeCustomHudService : ICustomHudService, IDisposab
         finally
         {
             registration.Entity = null;
+            registration.Warming = false;
             registration.PlayerStates.Clear();
         }
     }
@@ -727,6 +763,7 @@ public sealed class CounterStrikeCustomHudService : ICustomHudService, IDisposab
         public CustomHudDefinition Definition { get; } = definition;
         public CustomHudClickHandler? ClickHandler { get; } = clickHandler;
         public CCSCustomHudLayout? Entity { get; set; }
+        public bool Warming { get; set; }
         public Dictionary<PlayerId, HudPlayerState> PlayerStates { get; } = [];
 
         public HudPlayerState GetOrCreateState(PlayerId playerId)
