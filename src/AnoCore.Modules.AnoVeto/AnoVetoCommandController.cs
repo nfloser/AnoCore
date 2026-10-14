@@ -31,7 +31,8 @@ public sealed class AnoVetoCommandController : IDisposable
             hud ?? throw new ArgumentNullException(nameof(hud)),
             coordinator,
             _timeProvider);
-        _createHud = new AnoVetoCreateHudController(hud, StartRandomFromHudAsync);
+        _createHud = new AnoVetoCreateHudController(hud, StartRandomFromHudAsync,
+            _coordinator.GetAvailableMaps, StartSelectedFromHudAsync);
 
         _commandRegistration = commands.Register(
             Owner,
@@ -102,6 +103,22 @@ public sealed class AnoVetoCommandController : IDisposable
         return _createHud.Show(player)
             ? CommandResult.Ok("AnoVeto creation menu opened.")
             : CommandResult.Fail(CommandFailureReason.HandlerFailed, "AnoVeto creation menu could not be opened.");
+    }
+
+    private async ValueTask<bool> StartSelectedFromHudAsync(
+        PlayerId manager, IReadOnlyList<string> selectedMaps, CancellationToken cancellationToken)
+    {
+        var eligible = _players.OnlinePlayers
+            .Where(player => player.IsConnected)
+            .Select(player => player.Id)
+            .Distinct()
+            .ToArray();
+        if (!eligible.Contains(manager)) return false;
+        var result = await _coordinator.CreateSelectedAsync(
+            manager, eligible, selectedMaps, _timeProvider.GetUtcNow(), cancellationToken).ConfigureAwait(false);
+        if (!result.Accepted) return false;
+        _hud.ShowAll(eligible);
+        return true;
     }
 
     private async ValueTask<bool> StartRandomFromHudAsync(PlayerId manager, CancellationToken cancellationToken)
