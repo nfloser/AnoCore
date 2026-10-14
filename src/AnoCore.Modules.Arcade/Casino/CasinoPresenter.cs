@@ -194,6 +194,7 @@ public sealed class CasinoPresenter : IDisposable
                 var color = settled.Number == 0 ? "land-green" : RouletteReds.Contains(settled.Number) ? "land-red" : "land-black";
                 Class(state, "wheel", color, settled.Game == CasinoGame.Roulette);
                 Class(state, "pointer", color, settled.Game == CasinoGame.Roulette);
+                for (var number = 0; number <= 36; number++) Class(state, "wheel", "land-n" + number, settled.Game == CasinoGame.Roulette && settled.Number == number);
             }
             if (elapsed.TotalSeconds < 4) continue;
             if (!state.LinesRevealed && state.Outcome is { Game: CasinoGame.Slots } slots)
@@ -222,6 +223,7 @@ public sealed class CasinoPresenter : IDisposable
         for (var line = 0; line < WinningLines.Length; line++) { Class(s, "line" + line, "revealed", false); Class(s, "line" + line, "active", false); }
         foreach (var name in new[] { "flipping", "land-heads", "land-tails" }) Class(s, "coin", name, false);
         foreach (var name in new[] { "spinning", "land-red", "land-black", "land-green" }) { Class(s, "wheel", name, false); Class(s, "pointer", name, false); }
+        for (var number = 0; number <= 36; number++) Class(s, "wheel", "land-n" + number, false);
     }
     private void Render(State s)
     {
