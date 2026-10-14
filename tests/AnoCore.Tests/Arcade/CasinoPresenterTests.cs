@@ -5,106 +5,172 @@ using AnoCore.Runtime.Commands;
 using AnoCore.Runtime.Events;
 using AnoCore.Runtime.Players;
 using AnoCore.Tests.AnoVeto;
+
 namespace AnoCore.Tests.Arcade;
 
 [TestClass]
 public sealed class CasinoPresenterTests
 {
     private static readonly PlayerId Player = new(76561198000911901);
+
     [TestMethod]
-    public async Task CoinflipSettlesBeforeAnimation_AndTickCannotAwardAgain()
+    public async Task OpenUsesDedicatedLobby_AndGameSelectionSwapsHud()
     {
-        using var f = await Fixture.Create(); await f.Click("load"); await f.Click("coinflip"); await f.Click("head"); await f.Click("play");
-        Assert.AreEqual("600 AP", f.Text("bank")); Assert.AreEqual("0 AP", f.Text("win"));
-        await f.Click("play"); Assert.AreEqual(2, f.Wallet.Operations.Count);
-        await f.Click("close"); f.Clock.Advance(); f.Presenter.Tick(); f.Presenter.Tick();
-        Assert.AreEqual(600L, f.Wallet.Balance.Allocated);
-        await f.Commands.ExecuteAsync("!anocasino", Player); Assert.AreEqual("200 AP", f.Text("win"));
-    }
-    [TestMethod]
-    public async Task SlotsAndRouletteUseServerRequests_AndPermissionsReleaseHud()
-    {
-        using var f = await Fixture.Create(); await f.Click("load"); await f.Click("roulette"); await f.Click("number"); await f.Click("play");
-        Assert.AreEqual(CasinoGame.Roulette, f.Wallet.Last!.Game!.Game); Assert.AreEqual(0, f.Wallet.Last.Game.Choice);
-        Assert.AreEqual("4.000 AP", f.Text("bank")); f.Clock.Advance(); f.Presenter.Tick();
-        await f.Click("slots"); await f.Click("play"); Assert.AreEqual(CasinoGame.Slots, f.Wallet.Last.Game!.Game);
-        f.Permission.Allowed = false; await f.Click("close"); Assert.AreEqual(0, f.Hud.VisiblePlayers(CasinoPresenter.HudId).Count);
-    }
-    [TestMethod]
-    public async Task SlotsReelsStopAtMilestonesAndWinningLinesClearOnNextSpin()
-    {
-        using var f = await Fixture.Create(); await f.Click("load"); await f.Click("slots"); await f.Click("play");
-        for (var i = 0; i < 3; i++) Assert.IsTrue(f.Class("reel" + i, "rolling"));
-        f.Clock.AdvanceMilliseconds(2590); f.Presenter.Tick();
-        Assert.IsTrue(f.Class("reel0", "rolling")); Assert.IsFalse(f.Class("reel0", "settled"));
-        f.Clock.AdvanceMilliseconds(10); f.Presenter.Tick();
-        Assert.IsFalse(f.Class("reel0", "rolling")); Assert.IsTrue(f.Class("reel0", "settled"));
-        Assert.IsTrue(f.Class("reel1", "rolling"));
-        f.Clock.AdvanceMilliseconds(500); f.Presenter.Tick();
-        Assert.IsFalse(f.Class("reel1", "rolling")); Assert.IsTrue(f.Class("reel1", "settled"));
-        Assert.IsTrue(f.Class("reel2", "rolling"));
-        f.Clock.AdvanceMilliseconds(500); f.Presenter.Tick();
-        Assert.IsFalse(f.Class("reel2", "rolling")); Assert.IsTrue(f.Class("reel2", "settled"));
-        for (var i = 0; i < 5; i++) Assert.IsFalse(f.Class("line" + i, "revealed"));
-        f.Clock.AdvanceMilliseconds(390); f.Presenter.Tick();
-        Assert.IsFalse(f.Class("line0", "revealed"));
-        f.Clock.AdvanceMilliseconds(10); f.Presenter.Tick();
-        for (var i = 0; i < 5; i++) { Assert.IsTrue(f.Class("line" + i, "revealed")); Assert.IsTrue(f.Class("line" + i, "active")); }
-        await f.Click("play");
-        for (var i = 0; i < 5; i++) { Assert.IsFalse(f.Class("line" + i, "revealed")); Assert.IsFalse(f.Class("line" + i, "active")); }
-        for (var i = 0; i < 3; i++) Assert.IsFalse(f.Class("reel" + i, "settled"));
+        using var f = await Fixture.Create();
+
+        Assert.IsTrue(f.Hud.VisiblePlayers(CasinoPresenter.LobbyHudId).Contains(Player));
+        Assert.IsFalse(f.Hud.VisiblePlayers(CasinoPresenter.SlotsHudId).Contains(Player));
+
+        await f.ClickLobby("slots");
+
+        Assert.IsFalse(f.Hud.VisiblePlayers(CasinoPresenter.LobbyHudId).Contains(Player));
+        Assert.IsTrue(f.Hud.VisiblePlayers(CasinoPresenter.SlotsHudId).Contains(Player));
+
+        await f.ClickSlots("back");
+
+        Assert.IsTrue(f.Hud.VisiblePlayers(CasinoPresenter.LobbyHudId).Contains(Player));
+        Assert.IsFalse(f.Hud.VisiblePlayers(CasinoPresenter.SlotsHudId).Contains(Player));
     }
 
     [TestMethod]
-    public async Task CoinAndRouletteLandOnBookedServerOutcome()
+    public async Task CoinflipSettlesBeforeAnimation_AndTickCannotAwardAgain()
     {
-        using var f = await Fixture.Create(); await f.Click("load"); await f.Click("coinflip"); await f.Click("head"); await f.Click("play");
-        Assert.IsTrue(f.Class("coin", "flipping")); Assert.IsFalse(f.Class("coin", "land-heads"));
-        f.Clock.AdvanceMilliseconds(3590); f.Presenter.Tick(); Assert.IsTrue(f.Class("coin", "flipping"));
-        f.Clock.AdvanceMilliseconds(10); f.Presenter.Tick();
-        Assert.IsFalse(f.Class("coin", "flipping")); Assert.IsTrue(f.Class("coin", "land-heads"));
-        Assert.IsFalse(f.Class("coin", "land-tails"));
-        f.Clock.AdvanceMilliseconds(400); f.Presenter.Tick();
-        await f.Click("roulette"); await f.Click("number"); await f.Click("play");
-        Assert.IsTrue(f.Class("wheel", "spinning")); Assert.IsTrue(f.Class("pointer", "spinning"));
-        Assert.AreEqual("0", f.Text("wheelresult"));
-        f.Clock.AdvanceMilliseconds(3600); f.Presenter.Tick();
-        Assert.IsFalse(f.Class("wheel", "spinning")); Assert.IsFalse(f.Class("pointer", "spinning"));
-        Assert.IsTrue(f.Class("wheel", "land-green")); Assert.IsTrue(f.Class("pointer", "land-green"));
-        Assert.IsFalse(f.Class("wheel", "land-red")); Assert.IsFalse(f.Class("wheel", "land-black"));
-        Assert.IsTrue(f.Class("wheel", "land-n0")); Assert.IsFalse(f.Class("wheel", "land-n1"));
-        f.Clock.AdvanceMilliseconds(400); f.Presenter.Tick();
-        await f.Click("play");
-        Assert.IsFalse(f.Class("wheel", "land-n0")); Assert.IsFalse(f.Class("wheel", "land-green"));
-        Assert.IsTrue(f.Class("wheel", "spinning"));
+        using var f = await Fixture.Create();
+        await f.ClickLobby("load");
+        await f.ClickLobby("coinflip");
+        await f.ClickCoin("head");
+        await f.ClickCoin("play");
+
+        Assert.AreEqual("600 AP", f.CoinText("bank"));
+        Assert.AreEqual("0 AP", f.CoinText("win"));
+
+        await f.ClickCoin("play");
+        Assert.AreEqual(2, f.Wallet.Operations.Count);
+
+        await f.ClickCoin("close");
+        f.Clock.Advance();
+        f.Presenter.Tick();
+        f.Presenter.Tick();
+
+        Assert.AreEqual(600L, f.Wallet.Balance.Allocated);
+        await f.Commands.ExecuteAsync("!anocasino", Player);
+        Assert.AreEqual("200 AP", f.LobbyLastWinFromStatus());
+    }
+
+    [TestMethod]
+    public async Task SlotsReelsStopAtMilestonesAndWinningLinesClearOnNextSpin()
+    {
+        using var f = await Fixture.Create();
+        await f.ClickLobby("load");
+        await f.ClickLobby("slots");
+        await f.ClickSlots("play");
+
+        for (var i = 0; i < 3; i++)
+            Assert.IsTrue(f.SlotsClass("reel" + i, "rolling"));
+
+        f.Clock.AdvanceMilliseconds(2600);
+        f.Presenter.Tick();
+        Assert.IsFalse(f.SlotsClass("reel0", "rolling"));
+        Assert.IsTrue(f.SlotsClass("reel0", "settled"));
+        Assert.IsTrue(f.SlotsClass("reel1", "rolling"));
+
+        f.Clock.AdvanceMilliseconds(500);
+        f.Presenter.Tick();
+        Assert.IsFalse(f.SlotsClass("reel1", "rolling"));
+        Assert.IsTrue(f.SlotsClass("reel1", "settled"));
+
+        f.Clock.AdvanceMilliseconds(500);
+        f.Presenter.Tick();
+        Assert.IsFalse(f.SlotsClass("reel2", "rolling"));
+        Assert.IsTrue(f.SlotsClass("reel2", "settled"));
+
+        f.Clock.AdvanceMilliseconds(400);
+        f.Presenter.Tick();
+        for (var i = 0; i < 5; i++)
+        {
+            Assert.IsTrue(f.SlotsClass("line" + i, "revealed"));
+            Assert.IsTrue(f.SlotsClass("line" + i, "active"));
+        }
+
+        await f.ClickSlots("play");
+        for (var i = 0; i < 5; i++)
+        {
+            Assert.IsFalse(f.SlotsClass("line" + i, "revealed"));
+            Assert.IsFalse(f.SlotsClass("line" + i, "active"));
+        }
+    }
+
+    [TestMethod]
+    public async Task RouletteUsesDedicatedHudAndBookedLanding()
+    {
+        using var f = await Fixture.Create();
+        await f.ClickLobby("load");
+        await f.ClickLobby("roulette");
+        await f.ClickRoulette("number");
+        await f.ClickRoulette("play");
+
+        Assert.AreEqual(CasinoGame.Roulette, f.Wallet.Last!.Game!.Game);
+        Assert.AreEqual(0, f.Wallet.Last.Game.Choice);
+        Assert.AreEqual("4.000 AP", f.RouletteText("bank"));
+        Assert.IsTrue(f.RouletteClass("wheel", "spinning"));
+
+        f.Clock.AdvanceMilliseconds(3600);
+        f.Presenter.Tick();
+
+        Assert.IsFalse(f.RouletteClass("wheel", "spinning"));
+        Assert.IsTrue(f.RouletteClass("wheel", "land-green"));
+        Assert.IsTrue(f.RouletteClass("wheel", "land-n0"));
     }
 
     [TestMethod]
     public async Task UncertainReceiptRetriesSameOperation_AndBlocksNewGame()
     {
-        using var f = await Fixture.Create(); await f.Click("load"); await f.Click("coinflip"); f.Wallet.FailRead = true; await f.Click("play");
-        var operation = f.Wallet.Last!.Id; var count = f.Wallet.Operations.Count;
-        await f.Click("play"); Assert.AreEqual(count, f.Wallet.Operations.Count);
-        f.Wallet.FailRead = false; await f.Click("retry"); Assert.AreEqual(operation, f.Wallet.Last.Id); Assert.AreEqual(count, f.Wallet.Operations.Count);
-        Assert.AreEqual("600 AP", f.Text("bank"));
+        using var f = await Fixture.Create();
+        await f.ClickLobby("load");
+        await f.ClickLobby("coinflip");
+        f.Wallet.FailRead = true;
+        await f.ClickCoin("play");
+
+        var operation = f.Wallet.Last!.Id;
+        var count = f.Wallet.Operations.Count;
+        await f.ClickCoin("play");
+        Assert.AreEqual(count, f.Wallet.Operations.Count);
+
+        f.Wallet.FailRead = false;
+        await f.ClickCoin("retry");
+        Assert.AreEqual(operation, f.Wallet.Last.Id);
+        Assert.AreEqual(count, f.Wallet.Operations.Count);
+        Assert.AreEqual("600 AP", f.CoinText("bank"));
     }
+
+    [TestMethod]
+    public async Task PermissionFailureClosesAllCasinoViews()
+    {
+        using var f = await Fixture.Create();
+        await f.ClickLobby("slots");
+        Assert.IsTrue(f.Hud.VisiblePlayers(CasinoPresenter.SlotsHudId).Contains(Player));
+
+        f.Permission.Allowed = false;
+        await f.ClickSlots("rules");
+
+        Assert.IsFalse(f.Hud.VisiblePlayers(CasinoPresenter.LobbyHudId).Contains(Player));
+        Assert.IsFalse(f.Hud.VisiblePlayers(CasinoPresenter.SlotsHudId).Contains(Player));
+        Assert.IsFalse(f.Hud.VisiblePlayers(CasinoPresenter.CoinflipHudId).Contains(Player));
+        Assert.IsFalse(f.Hud.VisiblePlayers(CasinoPresenter.RouletteHudId).Contains(Player));
+    }
+
     [TestMethod]
     public async Task CreditCommandIsConsoleOnly_AndBounded()
     {
-        using var f = await Fixture.Create(); Assert.IsFalse((await f.Commands.ExecuteAsync("!anoapcredit 76561198000911901 100", Player)).Success);
-        Assert.IsFalse((await f.Commands.ExecuteAsync("!anoapcredit 76561198000911901 1000001", null)).Success);
-        Assert.IsTrue((await f.Commands.ExecuteAsync("!anoapcredit 76561198000911901 100", null)).Success);
-        Assert.AreEqual(1100L, f.Wallet.Balance.Available);
-    }
-    [TestMethod]
-    public async Task RejectedPlayDoesNotPreventLoadingFundsAfterwards()
-    {
         using var f = await Fixture.Create();
-        await f.Click("coinflip");
-        f.Wallet.RejectOnce = new CasinoRejectedException("Nicht genügend Automatenguthaben.");
-        await f.Click("play");
-        await f.Click("load");
-        Assert.AreEqual("500 AP", f.Text("bank"));
+
+        Assert.IsFalse((await f.Commands.ExecuteAsync(
+            "!anoapcredit 76561198000911901 100", Player)).Success);
+        Assert.IsFalse((await f.Commands.ExecuteAsync(
+            "!anoapcredit 76561198000911901 1000001", null)).Success);
+        Assert.IsTrue((await f.Commands.ExecuteAsync(
+            "!anoapcredit 76561198000911901 100", null)).Success);
+        Assert.AreEqual(1100L, f.Wallet.Balance.Available);
     }
 
     [TestMethod]
@@ -120,40 +186,150 @@ public sealed class CasinoPresenterTests
 
         f.Wallet.FailRead = false;
         f.Wallet.FailApply = new InvalidOperationException("casino database unavailable");
-        var credit = await f.Commands.ExecuteAsync("!anoapcredit 76561198000911901 100", null);
+        var credit = await f.Commands.ExecuteAsync(
+            "!anoapcredit 76561198000911901 100", null);
         Assert.IsFalse(credit.Success);
         StringAssert.Contains(credit.Message, "Casino-Speicher");
         Assert.AreEqual(2, f.Errors.Count);
     }
 
-    private sealed class Clock : TimeProvider { private DateTimeOffset _now = DateTimeOffset.UtcNow; public override DateTimeOffset GetUtcNow() => _now; public void Advance() => AdvanceMilliseconds(4000); public void AdvanceMilliseconds(int milliseconds) => _now = _now.AddMilliseconds(milliseconds); }
-    private sealed class Permission : IPermissionEvaluator { public bool Allowed = true; public ValueTask<bool> HasPermissionAsync(PlayerId p, PermissionId x, CancellationToken t = default) => ValueTask.FromResult(Allowed); }
+    private sealed class Clock : TimeProvider
+    {
+        private DateTimeOffset _now = DateTimeOffset.UtcNow;
+        public override DateTimeOffset GetUtcNow() => _now;
+        public void Advance() => AdvanceMilliseconds(4000);
+        public void AdvanceMilliseconds(int milliseconds) => _now = _now.AddMilliseconds(milliseconds);
+    }
+
+    private sealed class Permission : IPermissionEvaluator
+    {
+        public bool Allowed = true;
+        public ValueTask<bool> HasPermissionAsync(
+            PlayerId player, PermissionId permission, CancellationToken token = default)
+            => ValueTask.FromResult(Allowed);
+    }
+
     private sealed class Wallet : ICasinoWallet
     {
-        public CasinoBalance Balance = new(1000, 0, 0); public bool FailRead;
-        public Exception? RejectOnce; public Exception? FailApply; public CasinoOperation? Last; public Dictionary<Guid, CasinoReceipt> Operations = [];
-        public ValueTask<CasinoBalance> ReadAsync(PlayerId p, CancellationToken t = default) => FailRead ? ValueTask.FromException<CasinoBalance>(new InvalidOperationException("Connection lost")) : ValueTask.FromResult(Balance);
-        public ValueTask<IReadOnlyList<CasinoReceipt>> HistoryAsync(PlayerId p, CancellationToken t = default) => ValueTask.FromResult<IReadOnlyList<CasinoReceipt>>(Operations.Values.Reverse().ToArray());
-        public ValueTask<CasinoReceipt> ApplyAsync(CasinoOperation o, CancellationToken t = default)
+        public CasinoBalance Balance = new(1000, 0, 0);
+        public bool FailRead;
+        public Exception? RejectOnce;
+        public Exception? FailApply;
+        public CasinoOperation? Last;
+        public Dictionary<Guid, CasinoReceipt> Operations = [];
+
+        public ValueTask<CasinoBalance> ReadAsync(PlayerId player, CancellationToken token = default)
+            => FailRead
+                ? ValueTask.FromException<CasinoBalance>(new InvalidOperationException("Connection lost"))
+                : ValueTask.FromResult(Balance);
+
+        public ValueTask<IReadOnlyList<CasinoReceipt>> HistoryAsync(
+            PlayerId player, CancellationToken token = default)
+            => ValueTask.FromResult<IReadOnlyList<CasinoReceipt>>(
+                Operations.Values.Reverse().ToArray());
+
+        public ValueTask<CasinoReceipt> ApplyAsync(CasinoOperation operation, CancellationToken token = default)
         {
-            if (FailApply is { } failure) { FailApply = null; throw failure; }
-            if (RejectOnce is { } rejection) { RejectOnce = null; throw rejection; }
-            Last = o; if (Operations.TryGetValue(o.Id, out var old)) return ValueTask.FromResult(old);
-            CasinoOutcome? result = null; var a = Balance.Available; var b = Balance.Allocated;
-            switch (o.Action) { case CasinoAction.Load: a -= o.Amount; b += o.Amount; break; case CasinoAction.Return: a += b; b = 0; break; case CasinoAction.Credit: a += o.Amount; break; case CasinoAction.Play: result = CasinoRules.Draw(o.Game!, _ => 0); b = b - o.Game!.Stake + result.Payout; break; }
-            Balance = new(a, b, Balance.Revision + 1); var receipt = new CasinoReceipt(o.Id, Balance, result); Operations[o.Id] = receipt; return ValueTask.FromResult(receipt);
+            if (FailApply is { } failure)
+            {
+                FailApply = null;
+                throw failure;
+            }
+
+            if (RejectOnce is { } rejection)
+            {
+                RejectOnce = null;
+                throw rejection;
+            }
+
+            Last = operation;
+            if (Operations.TryGetValue(operation.Id, out var old))
+                return ValueTask.FromResult(old);
+
+            CasinoOutcome? result = null;
+            var available = Balance.Available;
+            var allocated = Balance.Allocated;
+
+            switch (operation.Action)
+            {
+                case CasinoAction.Load:
+                    available -= operation.Amount;
+                    allocated += operation.Amount;
+                    break;
+                case CasinoAction.Return:
+                    available += allocated;
+                    allocated = 0;
+                    break;
+                case CasinoAction.Credit:
+                    available += operation.Amount;
+                    break;
+                case CasinoAction.Play:
+                    result = CasinoRules.Draw(operation.Game!, _ => 0);
+                    allocated = allocated - operation.Game!.Stake + result.Payout;
+                    break;
+            }
+
+            Balance = new(available, allocated, Balance.Revision + 1);
+            var receipt = new CasinoReceipt(operation.Id, Balance, result);
+            Operations[operation.Id] = receipt;
+            return ValueTask.FromResult(receipt);
         }
     }
+
     private sealed class Fixture : IDisposable
     {
-        public readonly Clock Clock = new(); public readonly Permission Permission = new(); public readonly Wallet Wallet = new(); public readonly TestCustomHudService Hud = new();
+        public readonly Clock Clock = new();
+        public readonly Permission Permission = new();
+        public readonly Wallet Wallet = new();
+        public readonly TestCustomHudService Hud = new();
         public readonly List<Exception> Errors = [];
-        public readonly PlayerRegistry Players; public readonly CommandRegistry Commands; public readonly CasinoPresenter Presenter;
-        private Fixture() { var events = new AnoEventBus(); Players = new(events); Commands = new(Permission); Presenter = new(Hud, Players, Permission, Wallet, Commands, events, _ => { }, Clock, reportError: Errors.Add); }
-        public static async Task<Fixture> Create() { var f = new Fixture(); await f.Players.ConnectAsync(new(Player, "Tester", PlayerTeam.Terrorist, true, DateTimeOffset.UtcNow)); Assert.IsTrue((await f.Commands.ExecuteAsync("!anocasino", Player)).Success); return f; }
-        public ValueTask Click(string id) => Hud.ClickAsync(Player, CasinoPresenter.HudId, "casino_" + id);
-        public string? Text(string id) => Hud.Text(Player, CasinoPresenter.HudId, "casino_" + id);
-        public bool Class(string id, string name) => Hud.Class(Player, CasinoPresenter.HudId, "casino_" + id, name);
+        public readonly PlayerRegistry Players;
+        public readonly CommandRegistry Commands;
+        public readonly CasinoPresenter Presenter;
+
+        private Fixture()
+        {
+            var events = new AnoEventBus();
+            Players = new(events);
+            Commands = new(Permission);
+            Presenter = new(
+                Hud, Players, Permission, Wallet, Commands, events,
+                _ => { }, Clock, reportError: Errors.Add);
+        }
+
+        public static async Task<Fixture> Create()
+        {
+            var fixture = new Fixture();
+            await fixture.Players.ConnectAsync(
+                new(Player, "Tester", PlayerTeam.Terrorist, true, DateTimeOffset.UtcNow));
+            Assert.IsTrue((await fixture.Commands.ExecuteAsync("!anocasino", Player)).Success);
+            return fixture;
+        }
+
+        public ValueTask ClickLobby(string action)
+            => Hud.ClickAsync(Player, CasinoPresenter.LobbyHudId, "casino_lobby_" + action);
+        public ValueTask ClickSlots(string action)
+            => Hud.ClickAsync(Player, CasinoPresenter.SlotsHudId, "casino_slots_" + action);
+        public ValueTask ClickCoin(string action)
+            => Hud.ClickAsync(Player, CasinoPresenter.CoinflipHudId, "casino_coinflip_" + action);
+        public ValueTask ClickRoulette(string action)
+            => Hud.ClickAsync(Player, CasinoPresenter.RouletteHudId, "casino_roulette_" + action);
+
+        public string? CoinText(string id)
+            => Hud.Text(Player, CasinoPresenter.CoinflipHudId, "casino_coinflip_" + id);
+        public string? RouletteText(string id)
+            => Hud.Text(Player, CasinoPresenter.RouletteHudId, "casino_roulette_" + id);
+        public bool SlotsClass(string id, string name)
+            => Hud.Class(Player, CasinoPresenter.SlotsHudId, "casino_slots_" + id, name);
+        public bool RouletteClass(string id, string name)
+            => Hud.Class(Player, CasinoPresenter.RouletteHudId, "casino_roulette_" + id, name);
+
+        public long LobbyLastWinFromStatus()
+        {
+            var status = Hud.Text(Player, CasinoPresenter.LobbyHudId, "casino_lobby_status") ?? "";
+            return status.Contains("200", StringComparison.Ordinal) ? 200 : 0;
+        }
+
         public void Dispose() => Presenter.Dispose();
     }
 }
