@@ -3,6 +3,7 @@ using AnoCore.Abstractions.Configuration;
 using AnoCore.Abstractions.Hud;
 using AnoCore.Abstractions.Maps;
 using AnoCore.Abstractions.Modules;
+using AnoCore.Abstractions.Persistence;
 using AnoCore.Abstractions.Players;
 using AnoCore.Abstractions.Voting;
 using AnoCore.Runtime.Maps;
@@ -42,7 +43,8 @@ public sealed class AnoVetoModuleRuntime : IDisposable
         IMapChanger mapChanger,
         TimeProvider? timeProvider = null,
         IAnoVetoRandomSource? random = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        IDatabase? presetDatabase = null)
         => CreateCoreAsync(
             configuration,
             commands,
@@ -53,7 +55,8 @@ public sealed class AnoVetoModuleRuntime : IDisposable
             timeProvider,
             random,
             cancellationToken,
-            reloads: null);
+            reloads: null,
+            presetDatabase: presetDatabase);
 
     public static ValueTask<AnoVetoModuleRuntime?> CreateAsync(
         IConfigStore configuration,
@@ -65,7 +68,8 @@ public sealed class AnoVetoModuleRuntime : IDisposable
         IConfigReloadRegistry reloads,
         TimeProvider? timeProvider = null,
         IAnoVetoRandomSource? random = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        IDatabase? presetDatabase = null)
     {
         ArgumentNullException.ThrowIfNull(reloads);
         return CreateCoreAsync(
@@ -78,7 +82,8 @@ public sealed class AnoVetoModuleRuntime : IDisposable
             timeProvider,
             random,
             cancellationToken,
-            reloads);
+            reloads,
+            presetDatabase);
     }
 
     public ValueTask<AnoVetoOperationResult?> ExpireAsync(CancellationToken cancellationToken = default)
@@ -106,7 +111,8 @@ public sealed class AnoVetoModuleRuntime : IDisposable
         TimeProvider? timeProvider,
         IAnoVetoRandomSource? random,
         CancellationToken cancellationToken,
-        IConfigReloadRegistry? reloads)
+        IConfigReloadRegistry? reloads,
+        IDatabase? presetDatabase)
     {
         ArgumentNullException.ThrowIfNull(configuration);
         ArgumentNullException.ThrowIfNull(commands);
@@ -119,6 +125,14 @@ public sealed class AnoVetoModuleRuntime : IDisposable
         if (!settings.Enabled)
         {
             return null;
+        }
+
+        IAnoVetoPresetRepository? presetRepository = null;
+        if (presetDatabase is not null)
+        {
+            await AnoVetoPresetPersistenceBootstrap.EnsureReadyAsync(presetDatabase, cancellationToken)
+                .ConfigureAwait(false);
+            presetRepository = new MySqlAnoVetoPresetRepository(presetDatabase);
         }
 
         var catalogLoader = new MapCatalogLoader(configuration);
@@ -138,7 +152,8 @@ public sealed class AnoVetoModuleRuntime : IDisposable
                 hud,
                 players,
                 fixedCoordinator,
-                timeProvider);
+                timeProvider,
+                presetRepository);
             return new AnoVetoModuleRuntime(fixedCoordinator, fixedController);
         }
 
@@ -174,7 +189,8 @@ public sealed class AnoVetoModuleRuntime : IDisposable
                 hud,
                 players,
                 coordinator,
-                timeProvider);
+                timeProvider,
+                presetRepository);
 
             return new AnoVetoModuleRuntime(
                 coordinator,

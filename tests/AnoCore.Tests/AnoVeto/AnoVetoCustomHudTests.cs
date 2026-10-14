@@ -53,7 +53,7 @@ public sealed class AnoVetoCustomHudTests
     }
 
     [TestMethod]
-    public async Task MapClick_CastsVoteAndHidesHudForThatPlayer()
+    public async Task MapClick_KeepsHudUntilThreeDistinctMapsAndShowsProgress()
     {
         var hud = new RecordingHudService();
         var coordinator = CreateCoordinator();
@@ -61,14 +61,22 @@ public sealed class AnoVetoCustomHudTests
         Assert.IsTrue(created.Accepted);
         using var controller = new AnoVetoHudController(hud, coordinator, new FixedTimeProvider(Now));
         Assert.IsTrue(controller.Show(PlayerA));
+        Assert.IsTrue(hud.Text[(PlayerA, "ano_veto_status", "text")].Contains("0/3", StringComparison.Ordinal));
 
         await hud.ClickAsync(PlayerA, "ano_veto_map_3");
+        Assert.IsTrue(hud.VisiblePlayers.Contains(PlayerA));
+        Assert.IsTrue(hud.Classes[(PlayerA, "ano_veto_map_3", "selected")]);
+        Assert.IsTrue(hud.Text[(PlayerA, "ano_veto_status", "text")].Contains("1/3", StringComparison.Ordinal));
 
+        await hud.ClickAsync(PlayerA, "ano_veto_map_3"); // duplicate must not consume a vote
+        Assert.IsTrue(hud.VisiblePlayers.Contains(PlayerA));
+        Assert.IsTrue(hud.Text[(PlayerA, "ano_veto_status", "text")].Contains("1/3", StringComparison.Ordinal));
+        await hud.ClickAsync(PlayerA, "ano_veto_map_4");
+        Assert.IsTrue(hud.VisiblePlayers.Contains(PlayerA));
+        Assert.IsTrue(hud.Text[(PlayerA, "ano_veto_status", "text")].Contains("2/3", StringComparison.Ordinal));
+        await hud.ClickAsync(PlayerA, "ano_veto_map_5");
         Assert.IsFalse(hud.VisiblePlayers.Contains(PlayerA));
-        Assert.IsTrue(coordinator.TryGetStatus(out var maps));
-        var secondVote = await coordinator.CastAsync(PlayerA, maps[4].MapId, Now.AddSeconds(1));
-        Assert.IsFalse(secondVote.Accepted);
-        Assert.AreEqual(AnoVetoFailure.AlreadyVoted, secondVote.Failure);
+        Assert.IsTrue(coordinator.TryGetStatus(out _));
     }
 
     [TestMethod]
@@ -116,7 +124,7 @@ public sealed class AnoVetoCustomHudTests
     }
 
     [TestMethod]
-    public async Task FinalVote_HidesHudForEveryone()
+    public async Task FinalVote_HidesHudOnlyWhenEveryoneCompletesTheirThreeSelections()
     {
         var hud = new RecordingHudService();
         var coordinator = CreateCoordinator(minimumVotes: 2);
@@ -126,9 +134,14 @@ public sealed class AnoVetoCustomHudTests
         Assert.IsTrue(controller.Show(Manager));
         Assert.IsTrue(controller.Show(PlayerA));
         Assert.IsTrue(coordinator.TryGetStatus(out var maps));
-        Assert.IsTrue((await coordinator.CastAsync(Manager, maps[0].MapId, Now.AddSeconds(1))).Accepted);
+        foreach (var map in maps.Take(3))
+            Assert.IsTrue((await coordinator.CastAsync(Manager, map.MapId, Now.AddSeconds(1))).Accepted);
 
         await hud.ClickAsync(PlayerA, "ano_veto_map_0");
+        await hud.ClickAsync(PlayerA, "ano_veto_map_1");
+        Assert.IsTrue(hud.VisiblePlayers.Contains(PlayerA));
+        Assert.IsTrue(coordinator.TryGetStatus(out _));
+        await hud.ClickAsync(PlayerA, "ano_veto_map_2");
 
         Assert.IsEmpty(hud.VisiblePlayers);
         Assert.IsFalse(coordinator.TryGetStatus(out _));
