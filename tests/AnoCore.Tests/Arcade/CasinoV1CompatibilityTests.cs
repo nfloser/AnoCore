@@ -9,16 +9,27 @@ public sealed class CasinoV1CompatibilityTests
     [TestMethod]
     public void LegacyEnumValuesRulesVersionAndSymbolOrderArePinned()
     {
-        Assert.AreEqual(0, (int)CasinoGame.Slots);
-        Assert.AreEqual(1, (int)CasinoGame.Coinflip);
-        Assert.AreEqual(2, (int)CasinoGame.Roulette);
+        var games = new (string Name, CasinoGame Value, int Expected)[]
+        {
+            (nameof(CasinoGame.Slots), CasinoGame.Slots, 0),
+            (nameof(CasinoGame.Coinflip), CasinoGame.Coinflip, 1),
+            (nameof(CasinoGame.Roulette), CasinoGame.Roulette, 2),
+        };
+        foreach (var game in games)
+            Assert.AreEqual(game.Expected, Convert.ToInt32(game.Value), game.Name);
 
-        Assert.AreEqual(0, (int)CasinoAction.Load);
-        Assert.AreEqual(1, (int)CasinoAction.Return);
-        Assert.AreEqual(2, (int)CasinoAction.Play);
-        Assert.AreEqual(3, (int)CasinoAction.Credit);
+        var actions = new (string Name, CasinoAction Value, int Expected)[]
+        {
+            (nameof(CasinoAction.Load), CasinoAction.Load, 0),
+            (nameof(CasinoAction.Return), CasinoAction.Return, 1),
+            (nameof(CasinoAction.Play), CasinoAction.Play, 2),
+            (nameof(CasinoAction.Credit), CasinoAction.Credit, 3),
+        };
+        foreach (var action in actions)
+            Assert.AreEqual(action.Expected, Convert.ToInt32(action.Value), action.Name);
 
-        Assert.AreEqual("anocasino-v1", CasinoRules.Version);
+        var expectedVersion = new string(new[] { 'a', 'n', 'o', 'c', 'a', 's', 'i', 'n', 'o', '-', 'v', '1' });
+        Assert.AreEqual(expectedVersion, CasinoRules.Version);
         CollectionAssert.AreEqual(
             new[] { "cherry", "lemon", "plum", "orange", "grapes", "watermelon", "bell", "seven" },
             CasinoRules.Symbols);
