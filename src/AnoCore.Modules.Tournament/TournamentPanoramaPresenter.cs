@@ -358,8 +358,17 @@ public sealed class TournamentPanoramaPresenter : IDisposable
                 : remote.Length == 0 ? "Offline" : remote.Length > 1 ? "Online · mehrere Server/Sessions"
                 : $"{new string(remote[0].Player.Name.Take(32).ToArray())} · Online auf {remote[0].ServerId} · " +
                     (matchZyReady ? "Ready: MatchZy" : remote[0].Player.IsReady ? "Bereit für " + remote[0].Player.MatchId?.ToString("N")[..8] : "Nicht bereit");
+            // A registered event may display its players before any of them joins a server.
+            // Live names are used when no explicit event label was configured; identity remains SteamID64.
+            var displayName = selected is not null && selected.PlayerNames.TryGetValue(steam, out var configuredName)
+                ? configuredName
+                : remote is { Length: 1 } ? remote[0].Player.Name
+                : online && _players.TryGet(new PlayerId(steam), out var connected) ? connected?.Name : null;
+            var playerLabel = string.IsNullOrWhiteSpace(displayName)
+                ? steam.ToString()
+                : $"{displayName.Trim()} ({steam})";
             Set(player, $"ano_tournament_roster_{i}", steam == 0 ? "" :
-                $"{(rosterIndex < 5 ? "Starter" : "Ersatz")} {(rosterIndex < 5 ? rosterIndex + 1 : rosterIndex - 4)}: {steam} · {status}");
+                $"{(rosterIndex < 5 ? "Starter" : "Ersatz")} {(rosterIndex < 5 ? rosterIndex + 1 : rosterIndex - 4)}: {playerLabel} · {status}");
         }
         if (state.View == "bracket" && state.SelectedMatchId is { } selectedMatch)
         {
