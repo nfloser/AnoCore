@@ -105,17 +105,22 @@ public sealed class AnoVetoCoordinatorTests
     }
 
     [TestMethod]
-    public async Task CastAsync_SameSteamIdCannotVoteTwice()
+    public async Task CastAsync_SameSteamIdCanSelectThreeDistinctMapsButNotFour()
     {
         var harness = CreateHarness(8, minimumVotes: 1);
         var created = await harness.Coordinator.CreateAsync(Manager, [PlayerA, PlayerB], Now);
+        var reconnectIdentity = new PlayerId(PlayerA.SteamId64);
 
         var first = await harness.Coordinator.CastAsync(PlayerA, created.Maps[0].MapId, Now.AddSeconds(1));
-        var second = await harness.Coordinator.CastAsync(new PlayerId(PlayerA.SteamId64), created.Maps[1].MapId, Now.AddSeconds(2));
+        var second = await harness.Coordinator.CastAsync(reconnectIdentity, created.Maps[1].MapId, Now.AddSeconds(2));
+        var third = await harness.Coordinator.CastAsync(PlayerA, created.Maps[2].MapId, Now.AddSeconds(3));
+        var fourth = await harness.Coordinator.CastAsync(reconnectIdentity, created.Maps[3].MapId, Now.AddSeconds(4));
 
         Assert.IsTrue(first.Accepted);
-        Assert.IsFalse(second.Accepted);
-        Assert.AreEqual(AnoVetoFailure.AlreadyVoted, second.Failure);
+        Assert.IsTrue(second.Accepted);
+        Assert.IsTrue(third.Accepted);
+        Assert.IsFalse(fourth.Accepted);
+        Assert.AreEqual(AnoVetoFailure.AlreadyVoted, fourth.Failure);
     }
 
     [TestMethod]
