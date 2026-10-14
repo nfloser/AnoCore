@@ -165,7 +165,6 @@ Konto nach Neustart und den letzten Beleg mit dem Zustand vor Abbruch vergleiche
 
 Kistensimulator, Wettzentrale und Book-Automat bleiben getrennte Folgearbeiten.
 
-
 ## Kompatibilität und erweiterte Automaten
 
 Migration 027 speichert Requests und Receipts als JSON mit den Standardoptionen
@@ -174,8 +173,8 @@ repräsentative Auszahlungs-/JSON-Vektoren sind deshalb als Legacy-Vertrag
 Regressionstests abgesichert. Belege bleiben unveränderlich: spätere Regel- oder
 Darstellungsänderungen interpretieren abgeschlossene Vorgänge nicht neu.
 
-Die Engines aus #424 (Kistensimulator), #425 (Wettzentrale) und #426
-(Book-Automat) sind eine teilweise Erweiterung, keine derzeit spielbaren
+Die Engines aus #424 (Blackjack), #425 (Risk / Double-or-Bank) und #426
+(Book-style bonus slot) sind eine teilweise Erweiterung, keine derzeit spielbaren
 Funktionen. Sie gelten erst nach #429 einschließlich Persistenz-, UI- und
 CI-Integration als spielbar. Diese Dokumentation behauptet keine native
 CS2-Abnahme der erweiterten Automaten.
