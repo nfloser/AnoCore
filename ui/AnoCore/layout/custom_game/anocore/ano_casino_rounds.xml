@@ -82,7 +82,7 @@
 </Panel></Panel>
 </Panel><Label class="table-note" text="10 GEWINNLINIEN · 3+ BÜCHER STARTEN FREISPIELE · WILD ERSETZT SYMBOLE" /></Panel>
     <Panel class="blackjack-table"><Label class="table-heading" text="DEALER" /><Label id="casino_round_dealer" class="dealer-cards" text="{s:text}" /><Panel class="table-line" /><Label class="table-heading" text="DEINE HÄNDE · BLACKJACK 3:2" /></Panel>
-    <Panel class="risk-table"><Panel class="risk-chip" hittest="false"><Label text="×2" /></Panel><Label class="table-note" text="VERDOPPELN ODER BANK · 50 % CHANCE · MAXIMAL 6 STUFEN" /></Panel>
+    <Panel class="risk-table"><Panel class="risk-chip" hittest="false"><Label text="×2" /></Panel><Label class="table-note" text="VERDOPPELN ODER BANK · 50 % CHANCE · MAXIMAL 5 STUFEN" /></Panel>
     <Label id="casino_round_detail" class="round-detail" text="{s:text}" />
     <Panel class="row stake-controls"><Label text="EINSATZ" /><Button id="casino_round_minus" class="button"><Label text="−" /></Button><Label id="casino_round_stake" text="{s:text}" /><Button id="casino_round_plus" class="button"><Label text="+" /></Button><Button id="casino_round_play" class="button primary"><Label text="NEUE RUNDE" /></Button></Panel>
     <Panel class="row blackjack-actions"><Button id="casino_round_hit" class="button primary"><Label text="KARTE" /></Button><Button id="casino_round_stand" class="button"><Label text="STEHEN" /></Button><Button id="casino_round_double" class="button double-action"><Label text="VERDOPPELN" /></Button><Button id="casino_round_split" class="button split-action"><Label text="TEILEN" /></Button></Panel>

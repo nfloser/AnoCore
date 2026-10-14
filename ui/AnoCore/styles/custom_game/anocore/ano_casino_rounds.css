@@ -71,3 +71,6 @@ Label { color:#e9efed; font-family:Arial; font-size:17px; margin:4px; }
 .motion-b .book-reel.stopped .reel-final { animation-name:book-stop-b; animation-duration:0.25s; }
 @keyframes book-stop-a { 0% { transform:translateY(-12px); } 70% { transform:translateY(3px); } 100% { transform:translateY(0px); } }
 @keyframes book-stop-b { 0% { transform:translateY(-12px); } 70% { transform:translateY(3px); } 100% { transform:translateY(0px); } }
+
+#casino_round_risk { visibility:collapse; }
+.can-risk #casino_round_risk { visibility:visible; }

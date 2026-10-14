@@ -1,7 +1,7 @@
 <root><styles><include src="s2r://panorama/styles/custom_game/anocore/ano_casino.vcss_c" /></styles><Panel class="host" hittest="false"><Panel id="casino_root" class="overlay" hittest="true"><Panel class="window" hittest="true">
 <Panel class="header"><Panel class="brand-banner" hittest="false" /><Label class="brand" text="ANOMEME · ANOCASINO" /><Label id="casino_profile" text="{s:text}" /><Button id="casino_close" class="button"><Label text="SCHLIESSEN" /></Button></Panel>
 <Panel class="row"><Panel class="counter"><Label text="PROFILKONTO" /><Label id="casino_account" text="{s:text}" /></Panel><Panel class="counter"><Label text="AUTOMATENGUTHABEN" /><Label id="casino_bank" text="{s:text}" /></Panel><Panel class="counter"><Label text="GEWINN DIESES SPIELS" /><Label id="casino_win" text="{s:text}" /></Panel></Panel>
-<Panel class="selection"><Button id="casino_slots" class="button"><Label text="SLOTS" /></Button><Button id="casino_coinflip" class="button"><Label text="COINFLIP" /></Button><Button id="casino_roulette" class="button"><Label text="ROULETTE" /></Button></Panel>
+<Panel class="selection"><Button id="casino_slots" class="button"><Label text="SLOTS" /></Button><Button id="casino_coinflip" class="button"><Label text="COINFLIP" /></Button><Button id="casino_roulette" class="button"><Label text="ROULETTE" /></Button><Button id="casino_blackjack" class="button"><Label text="BLACKJACK" /></Button><Button id="casino_book" class="button"><Label text="BOOK · FREISPIELE" /></Button><Button id="casino_risk" class="button"><Label text="RISK" /></Button></Panel>
 <Panel class="slots"><Panel class="reels">
 <Panel id="casino_reel0" class="reel"><Panel class="motion">
 <Panel class="symbol symbol-cherry" hittest="false" />
