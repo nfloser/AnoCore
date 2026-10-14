@@ -19,7 +19,10 @@ public sealed class CasinoRoundPresenterTests
     {
         using var f = await Fixture.Create();
         var trigger = BiggestBoyRules.StartRound(100, _ => 0);
-        var spin = BiggestBoyRules.PlayFreeSpin(trigger.State, _ => 1);
+        var selected = BiggestBoyRules.SelectExpandingSymbol(trigger, BiggestBoySymbol.Beer);
+        var stop = Enumerable.Range(0, 100)
+            .First(value => BiggestBoyRules.DrawGrid(_ => value).Contains(BiggestBoySymbol.Beer));
+        var spin = BiggestBoyRules.PlayFreeSpin(selected.State, _ => stop);
         f.Rounds.NextSnapshot = new(Guid.NewGuid(), Player, CasinoRoundGame.BiggestBoy, 100, 1, false,
             100, spin.State.TotalPayout, JsonSerializer.Serialize(spin));
         Assert.IsTrue(await f.Presenter.OpenAsync(Player, CasinoRoundGame.BiggestBoy));
@@ -39,6 +42,30 @@ public sealed class CasinoRoundPresenterTests
         await f.Click("free");
         Assert.AreEqual(2, f.Rounds.Calls.Count);
         Assert.IsTrue(f.Class("motion-b"));
+    }
+
+    [TestMethod]
+    public async Task BiggestBoyBonusPickerBooksExactlyOnePersistentSymbolChoice()
+    {
+        using var f = await Fixture.Create();
+        var trigger = BiggestBoyRules.StartRound(100, _ => 0);
+        f.Rounds.Current = new(Guid.NewGuid(), Player, CasinoRoundGame.BiggestBoy, 100, 1, false,
+            100, trigger.State.TotalPayout, JsonSerializer.Serialize(trigger));
+        Assert.IsTrue(await f.Presenter.OpenAsync(Player, CasinoRoundGame.BiggestBoy));
+        Assert.IsTrue(f.Class("needs-bonus-symbol"));
+
+        var selected = BiggestBoyRules.SelectExpandingSymbol(trigger, BiggestBoySymbol.Beer);
+        f.Rounds.NextSnapshot = f.Rounds.Current with
+        {
+            Revision = 2,
+            StateJson = JsonSerializer.Serialize(selected),
+        };
+        await f.Click("bonus1");
+
+        Assert.AreEqual(CasinoRoundAction.SelectSymbol, f.Rounds.Last!.Action);
+        Assert.AreEqual((int)BiggestBoySymbol.Beer, f.Rounds.Last.Choice);
+        Assert.AreEqual(100, f.Rounds.Last.Stake);
+        Assert.IsFalse(f.Class("needs-bonus-symbol"));
     }
 
     [TestMethod]
