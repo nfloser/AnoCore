@@ -159,7 +159,7 @@ public sealed class AnoVetoCreateHudController : IDisposable
                     _hud.SetText(player, HudId, "ano_veto_create_status", "Unable to start vote. Check permission or active vote.");
                 return;
             case "ano_veto_create_saved":
-                _hud.SetText(player, HudId, "ano_veto_create_status", "Saved presets require persistent storage integration.");
+                await OpenSavedAsync(player, context.CancellationToken).ConfigureAwait(false);
                 return;
             case "ano_veto_create_manual":
                 {
@@ -183,21 +183,45 @@ public sealed class AnoVetoCreateHudController : IDisposable
                 }
         }
 
+        if (context.ButtonId == "ano_veto_create_save")
+        {
+            await SaveCurrentAsync(player, context.CancellationToken).ConfigureAwait(false);
+            return;
+        }
+        if (context.ButtonId == "ano_veto_create_duplicate")
+        {
+            await DuplicateSelectedAsync(player, context.CancellationToken).ConfigureAwait(false);
+            return;
+        }
+        if (context.ButtonId == "ano_veto_create_delete")
+        {
+            await DeleteSelectedAsync(player, context.CancellationToken).ConfigureAwait(false);
+            return;
+        }
         if (context.ButtonId == "ano_veto_create_confirm")
         {
             IReadOnlyList<string>? selected = null;
             lock (_gate)
-                if (_states.TryGetValue(player, out var state) && state.Session.Draft.CanConfirm)
-                    selected = state.Session.Draft.Confirm();
+            {
+                if (_states.TryGetValue(player, out var state))
+                {
+                    if (state.Session.CurrentScreen == AnoVetoCreateSession.Screen.Saved)
+                        selected = state.Saved.FirstOrDefault(x =>
+                            string.Equals(x.Preset.Name, state.SelectedSavedName, StringComparison.OrdinalIgnoreCase))
+                            .Preset?.MapIds;
+                    else if (state.Session.Draft.CanConfirm)
+                        selected = state.Session.Draft.Confirm();
+                }
+            }
             if (selected is null)
             {
-                _hud.SetText(player, HudId, "ano_veto_create_status", "Choose exactly eight maps first.");
+                _hud.SetText(player, HudId, "ano_veto_create_status", "Select a valid map pool first.");
                 return;
             }
             if (await _startSelected(player, selected, context.CancellationToken).ConfigureAwait(false))
                 Hide(player);
             else
-                _hud.SetText(player, HudId, "ano_veto_create_status", "Could not start selected veto.");
+                _hud.SetText(player, HudId, "ano_veto_create_status", "Cannot start vote. Check maps and permissions.");
             return;
         }
 
@@ -216,7 +240,8 @@ public sealed class AnoVetoCreateHudController : IDisposable
                     state.Page = Math.Max(0, state.Page - 1);
                     break;
                 case "ano_veto_create_next":
-                    if ((state.Page + 1) * PageSize < state.Session.Draft.AvailableMapCount)
+                    if ((state.Page + 1) * PageSize < (state.Session.CurrentScreen == AnoVetoCreateSession.Screen.Saved
+                        ? state.Saved.Count : state.Session.Draft.AvailableMapCount))
                         state.Page++;
                     break;
                 default:
@@ -225,8 +250,18 @@ public sealed class AnoVetoCreateHudController : IDisposable
                         || !int.TryParse(context.ButtonId.AsSpan(prefix.Length), out var i)
                         || i is < 0 or >= PageSize)
                         return;
-                    var rows = state.Session.Browse(state.Page * PageSize, PageSize);
-                    if (i >= rows.Count || !state.Session.SelectMap(rows[i].MapId)) return;
+                    if (state.Session.CurrentScreen == AnoVetoCreateSession.Screen.Saved)
+                    {
+                        var presets = state.Saved.Skip(state.Page * PageSize).Take(PageSize).ToArray();
+                        if (i >= presets.Length) return;
+                        state.SelectedSavedName = presets[i].Preset.Name;
+                        state.PendingDeleteName = null;
+                    }
+                    else
+                    {
+                        var rows = state.Session.Browse(state.Page * PageSize, PageSize);
+                        if (i >= rows.Count || !state.Session.SelectMap(rows[i].MapId)) return;
+                    }
                     break;
             }
             RenderPicker(player, state, catalog);
