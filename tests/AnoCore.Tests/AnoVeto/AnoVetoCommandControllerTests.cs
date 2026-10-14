@@ -46,6 +46,25 @@ public sealed class AnoVetoCommandControllerTests
     }
 
     [TestMethod]
+    public async Task PendingPickerButtons_NeverStartUnconfiguredVote()
+    {
+        var permissions = new ManagerPermissionEvaluator(allow: true);
+        var commands = new CommandRegistry(permissions);
+        var hud = new TestCustomHudService();
+        var players = new StubPlayerRegistry([Snapshot(Manager, "Manager")]);
+        var coordinator = CreateCoordinator(permissions);
+        using var controller = new AnoVetoCommandController(commands, hud, players, coordinator, new FixedTimeProvider(Now));
+
+        Assert.IsTrue((await commands.ExecuteAsync("!anoveto create", Manager)).Success);
+        await hud.ClickAsync(Manager, AnoVetoCreateHudController.HudId, "ano_veto_create_manual");
+        Assert.IsFalse(coordinator.TryGetStatus(out _));
+        await hud.ClickAsync(Manager, AnoVetoCreateHudController.HudId, "ano_veto_create_saved");
+        Assert.IsFalse(coordinator.TryGetStatus(out _));
+        await hud.ClickAsync(Manager, AnoVetoCreateHudController.HudId, "ano_veto_create_close");
+        Assert.IsFalse(hud.VisiblePlayers(AnoVetoCreateHudController.HudId).Contains(Manager));
+    }
+
+    [TestMethod]
     public async Task RandomCommand_ExplicitlyPreservesLegacyFastStart()
     {
         var permissions = new ManagerPermissionEvaluator(allow: true);
