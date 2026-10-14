@@ -37,7 +37,7 @@ public sealed class CasinoPresenter : IDisposable
         _hud = hud; _players = players; _permissions = permissions; _wallet = wallet; _commands = commands; _beforeOpen = beforeOpen; _clock = clock ?? TimeProvider.System; _openRound = openRound; _reportError = reportError;
         try
         {
-            _owned.Add(hud.Register(new("ano.casino"), new(HudId, "panorama/layout/custom_game/anocore/ano_casino.xml", "casino_root", Buttons.Select(x => "casino_" + x).ToArray(), captureInput: true), ClickAsync));
+            _owned.Add(hud.Register(new("ano.casino"), new(HudId, "panorama/layout/custom_game/anocore/ano_casino_native_v2.xml", "casino_root", Buttons.Select(x => "casino_" + x).ToArray(), captureInput: true), ClickAsync));
             _owned.Add(commands.Register(new("ano.casino"), new("anocasino", "Open AnoCasino.", Permission), OpenAsync));
             _owned.Add(commands.Register(new("ano.casino"), new("anoap", "Show your profile-linked AP balance.", Permission), async c =>
             {
