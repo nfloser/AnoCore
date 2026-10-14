@@ -54,7 +54,7 @@ public sealed class CasinoPresenterTests
 
         Assert.AreEqual(600L, f.Wallet.Balance.Allocated);
         await f.Commands.ExecuteAsync("!anocasino", Player);
-        Assert.AreEqual("200 AP", f.LobbyLastWinFromStatus());
+        Assert.AreEqual(200L, f.LobbyLastWinFromStatus());
     }
 
     [TestMethod]
