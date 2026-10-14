@@ -137,16 +137,25 @@ public sealed class CasinoRoundPresenter : IDisposable
                 }
                 if (receipt is not null)
                 {
-                    state.Unconfirmed = null; state.Animation++;
-                    if (operation?.Action == CasinoRoundAction.Start) state.Cards.Clear();
-                    for (var reel = 0; reel < 5; reel++)
+                    state.Unconfirmed = null;
+                    if (operation?.Action == CasinoRoundAction.SelectSymbol)
                     {
-                        Class(state, "reel" + reel, "stopped", false);
-                        Class(state, "reel" + reel, "settling", false);
+                        state.AnimatingUntil = null;
+                        state.Status = "Bonussymbol gewählt · Freispiele bereit";
                     }
-                    state.BookSettles = 0; state.BookStops = 0;
-                    state.AnimatingUntil = _clock.GetUtcNow().AddSeconds(state.Game == CasinoRoundGame.BiggestBoy ? 3.2 : state.Game == CasinoRoundGame.Book ? 3 : state.Game == CasinoRoundGame.Blackjack ? .95 : .65);
-                    state.Status = "Aktion gebucht · Animation läuft";
+                    else
+                    {
+                        state.Animation++;
+                        if (operation?.Action == CasinoRoundAction.Start) state.Cards.Clear();
+                        for (var reel = 0; reel < 5; reel++)
+                        {
+                            Class(state, "reel" + reel, "stopped", false);
+                            Class(state, "reel" + reel, "settling", false);
+                        }
+                        state.BookSettles = 0; state.BookStops = 0;
+                        state.AnimatingUntil = _clock.GetUtcNow().AddSeconds(state.Game == CasinoRoundGame.BiggestBoy ? 3.2 : state.Game == CasinoRoundGame.Book ? 3 : state.Game == CasinoRoundGame.Blackjack ? .95 : .65);
+                        state.Status = "Aktion gebucht · Animation läuft";
+                    }
                 }
                 else state.Status = "Spielstand aktualisiert";
             }
