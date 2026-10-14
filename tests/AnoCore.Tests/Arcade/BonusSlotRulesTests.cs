@@ -60,10 +60,10 @@ public sealed class BonusSlotRulesTests
     public void RetriggersAddFiveButRespectRemainingAndTotalAwardCaps()
     {
         var start = BonusSlotRules.StartRound(100, Grid(BonusSlotSymbol.Book, BonusSlotSymbol.Book, BonusSlotSymbol.Book).Next);
-        var state = start.State with { FreeSpinsRemaining = 19, FreeSpinsAwarded = 29, SpinsPlayed = 10 };
+        var state = start.State with { FreeSpinsRemaining = 20, FreeSpinsAwarded = 29, SpinsPlayed = 10 };
         var result = BonusSlotRules.PlayFreeSpin(state, Grid(BonusSlotSymbol.Book, BonusSlotSymbol.Book, BonusSlotSymbol.Book).Next);
         Assert.AreEqual(30, result.State.FreeSpinsAwarded);
-        Assert.AreEqual(19, result.State.FreeSpinsRemaining);
+        Assert.AreEqual(20, result.State.FreeSpinsRemaining);
         Assert.AreEqual(0, result.ChargedStake);
     }
 
