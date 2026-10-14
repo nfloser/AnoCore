@@ -70,7 +70,14 @@
                         <Label id="ano_veto_create_map_7_text" class="ano-create-map-name" text="{s:text}" />
                     </Button>
                     </Panel>
-                    <Button id="ano_veto_create_confirm" class="ano-create-confirm"><Label text="START SELECTED VETO" /></Button>
+                    <Panel class="ano-create-picker-actions">
+                        <Button id="ano_veto_create_save" class="ano-create-action"><Label text="SAVE PRESET" /></Button>
+                        <Button id="ano_veto_create_duplicate" class="ano-create-action"><Label text="DUPLICATE" /></Button>
+                        <Button id="ano_veto_create_delete" class="ano-create-action"><Label text="DELETE" /></Button>
+                    </Panel>
+                    <Button id="ano_veto_create_confirm" class="ano-create-confirm">
+                        <Label id="ano_veto_create_confirm_text" text="START SELECTED VETO" />
+                    </Button>
                 </Panel>
                 <Panel class="ano-create-footer">
                     <Label class="ano-create-help" text="Only authorized hosts can create a public vote." />
