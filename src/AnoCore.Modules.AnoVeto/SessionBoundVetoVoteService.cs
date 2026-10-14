@@ -14,6 +14,8 @@ public sealed class SessionBoundVetoVoteService : IVoteService
     private readonly Action<Action> _schedule;
     private readonly Func<PlayerSnapshot, bool> _hasFlag;
     private readonly Func<bool> _isActive;
+    private readonly object _authorizationGate = new();
+    private readonly Dictionary<PlayerId, PlayerSessionId> _authorizedCreateSessions = [];
     private readonly VoteService _votes = new(new ScopedPermissions());
 
     public SessionBoundVetoVoteService(IPlayerRegistry players, Action<Action> schedule,
@@ -23,6 +25,72 @@ public sealed class SessionBoundVetoVoteService : IVoteService
         _schedule = schedule ?? throw new ArgumentNullException(nameof(schedule));
         _hasFlag = hasFlag ?? throw new ArgumentNullException(nameof(hasFlag));
         _isActive = isActive ?? throw new ArgumentNullException(nameof(isActive));
+    }
+
+
+    public ValueTask<bool> AuthorizeCreateSessionAsync(
+        PlayerId caller,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(caller);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!_isActive() || !_players.TryGet(caller, out var expected) || expected?.IsConnected != true)
+            return ValueTask.FromResult(false);
+
+        var completion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        try
+        {
+            _schedule(() =>
+            {
+                try
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (!_isActive()
+                        || !_players.TryGet(caller, out var current)
+                        || current?.IsConnected != true
+                        || current.SessionId != expected.SessionId
+                        || !_hasFlag(current))
+                    {
+                        RevokeCreateSession(caller);
+                        completion.TrySetResult(false);
+                        return;
+                    }
+
+                    lock (_authorizationGate)
+                        _authorizedCreateSessions[caller] = current.SessionId;
+                    completion.TrySetResult(true);
+                }
+                catch (OperationCanceledException)
+                {
+                    completion.TrySetCanceled(cancellationToken);
+                }
+                catch
+                {
+                    RevokeCreateSession(caller);
+                    completion.TrySetResult(false);
+                }
+            });
+        }
+        catch
+        {
+            completion.TrySetResult(false);
+        }
+
+        return new ValueTask<bool>(completion.Task.WaitAsync(cancellationToken));
+    }
+
+    public void RevokeCreateSession(PlayerId caller)
+    {
+        ArgumentNullException.ThrowIfNull(caller);
+        lock (_authorizationGate)
+            _authorizedCreateSessions.Remove(caller);
+    }
+
+    private bool HasAuthorizedCreateSession(PlayerSnapshot current)
+    {
+        lock (_authorizationGate)
+            return _authorizedCreateSessions.TryGetValue(current.Id, out var session)
+                && session == current.SessionId;
     }
 
     public ValueTask<VoteOperationResult> CreateAsync(PlayerId caller, VoteDefinition definition,
@@ -78,8 +146,10 @@ public sealed class SessionBoundVetoVoteService : IVoteService
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     if (!_isActive() || !_players.TryGet(caller, out var current)
-                        || current?.IsConnected != true || current.SessionId != expected.SessionId || !_hasFlag(current))
+                        || current?.IsConnected != true || current.SessionId != expected.SessionId
+                        || (!HasAuthorizedCreateSession(current) && !_hasFlag(current)))
                     {
+                        RevokeCreateSession(caller);
                         completion.TrySetResult(Denied());
                         return;
                     }
