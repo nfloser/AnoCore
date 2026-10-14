@@ -421,3 +421,12 @@ Label { color:#e9efed; font-family:Arial; font-size:17px; margin:4px; }
 .biggest-shift-4.shifted { transform:translateY(-1280px); }
 .biggest-shift-5.shifted { transform:translateY(-2560px); }
 .biggest-shift-6.shifted { transform:translateY(-5120px); }
+
+.biggest-bonus-picker { visibility:collapse; flow-children:down; horizontal-align:center; margin-top:8px; padding:8px; border:1px solid #aa8c47; background-color:#09130d; }
+.needs-bonus-symbol.view-biggestboy .biggest-bonus-picker { visibility:visible; }
+.biggest-picker-title { horizontal-align:center; color:#f5d366; font-size:18px; font-weight:bold; margin-bottom:5px; }
+.biggest-picker-row { flow-children:right; horizontal-align:center; }
+.biggest-picker-button { width:150px; height:48px; margin:3px; flow-children:right; border:1px solid #287547; background-color:#112319; }
+.biggest-picker-button:hover { border-color:#54ff9a; background-color:#173d28; }
+.biggest-picker-icon { width:42px; height:42px; min-width:42px; min-height:42px; background-size:contain; background-position:center; background-repeat:no-repeat; }
+.biggest-picker-button Label { vertical-align:center; margin-left:6px; color:#e8f6ec; font-size:14px; }
