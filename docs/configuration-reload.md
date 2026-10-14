@@ -10,7 +10,7 @@ This registry supplies atomic in-process publication for each registration. Conc
 
 ## AnoVeto
 
-When AnoVeto starts enabled, it registers `anoveto` and `maps` with the shared reload registry. A successful reload is picked up when the next vote is created. A vote that is already open keeps the policy and eight-map snapshot it started with.
+When AnoVeto starts enabled, it registers `anoveto` and `maps` with the shared reload registry. A successful reload is picked up when the next vote is created. A vote that is already open keeps the policy and eight-map snapshot it started with. `MaxVotesPerPlayer` defaults to three for AnoVeto (one through eight permitted) and is also pinned for the current vote. Generic votes stay single-choice by default.
 
 `Enabled` remains a startup switch. Reloading an active AnoVeto instance with `Enabled: false` is rejected, so disabling or enabling the module still requires a plugin restart. Invalid settings or maps leave the last accepted runtime value in place.
 

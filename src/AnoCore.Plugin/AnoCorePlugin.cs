@@ -813,7 +813,8 @@ public sealed class AnoCorePlugin : BasePlugin
                     votes,
                     new CounterStrikeMapChanger(),
                     cancellationToken: timeout.Token,
-                    reloads: created.ConfigReloads).ConfigureAwait(false);
+                    reloads: created.ConfigReloads,
+                    presetDatabase: created.GetService(typeof(IDatabase)) as IDatabase).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
