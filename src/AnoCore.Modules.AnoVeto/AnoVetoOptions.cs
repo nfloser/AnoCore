@@ -7,7 +7,8 @@ public sealed record AnoVetoOptions
     public AnoVetoOptions(
         TimeSpan duration,
         int minimumVotes,
-        VoteTieBreakPolicy tieBreakPolicy = VoteTieBreakPolicy.OptionOrder)
+        VoteTieBreakPolicy tieBreakPolicy = VoteTieBreakPolicy.OptionOrder,
+        int maxVotesPerPlayer = 3)
     {
         if (duration <= TimeSpan.Zero)
         {
@@ -19,12 +20,19 @@ public sealed record AnoVetoOptions
             throw new ArgumentOutOfRangeException(nameof(minimumVotes));
         }
 
+        if (maxVotesPerPlayer is < 1 or > 8)
+        {
+            throw new ArgumentOutOfRangeException(nameof(maxVotesPerPlayer));
+        }
+
         Duration = duration;
         MinimumVotes = minimumVotes;
         TieBreakPolicy = tieBreakPolicy;
+        MaxVotesPerPlayer = maxVotesPerPlayer;
     }
 
     public TimeSpan Duration { get; }
     public int MinimumVotes { get; }
     public VoteTieBreakPolicy TieBreakPolicy { get; }
+    public int MaxVotesPerPlayer { get; }
 }
