@@ -1,6 +1,6 @@
 # AnoVeto create picker – implementation handoff
 
-Tracking: #444; existing prerequisite design #374 and #375. This branch provides only the **pure eight-map draft model**, not the finished `!anoveto create` interface.
+Tracking: #444; existing prerequisite design #374 and #375. This branch provides the **pure eight-map draft model and a catalog-backed explicit-pool coordinator entry point**, not the finished `!anoveto create` interface.
 
 ## Intended command and window flow
 
@@ -13,7 +13,7 @@ The `!anoveto create` command opens a session-owned ANOMEME dialog with three ac
 
 ## Current foundation
 
-`AnoVetoMapDraft` filters and pages an eligible map catalog and rejects invalid IDs or ninth selections. A confirmed selection returns an isolated ordered snapshot. This class does **not** persist presets, authorize players, create votes, instantiate the CustomHud or handle reconnection. No server deployment or runtime behavior is claimed.
+`AnoVetoMapDraft` filters and pages an eligible map catalog and rejects invalid IDs or ninth selections. A confirmed selection returns an isolated ordered snapshot. The draft does **not** persist presets, authorize players, instantiate the CustomHud or handle reconnection. `AnoVetoCoordinator.CreateSelectedAsync` resolves eight distinct requested MapIds against the current catalog and publishes them using the existing vote service and its authorization. It rejects missing/duplicate IDs and retains selected order. The command controller does not yet call this method. No server deployment or runtime behavior is claimed.
 
 ## Input acceptance tests required before removing page buttons
 
