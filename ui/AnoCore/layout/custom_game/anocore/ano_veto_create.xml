@@ -136,6 +136,7 @@
                     </Panel>
                     <Panel class="ano-create-picker-actions">
                         <Button id="ano_veto_create_save" class="ano-create-action"><Label text="SAVE PRESET" /></Button>
+                        <Button id="ano_veto_create_edit" class="ano-create-action"><Label text="EDIT" /></Button>
                         <Button id="ano_veto_create_duplicate" class="ano-create-action"><Label text="DUPLICATE" /></Button>
                         <Button id="ano_veto_create_delete" class="ano-create-action"><Label text="DELETE" /></Button>
                     </Panel>
