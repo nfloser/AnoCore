@@ -37,7 +37,7 @@ public sealed class CasinoSchemaMigration028 : IDatabaseMigration
             """,
             """
             CREATE TABLE IF NOT EXISTS ano_casino_round_actions (
-                operation_id CHAR(32) CHARACTER SET ascii COLLATE ascii_bin PRIMARY KEY,
+                operation_id CHAR(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
                 round_id CHAR(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
                 player_steam_id BIGINT UNSIGNED NOT NULL,
                 expected_revision BIGINT NOT NULL,
@@ -45,6 +45,7 @@ public sealed class CasinoSchemaMigration028 : IDatabaseMigration
                 result_json MEDIUMTEXT NOT NULL,
                 resulting_revision BIGINT NOT NULL,
                 created_at_utc DATETIME(6) NOT NULL,
+                PRIMARY KEY (player_steam_id, operation_id),
                 UNIQUE KEY uq_casino_round_revision (round_id, resulting_revision),
                 INDEX ix_casino_round_action_player (player_steam_id, created_at_utc),
                 CONSTRAINT fk_casino_round_action_round FOREIGN KEY (round_id)
