@@ -127,18 +127,18 @@ public sealed class CasinoPresenter : IDisposable
 
             _owned.Add(commands.Register(
                 new("ano.casino"),
-                new("anoap", "Show your profile-linked AP balance.", Permission),
+                new("anoap", "Show your profile-linked virtual balance.", Permission),
                 async c =>
                 {
                     if (c.Caller is null)
                         return CommandResult.Fail(CommandFailureReason.Forbidden, "Spieler erforderlich.");
                     var balance = await wallet.ReadAsync(c.Caller, c.CancellationToken).ConfigureAwait(false);
-                    return CommandResult.Ok($"[ANO] Profil: {balance.Available:N0} AP · Automat: {balance.Allocated:N0} AP");
+                    return CommandResult.Ok($"[ANO] Profil: {CasinoMoney.Format(balance.Available)} · Automat: {CasinoMoney.Format(balance.Allocated)}");
                 }));
 
             _owned.Add(commands.Register(
                 new("ano.casino"),
-                new("anoapcredit", "Console-only audited AP credit."),
+                new("anoapcredit", "Console-only audited virtual credit."),
                 async c =>
                 {
                     if (c.Caller is not null)
@@ -148,7 +148,7 @@ public sealed class CasinoPresenter : IDisposable
                         || !int.TryParse(c.Arguments[1], out var amount)
                         || amount is < 1 or > 1000000)
                         return CommandResult.Fail(CommandFailureReason.InvalidInput,
-                            "anoapcredit <SteamID64> <1–1000000 AP>");
+                            "anoapcredit <SteamID64> <1–1000000 €>");
                     try
                     {
                         await wallet.ApplyAsync(
@@ -157,7 +157,7 @@ public sealed class CasinoPresenter : IDisposable
                     }
                     catch (ArgumentException)
                     {
-                        return CommandResult.Fail(CommandFailureReason.InvalidInput, "Ungültige SteamID/AP.");
+                        return CommandResult.Fail(CommandFailureReason.InvalidInput, "Ungültige SteamID/Betrag.");
                     }
                     catch (OperationCanceledException) when (c.CancellationToken.IsCancellationRequested)
                     {
@@ -170,7 +170,7 @@ public sealed class CasinoPresenter : IDisposable
                             "[ANO] Casino-Speicher nicht verfügbar. Serverlog prüfen.");
                     }
 
-                    return CommandResult.Ok("[ANO] AP-Gutschrift protokolliert. Anzeige mit Aktualisieren neu laden.");
+                    return CommandResult.Ok("[ANO] Virtuelle Gutschrift protokolliert. Anzeige mit Aktualisieren neu laden.");
                 }));
 
             _owned.Add(events.Subscribe<PlayerDisconnectedEvent>((e, _) =>
@@ -515,7 +515,7 @@ public sealed class CasinoPresenter : IDisposable
                 else
                 {
                     state.Status = entries is null
-                        ? "AP-Anzeige aktualisiert"
+                        ? "Guthabenanzeige aktualisiert"
                         : string.Join(" | ", entries.Where(x => x.Outcome is not null)
                             .Take(5).Select(x => x.Outcome!.Summary));
                 }
@@ -813,7 +813,7 @@ public sealed class CasinoPresenter : IDisposable
             CasinoGame.Slots => "Slots: 5 Linien · Einsatz/5 · 12/22/36/55/100/150/300/1000×.",
             CasinoGame.Coinflip => "Coinflip: 2× Auszahlung inklusive Einsatz.",
             CasinoGame.Roulette => "Roulette: Zahl 36× · Dutzend/Spalte 3× · andere Außenwetten 2×.",
-            _ => "Wähle ein Spiel. Nur virtuelle AP, keine Echtgeld-Auszahlung."
+            _ => "Wähle ein Spiel. Nur virtuelle €, keine Echtgeld-Auszahlung."
         };
 
     private static string BetLabel(int n)
@@ -826,7 +826,7 @@ public sealed class CasinoPresenter : IDisposable
             }[n - 37];
 
     private static string Points(long n)
-        => n.ToString("N0", CultureInfo.GetCultureInfo("de-DE")) + " AP";
+        => CasinoMoney.Format(n);
 
     private void LobbyText(State s, string id, string value)
         => _hud.SetText(s.Player.Id, LobbyHudId, "casino_lobby_" + id, value);
@@ -923,6 +923,6 @@ public sealed class CasinoPresenter : IDisposable
         public DateTimeOffset? Started { get; set; }
         public CasinoOutcome? Outcome { get; set; }
         public CasinoOperation? Unconfirmed { get; set; }
-        public string Status { get; set; } = "AP-Konto laden oder Guthaben vom Profil auf den Automaten buchen.";
+        public string Status { get; set; } = "Guthabenkonto laden oder Guthaben vom Profil auf den Automaten buchen.";
     }
 }

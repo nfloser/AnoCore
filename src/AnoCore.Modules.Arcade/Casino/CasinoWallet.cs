@@ -47,7 +47,7 @@ public sealed class MySqlCasinoWallet(IDatabase database) : ICasinoWallet
             switch (op.Action)
             {
                 case CasinoAction.Load:
-                    if (available < op.Amount) throw new CasinoRejectedException("Nicht genügend AP im Profilkonto.");
+                    if (available < op.Amount) throw new CasinoRejectedException("Nicht genügend Guthaben im Profilkonto.");
                     available -= op.Amount; allocated = checked(allocated + op.Amount); break;
                 case CasinoAction.Return: available = checked(available + allocated); allocated = 0; break;
                 case CasinoAction.Credit: available = checked(available + op.Amount); break;
@@ -58,7 +58,7 @@ public sealed class MySqlCasinoWallet(IDatabase database) : ICasinoWallet
                     outcome = CasinoRules.Draw(op.Game);
                     allocated = checked(allocated - op.Game.Stake + outcome.Payout); break;
             }
-            if (available + allocated + reservedPayout > 1000000000L) throw new CasinoRejectedException("AP-Kontolimit erreicht.");
+            if (available + allocated + reservedPayout > 1000000000L) throw new CasinoRejectedException("Guthabenlimit erreicht.");
             var result = new CasinoReceipt(op.Id, new(available, allocated, checked(before.Revision + 1)), outcome);
             await using (var update = Command(connection, transaction, "UPDATE ano_ap_accounts SET available=@available, allocated=@allocated, revision=@revision WHERE player_steam_id=@player", op.Player))
             {

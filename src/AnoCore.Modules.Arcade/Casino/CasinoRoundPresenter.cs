@@ -197,13 +197,13 @@ public sealed class CasinoRoundPresenter : IDisposable
         Text(state, "title", state.Game switch { CasinoRoundGame.Blackjack => "BLACKJACK", CasinoRoundGame.Book => "BOOK · FREISPIELE", CasinoRoundGame.BiggestBoy => "BIGGEST BOY BÜCHER · 5×5", _ => "RISK · DOUBLE OR BANK" });
         Text(state, "account", Points(state.Balance.Available)); Text(state, "bankroll", Points(state.Balance.Allocated));
         Text(state, "stake", Points(active ? state.Round!.Stake : state.Stake)); Text(state, "status", state.Status);
-        Text(state, "payout", state.Round is { IsComplete: true } round && !moving ? Points(round.Payout) : "0 AP");
+        Text(state, "payout", state.Round is { IsComplete: true } round && !moving ? Points(round.Payout) : "0 €");
         Class(state, "root", "can-risk", false);
         Class(state, "root", "can-double", false); Class(state, "root", "can-split", false);
         if (state.Round is not { } snapshot)
         {
             ClearCards(state);
-            Text(state, "held", "0 AP"); Text(state, "next", "Einsatz wählen und Runde starten");
+            Text(state, "held", "0 €"); Text(state, "next", "Einsatz wählen und Runde starten");
             Text(state, "bonus", "Keine Freispiele aktiv");
             for (var step = 0; step < 5; step++) Class(state, "step" + step, "reached", false);
             Text(state, "detail", Rules(state.Game));
@@ -354,7 +354,7 @@ public sealed class CasinoRoundPresenter : IDisposable
         CasinoRoundGame.Book => "5 Walzen · 10 Linien · BUCH ist Wild/Scatter · 3+ Bücher: 10 Freispiele · erneute Scatter: +5, max. 30 Freispiele · Einsatz bleibt fix. Auszahlung am Bonusende.",
         _ => "50 % Chance: Zwischenstand verdoppeln oder verlieren · BANK bucht den Zwischenstand zurück · nach 5 Erfolgen BANK wählen.",
     };
-    private static string Points(long value) => value.ToString("N0", CultureInfo.GetCultureInfo("de-DE")) + " AP";
+    private static string Points(long value) => CasinoMoney.Format(value);
     private void Text(State s, string id, string value) => _hud.SetText(s.Player.Id, HudId, "casino_round_" + id, value);
     private void Class(State s, string id, string name, bool value)
     {
