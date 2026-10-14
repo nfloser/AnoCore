@@ -7,6 +7,21 @@ namespace AnoCore.Tests.Arcade;
 public sealed class BonusSlotRulesTests
 {
     [TestMethod]
+    public void RoundStateJsonRoundTripsVersionAndRejectsUnknownVersion()
+    {
+        var initial = BonusSlotRules.StartRound(100,
+            Grid(BonusSlotSymbol.Book, BonusSlotSymbol.Book, BonusSlotSymbol.Book).Next).State;
+        var json = JsonSerializer.Serialize(initial);
+        var restored = JsonSerializer.Deserialize<BonusSlotRoundState>(json)
+            ?? throw new AssertFailedException("Round state did not deserialize.");
+
+        Assert.AreEqual(BonusSlotRules.Version, restored.RulesVersion);
+        Assert.AreEqual(initial, restored);
+        Assert.ThrowsExactly<ArgumentException>(() => BonusSlotRules.PlayFreeSpin(
+            restored with { RulesVersion = "unknown-rules" }, Grid().Next));
+    }
+
+    [TestMethod]
     public void GridUsesFiveReelsAndThreeRowsAndHasTenFixedLines()
     {
         Assert.AreEqual(15, BonusSlotRules.GridSize);
