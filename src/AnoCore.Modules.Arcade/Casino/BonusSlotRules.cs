@@ -119,9 +119,10 @@ public static class BonusSlotRules
         var nextRemaining = state.FreeSpinsRemaining - 1;
         var awarded = state.FreeSpinsAwarded;
         var retrigger = evaluated.ScatterCount >= TriggerScatterCount
-            ? Math.Min(RetriggerFreeSpins, MaximumFreeSpinsAwarded - awarded) : 0;
+            ? Math.Min(RetriggerFreeSpins, Math.Min(MaximumFreeSpinsAwarded - awarded,
+                MaximumFreeSpinsRemaining - nextRemaining)) : 0;
         awarded += retrigger;
-        nextRemaining = Math.Min(MaximumFreeSpinsRemaining, nextRemaining + retrigger);
+        nextRemaining += retrigger;
         var nextState = state with
         {
             FreeSpinsRemaining = nextRemaining,
