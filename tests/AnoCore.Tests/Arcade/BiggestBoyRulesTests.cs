@@ -32,7 +32,6 @@ public sealed class BiggestBoyRulesTests
     public void TwentyFiveLinesPayOnlyBestLeftToRightBaseWinAndScatterIsNeverWild()
     {
         Assert.AreEqual(BiggestBoyRules.PaylineCount, BiggestBoyRules.Paylines.Count);
-        Assert.AreEqual(25, BiggestBoyRules.Paylines.Count);
         Assert.AreEqual(25, BiggestBoyRules.Paylines.Distinct(new LineComparer()).Count());
 
         var grid = Enumerable.Repeat(BiggestBoySymbol.Scatter, 25).ToArray();
