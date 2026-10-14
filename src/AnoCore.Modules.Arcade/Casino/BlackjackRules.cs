@@ -141,52 +141,55 @@ public static class BlackjackRules
         switch (action)
         {
             case BlackjackAction.Hit:
-            {
-                (var card, deck) = Draw(deck);
-                hand = hand with { Cards = hand.Cards.Add(card) };
-                if (hand.IsBust || hand.BestTotal == 21) hand = hand with { IsStanding = true };
-                hands = hands.SetItem(state.ActiveHandIndex, hand);
-                return ContinueOrSettle(state with { PlayerHands = hands, RemainingDeck = deck });
-            }
+                {
+                    (var card, deck) = Draw(deck);
+                    hand = hand with { Cards = hand.Cards.Add(card) };
+                    if (hand.IsBust || hand.BestTotal == 21) hand = hand with { IsStanding = true };
+                    hands = hands.SetItem(state.ActiveHandIndex, hand);
+                    return ContinueOrSettle(state with { PlayerHands = hands, RemainingDeck = deck });
+                }
+
             case BlackjackAction.Stand:
                 hands = hands.SetItem(state.ActiveHandIndex, hand with { IsStanding = true });
                 return ContinueOrSettle(state with { PlayerHands = hands });
             case BlackjackAction.Double:
-            {
-                (var card, deck) = Draw(deck);
-                hand = hand with
                 {
-                    Cards = hand.Cards.Add(card),
-                    Stake = checked(hand.Stake * 2),
-                    IsStanding = true,
-                };
-                hands = hands.SetItem(state.ActiveHandIndex, hand);
-                return ContinueOrSettle(state with { PlayerHands = hands, RemainingDeck = deck });
-            }
+                    (var card, deck) = Draw(deck);
+                    hand = hand with
+                    {
+                        Cards = hand.Cards.Add(card),
+                        Stake = checked(hand.Stake * 2),
+                        IsStanding = true,
+                    };
+                    hands = hands.SetItem(state.ActiveHandIndex, hand);
+                    return ContinueOrSettle(state with { PlayerHands = hands, RemainingDeck = deck });
+                }
+
             case BlackjackAction.Split:
-            {
-                (var firstCard, deck) = Draw(deck);
-                (var secondCard, deck) = Draw(deck);
-                var splitAces = hand.Cards[0].Rank == BlackjackRank.Ace;
-                var left = hand with
                 {
-                    Cards = ImmutableArray.Create(hand.Cards[0], firstCard),
-                    IsStanding = splitAces || hand.Cards[0].Value + firstCard.Value == 21,
-                    IsSplitAces = splitAces,
-                    IsSplit = true,
-                };
-                var right = hand with
-                {
-                    Cards = ImmutableArray.Create(hand.Cards[1], secondCard),
-                    IsStanding = splitAces || hand.Cards[1].Value + secondCard.Value == 21,
-                    IsSplitAces = splitAces,
-                    IsSplit = true,
-                };
-                hands = hands.SetItem(state.ActiveHandIndex, left)
-                    .Insert(state.ActiveHandIndex + 1, right);
-                var next = state with { PlayerHands = hands, RemainingDeck = deck };
-                return AllHandsDone(hands) ? Settle(next) : AdvanceToActionableHand(next, state.ActiveHandIndex);
-            }
+                    (var firstCard, deck) = Draw(deck);
+                    (var secondCard, deck) = Draw(deck);
+                    var splitAces = hand.Cards[0].Rank == BlackjackRank.Ace;
+                    var left = hand with
+                    {
+                        Cards = ImmutableArray.Create(hand.Cards[0], firstCard),
+                        IsStanding = splitAces || hand.Cards[0].Value + firstCard.Value == 21,
+                        IsSplitAces = splitAces,
+                        IsSplit = true,
+                    };
+                    var right = hand with
+                    {
+                        Cards = ImmutableArray.Create(hand.Cards[1], secondCard),
+                        IsStanding = splitAces || hand.Cards[1].Value + secondCard.Value == 21,
+                        IsSplitAces = splitAces,
+                        IsSplit = true,
+                    };
+                    hands = hands.SetItem(state.ActiveHandIndex, left)
+                        .Insert(state.ActiveHandIndex + 1, right);
+                    var next = state with { PlayerHands = hands, RemainingDeck = deck };
+                    return AllHandsDone(hands) ? Settle(next) : AdvanceToActionableHand(next, state.ActiveHandIndex);
+                }
+
             default:
                 throw new ArgumentOutOfRangeException(nameof(action));
         }
