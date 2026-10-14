@@ -15,7 +15,10 @@ class AnoVetoCreateResourcesTest(unittest.TestCase):
         ids = [element.attrib.get("id") for element in tree.iter() if element.tag == "Button"]
         self.assertEqual(
             {"ano_veto_create_close", "ano_veto_create_manual",
-             "ano_veto_create_random", "ano_veto_create_saved"},
+             "ano_veto_create_random", "ano_veto_create_saved",
+             "ano_veto_create_back", "ano_veto_create_prev",
+             "ano_veto_create_next", "ano_veto_create_confirm",
+             *(f"ano_veto_create_map_{i}" for i in range(8))},
             set(ids),
         )
         self.assertEqual(len(ids), len(set(ids)))
