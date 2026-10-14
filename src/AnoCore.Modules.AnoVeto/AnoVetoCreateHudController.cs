@@ -181,7 +181,7 @@ public sealed class AnoVetoCreateHudController : IDisposable
                     state.Page = Math.Max(0, state.Page - 1);
                     break;
                 case "ano_veto_create_next":
-                    if ((state.Page + 1) * PageSize < state.Session.Browse(0, 100).Count)
+                    if ((state.Page + 1) * PageSize < state.Session.Draft.AvailableMapCount)
                         state.Page++;
                     break;
                 default:
