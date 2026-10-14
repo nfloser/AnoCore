@@ -268,6 +268,153 @@ public sealed class AnoVetoCreateHudController : IDisposable
         }
     }
 
+    private async ValueTask OpenSavedAsync(PlayerId player, CancellationToken token)
+    {
+        if (_presets is null)
+        {
+            _hud.SetText(player, HudId, "ano_veto_create_status", "Saved vetos need the configured database.");
+            return;
+        }
+        try
+        {
+            var saved = await _presets.ListAsync(player.SteamId64, token).ConfigureAwait(false);
+            var catalog = _getCatalog();
+            if (catalog.Count < AnoVetoMapDraft.RequiredMaps)
+            {
+                _hud.SetText(player, HudId, "ano_veto_create_status", "At least eight configured maps are required.");
+                return;
+            }
+            lock (_gate)
+            {
+                ClearState(player);
+                var state = new PickerState(new AnoVetoCreateSession(catalog.Select(m => (m.MapId, m.DisplayName))))
+                {
+                    Saved = saved
+                };
+                state.Session.OpenSaved();
+                _states[player] = state;
+                _hud.SetClass(player, HudId, "ano_veto_create_home", "inactive", true);
+                _hud.SetClass(player, HudId, "ano_veto_create_picker", "active", true);
+                RenderPicker(player, state, catalog);
+            }
+            _hud.SetText(player, HudId, "ano_veto_create_status",
+                saved.Count == 0 ? "No saved vetos yet. Use Create Veto to save one."
+                                 : "Select a saved veto and confirm.");
+        }
+        catch (Exception error) when (error is not OperationCanceledException)
+        {
+            _hud.SetText(player, HudId, "ano_veto_create_status", "Saved veto loading failed.");
+        }
+    }
+
+    private async ValueTask SaveCurrentAsync(PlayerId player, CancellationToken token)
+    {
+        if (_presets is null) return;
+        IReadOnlyList<string>? maps = null;
+        lock (_gate)
+        {
+            if (_states.TryGetValue(player, out var state)
+                && state.Session.CurrentScreen == AnoVetoCreateSession.Screen.Create
+                && state.Session.Draft.CanConfirm)
+                maps = state.Session.Draft.Confirm();
+        }
+        if (maps is null)
+        {
+            _hud.SetText(player, HudId, "ano_veto_create_status", "Choose eight maps to save.");
+            return;
+        }
+        try
+        {
+            var list = await _presets.ListAsync(player.SteamId64, token).ConfigureAwait(false);
+            var name = NextPresetName(list);
+            await _presets.CreateAsync(new AnoVetoPreset(player.SteamId64, name, maps), token)
+                .ConfigureAwait(false);
+            _hud.SetText(player, HudId, "ano_veto_create_status", $"Saved as {name}.");
+        }
+        catch (Exception error) when (error is not OperationCanceledException)
+        {
+            _hud.SetText(player, HudId, "ano_veto_create_status", "Could not save veto preset.");
+        }
+    }
+
+    private async ValueTask DuplicateSelectedAsync(PlayerId player, CancellationToken token)
+    {
+        if (_presets is null) return;
+        AnoVetoPreset? selected = null;
+        lock (_gate)
+        {
+            if (_states.TryGetValue(player, out var state)
+                && state.Session.CurrentScreen == AnoVetoCreateSession.Screen.Saved)
+                selected = state.Saved.FirstOrDefault(p =>
+                    string.Equals(p.Preset.Name, state.SelectedSavedName, StringComparison.OrdinalIgnoreCase))
+                    .Preset;
+        }
+        if (selected is null) return;
+        try
+        {
+            var list = await _presets.ListAsync(player.SteamId64, token).ConfigureAwait(false);
+            var name = NextPresetName(list);
+            await _presets.CreateAsync(new AnoVetoPreset(player.SteamId64, name, selected.MapIds), token)
+                .ConfigureAwait(false);
+            await OpenSavedAsync(player, token).ConfigureAwait(false);
+            _hud.SetText(player, HudId, "ano_veto_create_status", $"Duplicated as {name}.");
+        }
+        catch (Exception error) when (error is not OperationCanceledException)
+        {
+            _hud.SetText(player, HudId, "ano_veto_create_status", "Could not duplicate selected veto.");
+        }
+    }
+
+    private async ValueTask DeleteSelectedAsync(PlayerId player, CancellationToken token)
+    {
+        if (_presets is null) return;
+        (AnoVetoPreset Preset, long Revision)? selected = null;
+        var confirmed = false;
+        lock (_gate)
+        {
+            if (_states.TryGetValue(player, out var state)
+                && state.Session.CurrentScreen == AnoVetoCreateSession.Screen.Saved)
+            {
+                var entry = state.Saved.FirstOrDefault(p =>
+                    string.Equals(p.Preset.Name, state.SelectedSavedName, StringComparison.OrdinalIgnoreCase));
+                if (entry.Preset is not null)
+                {
+                    selected = entry;
+                    confirmed = string.Equals(state.PendingDeleteName, entry.Preset.Name, StringComparison.Ordinal);
+                    state.PendingDeleteName = confirmed ? null : entry.Preset.Name;
+                }
+            }
+        }
+        if (selected is null) return;
+        if (!confirmed)
+        {
+            _hud.SetText(player, HudId, "ano_veto_create_status", "Click DELETE again to confirm.");
+            return;
+        }
+        try
+        {
+            await _presets.DeleteAsync(player.SteamId64, selected.Value.Preset.Name, selected.Value.Revision, token)
+                .ConfigureAwait(false);
+            await OpenSavedAsync(player, token).ConfigureAwait(false);
+            _hud.SetText(player, HudId, "ano_veto_create_status", "Preset deleted.");
+        }
+        catch (Exception error) when (error is not OperationCanceledException)
+        {
+            _hud.SetText(player, HudId, "ano_veto_create_status", "Could not delete selected veto.");
+        }
+    }
+
+    private static string NextPresetName(IReadOnlyList<(AnoVetoPreset Preset, long Revision)> existing)
+    {
+        var names = existing.Select(p => p.Preset.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        for (var i = 1; i <= AnoVetoPresetCatalog.MaxPresetsPerOwner; i++)
+        {
+            var candidate = $"Veto {i:00}";
+            if (!names.Contains(candidate)) return candidate;
+        }
+        throw new InvalidOperationException("Preset limit reached.");
+    }
+
     public void Dispose()
     {
         lock (_gate)
