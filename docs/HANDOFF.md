@@ -9,8 +9,10 @@ Owner reported CS2 rejecting Panel style: positions now use CSS classes and
 all native layouts are scanned for forbidden inline style attributes.
 See casino-reference-ui.md for sources, exact acceptance and rollback.
 Local operator tests pass; .NET SDK/PowerShell/Valve/CS2 are unavailable here.
-GitHub push was blocked by automatic approval review; CI/native validation and
-publication remain pending. No production deployment or Workshop upload.
+Owner authorized publication: branches are on GitHub as draft PR #474/#475.
+First #475 CI built successfully and passed 1366/1367 tests; the added card test
+used an incomplete deck. Corrected its fixture to preserve all 52 physical cards.
+CI is rerun; native validation remains pending. No production/Workshop upload.
 
 ## Backup-matched CSS profile preparation (#354) — 2026-10-09
 

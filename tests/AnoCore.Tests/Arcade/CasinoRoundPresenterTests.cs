@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Text.Json;
 using AnoCore.Abstractions.Permissions;
 using AnoCore.Abstractions.Players;
@@ -18,9 +19,18 @@ public sealed class CasinoRoundPresenterTests
     {
         using var f = await Fixture.Create();
         var state = new BlackjackState(BlackjackRules.RulesVersion, 1, 100,
-            [new([new(BlackjackSuit.Hearts, BlackjackRank.Ten), new(BlackjackSuit.Clubs, BlackjackRank.Seven)], 100, false, false, false),
-             new([new(BlackjackSuit.Spades, BlackjackRank.Eight), new(BlackjackSuit.Diamonds, BlackjackRank.Eight)], 100, false, false, true)],
+            [
+                new([new(BlackjackSuit.Hearts, BlackjackRank.Ten), new(BlackjackSuit.Clubs, BlackjackRank.Seven)], 100, true, false, false),
+                new([new(BlackjackSuit.Spades, BlackjackRank.Eight), new(BlackjackSuit.Diamonds, BlackjackRank.Eight)], 100, false, false, true)
+            ],
             [new(BlackjackSuit.Clubs, BlackjackRank.Five), new(BlackjackSuit.Hearts, BlackjackRank.King)], [], 1, BlackjackRoundStatus.PlayerTurn, 0);
+        var dealt = state.PlayerHands.SelectMany(hand => hand.Cards).Concat(state.DealerCards);
+        state = state with
+        {
+            RemainingDeck = Enum.GetValues<BlackjackSuit>()
+                .SelectMany(suit => Enum.GetValues<BlackjackRank>().Select(rank => new BlackjackCard(suit, rank)))
+                .Except(dealt).ToImmutableArray()
+        };
         f.Rounds.Current = new(Guid.NewGuid(), Player, CasinoRoundGame.Blackjack, 100, 1, false, 200, 0, JsonSerializer.Serialize(state));
         await f.Presenter.OpenAsync(Player, CasinoRoundGame.Blackjack);
         Assert.AreEqual("5\n♣", f.Text("dealer_card0"));
@@ -34,7 +44,13 @@ public sealed class CasinoRoundPresenterTests
         Assert.IsFalse(f.PanelClass("hand0", "active-hand"));
         Assert.IsTrue(f.Text("hand1_summary")!.Contains("16"));
 
-        state = state with { PlayerHands = [state.PlayerHands[0]], ActiveHandIndex = 0, Status = BlackjackRoundStatus.Settled };
+        state = state with
+        {
+            RemainingDeck = state.RemainingDeck.AddRange(state.PlayerHands[1].Cards),
+            PlayerHands = [state.PlayerHands[0]],
+            ActiveHandIndex = 0,
+            Status = BlackjackRoundStatus.Settled
+        };
         f.Rounds.Current = f.Rounds.Current with { StateJson = JsonSerializer.Serialize(state) };
         await f.Click("refresh");
         Assert.AreEqual("K\n♥", f.Text("dealer_card1"));
