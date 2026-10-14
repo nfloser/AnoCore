@@ -39,8 +39,9 @@ public sealed record BlackjackHand(
     {
         get
         {
+            var aceCount = Cards.Count(card => card.Rank == BlackjackRank.Ace);
             var total = Cards.Sum(card => card.Value);
-            return Cards.Any(card => card.Rank == BlackjackRank.Ace) && total <= 21;
+            return aceCount > 0 && total - 10 * (aceCount - 1) <= 21;
         }
     }
 
@@ -107,7 +108,7 @@ public static class BlackjackRules
         if (hand.IsStanding || hand.IsBust) return Array.Empty<BlackjackAction>();
 
         var actions = new List<BlackjackAction>(4);
-        if (hand.Cards.Length < 21) actions.Add(BlackjackAction.Hit);
+        if (hand.BestTotal < 21) actions.Add(BlackjackAction.Hit);
         actions.Add(BlackjackAction.Stand);
         if (hand.Cards.Length == 2 && hand.Stake <= MaximumStake)
             actions.Add(BlackjackAction.Double);
@@ -133,7 +134,7 @@ public static class BlackjackRules
             {
                 (var card, deck) = Draw(deck);
                 hand = hand with { Cards = hand.Cards.Add(card) };
-                if (hand.IsBust) hand = hand with { IsStanding = true };
+                if (hand.IsBust || hand.BestTotal == 21) hand = hand with { IsStanding = true };
                 hands = hands.SetItem(state.ActiveHandIndex, hand);
                 return ContinueOrSettle(state with { PlayerHands = hands, RemainingDeck = deck });
             }
