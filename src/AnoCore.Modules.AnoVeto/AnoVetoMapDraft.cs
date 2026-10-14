@@ -48,6 +48,13 @@ public sealed class AnoVetoMapDraft
         return true;
     }
 
+    public int CountMatches(string? filter)
+    {
+        var term = filter?.Trim() ?? string.Empty;
+        return _catalog.Count(map => map.Key.Contains(term, StringComparison.OrdinalIgnoreCase)
+            || map.Value.Contains(term, StringComparison.OrdinalIgnoreCase));
+    }
+
     public IReadOnlyList<(string MapId, string DisplayName)> Browse(string? filter, int offset, int pageSize)
     {
         if (offset < 0) throw new ArgumentOutOfRangeException(nameof(offset));
