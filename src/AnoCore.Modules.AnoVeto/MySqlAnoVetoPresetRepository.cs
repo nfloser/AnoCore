@@ -42,7 +42,7 @@ public sealed class MySqlAnoVetoPresetRepository : IAnoVetoPresetRepository
     {
         ValidateOwner(ownerSteamId64);
         ValidateName(name);
-        return _database.WithConnectionAsync(async (connection, token) =>
+        return _database.WithConnectionAsync<(AnoVetoPreset Preset, long Revision)?>(async (connection, token) =>
         {
             await using var cmd = connection.CreateCommand();
             cmd.CommandText = """
