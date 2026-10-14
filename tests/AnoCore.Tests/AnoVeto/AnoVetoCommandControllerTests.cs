@@ -242,7 +242,7 @@ public sealed class AnoVetoCommandControllerTests
     }
 
     [TestMethod]
-    public async Task HudSelection_CastsBallotForSelectedMap()
+    public async Task HudSelection_AllowsThreeDistinctSelectionsBeforeHidingPlayerHud()
     {
         var permissions = new ManagerPermissionEvaluator(allow: true);
         var commands = new CommandRegistry(permissions);
@@ -253,12 +253,16 @@ public sealed class AnoVetoCommandControllerTests
         Assert.IsTrue((await commands.ExecuteAsync("!anoveto random", Manager)).Success);
 
         await hud.ClickAsync(PlayerA, AnoVetoHudController.HudId, "ano_veto_map_3");
+        Assert.IsTrue(hud.VisiblePlayers(AnoVetoHudController.HudId).Contains(PlayerA));
+        await hud.ClickAsync(PlayerA, AnoVetoHudController.HudId, "ano_veto_map_4");
+        Assert.IsTrue(hud.VisiblePlayers(AnoVetoHudController.HudId).Contains(PlayerA));
+        await hud.ClickAsync(PlayerA, AnoVetoHudController.HudId, "ano_veto_map_5");
 
         Assert.IsFalse(hud.VisiblePlayers(AnoVetoHudController.HudId).Contains(PlayerA));
         Assert.IsTrue(coordinator.TryGetStatus(out var maps));
-        var secondVote = await coordinator.CastAsync(PlayerA, maps[4].MapId, Now.AddSeconds(1));
-        Assert.IsFalse(secondVote.Accepted);
-        Assert.AreEqual(AnoVetoFailure.AlreadyVoted, secondVote.Failure);
+        var fourthVote = await coordinator.CastAsync(PlayerA, maps[6].MapId, Now.AddSeconds(1));
+        Assert.IsFalse(fourthVote.Accepted);
+        Assert.AreEqual(AnoVetoFailure.AlreadyVoted, fourthVote.Failure);
     }
 
     [TestMethod]
