@@ -30,22 +30,22 @@
         <Panel class="casino-reels">
           <Panel id="casino_slots_reel0" class="casino-reel">
             <Panel class="casino-motion">
-              <Panel class="casino-symbol symbol-cherry" style="position: 0px 0px 0px;" />
-              <Panel class="casino-symbol symbol-lemon" style="position: 0px 112px 0px;" />
-              <Panel class="casino-symbol symbol-plum" style="position: 0px 224px 0px;" />
-              <Panel class="casino-symbol symbol-orange" style="position: 0px 336px 0px;" />
-              <Panel class="casino-symbol symbol-grapes" style="position: 0px 448px 0px;" />
-              <Panel class="casino-symbol symbol-watermelon" style="position: 0px 560px 0px;" />
-              <Panel class="casino-symbol symbol-bell" style="position: 0px 672px 0px;" />
-              <Panel class="casino-symbol symbol-seven" style="position: 0px 784px 0px;" />
-              <Panel class="casino-symbol symbol-cherry" style="position: 0px 896px 0px;" />
-              <Panel class="casino-symbol symbol-lemon" style="position: 0px 1008px 0px;" />
-              <Panel class="casino-symbol symbol-plum" style="position: 0px 1120px 0px;" />
-              <Panel class="casino-symbol symbol-orange" style="position: 0px 1232px 0px;" />
-              <Panel class="casino-symbol symbol-grapes" style="position: 0px 1344px 0px;" />
-              <Panel class="casino-symbol symbol-watermelon" style="position: 0px 1456px 0px;" />
-              <Panel class="casino-symbol symbol-bell" style="position: 0px 1568px 0px;" />
-              <Panel class="casino-symbol symbol-seven" style="position: 0px 1680px 0px;" />
+              <Panel class="casino-symbol symbol-cherry slot-row-0" />
+              <Panel class="casino-symbol symbol-lemon slot-row-1" />
+              <Panel class="casino-symbol symbol-plum slot-row-2" />
+              <Panel class="casino-symbol symbol-orange slot-row-3" />
+              <Panel class="casino-symbol symbol-grapes slot-row-4" />
+              <Panel class="casino-symbol symbol-watermelon slot-row-5" />
+              <Panel class="casino-symbol symbol-bell slot-row-6" />
+              <Panel class="casino-symbol symbol-seven slot-row-7" />
+              <Panel class="casino-symbol symbol-cherry slot-row-8" />
+              <Panel class="casino-symbol symbol-lemon slot-row-9" />
+              <Panel class="casino-symbol symbol-plum slot-row-10" />
+              <Panel class="casino-symbol symbol-orange slot-row-11" />
+              <Panel class="casino-symbol symbol-grapes slot-row-12" />
+              <Panel class="casino-symbol symbol-watermelon slot-row-13" />
+              <Panel class="casino-symbol symbol-bell slot-row-14" />
+              <Panel class="casino-symbol symbol-seven slot-row-15" />
             </Panel>
             <Panel class="casino-final">
               <Panel id="casino_slots_symbol0" class="casino-symbol symbol-cherry" />
@@ -55,22 +55,22 @@
           </Panel>
           <Panel id="casino_slots_reel1" class="casino-reel">
             <Panel class="casino-motion">
-              <Panel class="casino-symbol symbol-plum" style="position: 0px 0px 0px;" />
-              <Panel class="casino-symbol symbol-orange" style="position: 0px 112px 0px;" />
-              <Panel class="casino-symbol symbol-grapes" style="position: 0px 224px 0px;" />
-              <Panel class="casino-symbol symbol-watermelon" style="position: 0px 336px 0px;" />
-              <Panel class="casino-symbol symbol-bell" style="position: 0px 448px 0px;" />
-              <Panel class="casino-symbol symbol-seven" style="position: 0px 560px 0px;" />
-              <Panel class="casino-symbol symbol-cherry" style="position: 0px 672px 0px;" />
-              <Panel class="casino-symbol symbol-lemon" style="position: 0px 784px 0px;" />
-              <Panel class="casino-symbol symbol-plum" style="position: 0px 896px 0px;" />
-              <Panel class="casino-symbol symbol-orange" style="position: 0px 1008px 0px;" />
-              <Panel class="casino-symbol symbol-grapes" style="position: 0px 1120px 0px;" />
-              <Panel class="casino-symbol symbol-watermelon" style="position: 0px 1232px 0px;" />
-              <Panel class="casino-symbol symbol-bell" style="position: 0px 1344px 0px;" />
-              <Panel class="casino-symbol symbol-seven" style="position: 0px 1456px 0px;" />
-              <Panel class="casino-symbol symbol-cherry" style="position: 0px 1568px 0px;" />
-              <Panel class="casino-symbol symbol-lemon" style="position: 0px 1680px 0px;" />
+              <Panel class="casino-symbol symbol-plum slot-row-0" />
+              <Panel class="casino-symbol symbol-orange slot-row-1" />
+              <Panel class="casino-symbol symbol-grapes slot-row-2" />
+              <Panel class="casino-symbol symbol-watermelon slot-row-3" />
+              <Panel class="casino-symbol symbol-bell slot-row-4" />
+              <Panel class="casino-symbol symbol-seven slot-row-5" />
+              <Panel class="casino-symbol symbol-cherry slot-row-6" />
+              <Panel class="casino-symbol symbol-lemon slot-row-7" />
+              <Panel class="casino-symbol symbol-plum slot-row-8" />
+              <Panel class="casino-symbol symbol-orange slot-row-9" />
+              <Panel class="casino-symbol symbol-grapes slot-row-10" />
+              <Panel class="casino-symbol symbol-watermelon slot-row-11" />
+              <Panel class="casino-symbol symbol-bell slot-row-12" />
+              <Panel class="casino-symbol symbol-seven slot-row-13" />
+              <Panel class="casino-symbol symbol-cherry slot-row-14" />
+              <Panel class="casino-symbol symbol-lemon slot-row-15" />
             </Panel>
             <Panel class="casino-final">
               <Panel id="casino_slots_symbol3" class="casino-symbol symbol-cherry" />
@@ -80,22 +80,22 @@
           </Panel>
           <Panel id="casino_slots_reel2" class="casino-reel">
             <Panel class="casino-motion">
-              <Panel class="casino-symbol symbol-bell" style="position: 0px 0px 0px;" />
-              <Panel class="casino-symbol symbol-seven" style="position: 0px 112px 0px;" />
-              <Panel class="casino-symbol symbol-cherry" style="position: 0px 224px 0px;" />
-              <Panel class="casino-symbol symbol-lemon" style="position: 0px 336px 0px;" />
-              <Panel class="casino-symbol symbol-plum" style="position: 0px 448px 0px;" />
-              <Panel class="casino-symbol symbol-orange" style="position: 0px 560px 0px;" />
-              <Panel class="casino-symbol symbol-grapes" style="position: 0px 672px 0px;" />
-              <Panel class="casino-symbol symbol-watermelon" style="position: 0px 784px 0px;" />
-              <Panel class="casino-symbol symbol-bell" style="position: 0px 896px 0px;" />
-              <Panel class="casino-symbol symbol-seven" style="position: 0px 1008px 0px;" />
-              <Panel class="casino-symbol symbol-cherry" style="position: 0px 1120px 0px;" />
-              <Panel class="casino-symbol symbol-lemon" style="position: 0px 1232px 0px;" />
-              <Panel class="casino-symbol symbol-plum" style="position: 0px 1344px 0px;" />
-              <Panel class="casino-symbol symbol-orange" style="position: 0px 1456px 0px;" />
-              <Panel class="casino-symbol symbol-grapes" style="position: 0px 1568px 0px;" />
-              <Panel class="casino-symbol symbol-watermelon" style="position: 0px 1680px 0px;" />
+              <Panel class="casino-symbol symbol-bell slot-row-0" />
+              <Panel class="casino-symbol symbol-seven slot-row-1" />
+              <Panel class="casino-symbol symbol-cherry slot-row-2" />
+              <Panel class="casino-symbol symbol-lemon slot-row-3" />
+              <Panel class="casino-symbol symbol-plum slot-row-4" />
+              <Panel class="casino-symbol symbol-orange slot-row-5" />
+              <Panel class="casino-symbol symbol-grapes slot-row-6" />
+              <Panel class="casino-symbol symbol-watermelon slot-row-7" />
+              <Panel class="casino-symbol symbol-bell slot-row-8" />
+              <Panel class="casino-symbol symbol-seven slot-row-9" />
+              <Panel class="casino-symbol symbol-cherry slot-row-10" />
+              <Panel class="casino-symbol symbol-lemon slot-row-11" />
+              <Panel class="casino-symbol symbol-plum slot-row-12" />
+              <Panel class="casino-symbol symbol-orange slot-row-13" />
+              <Panel class="casino-symbol symbol-grapes slot-row-14" />
+              <Panel class="casino-symbol symbol-watermelon slot-row-15" />
             </Panel>
             <Panel class="casino-final">
               <Panel id="casino_slots_symbol6" class="casino-symbol symbol-cherry" />

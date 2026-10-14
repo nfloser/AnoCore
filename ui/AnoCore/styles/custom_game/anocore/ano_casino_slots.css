@@ -24,3 +24,21 @@
 @keyframes 'slot-land' { 0% { transform: translateY(-22px); } 65% { transform: translateY(6px); } 100% { transform: translateY(0px); } }
 
 .casino-header .casino-title { font-size: 28px; color: #98f277; }
+
+/* Position in CSS: CustomHud forbids inline style attributes. */
+.slot-row-0 { position: 0px 0px 0px; }
+.slot-row-1 { position: 0px 112px 0px; }
+.slot-row-2 { position: 0px 224px 0px; }
+.slot-row-3 { position: 0px 336px 0px; }
+.slot-row-4 { position: 0px 448px 0px; }
+.slot-row-5 { position: 0px 560px 0px; }
+.slot-row-6 { position: 0px 672px 0px; }
+.slot-row-7 { position: 0px 784px 0px; }
+.slot-row-8 { position: 0px 896px 0px; }
+.slot-row-9 { position: 0px 1008px 0px; }
+.slot-row-10 { position: 0px 1120px 0px; }
+.slot-row-11 { position: 0px 1232px 0px; }
+.slot-row-12 { position: 0px 1344px 0px; }
+.slot-row-13 { position: 0px 1456px 0px; }
+.slot-row-14 { position: 0px 1568px 0px; }
+.slot-row-15 { position: 0px 1680px 0px; }
