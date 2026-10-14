@@ -113,7 +113,7 @@ public sealed class MySqlCasinoRoundStore(IDatabase database) : ICasinoRoundStor
                 if (await reader.ReadAsync(ct).ConfigureAwait(false))
                 {
                     if (reader.GetString(0) != canonicalRequest
-                        || reader.GetUInt64(2) != operation.Player.SteamId64
+                        || Convert.ToUInt64(reader.GetValue(2), CultureInfo.InvariantCulture) != operation.Player.SteamId64
                         || reader.GetString(3) != operation.RoundId.ToString("N"))
                         throw new CasinoRejectedException("Operation ID reused with a different round request.");
                     return JsonSerializer.Deserialize<CasinoRoundReceipt>(reader.GetString(1))
