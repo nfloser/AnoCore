@@ -161,14 +161,14 @@ public static class BlackjackRules
                 var left = hand with
                 {
                     Cards = ImmutableArray.Create(hand.Cards[0], firstCard),
-                    IsStanding = splitAces,
+                    IsStanding = splitAces || hand.Cards[0].Value + firstCard.Value == 21,
                     IsSplitAces = splitAces,
                     IsSplit = true,
                 };
                 var right = hand with
                 {
                     Cards = ImmutableArray.Create(hand.Cards[1], secondCard),
-                    IsStanding = splitAces,
+                    IsStanding = splitAces || hand.Cards[1].Value + secondCard.Value == 21,
                     IsSplitAces = splitAces,
                     IsSplit = true,
                 };
