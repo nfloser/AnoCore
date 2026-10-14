@@ -113,6 +113,10 @@ public sealed class CasinoPresenterTests
         Assert.AreEqual(0, f.Wallet.Last.Game.Choice);
         Assert.AreEqual("4.000 AP", f.RouletteText("bank"));
         Assert.IsTrue(f.RouletteClass("wheel", "spinning"));
+        Assert.IsTrue(f.RouletteClass("wheel", "target-n0"));
+        Assert.IsFalse(f.RouletteClass("wheel", "turn-b"));
+        for (var number = 1; number <= 36; number++)
+            Assert.IsFalse(f.RouletteClass("wheel", "target-n" + number));
 
         f.Clock.AdvanceMilliseconds(3600);
         f.Presenter.Tick();
@@ -120,6 +124,11 @@ public sealed class CasinoPresenterTests
         Assert.IsFalse(f.RouletteClass("wheel", "spinning"));
         Assert.IsTrue(f.RouletteClass("wheel", "land-green"));
         Assert.IsTrue(f.RouletteClass("wheel", "land-n0"));
+        f.Clock.AdvanceMilliseconds(400);
+        f.Presenter.Tick();
+        await f.ClickRoulette("play");
+        Assert.IsTrue(f.RouletteClass("wheel", "spinning"));
+        Assert.IsTrue(f.RouletteClass("wheel", "turn-b"), "Consecutive spins must restart the native keyframes.");
     }
 
     [TestMethod]

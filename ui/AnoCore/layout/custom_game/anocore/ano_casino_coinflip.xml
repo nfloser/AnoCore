@@ -3,8 +3,9 @@
   <Panel class="ano-hud-host" hittest="false"><Panel id="casino_coinflip_root" class="casino-overlay" hittest="true">
     <Panel class="casino-dim" hittest="false" /><Panel class="casino-window" hittest="true">
       <Panel class="casino-header"><Label class="casino-title" text="ANOCASINO · COINFLIP" /><Button id="casino_coinflip_close" class="casino-button"><Label text="SCHLIESSEN" /></Button></Panel>
+      <Panel class="casino-game-banner"><Panel class="casino-cover" hittest="false" /><Panel class="casino-game-copy"><Label class="casino-game-name" text="ANOCOINFLIP" /><Label class="casino-game-caption" text="KOPF ODER ZAHL · 2× AUSZAHLUNG" /></Panel></Panel>
       <Panel class="casino-row"><Label text="Profil:" /><Label id="casino_coinflip_account" text="{s:text}" /><Label text="Automat:" /><Label id="casino_coinflip_bank" text="{s:text}" /><Label text="Gewinn:" /><Label id="casino_coinflip_win" text="{s:text}" /></Panel>
-      <Panel id="casino_coinflip_coin" class="casino-coin"><Label id="casino_coinflip_result" class="casino-result" text="{s:text}" /></Panel>
+      <Panel id="casino_coinflip_coin" class="casino-coin"><Label class="casino-coin-mark" text="A" hittest="false" /><Label id="casino_coinflip_result" class="casino-result" text="{s:text}" /></Panel>
       <Panel class="casino-row"><Button id="casino_coinflip_head" class="casino-choice"><Label text="KOPF" /></Button><Button id="casino_coinflip_tail" class="casino-choice"><Label text="ZAHL" /></Button></Panel>
       <Label id="casino_coinflip_choice" class="casino-choice-text" text="{s:text}" />
       <Panel class="casino-row"><Button id="casino_coinflip_minus" class="casino-button"><Label text="−" /></Button><Label id="casino_coinflip_stake" text="{s:text}" /><Button id="casino_coinflip_plus" class="casino-button"><Label text="+" /></Button><Button id="casino_coinflip_play" class="casino-button casino-primary"><Label text="WERFEN" /></Button></Panel>

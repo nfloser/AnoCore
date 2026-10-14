@@ -171,7 +171,20 @@ public sealed class CasinoRoundPresenter : IDisposable
         Text(state, "payout", state.Round is { IsComplete: true } round && !moving ? Points(round.Payout) : "0 AP");
         Class(state, "root", "can-risk", false);
         Class(state, "root", "can-double", false); Class(state, "root", "can-split", false);
-        if (state.Round is not { } snapshot) { Text(state, "detail", Rules(state.Game)); return; }
+        if (state.Round is not { } snapshot)
+        {
+            Text(state, "detail", Rules(state.Game));
+            Text(state, "dealer", "Dealer wartet auf den Rundenstart");
+            if (state.Game == CasinoRoundGame.Book)
+                for (var index = 0; index < 15; index++)
+                {
+                    var previewSymbol = (BonusSlotSymbol)(index % 8);
+                    Text(state, "symbol" + index, SymbolName(previewSymbol));
+                    for (var symbol = 0; symbol < 8; symbol++)
+                        Class(state, "symbol" + index, "symbol-" + symbol, (int)previewSymbol == symbol);
+                }
+            return;
+        }
         switch (snapshot.Game)
         {
             case CasinoRoundGame.Risk:

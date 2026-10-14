@@ -443,3 +443,12 @@
 .busy .casino-action {
     opacity: 0.45;
 }
+
+/* Owner-supplied cover artwork. Decorative placeholder children stay hidden. */
+.casino-preview-slots { background-image: url("s2r://panorama/styles/custom_game/anocore/casino/slots.vtex"); background-size: contain; background-position: center; background-repeat: no-repeat; background-color: #070c08; }
+.casino-preview-coin { background-image: url("s2r://panorama/styles/custom_game/anocore/casino/coinflip.vtex"); background-size: contain; background-position: center; background-repeat: no-repeat; background-color: #070c08; }
+.casino-preview-roulette { background-image: url("s2r://panorama/styles/custom_game/anocore/casino/roulette.vtex"); background-size: contain; background-position: center; background-repeat: no-repeat; background-color: #070c08; }
+.casino-preview-blackjack { background-image: url("s2r://panorama/styles/custom_game/anocore/casino/blackjack.vtex"); background-size: contain; background-position: center; background-repeat: no-repeat; background-color: #070c08; }
+.casino-preview-book { background-image: url("s2r://panorama/styles/custom_game/anocore/casino/book.vtex"); background-size: contain; background-position: center; background-repeat: no-repeat; background-color: #070c08; }
+.casino-preview-risk { background-image: url("s2r://panorama/styles/custom_game/anocore/casino/risk.vtex"); background-size: contain; background-position: center; background-repeat: no-repeat; background-color: #070c08; }
+ .casino-preview Panel, .casino-preview Label { visibility: collapse; }

@@ -1,7 +1,8 @@
 <root>
   <styles><include src="s2r://panorama/styles/custom_game/anocore/ano_casino_rounds.vcss_c" /></styles>
-  <Panel class="round-host" hittest="false"><Panel id="casino_round_root" class="round-overlay" hittest="true"><Panel class="round-window" hittest="true">
+  <Panel class="round-host" hittest="false"><Panel id="casino_round_root" class="round-overlay" hittest="true"><Panel class="round-dim" hittest="false" /><Panel class="round-window" hittest="true">
     <Panel class="round-header"><Label class="brand" text="ANOMEME · ANOCASINO" /><Button id="casino_round_close" class="button"><Label text="SCHLIESSEN" /></Button></Panel>
+    <Panel class="round-cover" hittest="false" />
     <Label id="casino_round_title" class="title" text="{s:text}" />
     <Panel class="row"><Panel class="counter"><Label text="PROFILKONTO" /><Label id="casino_round_account" text="{s:text}" /></Panel><Panel class="counter"><Label text="AUTOMATENGUTHABEN" /><Label id="casino_round_bankroll" text="{s:text}" /></Panel><Panel class="counter"><Label text="AUSZAHLUNG" /><Label id="casino_round_payout" text="{s:text}" /></Panel></Panel>
     <Panel class="book-table"><Panel class="book-reels">
