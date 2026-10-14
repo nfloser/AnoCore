@@ -1,4 +1,4 @@
-using AnoCore.Modules.Arcade.Casino;
+using System.Text.Json;\nusing AnoCore.Modules.Arcade.Casino;
 
 namespace AnoCore.Tests.Arcade;
 
@@ -95,4 +95,4 @@ public sealed class BonusSlotRulesTests
             return Math.Clamp(value, 0, max - 1);
         }
     }
-}
+}\n
