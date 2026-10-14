@@ -3,18 +3,16 @@ using AnoCore.Modules.AnoVeto;
 using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Modules.Admin;
+using CounterStrikeSharp.API.Modules.Entities;
 
 namespace AnoCore.Plugin.Players;
 
 public static class CounterStrikeVetoAuthorization
 {
-    // Keep the dedicated AnoCore veto flag as the primary capability. Some CSS
-    // installations do not resolve non-@custom custom flags consistently, so the
-    // existing operational Admin/Dev/Host rights are accepted as a compatibility
-    // fallback. This matches the server's intended role policy:
-    //   admin -> @css/root
-    //   dev   -> @css/map + @css/config
-    //   host  -> @css/map + @css/config
+    // Resolve authorization against the SteamID64-backed admin record rather than
+    // CCSPlayerController.AuthorizedSteamID. The controller can already be connected
+    // while AuthorizedSteamID is temporarily unavailable, which made valid CSS admins
+    // fail closed during the new picker pre-authorization step.
     public static bool HasPermission(PlayerSnapshot player)
     {
         var controller = Utilities.GetPlayers().FirstOrDefault(value => value is
@@ -24,11 +22,20 @@ public static class CounterStrikeVetoAuthorization
         if (controller is null)
             return false;
 
-        if (AdminManager.PlayerHasPermissions(controller, SessionBoundVetoVoteService.RequiredFlag)
-            || AdminManager.PlayerHasPermissions(controller, "@css/root"))
+        var steamId = (SteamID)player.Id.SteamId64;
+
+        if (AdminManager.PlayerHasPermissions(steamId, SessionBoundVetoVoteService.RequiredFlag)
+            || AdminManager.PlayerHasPermissions(steamId, "@css/root"))
             return true;
 
-        return AdminManager.PlayerHasPermissions(controller, "@css/map")
-            && AdminManager.PlayerHasPermissions(controller, "@css/config");
+        // These are the server's intended AnoVeto management roles.
+        if (AdminManager.PlayerInGroup(steamId, "#css/admin")
+            || AdminManager.PlayerInGroup(steamId, "#css/dev")
+            || AdminManager.PlayerInGroup(steamId, "#css/host"))
+            return true;
+
+        // Compatibility fallback if group membership has already been flattened into flags.
+        return AdminManager.PlayerHasPermissions(steamId, "@css/map")
+            && AdminManager.PlayerHasPermissions(steamId, "@css/config");
     }
 }
