@@ -345,6 +345,6 @@ seine bisherigen Ziehungs- und Auswertungsalgorithmen bleiben unverändert.
 
 Im gemeinsamen Slotfenster schaltet `WALZENTON: AN/AUS` die Stopptöne für die
 aktuelle Spielersitzung. Der globale Schalter kann sie vollständig abschalten.
-Die vorhandene CS2-Datei wird mit `playvol ... 0.12` leise nur beim jeweiligen
+Die vorhandene CS2-Datei wird über `EmitSound("UI.CounterBeep", ..., volume: 0.12f)` leise nur beim jeweiligen
 Spieler abgespielt; fünf gestaffelte Stopptöne pro Drehung, keine Sounddatei im
 Workshop nötig. Native Tonwiedergabe und Panorama-Anordnung sind auf CS2 zu prüfen.

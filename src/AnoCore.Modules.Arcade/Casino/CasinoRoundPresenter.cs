@@ -201,12 +201,12 @@ public sealed class CasinoRoundPresenter : IDisposable
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             lock (_gate) if (Current(state))
-                {
-                    if (ex is ArgumentException or CasinoRejectedException) state.Unconfirmed = null;
-                    state.Status = ex is ArgumentException or CasinoRejectedException ? ex.Message
-                        : "Buchung unbestätigt. BUCHUNG PRÜFEN verwendet dieselbe Aktions-ID.";
-                    state.StatusError = true;
-                }
+            {
+                if (ex is ArgumentException or CasinoRejectedException) state.Unconfirmed = null;
+                state.Status = ex is ArgumentException or CasinoRejectedException ? ex.Message
+                    : "Buchung unbestätigt. BUCHUNG PRÜFEN verwendet dieselbe Aktions-ID.";
+                state.StatusError = true;
+            }
         }
         finally { lock (_gate) { state.Pending = false; if (Current(state) && state.Visible) Render(state); } }
     }
@@ -214,61 +214,61 @@ public sealed class CasinoRoundPresenter : IDisposable
     public void Tick()
     {
         lock (_gate) foreach (var state in _states.Values.ToArray())
+        {
+            if (!Current(state)) { Forget(state.Player); continue; }
+            if (state.AnimationStartsAt is { } start && _clock.GetUtcNow() >= start)
             {
-                if (!Current(state)) { Forget(state.Player); continue; }
-                if (state.AnimationStartsAt is { } start && _clock.GetUtcNow() >= start)
-                {
-                    state.AnimationStartsAt = null;
-                    if (state.AnimatingUntil is { } animationEnd && _clock.GetUtcNow() < animationEnd && state.Visible) Render(state);
-                }
-                if (state.Hud != ExpandingHudId && (state.Game is CasinoRoundGame.Book or CasinoRoundGame.BiggestBoy) && state.AnimatingUntil is { } bookEnd)
-                    for (var reel = 0; reel < 5; reel++)
-                    {
-                        var reelId = (state.Game == CasinoRoundGame.BiggestBoy ? "biggest_reel" : "reel") + reel;
-                        var stop = bookEnd.AddSeconds(-1 + reel * .2);
-                        var now = _clock.GetUtcNow();
-                        if ((state.BookSettles & (1 << reel)) == 0 && now >= stop.AddSeconds(-.45) && now < stop)
-                        {
-                            state.BookSettles |= 1 << reel;
-                            Class(state, reelId, "settling", true);
-                        }
-                        if ((state.BookStops & (1 << reel)) == 0 && now >= stop)
-                        {
-                            state.BookStops |= 1 << reel;
-                            Class(state, reelId, "settling", false);
-                            Class(state, reelId, "stopped", true);
-                        }
-                    }
-                // One click per reel when its visual reel actually stops, only to this
-                // player. A late Tick catches up missing stops once without replaying.
-                if (state.Hud == ExpandingHudId && state.AnimationStartsAt is null
-                    && state.AnimatingUntil is { } soundEnd && state.Visible)
-                {
-                    var motionStarted = soundEnd.AddSeconds(-BiggestBoyReelMotion.TotalDurationSeconds);
-                    var elapsed = (_clock.GetUtcNow() - motionStarted).TotalSeconds;
-                    for (var reel = 0; reel < 5; reel++)
-                    {
-                        var bit = 1 << reel;
-                        if ((state.SoundStops & bit) != 0 || elapsed < BiggestBoyReelMotion.Duration(reel)) continue;
-                        state.SoundStops |= bit;
-                        if (state.ReelSoundEnabled) _reelStopSound?.Invoke(state.Player.Id);
-                    }
-                }
-                // Four visible symbols per reel advance on a cyclic strip; no huge off-screen panels.
-                if (state.Hud == ExpandingHudId && state.AnimationStartsAt is null
-                    && state.AnimatingUntil is { } movingEnd && _clock.GetUtcNow() < movingEnd && state.Visible)
-                    Render(state);
-                if (state.Hud == ExpandingHudId && state.AnimatingUntil is null && state.Round is { } won
-                    && state.Visible && state.WinCycleAt is { } next && _clock.GetUtcNow() >= next)
-                {
-                    var winCount = state.Game == CasinoRoundGame.Book
-                        ? Read<BonusSlotSpinResult>(won).LineWins.Length : Read<BiggestBoySpinResult>(won).LineWins.Length;
-                    if (winCount > 1) { state.WinCycle = (state.WinCycle + 1) % winCount; state.WinCycleAt = _clock.GetUtcNow().AddSeconds(1.2); Render(state); }
-                    else state.WinCycleAt = null;
-                }
-                if (state.AnimatingUntil is { } end && _clock.GetUtcNow() >= end)
-                { state.AnimatingUntil = null; state.AnimationStartsAt = null; state.Status = "Gespeichertes Ergebnis"; state.WinCycleAt = _clock.GetUtcNow().AddSeconds(1.2); if (state.Visible) Render(state); }
+                state.AnimationStartsAt = null;
+                if (state.AnimatingUntil is { } animationEnd && _clock.GetUtcNow() < animationEnd && state.Visible) Render(state);
             }
+            if (state.Hud != ExpandingHudId && (state.Game is CasinoRoundGame.Book or CasinoRoundGame.BiggestBoy) && state.AnimatingUntil is { } bookEnd)
+                for (var reel = 0; reel < 5; reel++)
+                {
+                    var reelId = (state.Game == CasinoRoundGame.BiggestBoy ? "biggest_reel" : "reel") + reel;
+                    var stop = bookEnd.AddSeconds(-1 + reel * .2);
+                    var now = _clock.GetUtcNow();
+                    if ((state.BookSettles & (1 << reel)) == 0 && now >= stop.AddSeconds(-.45) && now < stop)
+                    {
+                        state.BookSettles |= 1 << reel;
+                        Class(state, reelId, "settling", true);
+                    }
+                    if ((state.BookStops & (1 << reel)) == 0 && now >= stop)
+                    {
+                        state.BookStops |= 1 << reel;
+                        Class(state, reelId, "settling", false);
+                        Class(state, reelId, "stopped", true);
+                    }
+                }
+            // One click per reel when its visual reel actually stops, only to this
+            // player. A late Tick catches up missing stops once without replaying.
+            if (state.Hud == ExpandingHudId && state.AnimationStartsAt is null
+                && state.AnimatingUntil is { } soundEnd && state.Visible)
+            {
+                var motionStarted = soundEnd.AddSeconds(-BiggestBoyReelMotion.TotalDurationSeconds);
+                var elapsed = (_clock.GetUtcNow() - motionStarted).TotalSeconds;
+                for (var reel = 0; reel < 5; reel++)
+                {
+                    var bit = 1 << reel;
+                    if ((state.SoundStops & bit) != 0 || elapsed < BiggestBoyReelMotion.Duration(reel)) continue;
+                    state.SoundStops |= bit;
+                    if (state.ReelSoundEnabled) _reelStopSound?.Invoke(state.Player.Id);
+                }
+            }
+            // Four visible symbols per reel advance on a cyclic strip; no huge off-screen panels.
+            if (state.Hud == ExpandingHudId && state.AnimationStartsAt is null
+                && state.AnimatingUntil is { } movingEnd && _clock.GetUtcNow() < movingEnd && state.Visible)
+                Render(state);
+            if (state.Hud == ExpandingHudId && state.AnimatingUntil is null && state.Round is { } won
+                && state.Visible && state.WinCycleAt is { } next && _clock.GetUtcNow() >= next)
+            {
+                var winCount = state.Game == CasinoRoundGame.Book
+                    ? Read<BonusSlotSpinResult>(won).LineWins.Length : Read<BiggestBoySpinResult>(won).LineWins.Length;
+                if (winCount > 1) { state.WinCycle = (state.WinCycle + 1) % winCount; state.WinCycleAt = _clock.GetUtcNow().AddSeconds(1.2); Render(state); }
+                else state.WinCycleAt = null;
+            }
+            if (state.AnimatingUntil is { } end && _clock.GetUtcNow() >= end)
+            { state.AnimatingUntil = null; state.AnimationStartsAt = null; state.Status = "Gespeichertes Ergebnis"; state.WinCycleAt = _clock.GetUtcNow().AddSeconds(1.2); if (state.Visible) Render(state); }
+        }
     }
 
     private void Render(State state)

@@ -1270,7 +1270,8 @@ public sealed class AnoCorePlugin : BasePlugin
                             {
                                 var listener = CounterStrikeSharp.API.Utilities.GetPlayerFromSteamId(playerId.SteamId64);
                                 if (listener is { IsValid: true })
-                                    listener.ExecuteClientCommand("playvol sounds/ui/counter_beep.vsnd 0.12");
+                                    listener.EmitSound("UI.CounterBeep",
+                                        new CounterStrikeSharp.API.Modules.Utils.RecipientFilter(listener), volume: 0.12f);
                             }
                             catch (Exception exception)
                             {
