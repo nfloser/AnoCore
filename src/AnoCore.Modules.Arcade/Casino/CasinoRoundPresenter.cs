@@ -185,6 +185,10 @@ public sealed class CasinoRoundPresenter : IDisposable
                             state.PreviousStops = previousStops.Length == 5 ? previousStops.ToArray() : new int[5];
                             Array.Fill(state.MotionProgress, -1);
                             Array.Fill(state.MotionFrames, 0);
+                            state.CosmeticMotion = round.Game == CasinoRoundGame.BiggestBoy
+                                && Read<BiggestBoySpinResult>(round).State.RulesVersion == ControlledSlotRules.BiggestVersion
+                                ? CosmeticReelMotion.Create(12, Read<BiggestBoySpinResult>(round).RawGrid.Select(x => (int)x).ToArray(), Random.Shared.Next)
+                                : null;
                         }
                         var now = _clock.GetUtcNow();
                         state.AnimationStartsAt = state.Game is CasinoRoundGame.Book or CasinoRoundGame.BiggestBoy
@@ -404,11 +408,13 @@ public sealed class CasinoRoundPresenter : IDisposable
         {
             var previous = state.PreviousStops[reel];
             var stop = spin is null ? 0 : spin.Stops[reel];
-            // Movement is a bounded four-cell window. Every frame uses the original
-            // physical strip and the server-booked stops, never a client RNG.
+            // The four-cell window follows a frozen cosmetic ribbon for v5;
+            // accepted physical v4 rounds keep their original movement.
             var elapsed = moving && state.AnimatingUntil is { } finish
                 ? (_clock.GetUtcNow() - finish.AddSeconds(-BiggestBoyReelMotion.TotalDurationSeconds)).TotalSeconds : 0;
-            var travelled = rolling ? BiggestBoyReelMotion.Travelled(previous, stop, elapsed, reel) : 0;
+            var travelled = !rolling ? 0 : state.CosmeticMotion is not null
+                ? CosmeticReelMotion.Travelled(elapsed, reel)
+                : BiggestBoyReelMotion.Travelled(previous, stop, elapsed, reel);
             if (state.MotionProgress[reel] != travelled)
             {
                 state.MotionProgress[reel] = travelled;
@@ -420,10 +426,9 @@ public sealed class CasinoRoundPresenter : IDisposable
             Class(state, "bb_reel" + reel, "bb-step-b", rolling && !stopped && state.MotionFrames[reel] % 2 == 0 && travelled > 0);
             for (var row = 0; row < 4; row++)
             {
-                var index = BiggestBoyReelMotion.VisibleIndex(previous, travelled, row);
-                var visibleSymbol = spin?.State.RulesVersion == ControlledSlotRules.BiggestVersion
-                    ? spin.RawGrid[reel * 3 + (row + (stopped ? 0 : travelled)) % 3]
-                    : BiggestBoyExpandingRules.ReelStrips[reel][index];
+                var visibleSymbol = state.CosmeticMotion is { } cosmetic
+                    ? (BiggestBoySymbol)cosmetic.VisibleSymbol(reel, travelled, row)
+                    : BiggestBoyExpandingRules.ReelStrips[reel][BiggestBoyReelMotion.VisibleIndex(previous, travelled, row)];
                 for (var id = 0; id < 12; id++)
                     Class(state, $"bb_motion{reel}_{row}", "bb-symbol-" + id, (int)visibleSymbol == id);
             }
@@ -651,6 +656,7 @@ public sealed class CasinoRoundPresenter : IDisposable
     {
         public PlayerSnapshot Player { get; } = player;
         public CustomHudId Hud { get; set; } = HudId;
+        public CosmeticReelMotion? CosmeticMotion { get; set; }
         public int[] PreviousStops { get; set; } = new int[5];
         public int[] MotionProgress { get; } = [-1, -1, -1, -1, -1];
         public int[] MotionFrames { get; } = new int[5];

@@ -48,7 +48,7 @@ public static class BookReelMotion
     {
         _ = BiggestBoyReelMotion.Duration(reel); // validate the reel index
         if (double.IsNaN(elapsedSeconds)) throw new ArgumentOutOfRangeException(nameof(elapsedSeconds));
-        return Math.Clamp((int)Math.Floor(Math.Max(0, elapsedSeconds) * 18), 0, 72);
+        return Math.Clamp((int)Math.Floor(Math.Max(0, elapsedSeconds) * 10), 0, 72);
     }
 
     public static BonusSlotSymbol VisibleSymbol(int reel, int travelled, int row)
