@@ -2,6 +2,7 @@ param(
     [string]$Cs2 = "",
     [string]$BiggestBoyWildPng = "",
     [string]$BookCoconutPng = "",
+    [switch]$RequireBookCoconut,
     [switch]$IncludeBiggestBoy,
     [ValidatePattern('^[a-z][a-z0-9_]*$')]
     [string]$Addon = "anomeme_ui",
@@ -71,8 +72,12 @@ if ($BookCoconutPng) {
         Copy-Item -LiteralPath $coconutSource -Destination $coconutTarget -Force
     }
 }
-if (-not (Test-Path -LiteralPath $coconutTarget -PathType Leaf)) {
+$coconutAvailable = Test-Path -LiteralPath $coconutTarget -PathType Leaf
+if (-not $coconutAvailable -and $RequireBookCoconut) {
     throw "The original golden coconut PNG is missing: $coconutTarget. Provide -BookCoconutPng '<image.png>' before building."
+}
+if (-not $coconutAvailable) {
+    Write-Warning "Book coconut PNG absent; dedicated Book UI texture will not be compiled. Use -RequireBookCoconut for the complete casino addon."
 }
 
 $compiler = Join-Path $Cs2 "game\bin\win64\resourcecompiler.exe"
@@ -211,8 +216,9 @@ foreach ($symbol in @("cherry", "lemon", "plum", "orange", "grapes", "watermelon
 # Casino covers and exact numbered roulette wheel belong to the matching HUD build.
 $casinoTextureDir = Join-Path $styleDir "casino"
 New-Item -ItemType Directory -Force -Path $casinoTextureDir | Out-Null
-$casinoTextures = @("slots", "coinflip", "coin_heads", "coin_tails", "roulette", "blackjack", "book", "book_coconut", "risk", "wheel", "biggest_kebap", "biggest_beer", "biggest_cigarette", "biggest_butter", "biggest_shot", "biggest_funnel", "biggest_g", "biggest_o", "biggest_a", "biggest_t", "biggest_scatter")
+$casinoTextures = @("slots", "coinflip", "coin_heads", "coin_tails", "roulette", "blackjack", "book", "risk", "wheel", "biggest_kebap", "biggest_beer", "biggest_cigarette", "biggest_butter", "biggest_shot", "biggest_funnel", "biggest_g", "biggest_o", "biggest_a", "biggest_t", "biggest_scatter")
 if ($buildBiggestBoy) { $casinoTextures += "biggest_book" }
+if ($coconutAvailable) { $casinoTextures += "book_coconut" }
 foreach ($texture in $casinoTextures) {
     foreach ($extension in @(".png", ".vtex")) {
         Copy-Item (Join-Path $src "styles\custom_game\anocore\casino\$texture$extension") (Join-Path $casinoTextureDir "$texture$extension") -Force
