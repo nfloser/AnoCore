@@ -45,8 +45,12 @@ public static class BiggestBoyExpandingRules
         var result = EvaluateGrid(stake, grid);
         var free = FreeSpinsForScatters(result.ScatterCount);
         var expanding = free > 0 ? (BiggestBoySymbol?)Next(random, Counts.Length) : null;
-        return result with { Stops = stops, ChargedStake = stake,
-            State = new(stake, free, free, 1, result.Payout, Version, expanding) };
+        return result with
+        {
+            Stops = stops,
+            ChargedStake = stake,
+            State = new(stake, free, free, 1, result.Payout, Version, expanding)
+        };
     }
 
     public static BiggestBoySpinResult PlayFreeSpin(BiggestBoyRoundState state, Func<int, int> random)
@@ -68,13 +72,17 @@ public static class BiggestBoyExpandingRules
         var added = scatters >= 3 ? Math.Min(5, MaximumFreeSpinsAwarded - state.FreeSpinsAwarded) : 0;
         return result with
         {
-            RawGrid = raw, Stops = stops, ScatterCount = scatters, ExpandedReels = expanded.ToImmutable(),
+            RawGrid = raw,
+            Stops = stops,
+            ScatterCount = scatters,
+            ExpandedReels = expanded.ToImmutable(),
             State = state with
             {
                 FreeSpinsRemaining = state.FreeSpinsRemaining - 1 + added,
                 FreeSpinsAwarded = state.FreeSpinsAwarded + added,
                 SpinsPlayed = state.SpinsPlayed + 1,
                 TotalPayout = checked(state.TotalPayout + result.Payout),
+                BonusPayout = checked(state.BonusPayout + result.Payout),
             },
         };
     }
@@ -150,7 +158,8 @@ public static class BiggestBoyExpandingRules
             || state.FreeSpinsAwarded is < 10 or > MaximumFreeSpinsAwarded || state.FreeSpinsAwarded % 5 != 0
             || state.SpinsPlayed is < 1 or > MaximumFreeSpinsAwarded
             || state.FreeSpinsAwarded - state.FreeSpinsRemaining != state.SpinsPlayed - 1
-            || state.TotalPayout < 0 || state.TotalPayout > MaximumRoundExposure(state.LockedStake))
+            || state.TotalPayout < 0 || state.TotalPayout > MaximumRoundExposure(state.LockedStake)
+            || state.BonusPayout < 0 || state.BonusPayout > state.TotalPayout)
             throw new ArgumentException("Invalid 5x3 expanding bonus state.", nameof(state));
     }
 }

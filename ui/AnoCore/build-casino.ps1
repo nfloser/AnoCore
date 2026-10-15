@@ -1,12 +1,32 @@
 param(
     [Parameter(Mandatory = $true)]
     [string]$Cs2,
+    [string]$BiggestBoyWildPng = "",
+    [switch]$IncludeBiggestBoy,
     [ValidatePattern('^[a-z][a-z0-9_]*$')]
     [string]$Addon = "anocasino_ui"
 )
 
 $ErrorActionPreference = "Stop"
 $src = Split-Path -Parent $MyInvocation.MyCommand.Path
+$wildTarget = Join-Path $src "styles\custom_game\anocore\casino\biggest_book.png"
+$buildBiggestBoy = $IncludeBiggestBoy -or $BiggestBoyWildPng -or (Test-Path -LiteralPath $wildTarget -PathType Leaf)
+if ($buildBiggestBoy) {
+    if ($BiggestBoyWildPng) {
+        $wildBytes = [System.IO.File]::ReadAllBytes((Resolve-Path -LiteralPath $BiggestBoyWildPng).Path)
+        if ($wildBytes.Length -lt 8 -or [BitConverter]::ToString($wildBytes, 0, 8) -ne "89-50-4E-47-0D-0A-1A-0A") {
+            throw "BiggestBoyWildPng must be the original golden Book PNG."
+        }
+        if ([System.IO.Path]::GetFullPath($BiggestBoyWildPng) -ne [System.IO.Path]::GetFullPath($wildTarget)) {
+            Copy-Item -LiteralPath $BiggestBoyWildPng -Destination $wildTarget -Force
+        }
+    }
+    if (-not (Test-Path -LiteralPath $wildTarget -PathType Leaf)) {
+        throw "Biggest Boy original golden Book PNG is missing: $wildTarget. Supply -BiggestBoyWildPng <original.png>. Build stopped before changing the addon."
+    }
+}
+
+
 $compiler = Join-Path $Cs2 "game\bin\win64\resourcecompiler.exe"
 if (-not (Test-Path $compiler)) {
     throw "CS2 Workshop Tools missing. Pass -Cs2 '<path-to-CS2>'."
@@ -34,7 +54,9 @@ foreach ($symbol in @("cherry", "lemon", "plum", "orange", "grapes", "watermelon
     Compile-Resource "$style\arcade\$symbol.vtex" "$style\arcade\$symbol.vtex_c"
 }
 New-Item -ItemType Directory -Force -Path (Join-Path $content "$style\casino") | Out-Null
-foreach ($texture in @("slots", "coinflip", "roulette", "blackjack", "book", "risk", "wheel", "biggest_kebap", "biggest_beer", "biggest_cigarette", "biggest_butter", "biggest_shot", "biggest_funnel", "biggest_g", "biggest_o", "biggest_a", "biggest_t", "biggest_scatter")) {
+$casinoTextures = @("slots", "coinflip", "roulette", "blackjack", "book", "risk", "wheel", "biggest_kebap", "biggest_beer", "biggest_cigarette", "biggest_butter", "biggest_shot", "biggest_funnel", "biggest_g", "biggest_o", "biggest_a", "biggest_t", "biggest_scatter")
+if ($buildBiggestBoy) { $casinoTextures += "biggest_book" }
+foreach ($texture in $casinoTextures) {
     Copy-Item (Join-Path $src "$style\casino\$texture.png") (Join-Path $content "$style\casino\$texture.png") -Force
     Compile-Resource "$style\casino\$texture.vtex" "$style\casino\$texture.vtex_c"
 }
@@ -46,7 +68,10 @@ Compile-Resource "$style\ano_casino.css" "$style\ano_casino.vcss_c"
 Compile-Resource "$layout\ano_casino.xml" "$layout\ano_casino.vxml_c"
 Compile-Resource "$style\ano_casino_native_v2.css" "$style\ano_casino_native_v2.vcss_c"
 Compile-Resource "$layout\ano_casino_native_v2.xml" "$layout\ano_casino_native_v2.vxml_c"
-foreach ($view in @("ano_casino_lobby", "ano_casino_slots", "ano_casino_coinflip", "ano_casino_roulette", "ano_casino_rounds")) {
+
+$casinoViews = @("ano_casino_lobby", "ano_casino_slots", "ano_casino_coinflip", "ano_casino_roulette", "ano_casino_rounds")
+if ($buildBiggestBoy) { $casinoViews += "ano_casino_biggest" }
+foreach ($view in $casinoViews) {
     Compile-Resource "$style\$view.css" "$style\$view.vcss_c"
     Compile-Resource "$layout\$view.xml" "$layout\$view.vxml_c"
 }

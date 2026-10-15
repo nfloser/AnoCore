@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Globalization;
 using System.Text.Json;
 using AnoCore.Abstractions.Events;
@@ -12,6 +13,7 @@ namespace AnoCore.Modules.Arcade.Casino;
 public sealed class CasinoRoundPresenter : IDisposable
 {
     public static readonly CustomHudId HudId = new("ano.casino.rounds");
+    public static readonly CustomHudId ExpandingHudId = new("ano.casino.biggestboy");
     private static readonly PermissionId Permission = new("ano.casino.play");
     private static readonly string[] Buttons = ["play", "minus", "plus", "hit", "stand", "double", "split", "risk", "bank", "free", "bonus1", "bonus2", "bonus3", "bonus4", "bonus5", "bonus6", "bonus7", "bonus8", "bonus9", "retry", "close", "back", "refresh", "rules"];
     private readonly ICustomHudService _hud;
@@ -40,6 +42,10 @@ public sealed class CasinoRoundPresenter : IDisposable
             _owned.Add(hud.Register(new("ano.casino"), new(HudId,
                 "panorama/layout/custom_game/anocore/ano_casino_rounds.xml", "casino_round_root",
                 Buttons.Select(x => "casino_round_" + x).ToArray(), captureInput: true), ClickAsync));
+            _owned.Add(hud.Register(new("ano.casino"), new(ExpandingHudId,
+                "panorama/layout/custom_game/anocore/ano_casino_biggest.xml", "casino_round_root",
+                new[] { "play", "minus", "plus", "free", "retry", "close", "back", "refresh", "rules" }
+                    .Select(x => "casino_round_" + x).ToArray(), captureInput: true), ClickAsync));
             _owned.Add(events.Subscribe<PlayerDisconnectedEvent>((e, _) => { Forget(e.Player); return ValueTask.CompletedTask; }));
             _owned.Add(events.Subscribe<PlayerReconnectedEvent>((e, _) => { Forget(e.Previous); return ValueTask.CompletedTask; }));
         }
@@ -71,7 +77,7 @@ public sealed class CasinoRoundPresenter : IDisposable
                 state.Balance = balance; state.Visible = true; state.Pending = false;
                 state.Status = round is { IsComplete: false } ? "Gespeicherte Runde fortsetzen" : "Einsatz wählen und Runde starten";
                 _beforeOpen(player); Render(state);
-                return _hud.Show(player, HudId);
+                return _hud.Show(player, state.Hud);
             }
         }
         finally { lock (_gate) state.Pending = false; }
@@ -85,7 +91,7 @@ public sealed class CasinoRoundPresenter : IDisposable
         DurableCasinoRoundOperation? operation = null; var back = false; var closed = false;
         lock (_gate)
         {
-            if (!Current(state) || !state.Visible) return;
+            if (!Current(state) || !state.Visible || context.HudId != state.Hud) return;
             if (!allowed) { Forget(state.Player); return; }
             var action = context.ButtonId.StartsWith("casino_round_", StringComparison.Ordinal) ? context.ButtonId[13..] : "";
             if (!Buttons.Contains(action, StringComparer.Ordinal)) return;
@@ -129,6 +135,10 @@ public sealed class CasinoRoundPresenter : IDisposable
             lock (_gate)
             {
                 if (!Current(state)) return;
+                var previousSpin = state.Round is { Game: CasinoRoundGame.BiggestBoy } previousRound
+                    ? Read<BiggestBoySpinResult>(previousRound) : null;
+                var previousStops = previousSpin?.State.RulesVersion == BiggestBoyExpandingRules.Version
+                    ? previousSpin.Stops : ImmutableArray<int>.Empty;
                 state.Round = round; state.Balance = balance;
                 if (round is not null)
                 {
@@ -148,18 +158,23 @@ public sealed class CasinoRoundPresenter : IDisposable
                     {
                         state.Animation++;
                         if (operation?.Action == CasinoRoundAction.Start) state.Cards.Clear();
-                        for (var reel = 0; reel < 5; reel++)
-                        {
-                            Class(state, "reel" + reel, "stopped", false);
-                            Class(state, "reel" + reel, "settling", false);
-                            Class(state, "biggest_reel" + reel, "stopped", false);
-                            Class(state, "biggest_reel" + reel, "settling", false);
-                        }
+                        if (round is not { Game: CasinoRoundGame.BiggestBoy } || Read<BiggestBoySpinResult>(round).State.RulesVersion != BiggestBoyExpandingRules.Version)
+                            for (var reel = 0; reel < 5; reel++)
+                            {
+                                Class(state, "reel" + reel, "stopped", false);
+                                Class(state, "reel" + reel, "settling", false);
+                                Class(state, "biggest_reel" + reel, "stopped", false);
+                                Class(state, "biggest_reel" + reel, "settling", false);
+                            }
                         state.BookSettles = 0; state.BookStops = 0;
+                        state.WinCycle = 0; state.WinCycleAt = null;
+                        if (round is { Game: CasinoRoundGame.BiggestBoy } && Read<BiggestBoySpinResult>(round).State.RulesVersion == BiggestBoyExpandingRules.Version)
+                            state.PreviousStops = previousStops.Length == 5 ? previousStops.ToArray() : new int[5];
                         var now = _clock.GetUtcNow();
                         state.AnimationStartsAt = state.Game is CasinoRoundGame.Book or CasinoRoundGame.BiggestBoy
                             ? now.AddMilliseconds(200) : null;
-                        state.AnimatingUntil = (state.AnimationStartsAt ?? now).AddSeconds(state.Game == CasinoRoundGame.BiggestBoy ? 3.2 : state.Game == CasinoRoundGame.Book ? 3 : state.Game == CasinoRoundGame.Blackjack ? .95 : .65);
+                        var v4 = round is { Game: CasinoRoundGame.BiggestBoy } && Read<BiggestBoySpinResult>(round).State.RulesVersion == BiggestBoyExpandingRules.Version;
+                        state.AnimatingUntil = (state.AnimationStartsAt ?? now).AddSeconds(v4 ? 6.2 : state.Game == CasinoRoundGame.BiggestBoy ? 3.2 : state.Game == CasinoRoundGame.Book ? 3 : state.Game == CasinoRoundGame.Blackjack ? .95 : .65);
                         state.Status = "Aktion gebucht · Animation läuft";
                     }
                 }
@@ -188,7 +203,7 @@ public sealed class CasinoRoundPresenter : IDisposable
                 state.AnimationStartsAt = null;
                 if (state.AnimatingUntil is { } animationEnd && _clock.GetUtcNow() < animationEnd && state.Visible) Render(state);
             }
-            if (state.Game is CasinoRoundGame.Book or CasinoRoundGame.BiggestBoy && state.AnimatingUntil is { } bookEnd)
+            if (state.Hud != ExpandingHudId && (state.Game is CasinoRoundGame.Book or CasinoRoundGame.BiggestBoy) && state.AnimatingUntil is { } bookEnd)
                 for (var reel = 0; reel < 5; reel++)
                 {
                     var reelId = (state.Game == CasinoRoundGame.BiggestBoy ? "biggest_reel" : "reel") + reel;
@@ -206,12 +221,30 @@ public sealed class CasinoRoundPresenter : IDisposable
                         Class(state, reelId, "stopped", true);
                     }
                 }
+            if (state.Hud == ExpandingHudId && state.AnimatingUntil is null && state.Round is { } won
+                && state.Visible && state.WinCycleAt is { } next && _clock.GetUtcNow() >= next)
+            {
+                var wins = Read<BiggestBoySpinResult>(won).LineWins;
+                if (wins.Length > 1) { state.WinCycle = (state.WinCycle + 1) % wins.Length; state.WinCycleAt = _clock.GetUtcNow().AddSeconds(1.2); Render(state); }
+                else state.WinCycleAt = null;
+            }
             if (state.AnimatingUntil is { } end && _clock.GetUtcNow() >= end)
-            { state.AnimatingUntil = null; state.AnimationStartsAt = null; state.Status = "Gespeichertes Ergebnis"; if (state.Visible) Render(state); }
+            { state.AnimatingUntil = null; state.AnimationStartsAt = null; state.Status = "Gespeichertes Ergebnis"; state.WinCycleAt = _clock.GetUtcNow().AddSeconds(1.2); if (state.Visible) Render(state); }
         }
     }
 
     private void Render(State state)
+    {
+        var expanding = state.Game == CasinoRoundGame.BiggestBoy && (state.Round is null
+            || Read<BiggestBoySpinResult>(state.Round).State.RulesVersion == BiggestBoyExpandingRules.Version);
+        var desired = expanding ? ExpandingHudId : HudId;
+        var changed = state.Hud != desired;
+        if (changed) { _hud.Hide(state.Player.Id, state.Hud); state.Classes.Clear(); state.Hud = desired; }
+        if (expanding) RenderExpanding(state); else RenderLegacy(state);
+        if (changed && state.Visible) _hud.Show(state.Player.Id, state.Hud);
+    }
+
+    private void RenderLegacy(State state)
     {
         foreach (var game in Enum.GetValues<CasinoRoundGame>()) Class(state, "root", "view-" + game.ToString().ToLowerInvariant(), state.Game == game);
         Class(state, "root", "biggest-rules", state.Game == CasinoRoundGame.BiggestBoy && state.BiggestRules
@@ -289,6 +322,53 @@ public sealed class CasinoRoundPresenter : IDisposable
         }
     }
 
+    private void RenderExpanding(State state)
+    {
+        var spin = state.Round is null ? null : Read<BiggestBoySpinResult>(state.Round);
+        var moving = state.AnimatingUntil is not null;
+        var rolling = moving && state.AnimationStartsAt is null;
+        var active = state.Round is { IsComplete: false };
+        Class(state, "root", "active", active); Class(state, "root", "busy", state.Pending || moving);
+        Class(state, "root", "view-biggestboy", true);
+        Class(state, "root", "reels-armed", moving && !rolling);
+        Class(state, "root", "motion-a", rolling && state.Animation % 2 == 1);
+        Class(state, "root", "motion-b", rolling && state.Animation % 2 == 0);
+        Class(state, "root", "biggest-rules", state.BiggestRules);
+        Class(state, "root", "uncertain", state.Unconfirmed is not null);
+        Text(state, "title", "BIGGEST BOY · 5×3");
+        Text(state, "account", Points(state.Balance.Available)); Text(state, "bankroll", Points(state.Balance.Allocated));
+        Text(state, "stake", Points(active ? state.Round!.Stake : state.Stake)); Text(state, "status", state.Status);
+        Text(state, "payout", moving ? "WALZEN LAUFEN …" : Points(spin?.Payout ?? 0));
+        Text(state, "biggest_win", moving ? "WALZEN LAUFEN …" : "SPINGEWINN GESAMT: " + Points(spin?.Payout ?? 0)
+            + (spin is { State.SpinsPlayed: > 1 } ? " · Freispiel: " + Points(spin.Payout) : ""));
+        Text(state, "biggest_spin_win", "Liniengewinn: " + (moving ? "–" : Points(spin?.LineWins.Sum(x => x.Payout) ?? 0))
+            + " · Freispiel aktuell: " + (moving ? "–" : Points(spin is { State.SpinsPlayed: > 1 } ? spin.Payout : 0)));
+        Text(state, "biggest_total_win", "Freispielserie: " + Points(spin?.State.BonusPayout ?? 0)
+            + " · gesamte Runde: " + Points(spin?.State.TotalPayout ?? 0));
+        Text(state, "biggest_bonus", $"{spin?.State.FreeSpinsRemaining ?? 0} Freispiele · Serie: {Points(spin?.State.BonusPayout ?? 0)} · Expanding Symbol: {(spin?.State.ExpandingSymbol is { } symbol ? BiggestName(symbol) : "–")}");
+        var current = !moving && spin is { LineWins.Length: > 0 } ? spin.LineWins[state.WinCycle % spin.LineWins.Length] : null;
+        Text(state, "detail", moving ? "Feste Walzenstreifen · Ergebnis bereits gebucht" : current is not null
+            ? $"Liniengesamt: {Points(spin!.LineWins.Sum(x => x.Payout))} · Linie {current.Payline + 1}: {current.MatchCount}× {BiggestName(current.Symbol)} = {Points(current.Payout)} · {spin.LineWins.Length} Gewinnlinien"
+            : spin is null ? "3/4/5 Gesichter: 10/15/20 Freispiele · Buch ist Wild · Döner ist reguläres Top-Symbol" : "Kein Liniengewinn in diesem Spin");
+        for (var reel = 0; reel < 5; reel++)
+        {
+            var previous = state.PreviousStops[reel];
+            var stop = spin is null ? 0 : spin.Stops[reel];
+            var distance = BiggestBoyReelMotion.Steps(previous, stop);
+            for (var bit = 0; bit < 7; bit++) Class(state, $"bb_offset{reel}_{bit}", "shifted", (previous & (1 << bit)) != 0);
+            for (var d = 30; d <= 129; d++) Class(state, "bb_reel" + reel, "bb-distance-" + d, distance == d);
+            for (var row = 0; row < 3; row++)
+            {
+                var cell = reel * 3 + row;
+                var actual = spin is null ? BiggestBoyExpandingRules.ReelStrips[reel][row] : spin.Grid[cell];
+                for (var id = 0; id < 12; id++) Class(state, "bb_symbol" + cell, "bb-symbol-" + id, (int)actual == id);
+                Class(state, "bb_symbol" + cell, "winning", !moving && spin is not null && spin.LineWins.Any(w => BiggestBoyExpandingRules.Paylines[w.Payline].Take(w.MatchCount).Contains(cell)));
+                Class(state, "bb_symbol" + cell, "active-line", current is not null && BiggestBoyExpandingRules.Paylines[current.Payline].Take(current.MatchCount).Contains(cell));
+                Class(state, "bb_symbol" + cell, "expanded", !moving && spin is not null && spin.ExpandedReels.Contains(reel));
+            }
+        }
+    }
+
     private void RenderBiggestBoy(State state, BiggestBoySpinResult? spin, bool moving)
     {
         var collector = spin is null || spin.State.RulesVersion == BiggestBoyCollectorRules.Version;
@@ -335,7 +415,8 @@ public sealed class CasinoRoundPresenter : IDisposable
 
     private static string BiggestName(BiggestBoySymbol symbol) => symbol switch
     {
-        BiggestBoySymbol.Kebap => "KEBAP",
+        BiggestBoySymbol.Kebap => "DÖNER",
+        BiggestBoySymbol.Book => "GOLDENES BUCH / WILD",
         BiggestBoySymbol.Beer => "BIER",
         BiggestBoySymbol.Cigarette => "ZIGARETTE",
         BiggestBoySymbol.Butter => "BUTTER",
@@ -407,23 +488,27 @@ public sealed class CasinoRoundPresenter : IDisposable
         _ => "50 % Chance: Zwischenstand verdoppeln oder verlieren · BANK bucht den Zwischenstand zurück · nach 5 Erfolgen BANK wählen.",
     };
     private static string Points(long value) => CasinoMoney.Format(value);
-    private void Text(State s, string id, string value) => _hud.SetText(s.Player.Id, HudId, "casino_round_" + id, value);
+    private void Text(State s, string id, string value) => _hud.SetText(s.Player.Id, s.Hud, "casino_round_" + id, value);
     private void Class(State s, string id, string name, bool value)
     {
         var key = (id, name);
         if (s.Classes.TryGetValue(key, out var previous) && previous == value) return;
         s.Classes[key] = value;
-        _hud.SetClass(s.Player.Id, HudId, "casino_round_" + id, name, value);
+        _hud.SetClass(s.Player.Id, s.Hud, "casino_round_" + id, name, value);
     }
     private bool Current(State s) => !_disposed && _states.TryGetValue(s.Player.Id, out var state) && ReferenceEquals(state, s)
         && _players.TryGet(s.Player.Id, out var player) && player is { IsConnected: true } && player.SessionId == s.Player.SessionId;
-    private void Forget(PlayerSnapshot player) { lock (_gate) if (_states.TryGetValue(player.Id, out var state) && state.Player.SessionId == player.SessionId) { _states.Remove(player.Id); _hud.Hide(player.Id, HudId); } }
-    public void Close(PlayerId player) { lock (_gate) { if (_states.TryGetValue(player, out var state)) state.Visible = false; _hud.Hide(player, HudId); } }
-    public void Reset() { lock (_gate) { _states.Clear(); _hud.HideAll(HudId); } }
+    private void Forget(PlayerSnapshot player) { lock (_gate) if (_states.TryGetValue(player.Id, out var state) && state.Player.SessionId == player.SessionId) { _states.Remove(player.Id); _hud.Hide(player.Id, HudId); _hud.Hide(player.Id, ExpandingHudId); } }
+    public void Close(PlayerId player) { lock (_gate) { if (_states.TryGetValue(player, out var state)) state.Visible = false; _hud.Hide(player, HudId); _hud.Hide(player, ExpandingHudId); } }
+    public void Reset() { lock (_gate) { _states.Clear(); _hud.HideAll(HudId); _hud.HideAll(ExpandingHudId); } }
     public void Dispose() { lock (_gate) { if (_disposed) return; Reset(); _disposed = true; foreach (var owned in _owned) owned.Dispose(); } }
     private sealed class State(PlayerSnapshot player, CasinoRoundGame game)
     {
         public PlayerSnapshot Player { get; } = player;
+        public CustomHudId Hud { get; set; } = HudId;
+        public int[] PreviousStops { get; set; } = new int[5];
+        public int WinCycle { get; set; }
+        public DateTimeOffset? WinCycleAt { get; set; }
         public CasinoRoundGame Game { get; set; } = game;
         public DurableCasinoRoundSnapshot? Round { get; set; }
         public CasinoBalance Balance { get; set; } = new(0, 0, 0);

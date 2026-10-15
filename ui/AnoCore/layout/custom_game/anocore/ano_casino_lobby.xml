@@ -104,8 +104,8 @@
             <Panel class="casino-preview casino-preview-biggestboy" hittest="false" />
             <Panel class="casino-card-footer" hittest="false">
               <Panel class="casino-card-copy" hittest="false">
-                <Label class="casino-card-title" text="BIGGEST BOY BÜCHER" hittest="false" />
-                <Label class="casino-card-caption" text="5×3 · Sammel-Wild · Freispiele bis ×10" hittest="false" />
+                <Label class="casino-card-title" text="BIGGEST BOY SLOTS" hittest="false" />
+                <Label class="casino-card-caption" text="5×3 · Buch-Wild · Expanding-Freispiele" hittest="false" />
               </Panel>
               <Label class="casino-card-arrow" text="›" hittest="false" />
             </Panel>

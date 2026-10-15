@@ -61,7 +61,7 @@ public sealed class CasinoRoundService(ICasinoRoundStore store, int biggestBoyMa
         if (current is null) return new(op.Stake, Exposure(op.Game, op.Stake));
         var view = View(current);
         if (view.Game != op.Game || view.Stake != op.Stake || (current.RulesVersion != Version(op.Game)
-                && !(op.Game == CasinoRoundGame.BiggestBoy && current.RulesVersion == BiggestBoyRules.Version)))
+                && !(op.Game == CasinoRoundGame.BiggestBoy && current.RulesVersion is BiggestBoyRules.Version or BiggestBoyCollectorRules.Version)))
             throw new CasinoRejectedException("Einsatz oder gespeicherte Spielregeln stimmen nicht überein.");
         long debit = 0;
         switch (op.Game)
@@ -84,7 +84,9 @@ public sealed class CasinoRoundService(ICasinoRoundStore store, int biggestBoyMa
                 break;
             case CasinoRoundGame.BiggestBoy:
                 var biggest = Read<BiggestBoySpinResult>(current);
-                if (biggest.State.RulesVersion == BiggestBoyCollectorRules.Version)
+                if (biggest.State.RulesVersion != current.RulesVersion)
+                    throw new CasinoRejectedException("Gespeicherte Biggest-Boy-Regeln sind widersprüchlich.");
+                if (biggest.State.RulesVersion is BiggestBoyCollectorRules.Version or BiggestBoyExpandingRules.Version)
                 {
                     if (op.Action != CasinoRoundAction.FreeSpin || biggest.State.FreeSpinsRemaining <= 0)
                         throw new CasinoRejectedException("Keine Freispiele verfügbar.");
@@ -107,8 +109,7 @@ public sealed class CasinoRoundService(ICasinoRoundStore store, int biggestBoyMa
                     throw new CasinoRejectedException("Keine Freispiele verfügbar.");
                 break;
         }
-        return new(debit, current.Kind == CasinoRoundKind.BiggestBoy && current.RulesVersion == BiggestBoyRules.Version
-            ? BiggestBoyRules.MaximumRoundExposure(op.Stake) : Exposure(op.Game, op.Stake));
+        return new(debit, Exposure(op.Game, op.Stake, current.RulesVersion));
     }
 
     private static CasinoRoundMutation Transition(DurableCasinoRoundOperation op, CasinoRoundSnapshot? current)
@@ -140,7 +141,9 @@ public sealed class CasinoRoundService(ICasinoRoundStore store, int biggestBoyMa
                 break;
             case CasinoRoundGame.BiggestBoy:
                 var previousBiggest = current is null ? null : Read<BiggestBoySpinResult>(current);
-                var biggest = previousBiggest is null ? BiggestBoyCollectorRules.StartRound(op.Stake, RandomNumberGenerator.GetInt32)
+                var biggest = previousBiggest is null ? BiggestBoyExpandingRules.StartRound(op.Stake, RandomNumberGenerator.GetInt32)
+                    : previousBiggest.State.RulesVersion == BiggestBoyExpandingRules.Version
+                        ? BiggestBoyExpandingRules.PlayFreeSpin(previousBiggest.State, RandomNumberGenerator.GetInt32)
                     : previousBiggest.State.RulesVersion == BiggestBoyCollectorRules.Version
                         ? BiggestBoyCollectorRules.PlayFreeSpin(previousBiggest.State, RandomNumberGenerator.GetInt32)
                     : op.Action == CasinoRoundAction.SelectSymbol
@@ -161,9 +164,9 @@ public sealed class CasinoRoundService(ICasinoRoundStore store, int biggestBoyMa
                 break;
         }
         var json = JsonSerializer.Serialize(state, state.GetType());
-        var legacyBiggest = state is BiggestBoySpinResult legacy && legacy.State.RulesVersion == BiggestBoyRules.Version;
-        return new(legacyBiggest ? BiggestBoyRules.Version : Version(op.Game), json, debit, complete ? payout : 0,
-            complete ? 0 : legacyBiggest ? BiggestBoyRules.MaximumRoundExposure(op.Stake) : Exposure(op.Game, op.Stake), complete, "{}");
+        var rulesVersion = state is BiggestBoySpinResult biggestState ? biggestState.State.RulesVersion : Version(op.Game);
+        return new(rulesVersion, json, debit, complete ? payout : 0,
+            complete ? 0 : Exposure(op.Game, op.Stake, rulesVersion), complete, "{}");
     }
 
     private static DurableCasinoRoundSnapshot View(CasinoRoundSnapshot round, int fallbackStake = 0)
@@ -213,14 +216,19 @@ public sealed class CasinoRoundService(ICasinoRoundStore store, int biggestBoyMa
     {
         CasinoRoundGame.Blackjack => BlackjackRules.RulesVersion,
         CasinoRoundGame.Risk => RiskRules.Version,
-        CasinoRoundGame.BiggestBoy => BiggestBoyCollectorRules.Version,
+        CasinoRoundGame.BiggestBoy => BiggestBoyExpandingRules.Version,
         _ => BonusSlotRules.Version,
     };
-    private static long Exposure(CasinoRoundGame game, int stake) => game switch
+    private static long Exposure(CasinoRoundGame game, int stake, string? version = null) => game switch
     {
         CasinoRoundGame.Blackjack => stake * 8L,
         CasinoRoundGame.Risk => stake * (1L << RiskRules.MaximumGambles),
-        CasinoRoundGame.BiggestBoy => BiggestBoyCollectorRules.MaximumRoundExposure(stake),
+        CasinoRoundGame.BiggestBoy => version switch
+        {
+            BiggestBoyRules.Version => BiggestBoyRules.MaximumRoundExposure(stake),
+            BiggestBoyCollectorRules.Version => BiggestBoyCollectorRules.MaximumRoundExposure(stake),
+            _ => BiggestBoyExpandingRules.MaximumRoundExposure(stake),
+        },
         _ => BonusSlotRules.MaximumRoundExposure(stake),
     };
     private static BlackjackAction BlackjackActionFor(CasinoRoundAction action) => action switch

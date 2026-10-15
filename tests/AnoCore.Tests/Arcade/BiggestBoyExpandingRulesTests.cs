@@ -93,6 +93,37 @@ public sealed class BiggestBoyExpandingRulesTests
     }
 
     [TestMethod]
+    public void ScatterCoveredByExpansionStillRetriggersAndFreeSeriesExcludesPaidSpin()
+    {
+        var selected = BiggestBoyExpandingRules.ReelStrips[0][1];
+        var queue = new Queue<int>(Enumerable.Repeat(0, 5).Append((int)selected));
+        var trigger = BiggestBoyExpandingRules.StartRound(100, _ => queue.Dequeue());
+        var state = trigger.State with { TotalPayout = trigger.State.TotalPayout + 500 };
+        var spin = BiggestBoyExpandingRules.PlayFreeSpin(state, _ => 0);
+        Assert.AreEqual(5, spin.ScatterCount);
+        Assert.IsTrue(spin.Grid.Count(x => x == BiggestBoySymbol.Scatter) < spin.ScatterCount);
+        Assert.AreEqual(25, spin.State.FreeSpinsAwarded);
+        Assert.AreEqual(24, spin.State.FreeSpinsRemaining);
+        Assert.AreEqual(spin.Payout, spin.State.BonusPayout);
+        Assert.AreEqual(state.TotalPayout + spin.Payout, spin.State.TotalPayout);
+    }
+
+    [TestMethod]
+    [DataRow(3)]
+    [DataRow(4)]
+    [DataRow(5)]
+    public void ThreeFourAndFiveMatchingSymbolsPayTheFrozenLineFactor(int matches)
+    {
+        var grid = Enumerable.Repeat(BiggestBoySymbol.Scatter, 15).ToArray();
+        foreach (var cell in BiggestBoyExpandingRules.Paylines[0].Take(matches)) grid[cell] = BiggestBoySymbol.Beer;
+        grid[3] = BiggestBoySymbol.Book;
+        var spin = BiggestBoyExpandingRules.EvaluateGrid(250, grid);
+        Assert.AreEqual(1, spin.LineWins.Length);
+        Assert.AreEqual(matches, spin.LineWins[0].MatchCount);
+        Assert.AreEqual(25L * BiggestBoyExpandingRules.Multiplier(BiggestBoySymbol.Beer, matches), spin.Payout);
+    }
+
+    [TestMethod]
     public void InvalidStateAndRandomSourceCannotChangeAnAcceptedRound()
     {
         var trigger = BiggestBoyExpandingRules.StartRound(100, _ => 0);

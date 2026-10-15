@@ -1,164 +1,154 @@
-# Biggest Boy Bücher – 5×5-Regelprofil v2
+# Biggest Boy Slots — verbindliches 5×3-Profil
 
-Eigenständige AnoCasino-Slot neben AnoBook. Einstieg:
-`!anocasino` → **BIGGEST BOY BÜCHER**.
+Status: Implementierung/Tests in Arbeit; **keine native Produktionsfreigabe**.
+Neue Regelversion: `anocore-biggest-boy-5x3-expanding-v4`. Neue Runden verwenden
+exakt fünf Walzen mit je drei sichtbaren Symbolen, insgesamt 15 Positionen.
+Das ersetzt für neue Spiele sowohl das frühere 5×5-Profil als auch den Collector-Bonus.
 
-Alle angezeigten €-Beträge sind ausschließlich virtuelle Casino-Werte. Es gibt
-keine Echtgeld-Einzahlung, Auszahlung oder Umrechnung.
+## Vorlage und Bedienung
 
-## Symbole
+Die zehn Gewinnlinien stammen direkt aus `BonusSlotRules.Paylines`. Fensterhülle,
+Kontoanzeigen, Einsatz- und Freispielaktionen sowie Navigation sind aus der
+funktionierenden Freispiele-XML übernommen. Biggest Boy hat eine eigene native
+XML-/CSS-Ressource. Book-XML, Book-CSS und `BonusSlotRules.cs` bleiben bytegleich;
+`biggest-boy-v4-source-lock.json` und Regressionen prüfen das.
 
-- Kebap: Wild; ersetzt jedes normale Gewinnsymbol, niemals Scatter.
-- Bier, Zigarette, Butter, Shot, Trinktrichter, G, O, A, T: normale Gewinnsymbole.
-- Gesicht: Scatter; zahlt nicht direkt und wird nie durch Wild oder Expansion ersetzt.
+Spielaufruf: `!anocasino` → Biggest Boy. Dieselben Berechtigungen, Konten,
+Einsatzschritte, Transaktionen, Operation-IDs, Restore- und Abrechnungswege bleiben
+in Gebrauch. Die Darstellung mit € bezeichnet weiterhin ausschließlich virtuelle
+AP-Beträge. Einsatz und mathematisches Modell werden mit der Runde eingefroren.
 
-## Einsatz
+## Symbole und Linienauszahlungen
 
-Zugelassene Einsatzstufen:
+Ein eigenes goldenes Buch ist ausschließlich Wild. Döner ist das höchste reguläre
+Symbol. Das Gesicht ist ausschließlich Scatter, niemals Wild. Die übrigen Bilder
+sind unverändert jeweils eigenständige PNG-Dateien. Enum-IDs 0–10 bleiben wegen
+alter gespeicherter Runden stabil; das Buch erhält ID 11.
 
-`100 / 250 / 500 / 1.000 / 2.500 / 5.000 / 10.000 €`
+Drei, vier oder fünf passende Symbole müssen auf einer gültigen Linie von links
+aufeinanderfolgen. Das Buch ersetzt jedes reguläre Symbol. Pro Linie wird nur
+der höchste mögliche Gewinn bezahlt; mehrere gewinnende Linien addieren sich.
+Die Auszahlung beträgt **Gesamteinsatz / 10 × Linienfaktor**. Es gibt keine
+Scatter-Geldauszahlung und keinen zusätzlichen Expansion-Aufschlag.
 
-`BiggestBoyMaximumStake` kann die maximal auswählbare Stufe serverseitig
-begrenzen. Bereits laufende Bonusrunden behalten ihren gespeicherten Einsatz.
+| Symbol | Stopps je 100 | 3 gleiche | 4 gleiche | 5 gleiche |
+| --- | ---: | ---: | ---: | ---: |
+| Döner | 4 | 270 | 1350 | 3000 |
+| Bier | 5 | 216 | 945 | 2900 |
+| Zigarette | 6 | 162 | 675 | 2160 |
+| Butter | 7 | 135 | 473 | 1485 |
+| Shot | 9 | 81 | 297 | 878 |
+| Trinktrichter | 10 | 68 | 216 | 675 |
+| G | 14 | 26 | 68 | 194 |
+| O | 14 | 26 | 68 | 194 |
+| A | 14 | 13 | 60 | 129 |
+| T | 14 | 13 | 60 | 129 |
+| Gesicht / Scatter | 2 | – | – | – |
+| Goldenes Buch / Wild | 1 | Ersetzt reguläre Symbole | Ersetzt reguläre Symbole | Ersetzt reguläre Symbole |
 
-## Feld und Gewinnlinien
+Alle fünf Walzen haben 100 feste zyklische Positionen. Scatter liegen an 0/50,
+das Buch an 25. Die 97 regulären Positionen werden deterministisch aus den oben
+aufgeführten Häufigkeiten angeordnet: Index `(n × 37 + Walze × 19) mod 97`.
+Die tatsächlichen vollständigen Streifen sind reproduzierbar in den generierten
+Panorama-Panels und in `BiggestBoyExpandingRules.ReelStrips` enthalten.
 
-- 5 Walzen × 5 sichtbare Symbole.
-- 25 immer aktive Gewinnlinien.
-- Linieneinsatz = Gesamteinsatz / 25.
-- Gewinne laufen ausschließlich von links nach rechts.
-- Mindestens drei zusammenhängende passende Symbole ab Walze 1.
-- Kebap kann normale Symbole ersetzen.
-- Pro Basislinie zählt nur die höchstwertige passende Kombination.
+## Freispiele und Expansion
 
-Die 25 Linien sind in `BiggestBoyRules.Paylines` eingefroren und Teil der
-Regelversion `anocore-biggest-boy-5x5-v2`.
+3/4/5 Gesichter im Rohfeld vergeben 10/15/20 Freispiele. Beim Bonusstart wird
+einmal gleichverteilt eines der zehn regulären Symbole gezogen und gespeichert;
+es gibt keine zusätzliche Auswahloberfläche. Bücher und Scatter sind ausgeschlossen.
+Die Identität bleibt bis zum Bonusende unverändert.
 
-## Basis-Gewinnplan
+Erscheint das ausgewählte Symbol während eines Freispiels auf einer Walze, füllt
+es **genau alle drei Positionen dieser Walze**. Dieses expandierte 15er-Feld wird
+anschließend einmal mit denselben zehn Linien ausgewertet. Wild-Ersetzungen und
+mehrere Linien gelten auch dort. Das Rohfeld, die fünf Stopps und die expandierten
+Walzen bleiben für Replay/Prüfung erhalten.
 
-| Symbol | 3 | 4 | 5 |
-|---|---:|---:|---:|
-| Kebap / Wild | 225× | 1125× | 2500× |
-| Bier | 170× | 675× | 2250× |
-| Zigarette | 135× | 450× | 1690× |
-| Butter | 113× | 338× | 1125× |
-| Shot | 68× | 225× | 675× |
-| Trinktrichter | 56× | 169× | 563× |
-| G | 22× | 56× | 169× |
-| O | 22× | 56× | 169× |
-| A | 11× | 45× | 113× |
-| T | 11× | 45× | 113× |
+Erneut mindestens drei Scatter im **Rohfeld vor der Expansion** vergeben fünf
+zusätzliche Freispiele. Die insgesamt vergebenen Freispiele bleiben höchstens 30;
+dadurch werden tatsächlich höchstens 30 Freispiele gespielt. Ein Trigger im
+letzten Freispiel verlängert, sofern die 30 noch nicht erreicht sind. Das Abdecken
+eines Scatter-Bilds durch Expansion entfernt keinen bereits erkannten Trigger.
 
-Die Multiplikatoren beziehen sich auf den Linieneinsatz.
+Nur der erste bezahlte Spin kostet Einsatz. Sämtliche Freispiele verwenden den
+gesperrten Einsatz und buchen keinen weiteren ab. Die gesamte Rundenauszahlung
+wird am Rundenende genau einmal gutgeschrieben. `BonusPayout` zählt separat nur
+Freispielgewinne, `TotalPayout` zusätzlich den bezahlten Auslösespin. Es gibt keine
+nachträgliche Kürzung: die Reservierung deckt den mathematischen Höchstbetrag
+`Einsatz × 3.000 × 31` ab.
 
-## Freispiele
+## Anzeige und Bewegung
 
-Der Scatter-Trigger wird über das vollständige 5×5-Feld gezählt:
+Die bestehende Auszahlungsposition zeigt den gesamten aktuellen Spingewinn.
+Unmittelbar unter den Walzen stehen Spingewinn/Freispielgewinn sowie verbleibende
+Freispiele, der separate Seriengewinn und das Expanding Symbol. Die Detailposition
+zeigt die Summe aller Linien und rotiert durch jede gewinnende Linie. Passende
+Symbole pulsieren; die aktuell erklärte Linie wird zusätzlich markiert.
 
-- 3 Scatter: 10 Freispiele.
-- 4 Scatter: 15 Freispiele.
-- 5 Scatter: 20 Freispiele.
+Die Ergebnisziehung und die Bewegung nutzen **denselben** festen Symbolstreifen.
+Die letzte sichtbare Stoppposition wird als Start gespeichert. Die native
+Animation läuft 30–129 Positionen abwärts, benötigt 5,2–6,0 Sekunden je nach Walze
+und stoppt links nach rechts im Abstand von 0,2 Sekunden. Jede 80px-Bewegung hat
+eine kurze Haltephase (20 % des Schritts). Der 200ms-Vorbereitungszustand setzt
+den Streifen vor Aktivierung der Animation. Das Ende ist exakt auf den gebuchten
+Stop ausgerichtet; kein Austausch gegen ein unverbundenes Ergebnisband.
 
-Während der Freispiele geben mindestens 3 Scatter jeweils **+5 Freispiele**.
-Über die gesamte Bonusrunde werden höchstens **30 Freispiele** vergeben.
+Die 303 statischen Panels je Walze und die 100 endlichen Reisevarianten sind
+begrenzt und werden reproduzierbar generiert. Die Bewegung läuft im Client ohne
+per-frame Netzwerkverkehr. Für alle 10.000 Start-/Zielpaare wird die korrekte
+Endposition getestet. Native FPS, Bildlauf und Parserakzeptanz sind dennoch vor
+Freigabe in CS2 zu prüfen. Expansion wird erst nach dem Rohwalzenlauf sichtbar.
 
-Nur der bezahlte Startspin belastet den Automaten. Symbolauswahl und Freispiele
-haben keinen zusätzlichen Einsatz. Der Einsatz bleibt für die komplette
-Bonusrunde gesperrt und wird zusammen mit der Regelversion persistiert.
+## Mathematische Prüfung
 
-## Expanding-Symbol
+`python tools/audit_biggest_boy_expanding.py` berechnet die exakte Erwartung aus
+allen festen Stop-Fenstern, den zehn Linien, Wild-Mehrdeutigkeiten, jedem der zehn
+Expanding Symbole und der auf 30 Freispiele begrenzten Bonuskette.
 
-Nach einem Bonus-Trigger muss genau einmal eines dieser Symbole gewählt werden:
+- Exakte Gesamt-RTP: **94,1800002051252 %**.
+- Basis-RTP: 86,54075885 %; Bonusbeitrag rund 7,63924136 %.
+- Bonuschance pro bezahltem Spin: 0,19702656 %.
+- Erwartete Freispiele je ausgelöster Serie: 10,25959534.
+- Simulation der produktiven C#-Engine, Seed 20261015: 2.000.000 bezahlte Spins,
+  4.038 Bonusserien und 41.390 tatsächlich gespielte Freispiele; RTP **94,292 %**.
+- 95-%-Intervall des Simulationslaufs: 93,4160–95,1680 %. Die Stichprobe ist mit
+  der exakten Erwartung vereinbar; sie ist kein Nachweis auf Nachkommastellen.
 
-Bier, Zigarette, Butter, Shot, Trinktrichter, G, O, A oder T.
+Rohdaten und vollständige Paytable: `biggest-boy-v4-audit.json`.
+Reproduzieren:
 
-Kebap und Scatter sind nicht auswählbar.
+```bash
+python tools/audit_biggest_boy_expanding.py
+dotnet run --project tools/AnoCore.BiggestBoyAudit -c Release -- 2000000 20261015
+python tools/generate_biggest_boy_ui.py
+```
 
-Wenn das gewählte Symbol in einem Freispin auf einer Walze vorkommt, füllt es
-alle Nicht-Scatter-Felder dieser Walze. Scatter bleiben an ihrer ursprünglichen
-Position sichtbar und zählen weiterhin für Retrigger.
+## Fehlende Originaldatei und native Freigabe
 
-Der gespeicherte Spin enthält sowohl `RawGrid` als auch das expandierte
-`Grid`. Dadurch bleiben Ergebnis, Retrigger und Darstellung nachvollziehbar.
+Die elf regulären/Scatter-PNGs liegen vor. Die eigenständige Originaldatei für
+das **goldene Buch** wurde bisher nicht im Repository oder den zugeordneten
+Bildanhängen gefunden. Sie wird nicht durch ein anderes Symbol ersetzt.
+`python tools/check_biggest_boy_assets.py` meldet den fehlenden Pfad explizit:
+`ui/AnoCore/styles/custom_game/anocore/casino/biggest_book.png`.
 
-Die Expansion verwendet einen eigenen kleinen Zusatz-Gewinnplan. Basisgewinne
-werden auf dem unveränderten Rohfeld bewertet; Expansion-Gewinne werden separat
-addiert. Dadurch bleiben häufige Buchstaben mathematisch kontrolliert.
+Der bestehende Addon-Build bleibt ohne v4-Anforderung verwendbar. Der dedizierte
+v4-Build stoppt bei fehlendem Originalbild, bevor er das Addon verändert:
 
-| Gewähltes Symbol | Expansion 3 | Expansion 4 | Expansion 5 |
-|---|---:|---:|---:|
-| Bier | 15× | 59× | 198× |
-| Zigarette | 16× | 54× | 204× |
-| Butter | 11× | 32× | 106× |
-| Shot | 2× | 8× | 24× |
-| Trinktrichter | 3× | 8× | 26× |
-| G | 1× | 2× | 6× |
-| O | 1× | 2× | 6× |
-| A | 1× | 2× | 5× |
-| T | 1× | 2× | 5× |
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\ui\AnoCore\build-biggest-boy.ps1 -Addon anomeme_ui -BiggestBoyWildPng "C:\Pfad\Original-Buch.png" -InstallLocalClient
+```
 
-## Walzen und Animation
+Noch erforderlich: Original-Buch-PNG hinzufügen, sämtliche zwölf PNG/VTEX-Paare
+prüfen, Valve-Ressourcen kompilieren und im nativen Client zweimal bezahlte Spins
+sowie eine Bonusserie testen. Schließen/Reconnect, Einsatzsperre, 30er-Grenze,
+Summen, Bildlauf, aktive Linien und Parserlogs prüfen. Keine Workshop-Veröffentlichung
+oder Produktions-Merge vor dieser Abnahme.
 
-Jede Walze besitzt einen festen kreisförmigen Streifen mit 100 Positionen.
-Der Server wählt pro Walze kryptografisch gleichverteilt einen Stop.
+## Gespeicherte frühere Runden
 
-Die native Panorama-Darstellung verwendet denselben festen Streifen, vier
-vollständige Abwärts-Umläufe und zeitversetzte Stops. Die Animation entscheidet
-niemals über das Ergebnis; sie zeigt ausschließlich das bereits serverseitig
-gebuchte Ergebnis.
-
-## Mathematischer Audit
-
-`python3 tools/audit_biggest_boy.py` liest Linien, Paytables und
-Walzenhäufigkeiten direkt aus dem C#-Regelprofil und berechnet den Erwartungswert
-ohne Monte-Carlo-Abhängigkeit.
-
-Wesentliche Werte:
-
-- Bonuschance pro bezahltem Spin: **0,856 %**
-- mittlerer Abstand zwischen Bonusstarts: **116,8224 Spins**
-- erwartete Bonuslänge inklusive 10/15/20-Start und Retrigger:
-  **10,7338847142 Freispiele**
-- Basis-RTP: **76,54132755 %**
-- Gesamt-RTP abhängig vom gewählten Expanding-Symbol:
-  ungefähr **93,90 % bis 94,89 %**
-- Bier als Expanding-Symbol: **94,1747510434 %**
-- konservative maximale Rundenauszahlung:
-  höchstens **83.824 × Einsatz**
-
-Der Erwartungswert beschreibt lange Serien und garantiert keinen Gewinn in
-einer einzelnen Session.
-
-## Persistenz und Sicherheit
-
-- Regelversion: `anocore-biggest-boy-5x5-v2`.
-- Eigene persistente Spielart `CasinoRoundKind.BiggestBoy`.
-- Symbolauswahl wird als eigene idempotente Rundenaktion gespeichert.
-- Die Auswahl belastet das Guthaben nicht erneut.
-- Freispins verwenden den gespeicherten Einsatz.
-- Account-/Rundenlocks, Revisionsprüfung, Permission-Prüfung und Replay-Schutz
-  bleiben auf dem bestehenden Casino-Buchungsweg.
-- Auszahlung erfolgt serverseitig; Panorama ist reine Darstellung.
-
-## Native Abnahme
-
-Vor einem Workshop-/Produktions-Update:
-
-1. Plugin und `anomeme_ui` aus demselben Commit bauen.
-2. `!anocasino` öffnen und Biggest Boy aufrufen.
-3. Alle 25 Symbole sichtbar und ohne Panorama-Parserfehler prüfen.
-4. Einsatzstufen vollständig durchschalten.
-5. 3/4/5-Scatter-Trigger prüfen.
-6. Bonuspicker für alle neun erlaubten Symbole prüfen; Kebap/Scatter dürfen
-   nicht auswählbar sein.
-7. Vier Abwärts-Umläufe, zeitversetzte Stops und wiederholte Spins prüfen.
-8. Raw-/Expanded-Ergebnis, markierte Gewinnlinien und Gewinnanzeige gegen
-   Serverbelege vergleichen.
-9. Menü schließen, reconnecten und Plugin neu starten: aktive Bonusrunde und
-   ausgewähltes Symbol müssen fortgesetzt werden.
-10. Kein Doppelabbuchen bei Doppelklick, Retry oder Symbolauswahl.
-11. Danach vollständiges Addon im Workshop aktualisieren und erneut ohne lokale
-    Overrides testen.
-
-Native Valve-Kompilierung, tatsächliche CS2-Eingabe und Rendering-Performance
-müssen weiterhin im Client abgenommen werden.
+Bereits akzeptierte v2-/v3-Runden behalten ihre historischen Regeln und maximale
+Reservierung bis zum Abschluss. Sie werden nicht in v4 umgerechnet. Der alte HUD
+bleibt nur für solche gespeicherten Runden zuständig; neue Biggest-Boy-Runden
+verwenden ausschließlich v4 und das 5×3-HUD. Das historische v2-Profil ist separat
+in `biggest-boy-legacy-v2.md` dokumentiert.
