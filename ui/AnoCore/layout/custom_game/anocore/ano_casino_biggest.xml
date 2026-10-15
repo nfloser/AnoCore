@@ -7,54 +7,25 @@
     <Panel id="casino_round_root" class="round-overlay bb-v4" hittest="true">
       <Panel class="round-dim" hittest="false" />
       <Panel class="round-window" hittest="true">
-        <Panel class="round-header">
-          <Label class="brand" text="ANOMEME · ANOCASINO" />
+        <Panel class="bb-header">
+          <Button id="casino_round_back" class="button">
+            <Label text="‹ SPIELAUSWAHL" hittest="false" />
+          </Button>
+          <Label text="ANOMEME · ANOCASINO" hittest="false" class="bb-brand" />
+          <Label text="{s:text}" hittest="false" id="casino_round_title" class="bb-title" />
           <Button id="casino_round_close" class="button">
-            <Label text="SCHLIESSEN" hittest="false" />
+            <Label text="✕" hittest="false" />
           </Button>
         </Panel>
-        <Panel class="round-cover" hittest="false" />
-        <Label id="casino_round_title" class="title" text="{s:text}" />
-        <Panel class="row">
-          <Panel class="counter">
-            <Label text="PROFILKONTO" />
-            <Label id="casino_round_account" text="{s:text}" />
+        <Panel class="bb-accounts">
+          <Panel class="bb-account">
+            <Label text="PROFILKONTO" hittest="false" />
+            <Label text="{s:text}" hittest="false" id="casino_round_account" />
           </Panel>
-          <Panel class="counter">
-            <Label text="AUTOMATENGUTHABEN" />
-            <Label id="casino_round_bankroll" text="{s:text}" />
+          <Panel class="bb-account">
+            <Label text="AUTOMATENGUTHABEN" hittest="false" />
+            <Label text="{s:text}" hittest="false" id="casino_round_bankroll" />
           </Panel>
-          <Panel class="counter">
-            <Label text="SPINGEWINN GESAMT" />
-            <Label id="casino_round_payout" text="{s:text}" />
-          </Panel>
-        </Panel>
-        <Panel class="bb-rules" hittest="false">
-          <Label text="GEWINNPLAN · 5×3 · 10 Linien · nur virtuelle Beträge" hittest="false" />
-          <Label text="Liniengewinn = Einsatz ÷ 10 × Faktor. Drei, vier oder fünf passende Symbole von links. Pro Linie nur der höchste Gewinn; verschiedene Linien addieren sich." hittest="false" />
-          <Label text="Goldenes Buch ist Wild, nie Scatter. Döner ist ein reguläres Gewinnsymbol. Das Gesicht ist ausschließlich Scatter." hittest="false" />
-          <Label text="Döner: 270× / 1350× / 3000×" hittest="false" />
-          <Label text="Bier: 216× / 945× / 2900×" hittest="false" />
-          <Label text="Zigarette: 162× / 675× / 2160×" hittest="false" />
-          <Label text="Butter: 135× / 473× / 1485×" hittest="false" />
-          <Label text="Shot: 81× / 297× / 878×" hittest="false" />
-          <Label text="Trichter: 68× / 216× / 675×" hittest="false" />
-          <Label text="G: 26× / 68× / 194×" hittest="false" />
-          <Label text="O: 26× / 68× / 194×" hittest="false" />
-          <Label text="A: 13× / 60× / 129×" hittest="false" />
-          <Label text="T: 13× / 60× / 129×" hittest="false" />
-          <Label text="3/4/5 Gesichter: 10/15/20 Freispiele. Erneuter Trigger: +5, maximal 30 tatsächlich gespielte Freispiele. Ein reguläres Expanding Symbol wird beim Bonusstart gleichverteilt festgelegt und bleibt unverändert." hittest="false" />
-          <Label text="Trifft das Expanding Symbol eine Walze, füllt es genau drei Positionen. Linien werden einmal auf dem expandierten Feld ausgewertet. Scatter für Verlängerungen zählen vor der Expansion. Einsatz bleibt fest, Gesamtauszahlung am Rundenende." hittest="false" />
-          <Label text="Linie 1: 1 – 1 – 1 – 1 – 1" hittest="false" />
-          <Label text="Linie 2: 2 – 2 – 2 – 2 – 2" hittest="false" />
-          <Label text="Linie 3: 3 – 3 – 3 – 3 – 3" hittest="false" />
-          <Label text="Linie 4: 1 – 2 – 3 – 2 – 1" hittest="false" />
-          <Label text="Linie 5: 3 – 2 – 1 – 2 – 3" hittest="false" />
-          <Label text="Linie 6: 1 – 1 – 2 – 3 – 3" hittest="false" />
-          <Label text="Linie 7: 3 – 3 – 2 – 1 – 1" hittest="false" />
-          <Label text="Linie 8: 2 – 1 – 2 – 3 – 2" hittest="false" />
-          <Label text="Linie 9: 2 – 3 – 2 – 1 – 2" hittest="false" />
-          <Label text="Linie 10: 1 – 2 – 2 – 2 – 3" hittest="false" />
         </Panel>
         <Panel class="book-table bb-table" hittest="false">
           <Panel class="book-reels" hittest="false">
@@ -386,6 +357,7 @@
                 <Panel id="casino_round_bb_symbol2" class="bb-symbol" hittest="false" />
               </Panel>
             </Panel>
+            <Panel class="bb-divider" />
             <Panel id="casino_round_bb_reel1" class="book-reel bb-reel bb-reel-1" hittest="false">
               <Panel class="bb-offset-base" hittest="false">
                 <Panel id="casino_round_bb_offset1_0" class="bb-offset bb-bit-0" hittest="false">
@@ -714,6 +686,7 @@
                 <Panel id="casino_round_bb_symbol5" class="bb-symbol" hittest="false" />
               </Panel>
             </Panel>
+            <Panel class="bb-divider" />
             <Panel id="casino_round_bb_reel2" class="book-reel bb-reel bb-reel-2" hittest="false">
               <Panel class="bb-offset-base" hittest="false">
                 <Panel id="casino_round_bb_offset2_0" class="bb-offset bb-bit-0" hittest="false">
@@ -1042,6 +1015,7 @@
                 <Panel id="casino_round_bb_symbol8" class="bb-symbol" hittest="false" />
               </Panel>
             </Panel>
+            <Panel class="bb-divider" />
             <Panel id="casino_round_bb_reel3" class="book-reel bb-reel bb-reel-3" hittest="false">
               <Panel class="bb-offset-base" hittest="false">
                 <Panel id="casino_round_bb_offset3_0" class="bb-offset bb-bit-0" hittest="false">
@@ -1370,6 +1344,7 @@
                 <Panel id="casino_round_bb_symbol11" class="bb-symbol" hittest="false" />
               </Panel>
             </Panel>
+            <Panel class="bb-divider" />
             <Panel id="casino_round_bb_reel4" class="book-reel bb-reel bb-reel-4" hittest="false">
               <Panel class="bb-offset-base" hittest="false">
                 <Panel id="casino_round_bb_offset4_0" class="bb-offset bb-bit-0" hittest="false">
@@ -1699,46 +1674,98 @@
               </Panel>
             </Panel>
           </Panel>
-          <Label id="casino_round_biggest_win" class="bb-win" text="{s:text}" hittest="false" />
-          <Label id="casino_round_biggest_bonus" class="bonus-summary bb-bonus" text="{s:text}" hittest="false" />
-          <Label id="casino_round_biggest_spin_win" class="bb-hidden" text="{s:text}" hittest="false" />
-          <Label id="casino_round_biggest_total_win" class="bb-hidden" text="{s:text}" hittest="false" />
+          <Panel class="bb-bonus-strip">
+            <Panel class="bb-bonus-item">
+              <Label text="FREISPIELE" hittest="false" />
+              <Label text="{s:text}" hittest="false" id="casino_round_bb_remaining" />
+            </Panel>
+            <Panel class="bb-bonus-item">
+              <Label text="EXPANDING SYMBOL" hittest="false" />
+              <Label text="{s:text}" hittest="false" id="casino_round_bb_expanding" />
+            </Panel>
+            <Panel class="bb-bonus-item">
+              <Label text="FREISPIELGEWINN" hittest="false" />
+              <Label text="{s:text}" hittest="false" id="casino_round_bb_free_win" />
+            </Panel>
+            <Panel class="bb-bonus-item">
+              <Label text="SERIENGEWINN" hittest="false" />
+              <Label text="{s:text}" hittest="false" id="casino_round_bb_series" />
+            </Panel>
+          </Panel>
+          <Label text="{s:text}" hittest="false" id="casino_round_biggest_win" class="bb-hidden" />
+          <Label text="{s:text}" hittest="false" id="casino_round_biggest_bonus" class="bb-hidden" />
+          <Label text="{s:text}" hittest="false" id="casino_round_biggest_spin_win" class="bb-hidden" />
+          <Label text="{s:text}" hittest="false" id="casino_round_biggest_total_win" class="bb-hidden" />
         </Panel>
-        <Label id="casino_round_detail" class="round-detail" text="{s:text}" />
-        <Panel class="row stake-controls">
-          <Label text="EINSATZ" />
-          <Button id="casino_round_minus" class="button">
-            <Label text="−" hittest="false" />
-          </Button>
-          <Label id="casino_round_stake" text="{s:text}" />
-          <Button id="casino_round_plus" class="button">
-            <Label text="+" hittest="false" />
-          </Button>
-          <Button id="casino_round_play" class="button primary">
-            <Label text="NEUE RUNDE" hittest="false" />
-          </Button>
+        <Panel class="bb-rules" hittest="false">
+          <Label text="GEWINNPLAN · 5×3 · 10 Linien · nur virtuelle Beträge" hittest="false" />
+          <Label text="Liniengewinn = Einsatz ÷ 10 × Faktor. Drei, vier oder fünf passende Symbole von links. Pro Linie nur der höchste Gewinn; verschiedene Linien addieren sich." hittest="false" />
+          <Label text="Biggest-Boy-Schärpe ist Wild, nie Scatter. Döner ist ein reguläres Gewinnsymbol. Süßilix ist ausschließlich Freispiel-Scatter." hittest="false" />
+          <Label text="Döner: 270× / 1350× / 3000×" hittest="false" />
+          <Label text="Bier: 216× / 945× / 2900×" hittest="false" />
+          <Label text="Zigarette: 162× / 675× / 2160×" hittest="false" />
+          <Label text="Butter: 135× / 473× / 1485×" hittest="false" />
+          <Label text="Shot: 81× / 297× / 878×" hittest="false" />
+          <Label text="Trichter: 68× / 216× / 675×" hittest="false" />
+          <Label text="G: 26× / 68× / 194×" hittest="false" />
+          <Label text="O: 26× / 68× / 194×" hittest="false" />
+          <Label text="A: 13× / 60× / 129×" hittest="false" />
+          <Label text="T: 13× / 60× / 129×" hittest="false" />
+          <Label text="3/4/5 Süßilix-Symbole: 10/15/20 Freispiele. Erneuter Trigger: +5, maximal 30 tatsächlich gespielte Freispiele. Ein reguläres Expanding Symbol wird beim Bonusstart gleichverteilt festgelegt und bleibt unverändert." hittest="false" />
+          <Label text="Trifft das Expanding Symbol eine Walze, füllt es genau drei Positionen. Linien werden einmal auf dem expandierten Feld ausgewertet. Scatter für Verlängerungen zählen vor der Expansion. Einsatz bleibt fest, Gesamtauszahlung am Rundenende." hittest="false" />
+          <Label text="Linie 1: 1 – 1 – 1 – 1 – 1" hittest="false" />
+          <Label text="Linie 2: 2 – 2 – 2 – 2 – 2" hittest="false" />
+          <Label text="Linie 3: 3 – 3 – 3 – 3 – 3" hittest="false" />
+          <Label text="Linie 4: 1 – 2 – 3 – 2 – 1" hittest="false" />
+          <Label text="Linie 5: 3 – 2 – 1 – 2 – 3" hittest="false" />
+          <Label text="Linie 6: 1 – 1 – 2 – 3 – 3" hittest="false" />
+          <Label text="Linie 7: 3 – 3 – 2 – 1 – 1" hittest="false" />
+          <Label text="Linie 8: 2 – 1 – 2 – 3 – 2" hittest="false" />
+          <Label text="Linie 9: 2 – 3 – 2 – 1 – 2" hittest="false" />
+          <Label text="Linie 10: 1 – 2 – 2 – 2 – 3" hittest="false" />
         </Panel>
-        <Panel class="row book-actions">
-          <Button id="casino_round_free" class="button primary">
-            <Label text="NÄCHSTES FREISPIEL" hittest="false" />
-          </Button>
+        <Label text="{s:text}" hittest="false" id="casino_round_detail" class="round-detail" />
+        <Panel class="bb-controls">
+          <Panel class="bb-stake">
+            <Label text="EINSATZ" hittest="false" />
+            <Panel class="bb-stake-buttons stake-controls">
+              <Button id="casino_round_minus" class="button">
+                <Label text="−" hittest="false" />
+              </Button>
+              <Label text="{s:text}" hittest="false" id="casino_round_stake" />
+              <Button id="casino_round_plus" class="button">
+                <Label text="+" hittest="false" />
+              </Button>
+            </Panel>
+          </Panel>
+          <Panel class="bb-payout">
+            <Label text="GEWINN" hittest="false" />
+            <Label text="{s:text}" hittest="false" id="casino_round_payout" />
+          </Panel>
+          <Panel class="bb-actions">
+            <Button id="casino_round_play" class="button primary bb-spin">
+              <Label text="↻ DREHEN" hittest="false" />
+            </Button>
+            <Panel class="book-actions">
+              <Button id="casino_round_free" class="button primary bb-spin">
+                <Label text="↻ FREISPIEL" hittest="false" />
+              </Button>
+            </Panel>
+          </Panel>
         </Panel>
-        <Label id="casino_round_status" class="status" text="{s:text}" />
-        <Panel class="row navigation">
-          <Button id="casino_round_back" class="button">
-            <Label text="SPIELAUSWAHL" hittest="false" />
+        <Label text="{s:text}" hittest="false" id="casino_round_status" class="status" />
+        <Panel class="bb-navigation">
+          <Button id="casino_round_rules" class="button">
+            <Label text="REGELN / GEWINNTABELLE" hittest="false" />
           </Button>
           <Button id="casino_round_refresh" class="button">
             <Label text="AKTUALISIEREN" hittest="false" />
           </Button>
-          <Button id="casino_round_rules" class="button">
-            <Label text="GEWINNREGELN" hittest="false" />
+          <Button id="casino_round_retry" class="button retry">
+            <Label text="BUCHUNG PRÜFEN" hittest="false" />
           </Button>
         </Panel>
-        <Button id="casino_round_retry" class="button retry">
-          <Label text="BUCHUNG PRÜFEN" hittest="false" />
-        </Button>
-        <Label class="note" text="Nur virtuelle € · Runde wird dauerhaft gespeichert · keine Echtgeld-Auszahlung" />
+        <Label text="Virtuelles Guthaben · keine Echtgeld-Auszahlung" hittest="false" class="note" />
       </Panel>
     </Panel>
   </Panel>

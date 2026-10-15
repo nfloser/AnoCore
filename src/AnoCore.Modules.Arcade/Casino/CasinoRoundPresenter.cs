@@ -25,6 +25,7 @@ public sealed class CasinoRoundPresenter : IDisposable
     private readonly Func<PlayerId, CancellationToken, ValueTask> _back;
     private readonly TimeProvider _clock;
     private readonly int _biggestBoyMaximumStake;
+    private readonly string _biggestBoyProfile;
     private readonly object _gate = new();
     private readonly Dictionary<PlayerId, State> _states = [];
     private readonly List<IDisposable> _owned = [];
@@ -32,10 +33,12 @@ public sealed class CasinoRoundPresenter : IDisposable
 
     public CasinoRoundPresenter(ICustomHudService hud, IPlayerRegistry players, IPermissionEvaluator permissions,
         ICasinoWallet wallet, ICasinoRounds rounds, IAnoEventBus events, Action<PlayerId> beforeOpen,
-        Func<PlayerId, CancellationToken, ValueTask> back, TimeProvider? clock = null, int biggestBoyMaximumStake = BiggestBoyRules.MaximumStake)
+        Func<PlayerId, CancellationToken, ValueTask> back, TimeProvider? clock = null, int biggestBoyMaximumStake = BiggestBoyRules.MaximumStake,
+        string biggestBoyProfile = BiggestBoyProfiles.Standard)
     {
         _hud = hud; _players = players; _permissions = permissions; _wallet = wallet; _rounds = rounds;
         _beforeOpen = beforeOpen; _back = back; _clock = clock ?? TimeProvider.System;
+        _biggestBoyProfile = BiggestBoyProfiles.Validate(biggestBoyProfile);
         _biggestBoyMaximumStake = Math.Clamp(biggestBoyMaximumStake, BiggestBoyRules.StakeSteps[0], BiggestBoyRules.MaximumStake);
         try
         {
@@ -346,10 +349,14 @@ public sealed class CasinoRoundPresenter : IDisposable
         Text(state, "biggest_total_win", "Freispielserie: " + Points(spin?.State.BonusPayout ?? 0)
             + " · gesamte Runde: " + Points(spin?.State.TotalPayout ?? 0));
         Text(state, "biggest_bonus", $"{spin?.State.FreeSpinsRemaining ?? 0} Freispiele · Serie: {Points(spin?.State.BonusPayout ?? 0)} · Expanding Symbol: {(spin?.State.ExpandingSymbol is { } symbol ? BiggestName(symbol) : "–")}");
+        Text(state, "bb_remaining", (spin?.State.FreeSpinsRemaining ?? 0).ToString(CultureInfo.InvariantCulture));
+        Text(state, "bb_expanding", spin?.State.ExpandingSymbol is { } selected ? BiggestName(selected) : "–");
+        Text(state, "bb_free_win", moving ? "–" : Points(spin is { State.SpinsPlayed: > 1 } ? spin.Payout : 0));
+        Text(state, "bb_series", Points(spin?.State.BonusPayout ?? 0));
         var current = !moving && spin is { LineWins.Length: > 0 } ? spin.LineWins[state.WinCycle % spin.LineWins.Length] : null;
-        Text(state, "detail", moving ? "Feste Walzenstreifen · Ergebnis bereits gebucht" : current is not null
+        Text(state, "detail", moving ? "Walzen laufen …" : current is not null
             ? $"Liniengesamt: {Points(spin!.LineWins.Sum(x => x.Payout))} · Linie {current.Payline + 1}: {current.MatchCount}× {BiggestName(current.Symbol)} = {Points(current.Payout)} · {spin.LineWins.Length} Gewinnlinien"
-            : spin is null ? "3/4/5 Gesichter: 10/15/20 Freispiele · Buch ist Wild · Döner ist reguläres Top-Symbol" : "Kein Liniengewinn in diesem Spin");
+            : spin is null ? "3/4/5 Süßilix: 10/15/20 Freispiele · Schärpe ist Wild · Profil: " + _biggestBoyProfile : "Kein Liniengewinn in diesem Spin");
         for (var reel = 0; reel < 5; reel++)
         {
             var previous = state.PreviousStops[reel];
@@ -416,7 +423,7 @@ public sealed class CasinoRoundPresenter : IDisposable
     private static string BiggestName(BiggestBoySymbol symbol) => symbol switch
     {
         BiggestBoySymbol.Kebap => "DÖNER",
-        BiggestBoySymbol.Book => "GOLDENES BUCH / WILD",
+        BiggestBoySymbol.Book => "BIGGEST BOY / WILD",
         BiggestBoySymbol.Beer => "BIER",
         BiggestBoySymbol.Cigarette => "ZIGARETTE",
         BiggestBoySymbol.Butter => "BUTTER",
