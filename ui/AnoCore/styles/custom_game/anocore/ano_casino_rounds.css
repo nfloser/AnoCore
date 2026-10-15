@@ -430,3 +430,7 @@ Label { color:#e9efed; font-family:Arial; font-size:17px; margin:4px; }
 .biggest-picker-button:hover { border-color:#54ff9a; background-color:#173d28; }
 .biggest-picker-icon { width:42px; height:42px; min-width:42px; min-height:42px; background-size:contain; background-position:center; background-repeat:no-repeat; }
 .biggest-picker-button Label { vertical-align:center; margin-left:6px; color:#e8f6ec; font-size:14px; }
+
+.biggest-payout-panel { width:100%; flow-children:right; horizontal-align:center; margin-top:5px; margin-bottom:5px; }
+.biggest-spin-win { font-size:20px; font-weight:bold; color:#ffe08a; background-color:#192415; border:2px solid #bb9144; padding:7px 12px; margin-right:8px; }
+.biggest-total-win { font-size:20px; font-weight:bold; color:#7cff9e; background-color:#102b1b; border:2px solid #3d9c57; padding:7px 12px; }
