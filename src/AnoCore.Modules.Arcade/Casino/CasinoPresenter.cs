@@ -504,7 +504,9 @@ public sealed class CasinoPresenter : IDisposable
                     else if (outcome.Game == CasinoGame.Coinflip)
                     {
                         CoinClass(state, "coin", "toss-b", state.Spin % 2 == 0);
-                        CoinClass(state, "coin", "flipping", true);
+                        state.CoinArmed = true;
+                        CoinClass(state, "coin", "coin-armed", true);
+                        SetCoinFace(state, 0, false);
                     }
                     else if (outcome.Game == CasinoGame.Roulette)
                     {
@@ -587,6 +589,21 @@ public sealed class CasinoPresenter : IDisposable
                     }
                 }
 
+                if (state.Game == CasinoGame.Coinflip && elapsed.TotalMilliseconds < 3600)
+                {
+                    var motionMilliseconds = Math.Max(0, elapsed.TotalMilliseconds - 200);
+                    if (state.CoinArmed && elapsed.TotalMilliseconds >= 200)
+                    {
+                        state.CoinArmed = false;
+                        CoinClass(state, "coin", "coin-armed", false);
+                        CoinClass(state, "coin", "flipping", true);
+                    }
+                    // Explicit native classes hold each image for 400 ms. The last
+                    // 80 ms turn edge-on before the next face, independently of outcome.
+                    SetCoinFace(state, (int)(motionMilliseconds / 400) % 2,
+                        elapsed.TotalMilliseconds >= 200 && motionMilliseconds % 400 >= 320);
+                }
+
                 if (!state.LandingApplied
                     && elapsed >= TimeSpan.FromMilliseconds(3600)
                     && state.Outcome is { } settled)
@@ -594,7 +611,10 @@ public sealed class CasinoPresenter : IDisposable
                     state.LandingApplied = true;
                     if (settled.Game == CasinoGame.Coinflip)
                     {
+                        state.CoinArmed = false;
+                        CoinClass(state, "coin", "coin-armed", false);
                         CoinClass(state, "coin", "flipping", false);
+                        SetCoinFace(state, settled.Number, false);
                         CoinText(state, "result", settled.Number == 0 ? "KOPF" : "ZAHL");
                         CoinClass(state, "coin", settled.Number == 0 ? "land-heads" : "land-tails", true);
                     }
@@ -767,7 +787,10 @@ public sealed class CasinoPresenter : IDisposable
         }
         else if (state.Game == CasinoGame.Coinflip)
         {
-            foreach (var name in new[] { "flipping", "land-heads", "land-tails" })
+            state.CoinFrame = -1;
+            state.CoinTurning = false;
+            state.CoinArmed = false;
+            foreach (var name in new[] { "flipping", "land-heads", "land-tails", "coin-armed", "show-heads", "show-tails", "coin-turning" })
                 CoinClass(state, "coin", name, false);
         }
         else if (state.Game == CasinoGame.Roulette)
@@ -848,6 +871,21 @@ public sealed class CasinoPresenter : IDisposable
     private void SlotsClass(State s, string id, string name, bool value)
         => _hud.SetClass(s.Player.Id, SlotsHudId, "casino_slots_" + id, name, value);
 
+    private void SetCoinFace(State state, int face, bool turning)
+    {
+        if (state.CoinFrame != face)
+        {
+            state.CoinFrame = face;
+            CoinClass(state, "coin", "show-heads", face == 0);
+            CoinClass(state, "coin", "show-tails", face == 1);
+        }
+        if (state.CoinTurning != turning)
+        {
+            state.CoinTurning = turning;
+            CoinClass(state, "coin", "coin-turning", turning);
+        }
+    }
+
     private void CoinText(State s, string id, string value)
         => _hud.SetText(s.Player.Id, CoinflipHudId, "casino_coinflip_" + id, value);
     private void CoinClass(State s, string id, string name, bool value)
@@ -921,6 +959,9 @@ public sealed class CasinoPresenter : IDisposable
         public bool Pending { get; set; }
         public int Stake { get; set; } = 100;
         public int Load { get; set; } = 500;
+        public int CoinFrame { get; set; } = -1;
+        public bool CoinTurning { get; set; }
+        public bool CoinArmed { get; set; }
         public int Coin { get; set; }
         public int Number { get; set; }
         public int Bet { get; set; } = 37;

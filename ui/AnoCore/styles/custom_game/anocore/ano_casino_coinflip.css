@@ -41,3 +41,12 @@
 @keyframes 'coin-tails-visible' { 0% { opacity:0; } 24% { opacity:0; } 25% { opacity:1; } 74% { opacity:1; } 75% { opacity:0; } 100% { opacity:0; } }
 @keyframes 'coin-swap-a' { 0% { transform:translateY(0px) scale3d(1,1,1); } 25% { transform:translateY(-14px) scale3d(0.08,1,1); } 50% { transform:translateY(-24px) scale3d(1,1,1); } 75% { transform:translateY(-14px) scale3d(0.08,1,1); } 100% { transform:translateY(0px) scale3d(1,1,1); } }
 @keyframes 'coin-swap-b' { 0% { transform:translateY(0px) scale3d(1,1,1); } 25% { transform:translateY(-14px) scale3d(0.08,1,1); } 50% { transform:translateY(-24px) scale3d(1,1,1); } 75% { transform:translateY(-14px) scale3d(0.08,1,1); } 100% { transform:translateY(0px) scale3d(1,1,1); } }
+
+/* Server-timed face holds avoid native opacity loops skipping directly to landing.
+   Prepare 200 ms, hold each face for 400 ms, turn edge-on only at the end. */
+.casino-coin.coin-armed, .casino-coin.flipping, .casino-coin.flipping.toss-b { animation-name:none; }
+.casino-coin.flipping .coin-face { animation-name:none; }
+.casino-coin { transition-property:transform; transition-duration:0.08s; transition-timing-function:ease-out; }
+.casino-coin.coin-turning { transform:scale3d(0.12,1,1); }
+.casino-coin.show-heads .coin-heads, .casino-coin.show-tails .coin-tails { opacity:1; }
+.casino-coin.show-heads .coin-tails, .casino-coin.show-tails .coin-heads { opacity:0; }

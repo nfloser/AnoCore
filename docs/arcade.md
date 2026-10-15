@@ -283,3 +283,20 @@ allowed. The 1,000,000 technical stake ceiling does not imply that a fruit
 round can reserve 6,200,000,000: that start is safely rejected. No reservation
 or accounting guard is bypassed for high stakes. Biggest Boy remains capped
 at 10,000 in this update.
+
+## Visible coinflip pauses (#516)
+
+Coinflip now arms for 200 ms with a stable Kopf image. The server presentation
+tick then alternates Kopf/Zahl every 400 ms. Each face stays readable; only the
+last 80 ms of its interval turns edge-on. Explicit image classes replace the
+native infinite opacity loops for playback, preventing an unsupported/interrupted
+loop from skipping all face changes. The cosmetic sequence does not depend on
+the booked result. At 3.6 seconds the exact booked face lands; at 4 seconds the
+existing win reveal and input unlock occur. Duplicate clicks still cannot charge
+another bet. Old landed/face/turn classes reset before each new throw.
+
+The matching coinflip CSS and plugin must be deployed together. Existing Kopf
+and Zahl images are unchanged. Recompile and update the existing `anomeme_ui`
+Workshop entry for this combined update, even though #512 alone needed no UI
+resource changes. Native two-throw acceptance for both final faces remains
+required; source tests cannot establish actual Panorama rendering.

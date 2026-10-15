@@ -16,13 +16,52 @@ public sealed class CasinoPresenterTests
     [TestMethod]
     [DataRow(0)]
     [DataRow(1)]
+    public async Task CoinFacesHoldBetweenSwapsAndDoNotRevealBookedResultEarly(int number)
+    {
+        using var f = await Fixture.Create();
+        f.Wallet.CoinNumber = number;
+        await f.ClickLobby("load"); await f.ClickLobby("coinflip"); await f.ClickCoin("play");
+        bool Face(string name) => f.Hud.Class(Player, CasinoPresenter.CoinflipHudId, "casino_coinflip_coin", name);
+        Assert.IsTrue(Face("coin-armed"));
+        Assert.IsTrue(Face("show-heads"));
+        Assert.IsFalse(Face("flipping"));
+        f.Clock.AdvanceMilliseconds(150); f.Presenter.Tick();
+        Assert.IsTrue(Face("coin-armed"));
+        f.Clock.AdvanceMilliseconds(100); f.Presenter.Tick();
+        Assert.IsTrue(Face("flipping"));
+        Assert.IsFalse(Face("coin-armed"));
+        Assert.IsTrue(Face("show-heads"));
+        f.Clock.AdvanceMilliseconds(200); f.Presenter.Tick();
+        Assert.IsTrue(Face("show-heads"), "The face needs a visible hold, not an immediate swap.");
+        f.Clock.AdvanceMilliseconds(100); f.Presenter.Tick();
+        Assert.IsTrue(Face("coin-turning"));
+        Assert.IsTrue(Face("show-heads"));
+        f.Clock.AdvanceMilliseconds(100); f.Presenter.Tick();
+        Assert.IsTrue(Face("show-tails"));
+        Assert.IsFalse(Face("coin-turning"));
+        f.Clock.AdvanceMilliseconds(250); f.Presenter.Tick();
+        Assert.IsTrue(Face("show-tails"));
+        Assert.AreEqual("…", f.CoinText("result"));
+        await f.ClickCoin("play");
+        Assert.AreEqual(2, f.Wallet.Operations.Count);
+        f.Clock.AdvanceMilliseconds(2700); f.Presenter.Tick();
+        Assert.AreEqual(number == 0 ? "KOPF" : "ZAHL", f.CoinText("result"));
+        Assert.IsTrue(Face(number == 0 ? "show-heads" : "show-tails"));
+        Assert.IsFalse(Face("coin-turning"));
+        Assert.AreEqual(2, f.Wallet.Operations.Count);
+    }
+
+    [TestMethod]
+    [DataRow(0)]
+    [DataRow(1)]
     public async Task CoinFacesAnimateBeforeBookedLandingAndNextThrowRestarts(int number)
     {
         using var f = await Fixture.Create();
         f.Wallet.CoinNumber = number;
         await f.ClickLobby("load"); await f.ClickLobby("coinflip"); await f.ClickCoin("play");
         Assert.AreEqual("…", f.CoinText("result"));
-        Assert.IsTrue(f.Hud.Class(Player, CasinoPresenter.CoinflipHudId, "casino_coinflip_coin", "flipping"));
+        Assert.IsTrue(f.Hud.Class(Player, CasinoPresenter.CoinflipHudId, "casino_coinflip_coin", "coin-armed"));
+        Assert.IsFalse(f.Hud.Class(Player, CasinoPresenter.CoinflipHudId, "casino_coinflip_coin", "flipping"));
         f.Clock.AdvanceMilliseconds(1000); f.Presenter.Tick();
         Assert.AreEqual("…", f.CoinText("result"));
         Assert.AreEqual(2, f.Wallet.Operations.Count);
