@@ -19,30 +19,27 @@ class BiggestBoyExpandingUiTests(unittest.TestCase):
         for path, expected in json.loads((ROOT / 'docs/biggest-boy-v4-source-lock.json').read_text()).items():
             self.assertEqual(expected, hashlib.sha256((ROOT / path).read_bytes()).hexdigest(), path)
 
-    def test_three_rows_and_every_motion_cell_follows_the_authoritative_strip(self):
+    def test_three_rows_and_bounded_motion_panels_use_only_original_symbols(self):
         ui = ROOT / 'ui/AnoCore'
         tree = ET.parse(ui / 'layout/custom_game/anocore/ano_casino_biggest.xml')
-        strips = profile()[2]
-        final = [n for n in tree.iter('Panel') if n.attrib.get('id','').startswith('casino_round_bb_symbol')]
+        final = [n for n in tree.iter('Panel') if n.attrib.get('id', '').startswith('casino_round_bb_symbol')]
         self.assertEqual(15, len(final))
         for reel in range(5):
             panel = tree.find(f'.//*[@id="casino_round_bb_reel{reel}"]')
             motion = panel.find('.//*[@class="bb-motion"]')
-            self.assertEqual(303, len(motion))
-            for i, p in enumerate(motion):
-                self.assertIn(f'bb-symbol-{strips[reel][i % 100]}', p.attrib['class'].split())
+            self.assertEqual(4, len(motion))
+            self.assertEqual([f'casino_round_bb_motion{reel}_{row}' for row in range(4)],
+                             [child.attrib['id'] for child in motion])
+            self.assertIsNone(panel.find('.//*[@class="bb-offset-base"]'))
         css = (ui / 'styles/custom_game/anocore/ano_casino_biggest.css').read_text()
         self.assertIn('height:480px', css)
         self.assertIn('width:fill-parent-flow(1)', css)
-        self.assertIn('animation-fill-mode:forwards', css)
-        for n in range(30,130):
-            chunk = css.split(f"@keyframes 'bb-travel-{n}' {{",1)[1].split('@keyframes',1)[0]
-            frames = [(float(t),int(y)) for t,y in re.findall(r'([\d.]+)%\s*\{\s*transform:translateY\((\d+)px\)',chunk)]
-            self.assertEqual(2*n+1,len(frames))
-            self.assertEqual((0.0,0),frames[0]); self.assertEqual((100.0,n*160),frames[-1])
-            for step in range(n):
-                a,b,c=frames[2*step:2*step+3]
-                self.assertEqual(160,b[1]-a[1]); self.assertEqual(b[1],c[1]); self.assertLess(b[0],c[0])
+        self.assertIn('overflow:clip', css)
+        self.assertIn("animation-name:'bb-step-a'", css)
+        self.assertNotIn('48480px', css)
+        self.assertNotIn('bb-distance-', css)
+        self.assertNotIn('bb-offset-base', css)
+        self.assertIn('.bb-symbol.winning { border:3px solid #ff3030', css)
 
     def test_same_book_buttons_and_short_style_holds_are_native(self):
         ui=ROOT/'ui/AnoCore'; tree=ET.parse(ui/'layout/custom_game/anocore/ano_casino_biggest.xml')
@@ -72,7 +69,9 @@ class BiggestBoyExpandingUiTests(unittest.TestCase):
         self.assertEqual(4,len(tree.findall('.//*[@class="bb-divider"]')))
         self.assertEqual(4,len(tree.findall('.//*[@class="bb-bonus-item"]')))
         controls=tree.find('.//*[@class="bb-controls"]')
-        self.assertEqual(['bb-stake','bb-payout','bb-actions'],[p.attrib['class'] for p in controls])
+        self.assertEqual(['bb-stake','bb-payout','bb-bottom-bank','bb-actions'],[p.attrib['class'] for p in controls])
+        self.assertEqual(2, len(tree.findall('.//*[@class="bb-account"]')))
+        self.assertIn('casino_round_bankroll_footer', [p.attrib.get('id') for p in tree.iter()])
         self.assertFalse(any(p.attrib.get('text') == 'Echtgeld' for p in tree.iter('Label')))
         self.assertFalse(missing_assets())
         self.assertIn('width:100%; height:100%',(ui/'styles/custom_game/anocore/ano_casino_biggest.css').read_text())
