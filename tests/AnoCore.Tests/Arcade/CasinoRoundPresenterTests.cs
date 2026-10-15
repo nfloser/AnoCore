@@ -140,11 +140,23 @@ public sealed class CasinoRoundPresenterTests
         Assert.AreEqual(0, f.Hud.VisiblePlayers(CasinoRoundPresenter.HudId).Count);
         await f.Click("play");
         Assert.IsTrue(f.Class("reels-armed"));
-        Assert.AreEqual("WALZEN LAUFEN …", f.Text("payout"));
+        Assert.AreEqual("–", f.Text("payout"));
+        Assert.AreEqual("", f.Text("detail"), "Rolling must not overwrite payout/details with status text.");
+        Assert.AreEqual("", f.Text("status"));
+        Assert.AreEqual(f.Text("bankroll"), f.Text("bankroll_footer"));
+        for (var reel = 0; reel < 5; reel++)
+            for (var row = 0; row < 4; row++)
+                Assert.IsTrue(f.PanelClass($"bb_motion{reel}_{row}", "bb-symbol-"
+                    + (int)BiggestBoyExpandingRules.ReelStrips[reel][row]));
         f.Clock.AdvanceMilliseconds(250); f.Presenter.Tick();
         Assert.IsTrue(f.Class("motion-a"));
         for (var reel = 0; reel < 5; reel++)
-            Assert.IsTrue(f.PanelClass("bb_reel" + reel, "bb-distance-" + BiggestBoyReelMotion.Steps(0, spin.Stops[reel])));
+        {
+            var travelled = BiggestBoyReelMotion.Travelled(0, spin.Stops[reel], .05, reel);
+            for (var row = 0; row < 4; row++)
+                Assert.IsTrue(f.PanelClass($"bb_motion{reel}_{row}", "bb-symbol-"
+                    + (int)BiggestBoyExpandingRules.ReelStrips[reel][BiggestBoyReelMotion.VisibleIndex(0, travelled, row)]));
+        }
         f.FinishAnimation();
         Assert.AreEqual(CasinoMoney.Format(spin.Payout), f.Text("payout"));
         Assert.IsTrue(f.Text("biggest_bonus")!.Contains("Expanding Symbol:", StringComparison.Ordinal));
