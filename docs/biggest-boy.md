@@ -90,15 +90,15 @@ Symbole pulsieren; die aktuell erklärte Linie wird zusätzlich markiert.
 
 Die Ergebnisziehung und die Bewegung nutzen **denselben** festen Symbolstreifen.
 Die letzte sichtbare Stoppposition wird als Start gespeichert. Die native
-Animation läuft 30–129 Positionen abwärts, benötigt 5,2–6,0 Sekunden je nach Walze
-und stoppt links nach rechts im Abstand von 0,2 Sekunden. Jede 160px-Bewegung hat
+Animation läuft 30–129 Positionen abwärts, benötigt nun etwa 1,9–3,7 Sekunden je nach Walze
+und stoppt links nach rechts im Abstand von 0,45 Sekunden. Jede 160px-Bewegung hat
 eine kurze Haltephase (20 % des Schritts). Der 200ms-Vorbereitungszustand setzt
 den Streifen vor Aktivierung der Animation. Das Ende ist exakt auf den gebuchten
 Stop ausgerichtet; kein Austausch gegen ein unverbundenes Ergebnisband.
 
-Die 303 statischen Panels je Walze und die 100 endlichen Reisevarianten sind
-begrenzt und werden reproduzierbar generiert. Die Bewegung läuft im Client ohne
-per-frame Netzwerkverkehr. Für alle 10.000 Start-/Zielpaare wird die korrekte
+Vier bewegliche Bildzellen je Walze ersetzen den alten 303er-Streifen. Die Bewegung
+wird serverseitig im bereits vorhandenen Präsentations-Tick entlang der gebuchten Stopps
+fortgeschaltet, ohne zusätzliche Zahlungen oder clientseitigen Ergebniszufall. Für alle 10.000 Start-/Zielpaare wird die korrekte
 Endposition getestet. Native FPS, Bildlauf und Parserakzeptanz sind dennoch vor
 Freigabe in CS2 zu prüfen. Expansion wird erst nach dem Rohwalzenlauf sichtbar.
 
@@ -138,7 +138,8 @@ und SHA-256-Prüfsummen stehen in `biggest-boy-original-assets.json`.
 `biggest boy.png` ist die Wild-Schärpe (`biggest_book.png`); der historische interne
 Dateiname und Enumwert bleiben zur Snapshot-Kompatibilität erhalten. Es wird
 kein zusätzliches goldenes Buch benötigt. Die übrigen zehn PNGs sind reguläre Symbole.
-Die Darstellung der alten Book-Freispiel-Slot bleibt unverändert.
+Die Originalbilder, Spielregeln und alten Quelldateien der Book-Freispiel-Slot bleiben
+unverändert; Book verwendet jetzt dieselbe neue native 5×3-Oberfläche wie Biggest Boy.
 
 Der vollständige UI-Build enthält nun alle Bilder ohne zusätzlichen Parameter:
 
@@ -219,7 +220,7 @@ durch vier sichtbare Bildfelder pro Walze. Die Anzeige wird im vorhandenen
 Presenter-Tick entlang derselben unveränderlichen 100er-Walzenfolgen
 fortgeschaltet. Der gebuchte Stopp und die 15 Ergebnisbilder bleiben
 ausschließlich serverseitig festgelegt; Darstellung, RNG, Bonus und
-Auszahlung sind getrennt. Die Walzen enden weiterhin um je 200 ms versetzt.
+Auszahlung sind getrennt. Die Walzen enden nun um je 450 ms versetzt.
 
 Profilkonto und Automatenguthaben haben eigene umrahmte Anzeigeflächen.
 Unten stehen Einsatz, Rundengewinn, Automatenguthaben und Drehen nebeneinander.
@@ -242,3 +243,48 @@ Der rein textuelle Quell-/Generatorcheck beweist die native Valve-Darstellung
 noch nicht. Neue nachträglich erzeugte Grafiken dürfen erst als tatsächlich
 vorliegende, geprüfte PNG/VTEX-Paare gegen die älteren Quelldateien
 ausgetauscht werden; keine stillen Fallbacks auf alte Symbole.
+
+## Kürzere gestaffelte Stopps und gemeinsame Book-Oberfläche (#504)
+
+Beide Slots nutzen nun **dieselbe** native `ano_casino_biggest.xml` und
+`ano_casino_biggest.css`, die `tools/generate_biggest_boy_ui.py` erzeugt.
+Der Presenter wechselt zwischen `book-mode` (Original-Früchte und BUCH-Symbol)
+und `view-biggestboy` (alle zwölf unveränderten Biggest-Boy-Originalbilder).
+Beim Zurückwechseln wird die Book-Texturklasse ausdrücklich entfernt.
+
+Die Walzen stoppen bei **1,90 / 2,35 / 2,80 / 3,25 / 3,70 Sekunden**
+nach Beginn der eigentlichen Animation. Die Oberflächenanimation endet bei
+3,90 Sekunden; vorher sind 200 ms vorgesehen, um die Bewegung sauber
+vorzubereiten. Die Stopps sind bewusst deutlich voneinander getrennt.
+
+Bei Biggest Boy läuft das sichtbare Fenster entlang der gebuchten physischen
+100er-Walzen; der tatsächliche Stopp wird aus den gespeicherten Serverdaten
+bestimmt. Bei Book hatte die ursprüngliche Spielengine keine physischen
+Walzenstopps, sondern bucht direkt ein 15er-Feld. Deshalb bewegt sich während
+des Drehs eine rein **kosmetische, deterministische Acht-Symbol-Folge**; nach
+dem Stopp wird ausschließlich das gespeicherte Book-Feld gezeigt. Keine
+clientseitige Gewinnziehung und keine Änderung der Book-Auszahlungen.
+
+Book behält die ursprünglichen Texturen Kirsche, Zitrone, Pflaume, Orange,
+Traube, Glocke, Sieben und das originale BUCH-Schriftfeld. Die Symbole erhalten
+bei Liniengewinnen denselben **roten Rand**. Für Book sind auch die
+Freispielanzahl, das Bonus-/Expanding-Symbol, der aktuelle Freispielgewinn,
+die kumulierte Auszahlung und ein eigener passender Gewinnplan sichtbar.
+Die alten Dateien `ano_casino_rounds.xml`, `ano_casino_rounds.css`
+und `BonusSlotRules.cs` bleiben bytegleich; sie werden für Blackjack,
+Risk und fortgesetzte ältere Biggest-Boy-Runden gebraucht.
+
+### Nativer Test
+
+1. Den neuesten AnoCore-Testbuild mit PR #505 auf den Testserver laden.
+2. Unter Windows im **Wurzelordner dieses Builds** PowerShell starten und
+   die unveränderten Original-PNGs mit `ui/AnoCore/build-biggest-boy.ps1`
+   für `anomeme_ui` kompilieren (`-InstallLocalClient` für den lokalen Test).
+3. Im Spiel `!anocasino` aufrufen; Biggest Boy und Book separat
+   zweimal drehen, alle fünf Stopps beobachten, rote Rahmen und
+   Freispiele samt Geldwerten kontrollieren.
+4. Im laufenden Menü zwischen Biggest Boy und Book wechseln und prüfen,
+   dass niemals Fruchtbilder in Biggest Boy oder Biggest-Boy-Bilder in
+   Book erscheinen.
+
+Der native CS2-/Steam-Workshop-Test steht weiterhin aus.
