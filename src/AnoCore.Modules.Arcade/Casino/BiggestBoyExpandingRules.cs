@@ -120,6 +120,19 @@ public static class BiggestBoyExpandingRules
     private static (ImmutableArray<BiggestBoySymbol> Grid, ImmutableArray<int> Stops) Draw(Func<int, int> random, string profile)
     {
         ArgumentNullException.ThrowIfNull(random);
+        // One server RNG decision per spin. At 100 every spin contains five O symbols on
+        // payline 3 and three scatter symbols, giving a guaranteed line win + bonus trigger.
+        // The result is still an actual five-stop physical strip result, not a payout override.
+        var lucky = BiggestBoyProfiles.LuckyPercent(profile);
+        if (lucky > 0 && Next(random, 100) < lucky)
+        {
+            int[] luckyStops = [50, 0, 49, 7, 4];
+            var boosted = ImmutableArray.CreateBuilder<BiggestBoySymbol>(GridSize);
+            for (var reel = 0; reel < ReelCount; reel++)
+                for (var row = 0; row < Rows; row++)
+                    boosted.Add(ReelStrips[reel][(luckyStops[reel] + row) % StripLength]);
+            return (boosted.ToImmutable(), luckyStops.ToImmutableArray());
+        }
         var grid = ImmutableArray.CreateBuilder<BiggestBoySymbol>(GridSize);
         var stops = ImmutableArray.CreateBuilder<int>(ReelCount);
         for (var reel = 0; reel < ReelCount; reel++)
