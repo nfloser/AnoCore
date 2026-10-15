@@ -89,8 +89,8 @@ Label { color:#e9efed; font-family:Arial; font-size:17px; margin:4px; }
 .reel-final { height: 480px; min-height: 480px; }
 .motion-a .reel-motion { animation-name: 'book-down-a'; }
 .motion-b .reel-motion { animation-name: 'book-down-b'; }
-@keyframes 'book-down-a' { 0% { transform: translateY(-640px); } 100% { transform: translateY(0px); } }
-@keyframes 'book-down-b' { 0% { transform: translateY(-640px); } 100% { transform: translateY(0px); } }
+@keyframes 'book-down-a' { 0% { transform: translateY(-640px); } 10.42% { transform: translateY(-560px); } 12.5% { transform: translateY(-560px); } 22.92% { transform: translateY(-480px); } 25% { transform: translateY(-480px); } 35.42% { transform: translateY(-400px); } 37.5% { transform: translateY(-400px); } 47.92% { transform: translateY(-320px); } 50% { transform: translateY(-320px); } 60.42% { transform: translateY(-240px); } 62.5% { transform: translateY(-240px); } 72.92% { transform: translateY(-160px); } 75% { transform: translateY(-160px); } 85.42% { transform: translateY(-80px); } 87.5% { transform: translateY(-80px); } 97.92% { transform: translateY(0px); } 100% { transform: translateY(0px); } }
+@keyframes 'book-down-b' { 0% { transform: translateY(-640px); } 10.42% { transform: translateY(-560px); } 12.5% { transform: translateY(-560px); } 22.92% { transform: translateY(-480px); } 25% { transform: translateY(-480px); } 35.42% { transform: translateY(-400px); } 37.5% { transform: translateY(-400px); } 47.92% { transform: translateY(-320px); } 50% { transform: translateY(-320px); } 60.42% { transform: translateY(-240px); } 62.5% { transform: translateY(-240px); } 72.92% { transform: translateY(-160px); } 75% { transform: translateY(-160px); } 85.42% { transform: translateY(-80px); } 87.5% { transform: translateY(-80px); } 97.92% { transform: translateY(0px); } 100% { transform: translateY(0px); } }
 .motion-a .book-reel.settling .reel-motion, .motion-b .book-reel.settling .reel-motion { visibility: collapse; }
 .motion-a .book-reel.settling .reel-final, .motion-b .book-reel.settling .reel-final { visibility: visible; animation-duration: 0.45s; animation-timing-function: ease-out; }
 .motion-a .book-reel.settling .reel-final { animation-name: 'book-settle-a'; }
@@ -462,8 +462,8 @@ Label { color:#e9efed; font-family:Arial; font-size:17px; margin:4px; }
 .motion-a.collector-mode .collector-motion, .motion-b.collector-mode .collector-motion { visibility:visible; animation-duration:0.55s; animation-timing-function:linear; animation-iteration-count:infinite; }
 .motion-a.collector-mode .collector-motion { animation-name:'collector-down-a'; }
 .motion-b.collector-mode .collector-motion { animation-name:'collector-down-b'; }
-@keyframes 'collector-down-a' { 0% { transform:translateY(-880px); } 100% { transform:translateY(0px); } }
-@keyframes 'collector-down-b' { 0% { transform:translateY(-880px); } 100% { transform:translateY(0px); } }
+@keyframes 'collector-down-a' { 0% { transform: translateY(-880px); } 7.58% { transform: translateY(-800px); } 9.09% { transform: translateY(-800px); } 16.67% { transform: translateY(-720px); } 18.18% { transform: translateY(-720px); } 25.76% { transform: translateY(-640px); } 27.27% { transform: translateY(-640px); } 34.85% { transform: translateY(-560px); } 36.36% { transform: translateY(-560px); } 43.94% { transform: translateY(-480px); } 45.45% { transform: translateY(-480px); } 53.03% { transform: translateY(-400px); } 54.55% { transform: translateY(-400px); } 62.12% { transform: translateY(-320px); } 63.64% { transform: translateY(-320px); } 71.21% { transform: translateY(-240px); } 72.73% { transform: translateY(-240px); } 80.3% { transform: translateY(-160px); } 81.82% { transform: translateY(-160px); } 89.39% { transform: translateY(-80px); } 90.91% { transform: translateY(-80px); } 98.48% { transform: translateY(0px); } 100% { transform: translateY(0px); } }
+@keyframes 'collector-down-b' { 0% { transform: translateY(-880px); } 7.58% { transform: translateY(-800px); } 9.09% { transform: translateY(-800px); } 16.67% { transform: translateY(-720px); } 18.18% { transform: translateY(-720px); } 25.76% { transform: translateY(-640px); } 27.27% { transform: translateY(-640px); } 34.85% { transform: translateY(-560px); } 36.36% { transform: translateY(-560px); } 43.94% { transform: translateY(-480px); } 45.45% { transform: translateY(-480px); } 53.03% { transform: translateY(-400px); } 54.55% { transform: translateY(-400px); } 62.12% { transform: translateY(-320px); } 63.64% { transform: translateY(-320px); } 71.21% { transform: translateY(-240px); } 72.73% { transform: translateY(-240px); } 80.3% { transform: translateY(-160px); } 81.82% { transform: translateY(-160px); } 89.39% { transform: translateY(-80px); } 90.91% { transform: translateY(-80px); } 98.48% { transform: translateY(0px); } 100% { transform: translateY(0px); } }
 .motion-a.collector-mode .biggest-reel.settling .collector-motion, .motion-b.collector-mode .biggest-reel.settling .collector-motion,
 .motion-a.collector-mode .biggest-reel.stopped .collector-motion, .motion-b.collector-mode .biggest-reel.stopped .collector-motion { visibility:collapse; }
 .motion-a.collector-mode .biggest-reel.settling .biggest-final { animation-name:'collector-settle-a'; }
@@ -493,3 +493,14 @@ Label { color:#e9efed; font-family:Arial; font-size:17px; margin:4px; }
 .collector-row-19 { position:0px 1520px 0px; }
 .collector-row-20 { position:0px 1600px 0px; }
 .collector-row-21 { position:0px 1680px 0px; }
+
+/* Prepare the strip in a distinct server update before enabling its animation.
+   Every 80px movement takes 100ms, followed by a 20ms hold. */
+.motion-a .reel-motion, .motion-b .reel-motion { animation-duration:0.96s; }
+.motion-a.collector-mode .collector-motion, .motion-b.collector-mode .collector-motion { animation-duration:1.32s; }
+.reels-armed .book-reel .reel-final, .reels-armed .biggest-final { visibility:collapse; }
+.reels-armed .book-reel .reel-motion { visibility:visible; transform:translateY(-640px); }
+.reels-armed.collector-mode .collector-motion { visibility:visible; transform:translateY(-880px); }
+.reels-armed .biggest-offset { visibility:visible; }
+.reels-armed.collector-mode .biggest-offset { visibility:collapse; }
+.reels-armed .round-detail, .reels-armed .bonus-summary { opacity:0; }
