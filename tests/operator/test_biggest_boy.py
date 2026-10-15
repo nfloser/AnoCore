@@ -29,6 +29,48 @@ class BiggestBoyTests(unittest.TestCase):
         for cell in range(25):
             self.assertIsNotNone(tree.find(f'.//*[@id="casino_round_biggest_symbol{cell}"]'))
 
+    def test_layout_reuses_book_styles_with_five_full_width_rows(self):
+        tree = ET.parse(UI / 'layout/custom_game/anocore/ano_casino_rounds.xml')
+        for reel in range(5):
+            panel = tree.find(f'.//*[@id="casino_round_biggest_reel{reel}"]')
+            self.assertIsNotNone(panel)
+            self.assertIn('book-reel', panel.attrib['class'].split())
+            final = panel.find('./Panel[@class="biggest-final"]')
+            self.assertEqual(10, len(final))
+            for cell in final:
+                self.assertIn('book-symbol', cell.attrib['class'].split())
+        css = (STYLE / 'ano_casino_rounds.css').read_text()
+        self.assertIn('.book-reels, .biggest-reels { width:100%;', css)
+        self.assertIn('width:fill-parent-flow(1)', css)
+        self.assertIn('.view-book .biggest-table { visibility:collapse; }', css)
+        self.assertIn("@keyframes 'biggest-settle-a'", css)
+        self.assertNotIn('.biggest-reel { width:82px;', css)
+
+    def test_collector_mode_has_three_rows_short_loop_and_money_badges(self):
+        tree = ET.parse(UI / 'layout/custom_game/anocore/ano_casino_rounds.xml')
+        for reel in range(5):
+            panel = tree.find(f'.//*[@id="casino_round_biggest_reel{reel}"]')
+            motion = panel.find('./Panel[@class="collector-motion"]')
+            self.assertEqual(22, len(motion))
+            self.assertEqual([p.attrib['class'].split()[1] for p in motion[:11]],
+                             [p.attrib['class'].split()[1] for p in motion[11:]])
+            final = panel.find('./Panel[@class="biggest-final"]')
+            self.assertEqual(6, sum('legacy-extra' not in p.attrib['class'] for p in final))
+            for row in range(3):
+                self.assertIsNotNone(tree.find(f'.//*[@id="casino_round_biggest_symbol_money{reel * 5 + row}"]'))
+        css = (STYLE / 'ano_casino_rounds.css').read_text()
+        self.assertIn('.collector-mode .biggest-reel { height:240px;', css)
+        self.assertIn("@keyframes 'collector-settle-a' { 0% { transform:translateY(-240px);", css)
+
+    def test_collector_probability_audit_preserves_own_model_and_bounded_upper_rtp(self):
+        import sys
+        sys.path.insert(0, str(ROOT / 'tools'))
+        from audit_biggest_boy_collector import audit as collector_audit
+        result = collector_audit()
+        self.assertAlmostEqual(.0019702656, result['bonus_probability'], places=12)
+        self.assertGreater(result['uncapped_rtp_upper_bound'], .93)
+        self.assertLess(result['uncapped_rtp_upper_bound'], .95)
+
     def test_every_symbol_texture_is_compiled_by_both_builders(self):
         for name in ['kebap','beer','cigarette','butter','shot','funnel','g','o','a','t','scatter']:
             png = STYLE / f'casino/biggest_{name}.png'

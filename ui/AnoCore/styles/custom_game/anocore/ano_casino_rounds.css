@@ -164,15 +164,16 @@ Label { color:#e9efed; font-family:Arial; font-size:17px; margin:4px; }
 .book-row-15 { position: 0px 1200px 0px; }
 
 /* Biggest Boy: 100-stop circular strips, four complete downward laps. */
-.biggest-table { visibility:collapse; width:100%; flow-children:down; }
+.biggest-table { visibility:collapse; }
 .view-biggestboy .biggest-table { visibility:visible; }
+.view-book .biggest-table { visibility:collapse; }
 .active.view-biggestboy .book-actions { visibility:visible; }
 .biggest-reels { flow-children:right; horizontal-align:center; }
-.biggest-reel { width:82px; height:400px; min-height:400px; overflow:clip; border:1px solid #aa8c47; margin:0px 4px; background-color:#07150e; }
-.biggest-offset { width:80px; height:16400px; overflow:noclip; visibility:collapse; }
-.biggest-motion { width:80px; height:16400px; overflow:noclip; flow-children:none; }
-.biggest-final { width:80px; height:400px; flow-children:down; }
-.biggest-symbol { width:80px; height:80px; min-height:80px; background-size:contain; background-position:center; background-repeat:no-repeat; }
+.biggest-reel { height:400px; min-height:400px; }
+.biggest-offset { width:100%; height:16400px; overflow:noclip; visibility:collapse; }
+.biggest-motion { width:100%; height:16400px; overflow:noclip; flow-children:none; }
+.biggest-final { width:100%; height:800px; min-height:800px; flow-children:down; }
+.biggest-symbol { width:100%; height:80px; min-height:80px; padding:0px; background-size:contain; background-position:center; background-repeat:no-repeat; }
 .motion-a .biggest-offset, .motion-b .biggest-offset { visibility:visible; }
 .motion-a .biggest-final, .motion-b .biggest-final { visibility:collapse; }
 .motion-a .biggest-motion { animation-name:'biggest-down-a'; animation-iteration-count:5; animation-timing-function:linear; }
@@ -182,8 +183,8 @@ Label { color:#e9efed; font-family:Arial; font-size:17px; margin:4px; }
 .biggest-symbol.winning { border:3px solid #54ff9a; }
 .biggest-symbol.expanded { box-shadow:inset #f5d366 0px 0px 3px 1px; }
 .biggest-win { font-size:38px; font-weight:bold; horizontal-align:center; color:#54ff9a; }
-.biggest-bonus { horizontal-align:center; font-size:19px; color:#f5d366; }
-.view-biggestboy .round-cover { visibility:collapse; }
+.biggest-bonus { horizontal-align:center; }
+.view-biggestboy .round-cover { background-image:url("s2r://panorama/styles/custom_game/anocore/casino/book.vtex"); }
 .view-biggestboy .round-detail { font-size:15px; max-height:72px; overflow:scroll; white-space:normal; }
 .biggest-reel-0 .biggest-motion { animation-duration:0.55s; }
 .biggest-reel-1 .biggest-motion { animation-duration:0.60s; }
@@ -413,7 +414,7 @@ Label { color:#e9efed; font-family:Arial; font-size:17px; margin:4px; }
 .view-biggestboy.biggest-rules .biggest-table { visibility:collapse; }
 .biggest-offset, .biggest-motion { min-height:16400px; }
 
-.biggest-shift { width:80px; height:16400px; min-height:16400px; overflow:noclip; }
+.biggest-shift { width:100%; height:16400px; min-height:16400px; overflow:noclip; }
 .biggest-shift-0.shifted { transform:translateY(-80px); }
 .biggest-shift-1.shifted { transform:translateY(-160px); }
 .biggest-shift-2.shifted { transform:translateY(-320px); }
@@ -434,3 +435,61 @@ Label { color:#e9efed; font-family:Arial; font-size:17px; margin:4px; }
 .biggest-payout-panel { width:100%; flow-children:right; horizontal-align:center; margin-top:5px; margin-bottom:5px; }
 .biggest-spin-win { font-size:20px; font-weight:bold; color:#ffe08a; background-color:#192415; border:2px solid #bb9144; padding:7px 12px; margin-right:8px; }
 .biggest-total-win { font-size:20px; font-weight:bold; color:#7cff9e; background-color:#102b1b; border:2px solid #3d9c57; padding:7px 12px; }
+
+/* Both slots share the same full-width table, reel skin and controls. */
+.book-reels, .biggest-reels { width:100%; }
+.book-reel { width:fill-parent-flow(1); }
+.book-reel .reel-motion, .book-reel .reel-final, .book-symbol { width:100%; }
+.biggest-reels { margin-bottom:12px; }
+.biggest-win, .biggest-payout-panel { visibility:collapse; }
+.view-biggestboy .round-detail { font-size:21px; max-height:190px; overflow:clip; }
+.motion-a.view-biggestboy .bonus-summary, .motion-b.view-biggestboy .bonus-summary { opacity:0; }
+.motion-a .biggest-reel.settling .biggest-offset, .motion-b .biggest-reel.settling .biggest-offset,
+.motion-a .biggest-reel.stopped .biggest-offset, .motion-b .biggest-reel.stopped .biggest-offset { visibility:collapse; }
+.motion-a .biggest-reel.settling .biggest-final, .motion-b .biggest-reel.settling .biggest-final { visibility:visible; animation-duration:0.45s; animation-timing-function:ease-out; }
+.motion-a .biggest-reel.stopped .biggest-final, .motion-b .biggest-reel.stopped .biggest-final { visibility:visible; }
+.motion-a .biggest-reel.settling .biggest-final { animation-name:'biggest-settle-a'; }
+.motion-b .biggest-reel.settling .biggest-final { animation-name:'biggest-settle-b'; }
+@keyframes 'biggest-settle-a' { 0% { transform:translateY(-400px); } 100% { transform:translateY(0px); } }
+@keyframes 'biggest-settle-b' { 0% { transform:translateY(-400px); } 100% { transform:translateY(0px); } }
+
+/* New rounds keep Book's three-row geometry; legacy rounds remain readable. */
+.collector-mode .biggest-reel { height:240px; min-height:240px; }
+.collector-mode .biggest-final { height:480px; min-height:480px; }
+.collector-mode .legacy-extra { visibility:collapse; }
+.collector-motion { visibility:collapse; width:100%; height:1760px; min-height:1760px; flow-children:none; overflow:noclip; }
+.collector-mode .biggest-offset { visibility:collapse; }
+.motion-a.collector-mode .collector-motion, .motion-b.collector-mode .collector-motion { visibility:visible; animation-duration:0.55s; animation-timing-function:linear; animation-iteration-count:infinite; }
+.motion-a.collector-mode .collector-motion { animation-name:'collector-down-a'; }
+.motion-b.collector-mode .collector-motion { animation-name:'collector-down-b'; }
+@keyframes 'collector-down-a' { 0% { transform:translateY(-880px); } 100% { transform:translateY(0px); } }
+@keyframes 'collector-down-b' { 0% { transform:translateY(-880px); } 100% { transform:translateY(0px); } }
+.motion-a.collector-mode .biggest-reel.settling .collector-motion, .motion-b.collector-mode .biggest-reel.settling .collector-motion,
+.motion-a.collector-mode .biggest-reel.stopped .collector-motion, .motion-b.collector-mode .biggest-reel.stopped .collector-motion { visibility:collapse; }
+.motion-a.collector-mode .biggest-reel.settling .biggest-final { animation-name:'collector-settle-a'; }
+.motion-b.collector-mode .biggest-reel.settling .biggest-final { animation-name:'collector-settle-b'; }
+@keyframes 'collector-settle-a' { 0% { transform:translateY(-240px); } 100% { transform:translateY(0px); } }
+@keyframes 'collector-settle-b' { 0% { transform:translateY(-240px); } 100% { transform:translateY(0px); } }
+.collector-money { horizontal-align:center; vertical-align:bottom; margin:0px 0px 2px 0px; padding:1px 7px; border-radius:3px; color:#e9ffef; background-color:#07361ef0; font-size:16px; font-weight:bold; text-shadow:0px 1px 2px #000000; }
+.collector-row-0 { position:0px 0px 0px; }
+.collector-row-1 { position:0px 80px 0px; }
+.collector-row-2 { position:0px 160px 0px; }
+.collector-row-3 { position:0px 240px 0px; }
+.collector-row-4 { position:0px 320px 0px; }
+.collector-row-5 { position:0px 400px 0px; }
+.collector-row-6 { position:0px 480px 0px; }
+.collector-row-7 { position:0px 560px 0px; }
+.collector-row-8 { position:0px 640px 0px; }
+.collector-row-9 { position:0px 720px 0px; }
+.collector-row-10 { position:0px 800px 0px; }
+.collector-row-11 { position:0px 880px 0px; }
+.collector-row-12 { position:0px 960px 0px; }
+.collector-row-13 { position:0px 1040px 0px; }
+.collector-row-14 { position:0px 1120px 0px; }
+.collector-row-15 { position:0px 1200px 0px; }
+.collector-row-16 { position:0px 1280px 0px; }
+.collector-row-17 { position:0px 1360px 0px; }
+.collector-row-18 { position:0px 1440px 0px; }
+.collector-row-19 { position:0px 1520px 0px; }
+.collector-row-20 { position:0px 1600px 0px; }
+.collector-row-21 { position:0px 1680px 0px; }

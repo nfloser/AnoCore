@@ -5,11 +5,15 @@ namespace AnoCore.Modules.Arcade.Casino;
 public enum BiggestBoySymbol { Kebap, Beer, Cigarette, Butter, Shot, Funnel, G, O, A, T, Scatter }
 public sealed record BiggestBoyLineWin(int Payline, BiggestBoySymbol Symbol, int MatchCount, long Payout);
 public sealed record BiggestBoyRoundState(int LockedStake, int FreeSpinsRemaining, int FreeSpinsAwarded,
-    int SpinsPlayed, long TotalPayout, string RulesVersion, BiggestBoySymbol? ExpandingSymbol);
+    int SpinsPlayed, long TotalPayout, string RulesVersion, BiggestBoySymbol? ExpandingSymbol, int Collectors = 0);
 public sealed record BiggestBoySpinResult(ImmutableArray<BiggestBoySymbol> Grid, ImmutableArray<int> Stops,
     int ScatterCount, ImmutableArray<int> ExpandedReels, ImmutableArray<BiggestBoyLineWin> LineWins,
     long Payout, int ChargedStake, BiggestBoyRoundState State,
-    ImmutableArray<BiggestBoySymbol> RawGrid);
+    ImmutableArray<BiggestBoySymbol> RawGrid, ImmutableArray<long> MoneyValues = default,
+    long CollectionPayout = 0, int CollectionMultiplier = 1, bool WinLimitReached = false)
+{
+    public ImmutableArray<long> MoneyValues { get; init; } = MoneyValues.IsDefault ? [] : MoneyValues;
+}
 
 /// <summary>Original 5x5 virtual-currency slot. One uniform stop per fixed circular reel.</summary>
 public static class BiggestBoyRules
