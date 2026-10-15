@@ -355,7 +355,8 @@ Die v5-Oberfläche wiederholt während des Drehens nicht mehr die drei bereits
 gebuchten Ergebnisbilder. Jede neue Darstellung erhält je Walze eine eigene,
 zufällig gemischte Folge aller zwölf Biggest-Boy-Symbole.
 Gemischte Symbolbeutel halten sämtliche Motive in der Animation sichtbar.
-Die Folge bleibt während einer Drehung unverändert; beim Abwärtslauf wandern
+Beide neuen Slot-Darstellungen wechseln nun mit etwa zehn Symbolschritten pro
+Sekunde statt bisher etwa 18. Die Folge bleibt während einer Drehung unverändert; beim Abwärtslauf wandern
 Nachbarbilder zusammen weiter, statt in jedem Frame unabhängig ausgetauscht
 zu werden. Erst in den letzten drei langsameren Schritten fahren die gebuchten
 Bilder ins Walzenfenster. Die Stopps bleiben bei 1,90 / 2,35 / 2,80 / 3,25 /
@@ -365,7 +366,7 @@ Die kosmetische Zufallsauswahl verwendet ausschließlich Präsentationszustand.
 Sie ruft keine Spielregelziehung auf, ändert weder gespeichertes Roh-/Ergebnisfeld
 noch Gewinnchance, Freispiele, Einsatz oder Kontobuchungen. Historische v4-Runden
 mit physischen Streifen behalten ihre bisherige Walzenbewegung. Die bereits funktionierende separate Acht-Symbol-Folge von Book bleibt
-unverändert. Sound-Schalter, fünf Stopptöne, rote Gewinnrahmen und
+erhalten; lediglich ihr Bildwechsel wird auf zehn Schritte pro Sekunde reduziert. Sound-Schalter, fünf Stopptöne, rote Gewinnrahmen und
 die Einsatzsperre während einer Bonusserie bleiben erhalten.
 
 Diese Korrektur erfordert nur das passende Plugin-Update. XML, CSS und Bilder

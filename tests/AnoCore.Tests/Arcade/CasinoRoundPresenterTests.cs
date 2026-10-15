@@ -25,7 +25,7 @@ public sealed class CasinoRoundPresenterTests
         await f.Presenter.OpenAsync(Player, CasinoRoundGame.BiggestBoy);
         await f.Click("play");
         var seen = new HashSet<int>();
-        for (var tick = 0; tick < 30; tick++)
+        for (var tick = 0; tick < 37; tick++)
         {
             f.Clock.AdvanceMilliseconds(50); f.Presenter.Tick();
             for (var row = 0; row < 4; row++)

@@ -4,6 +4,7 @@ namespace AnoCore.Modules.Arcade.Casino;
 public sealed class CosmeticReelMotion
 {
     private const double LandingSeconds = .35;
+    private const int StepsPerSecond = 10;
     private readonly int[][] _ribbons;
 
     private CosmeticReelMotion(int[][] ribbons) => _ribbons = ribbons;
@@ -20,7 +21,7 @@ public sealed class CosmeticReelMotion
         {
             var ribbon = new int[Steps(reel) + 4];
             var bag = Enumerable.Range(0, symbolCount).ToArray();
-            for (var offset = 0; offset < ribbon.Length; offset += symbolCount)
+            for (var offset = 3; offset < ribbon.Length; offset += symbolCount)
             {
                 for (var i = bag.Length - 1; i > 0; i--)
                 {
@@ -38,7 +39,7 @@ public sealed class CosmeticReelMotion
         return new(ribbons);
     }
 
-    public static int Steps(int reel) => (int)Math.Floor((BiggestBoyReelMotion.Duration(reel) - LandingSeconds) * 18) + 3;
+    public static int Steps(int reel) => (int)Math.Floor((BiggestBoyReelMotion.Duration(reel) - LandingSeconds) * StepsPerSecond) + 3;
 
     /// <summary>Regular row advances followed by three slower landing steps at the original stop time.</summary>
     public static int Travelled(double elapsedSeconds, int reel)
