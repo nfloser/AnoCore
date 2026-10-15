@@ -1,12 +1,19 @@
 """Generate a shared Biggest Boy / Book cabinet without changing the legacy Book layout."""
 from pathlib import Path
 import xml.etree.ElementTree as ET
+import ast
+import re
 from audit_biggest_boy_expanding import profile
 
 ROOT = Path(__file__).resolve().parents[1]
 UI = ROOT / 'ui/AnoCore'
 STYLE = UI / 'styles/custom_game/anocore'
 NAMES = ['kebap','beer','cigarette','butter','shot','funnel','g','o','a','t','scatter','book']
+
+
+def balanced_pays(filename):
+    source = (ROOT / 'src/AnoCore.Modules.Arcade/Casino' / filename).read_text()
+    return ast.literal_eval(re.search(r'Pays\s*=\s*(\[.*?\]);', source, re.S).group(1))
 
 
 def generate():
@@ -63,13 +70,25 @@ def generate():
     rules = ET.Element('Panel',{'class':'bb-rules bb-biggest-rules','hittest':'false'})
     text=['GEWINNPLAN · 5×3 · 10 Linien · nur virtuelle Beträge','Liniengewinn = Einsatz ÷ 10 × Faktor. Drei, vier oder fünf passende Symbole von links. Pro Linie nur der höchste Gewinn; verschiedene Linien addieren sich.','Gesicht ist Freispiel-Scatter. Die Biggest-Boy-Schärpe ist Wild und ersetzt reguläre Gewinnsymbole.']
     labels=['Döner','Bier','Zigarette','Butter','Shot','Trichter','G','O','A','T']
-    text += [f'{name}: {p[0]}× / {p[1]}× / {p[2]}×' for name,p in zip(labels,pays)]
+    for t in text: ET.SubElement(rules,'Label',{'text':t,'hittest':'false'})
+    for cls, paytable in [('bb-legacy-paytable', pays), ('bb-balanced-paytable', balanced_pays('BiggestBoyBalancedRules.cs'))]:
+        group = ET.SubElement(rules, 'Panel', {'class':cls, 'hittest':'false'})
+        for name, values in zip(labels, paytable):
+            ET.SubElement(group, 'Label', {'text':f'{name}: {values[0]}× / {values[1]}× / {values[2]}×', 'hittest':'false'})
+    text = []
     text += ['3/4/5 Gesichter vergeben 10/15/20 Freispiele. Erneuter Trigger: +5, maximal 30 tatsächlich gespielte Freispiele. Ein reguläres Expanding Symbol wird beim Bonusstart gleichverteilt festgelegt und bleibt unverändert.','Trifft das Expanding Symbol eine Walze, füllt es genau drei Positionen. Linien werden einmal auf dem expandierten Feld ausgewertet. Scatter für Verlängerungen zählen vor der Expansion. Einsatz bleibt fest, Gesamtauszahlung am Rundenende.']
     text += [f'Linie {n+1}: '+' – '.join(str(x%3+1) for x in line) for n,line in enumerate(lines)]
     for t in text: ET.SubElement(rules,'Label',{'text':t,'hittest':'false'})
     book_rules = ET.Element('Panel',{'class':'bb-rules bb-book-rules','hittest':'false'})
     for text in ["BOOK FREISPIELE · 5×3 · 10 Linien · nur virtuelle Beträge","Bilder: Kirsche, Zitrone, Pflaume, Orange, Traube, Glocke, Sieben, goldene Kokosnuss. Die Kokosnuss ist Scatter und Wild.","Drei oder mehr Kokosnüsse: 10 Freispiele. Bei erneuten drei Kokosnüssen: +5 Freispiele; höchstens 20 gleichzeitig und höchstens 30 insgesamt.","Ein Bonussymbol (außer Kokosnuss) wird zum Start zufällig festgelegt. Erscheint es während eines Freispiels auf einer Walze, expandiert es über die drei Felder.","Gewinne: Mindestens 3 gleiche von links auf einer der 10 Linien. Mehrere Linien addieren sich. Einsatz bleibt während der Freispielserie konstant.","Die gebuchten Gewinne werden während der Serie gesammelt und nach der letzten Freispielrunde ausgezahlt."]:
         ET.SubElement(book_rules,'Label',{'text':text,'hittest':'false'})
+    label(book_rules, 'Liniengewinn = Einsatz ÷ 10 × Faktor (3 / 4 / 5 Symbole).')
+    fruit_names = ['Kirsche', 'Zitrone', 'Pflaume', 'Orange', 'Traube', 'Glocke', 'Sieben']
+    legacy_fruit = [[2,5,10],[1,4,8],[3,6,12],[4,8,20],[5,10,30],[8,20,60],[15,50,200]]
+    for cls, paytable in [('bb-legacy-paytable', legacy_fruit), ('bb-balanced-paytable', balanced_pays('BookBalancedRules.cs'))]:
+        group = ET.SubElement(book_rules, 'Panel', {'class':cls, 'hittest':'false'})
+        for name, values in zip(fruit_names, paytable):
+            ET.SubElement(group, 'Label', {'text':f'{name}: {values[0]}× / {values[1]}× / {values[2]}×', 'hittest':'false'})
     window.append(table);window.append(rules);window.append(book_rules)
     label(window,'{s:text}','detail','round-detail')
     controls=panel(window,'bb-controls')
@@ -161,7 +180,7 @@ def generate():
         css += f'.bb-symbol-{i} {{ background-image:url("s2r://panorama/styles/custom_game/anocore/casino/biggest_{name}.vtex"); }}\n'
     css += "\n/* Book shares the bounded five-reel cabinet but always uses its original fruit textures. */\n.bb-v4.book-mode .bb-table { visibility:visible; }\n.bb-v4.book-mode.biggest-rules .bb-table { visibility:collapse; }\n.bb-v4.biggest-rules .bb-book-rules { visibility:collapse; }\n.bb-v4.book-mode.biggest-rules .bb-biggest-rules { visibility:collapse; }\n.bb-v4.book-mode.biggest-rules .bb-book-rules { visibility:visible; }\n.bb-book-label { visibility:collapse; }\n.bb-v4.book-mode .bb-symbol-7 .bb-book-label { visibility:visible; horizontal-align:center; vertical-align:center; font-size:25px; font-weight:bold; color:#754719; }\n.bb-v4.book-mode .bb-symbol-7 { background-image:none; background-color:#fff1bf; border:2px solid #bf8d35; }\n.bb-v4.book-mode .bb-symbol-0 { background-image:url(\"s2r://panorama/styles/custom_game/anocore/arcade/cherry.vtex\"); }\n.bb-v4.book-mode .bb-symbol-1 { background-image:url(\"s2r://panorama/styles/custom_game/anocore/arcade/lemon.vtex\"); }\n.bb-v4.book-mode .bb-symbol-2 { background-image:url(\"s2r://panorama/styles/custom_game/anocore/arcade/plum.vtex\"); }\n.bb-v4.book-mode .bb-symbol-3 { background-image:url(\"s2r://panorama/styles/custom_game/anocore/arcade/orange.vtex\"); }\n.bb-v4.book-mode .bb-symbol-4 { background-image:url(\"s2r://panorama/styles/custom_game/anocore/arcade/grapes.vtex\"); }\n.bb-v4.book-mode .bb-symbol-5 { background-image:url(\"s2r://panorama/styles/custom_game/anocore/arcade/bell.vtex\"); }\n.bb-v4.book-mode .bb-symbol-6 { background-image:url(\"s2r://panorama/styles/custom_game/anocore/arcade/seven.vtex\"); }\n.bb-v4.book-mode .bb-symbol.winning { border:3px solid #ff3030; }\n.bb-v4.book-mode .bb-symbol.active-line { border:4px solid #ff3030; }\n"
     css += "\n/* The base Panorama stylesheet gives every Label a 4px margin: prevent clipping\n   in the two top counters when large thousands-formatted account values render. */\n.bb-v4 .bb-accounts { height:100px; min-height:100px; margin:10px 0px; }\n.bb-v4 .bb-account { height:84px; min-height:84px; padding:8px 12px; }\n.bb-v4 .bb-account Label { margin:0px; padding:0px; horizontal-align:center; text-align:center; }\n.bb-v4 .bb-account > Label { font-size:18px; }\n.bb-v4 .bb-account #casino_round_account,\n.bb-v4 .bb-account #casino_round_bankroll { font-size:27px; font-weight:bold; color:#e5f4e8; }\n\n/* Dedicated Book scatter/wild: the user's gold coconut, never the Biggest Boy Wild. */\n.bb-v4.book-mode .bb-symbol-7 { background-image:url(\"s2r://panorama/styles/custom_game/anocore/casino/book_coconut.vtex\"); background-color:transparent; border:0px solid transparent; }\n.bb-v4.book-mode .bb-symbol-7 .bb-book-label { visibility:collapse; }\n.bb-v4.book-mode .bb-symbol-7.winning { border:3px solid #ff3030; }\n.bb-v4.book-mode .bb-symbol-7.active-line { border:4px solid #ff3030; }\n"
-    (STYLE / 'ano_casino_biggest.css').write_text(css)
+    css += "\n/* Paytables follow the booked rules version, including resumed historical bonuses. */\n.bb-balanced-paytable, .bb-legacy-paytable { width:100%; flow-children:down; }\n.bb-balanced-paytable { visibility:collapse; }\n.balanced-mode .bb-balanced-paytable { visibility:visible; }\n.balanced-mode .bb-legacy-paytable { visibility:collapse; }\n"
     (STYLE / 'ano_casino_biggest.css').write_text(css)
     descriptor=(STYLE / 'casino/biggest_kebap.vtex').read_text().replace('biggest_kebap.png','biggest_book.png')
     (STYLE / 'casino/biggest_book.vtex').write_text(descriptor)

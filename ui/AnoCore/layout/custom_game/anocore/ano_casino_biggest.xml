@@ -201,16 +201,16 @@
           <Label text="Liniengewinn = Einsatz ÷ 10 × Faktor. Drei, vier oder fünf passende Symbole von links. Pro Linie nur der höchste Gewinn; verschiedene Linien addieren sich." hittest="false" />
           <Label text="Gesicht ist Freispiel-Scatter. Die Biggest-Boy-Schärpe ist Wild und ersetzt reguläre Gewinnsymbole." hittest="false" />
           <Panel class="bb-legacy-paytable" hittest="false">
-          <Label text="Döner: 270× / 1350× / 3000×" hittest="false" />
-          <Label text="Bier: 216× / 945× / 2900×" hittest="false" />
-          <Label text="Zigarette: 162× / 675× / 2160×" hittest="false" />
-          <Label text="Butter: 135× / 473× / 1485×" hittest="false" />
-          <Label text="Shot: 81× / 297× / 878×" hittest="false" />
-          <Label text="Trichter: 68× / 216× / 675×" hittest="false" />
-          <Label text="G: 26× / 68× / 194×" hittest="false" />
-          <Label text="O: 26× / 68× / 194×" hittest="false" />
-          <Label text="A: 13× / 60× / 129×" hittest="false" />
-          <Label text="T: 13× / 60× / 129×" hittest="false" />
+            <Label text="Döner: 270× / 1350× / 3000×" hittest="false" />
+            <Label text="Bier: 216× / 945× / 2900×" hittest="false" />
+            <Label text="Zigarette: 162× / 675× / 2160×" hittest="false" />
+            <Label text="Butter: 135× / 473× / 1485×" hittest="false" />
+            <Label text="Shot: 81× / 297× / 878×" hittest="false" />
+            <Label text="Trichter: 68× / 216× / 675×" hittest="false" />
+            <Label text="G: 26× / 68× / 194×" hittest="false" />
+            <Label text="O: 26× / 68× / 194×" hittest="false" />
+            <Label text="A: 13× / 60× / 129×" hittest="false" />
+            <Label text="T: 13× / 60× / 129×" hittest="false" />
           </Panel>
           <Panel class="bb-balanced-paytable" hittest="false">
             <Label text="Döner: 5× / 15× / 50×" hittest="false" />
@@ -243,7 +243,17 @@
           <Label text="Drei oder mehr Kokosnüsse: 10 Freispiele. Bei erneuten drei Kokosnüssen: +5 Freispiele; höchstens 20 gleichzeitig und höchstens 30 insgesamt." hittest="false" />
           <Label text="Ein Bonussymbol (außer Kokosnuss) wird zum Start zufällig festgelegt. Erscheint es während eines Freispiels auf einer Walze, expandiert es über die drei Felder." hittest="false" />
           <Label text="Gewinne: Mindestens 3 gleiche von links auf einer der 10 Linien. Mehrere Linien addieren sich. Einsatz bleibt während der Freispielserie konstant." hittest="false" />
+          <Label text="Die gebuchten Gewinne werden während der Serie gesammelt und nach der letzten Freispielrunde ausgezahlt." hittest="false" />
           <Label text="Liniengewinn = Einsatz ÷ 10 × Faktor (3 / 4 / 5 Symbole)." hittest="false" />
+          <Panel class="bb-legacy-paytable" hittest="false">
+            <Label text="Kirsche: 2× / 5× / 10×" hittest="false" />
+            <Label text="Zitrone: 1× / 4× / 8×" hittest="false" />
+            <Label text="Pflaume: 3× / 6× / 12×" hittest="false" />
+            <Label text="Orange: 4× / 8× / 20×" hittest="false" />
+            <Label text="Traube: 5× / 10× / 30×" hittest="false" />
+            <Label text="Glocke: 8× / 20× / 60×" hittest="false" />
+            <Label text="Sieben: 15× / 50× / 200×" hittest="false" />
+          </Panel>
           <Panel class="bb-balanced-paytable" hittest="false">
             <Label text="Kirsche: 2× / 5× / 10×" hittest="false" />
             <Label text="Zitrone: 1× / 4× / 8×" hittest="false" />
@@ -253,10 +263,6 @@
             <Label text="Glocke: 5× / 15× / 30×" hittest="false" />
             <Label text="Sieben: 8× / 25× / 50×" hittest="false" />
           </Panel>
-          <Panel class="bb-legacy-paytable" hittest="false">
-            <Label text="Alter Gewinnplan: Kirsche 2/5/10; Zitrone 1/4/8; Pflaume 3/6/12; Orange 4/8/20; Traube 5/10/30; Glocke 8/20/60; Sieben 15/50/200." hittest="false" />
-          </Panel>
-          <Label text="Die gebuchten Gewinne werden während der Serie gesammelt und nach der letzten Freispielrunde ausgezahlt." hittest="false" />
         </Panel>
         <Label text="{s:text}" hittest="false" id="casino_round_detail" class="round-detail" />
         <Panel class="bb-controls">

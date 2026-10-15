@@ -134,10 +134,6 @@ public static class BonusSlotRules
     }
 
     public static BonusSlotSpinResult EvaluateGrid(int stake, IReadOnlyList<BonusSlotSymbol> grid)
-        => EvaluateGrid(stake, grid, (symbol, count) => Paytable[(int)symbol][count - 3]);
-
-    internal static BonusSlotSpinResult EvaluateGrid(int stake, IReadOnlyList<BonusSlotSymbol> grid,
-        Func<BonusSlotSymbol, int, int> multiplier)
     {
         ValidateStake(stake);
         ArgumentNullException.ThrowIfNull(grid);
@@ -165,14 +161,14 @@ public static class BonusSlotRules
                     count++;
                 }
                 if (count < 3) continue;
-                var value = checked((long)lineStake * multiplier(symbol, count));
+                var value = checked((long)lineStake * Paytable[candidate][count - 3]);
                 if (best is null || value > best.Payout)
                     best = new BonusSlotLineWin(lineIndex, symbol, count, value);
             }
 
             // An all-Book line is a wild line, paid at the highest original symbol's rate.
             if (best is null && line.All(cell => copy[cell] == BonusSlotSymbol.Book))
-                best = new BonusSlotLineWin(lineIndex, BonusSlotSymbol.Seven, 5, checked((long)lineStake * multiplier(BonusSlotSymbol.Seven, 5)));
+                best = new BonusSlotLineWin(lineIndex, BonusSlotSymbol.Seven, 5, checked((long)lineStake * Paytable[6][2]));
             if (best is not null)
             {
                 wins.Add(best);
