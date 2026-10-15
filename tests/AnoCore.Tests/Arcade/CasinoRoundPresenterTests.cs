@@ -277,8 +277,14 @@ public sealed class CasinoRoundPresenterTests
         f.FinishAnimation();
         Assert.AreEqual(5, f.ReelClicks.Count);
         Assert.IsTrue(f.ReelClicks.All(p => p == Player));
-        await f.Click("free");
-        f.Clock.AdvanceMilliseconds(2400); f.Presenter.Tick();
+        if (game == CasinoRoundGame.Book)
+        {
+            f.Rounds.Current = f.Rounds.Current! with { IsComplete = true };
+            await f.Presenter.OpenAsync(Player, CasinoRoundGame.Book);
+            await f.Click("play");
+        }
+        else await f.Click("free");
+        f.Clock.AdvanceMilliseconds(2150); f.Presenter.Tick();
         Assert.AreEqual(6, f.ReelClicks.Count, "A second spin must reset the sound latch.");
     }
 
