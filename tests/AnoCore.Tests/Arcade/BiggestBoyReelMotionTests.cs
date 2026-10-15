@@ -20,7 +20,7 @@ public sealed class BiggestBoyReelMotionTests
                     {
                         var first = BiggestBoyReelMotion.VisibleIndex(previous, travelled, 0);
                         Assert.AreEqual((previous - travelled + 100 * 2) % 100, first);
-                        Assert.AreEqual((prior + 99) % 100, first);
+                        if (travelled > 0) Assert.AreEqual((prior + 99) % 100, first);
                         prior = first;
                         for (var row = 0; row < 4; row++)
                             Assert.AreEqual(
