@@ -1220,6 +1220,10 @@
             </Panel>
           </Panel>
           <Label id="casino_round_biggest_win" class="biggest-win" text="GEWINN: 0 €" hittest="false" />
+          <Panel class="biggest-payout-panel" hittest="false">
+            <Label id="casino_round_biggest_spin_win" class="biggest-spin-win" text="SPINGEWINN: –" hittest="false" />
+            <Label id="casino_round_biggest_total_win" class="biggest-total-win" text="BONUS / GESAMT: 0 €" hittest="false" />
+          </Panel>
           <Label id="casino_round_biggest_bonus" class="biggest-bonus" text="3/4/5 Gesichter: 10/15/20 Freispiele" hittest="false" />
           <Panel class="biggest-bonus-picker">
             <Label class="biggest-picker-title" text="BONUSSYMBOL WÄHLEN" hittest="false" />
