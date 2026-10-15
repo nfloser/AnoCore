@@ -175,8 +175,8 @@ Label { color:#e9efed; font-family:Arial; font-size:17px; margin:4px; }
 .biggest-symbol { width:80px; height:80px; min-height:80px; background-size:contain; background-position:center; background-repeat:no-repeat; }
 .motion-a .biggest-offset, .motion-b .biggest-offset { visibility:visible; }
 .motion-a .biggest-final, .motion-b .biggest-final { visibility:collapse; }
-.motion-a .biggest-motion { animation-name:'biggest-down-a'; animation-iteration-count:4; animation-timing-function:linear; }
-.motion-b .biggest-motion { animation-name:'biggest-down-b'; animation-iteration-count:4; animation-timing-function:linear; }
+.motion-a .biggest-motion { animation-name:'biggest-down-a'; animation-iteration-count:5; animation-timing-function:linear; }
+.motion-b .biggest-motion { animation-name:'biggest-down-b'; animation-iteration-count:5; animation-timing-function:linear; }
 @keyframes 'biggest-down-a' { 0% { transform:translateY(-8000px); } 100% { transform:translateY(0px); } }
 @keyframes 'biggest-down-b' { 0% { transform:translateY(-8000px); } 100% { transform:translateY(0px); } }
 .biggest-symbol.winning { border:3px solid #54ff9a; }
