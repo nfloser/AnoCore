@@ -127,6 +127,14 @@ public static class BiggestBoyExpandingRules
         if (lucky > 0 && Next(random, 100) < lucky)
         {
             int[] luckyStops = [50, 0, 49, 7, 4];
+            // Both tail reels have fourteen valid O positions. Randomising their
+            // stops keeps the guaranteed five-of-a-kind + 3-scatter pattern varied.
+            for (var reel = 3; reel < ReelCount; reel++)
+            {
+                var choices = Enumerable.Range(0, StripLength)
+                    .Where(stop => ReelStrips[reel][(stop + 2) % StripLength] == BiggestBoySymbol.O).ToArray();
+                luckyStops[reel] = choices[Next(random, choices.Length)];
+            }
             var boosted = ImmutableArray.CreateBuilder<BiggestBoySymbol>(GridSize);
             for (var reel = 0; reel < ReelCount; reel++)
                 for (var row = 0; row < Rows; row++)
