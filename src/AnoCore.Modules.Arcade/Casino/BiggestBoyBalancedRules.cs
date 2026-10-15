@@ -14,7 +14,14 @@ public static class BiggestBoyBalancedRules
         BiggestBoyExpandingRules.IsRegular(symbol) && count is >= 3 and <= 5 ? Pays[(int)symbol][count - 3] : 0;
 
     public static BiggestBoySpinResult EvaluateGrid(int stake, IReadOnlyList<BiggestBoySymbol> grid)
-        => BiggestBoyExpandingRules.EvaluateGrid(stake, grid, Multiplier);
+    {
+        if (!BiggestBoyStakeLimits.IsValid(stake)) throw new ArgumentOutOfRangeException(nameof(stake));
+        return BiggestBoyExpandingRules.EvaluateGrid(stake, grid, Multiplier);
+    }
 
-    public static long MaximumRoundExposure(int stake) => checked(stake * 50L * 31);
+    public static long MaximumRoundExposure(int stake)
+    {
+        if (!BiggestBoyStakeLimits.IsValid(stake)) throw new ArgumentOutOfRangeException(nameof(stake));
+        return checked(stake * 50L * 31);
+    }
 }

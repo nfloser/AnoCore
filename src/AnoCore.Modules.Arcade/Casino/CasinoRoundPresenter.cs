@@ -52,7 +52,7 @@ public sealed class CasinoRoundPresenter : IDisposable
         _hud = hud; _players = players; _permissions = permissions; _wallet = wallet; _rounds = rounds;
         _beforeOpen = beforeOpen; _back = back; _reelStopSound = reelStopSound; _clock = clock ?? TimeProvider.System;
         _biggestBoyProfile = BiggestBoyProfiles.Validate(biggestBoyProfile);
-        _biggestBoyMaximumStake = Math.Clamp(biggestBoyMaximumStake, BiggestBoyRules.StakeSteps[0], BiggestBoyRules.MaximumStake);
+        _biggestBoyMaximumStake = Math.Clamp(biggestBoyMaximumStake, 50, BiggestBoyStakeLimits.Maximum);
         try
         {
             _owned.Add(hud.Register(new("ano.casino"), new(HudId,
@@ -89,7 +89,7 @@ public sealed class CasinoRoundPresenter : IDisposable
                 if (!Current(state)) return false;
                 state.Game = round is { IsComplete: false } ? round.Game : game;
                 state.Round = round?.Game == state.Game ? round : null;
-                state.Stake = state.Round?.Stake ?? (state.Game == CasinoRoundGame.BiggestBoy ? BiggestBoyRules.ClampStakeToConfiguredMaximum(state.Stake, _biggestBoyMaximumStake) : Math.Min(state.Stake, _stakeLimits.For(state.Game)));
+                state.Stake = state.Round?.Stake ?? (state.Game == CasinoRoundGame.BiggestBoy ? BiggestBoyStakeLimits.Clamp(state.Stake, _biggestBoyMaximumStake) : Math.Min(state.Stake, _stakeLimits.For(state.Game)));
                 state.Balance = balance; state.Visible = true; state.Pending = false;
                 state.Status = round is { IsComplete: false } ? "Gespeicherte Runde fortsetzen" : "Einsatz wählen und Runde starten";
                 state.StatusError = false;
@@ -124,7 +124,7 @@ public sealed class CasinoRoundPresenter : IDisposable
                 {
                     if (state.Round is { IsComplete: false }) return;
                     state.Stake = state.Game == CasinoRoundGame.BiggestBoy
-                        ? BiggestBoyRules.StepStake(state.Stake, action == "plus" ? 1 : -1, _biggestBoyMaximumStake)
+                        ? BiggestBoyStakeLimits.Step(state.Stake, action == "plus" ? 1 : -1, _biggestBoyMaximumStake)
                         : state.Game == CasinoRoundGame.Book
                             ? _stakeLimits.StepBookStake(state.Stake, action == "plus" ? 1 : -1)
                             : Math.Clamp(state.Stake + (action == "plus" ? 50 : -50), 50, _stakeLimits.For(state.Game));
@@ -165,7 +165,7 @@ public sealed class CasinoRoundPresenter : IDisposable
                 if (round is not null)
                 {
                     state.Game = round.Game;
-                    if (round.IsComplete) state.Stake = state.Game == CasinoRoundGame.BiggestBoy ? BiggestBoyRules.ClampStakeToConfiguredMaximum(state.Stake, _biggestBoyMaximumStake) : Math.Min(state.Stake, _stakeLimits.For(state.Game));
+                    if (round.IsComplete) state.Stake = state.Game == CasinoRoundGame.BiggestBoy ? BiggestBoyStakeLimits.Clamp(state.Stake, _biggestBoyMaximumStake) : Math.Min(state.Stake, _stakeLimits.For(state.Game));
                 }
                 if (receipt is not null)
                 {

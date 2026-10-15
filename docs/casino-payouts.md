@@ -80,3 +80,18 @@ and **90.9526%** for fruit (88.95–92.95%). Paid net-win frequencies were
 17.972% / 17.986%; bonus frequencies 8.020% / 4.937%. Largest observed complete
 round returns were 116.7× / 117× stake. These are conditional on the exact
 18/8/1 and 18/5/1 settings and are not certified theoretical RTPs.
+
+## Biggest Boy maximum stake 100,000 (#521)
+
+Set `"BiggestBoyMaximumStake": 100000` in the existing `config/core.json`;
+preserve every other setting. Existing configurations/defaults remain 10,000
+until changed. Restart the server after installation/configuration.
+The practical controls include 25,000, 50,000 and 100,000, and an arbitrary
+configured ceiling divisible by 50 remains reachable. New controlled v6
+stakes support 50..100,000 in increments of 50; old rule sets keep their limits.
+The accepted bonus retains its stake even after the starting ceiling changes.
+
+At 100,000, a highest-symbol full screen returns 5,000,000. The conservative
+31-spin reservation is 155,000,000, below the existing 1,000,000,000 account
+limit. Account headroom and allocated funds must still suffice; no balance,
+reservation, overflow or idempotency checks are bypassed.

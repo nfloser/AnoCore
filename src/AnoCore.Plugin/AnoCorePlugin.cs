@@ -476,8 +476,8 @@ public sealed class AnoCorePlugin : BasePlugin
             _arcadeProbeEnabled = settings.ArcadeAnimationProbeEnabled;
             _casinoEnabled = settings.CasinoEnabled;
             _casinoMaximumStakes = (settings.CasinoMaximumStakes ?? throw new InvalidOperationException("CasinoMaximumStakes cannot be null.")).Validate();
-            if (settings.BiggestBoyMaximumStake is < 50 or > 10_000 || settings.BiggestBoyMaximumStake % 50 != 0)
-                throw new InvalidOperationException("BiggestBoyMaximumStake must be 50..10000 in steps of 50.");
+            if (!BiggestBoyStakeLimits.IsValid(settings.BiggestBoyMaximumStake))
+                throw new InvalidOperationException("BiggestBoyMaximumStake must be 50..100000 in steps of 50.");
             _biggestBoyMaximumStake = settings.BiggestBoyMaximumStake;
             if (settings.BiggestBoyLuckPercent is < 0 or > 100)
                 throw new InvalidOperationException("BiggestBoyLuckPercent must be between 0 and 100.");
