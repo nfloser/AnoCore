@@ -300,3 +300,15 @@ and Zahl images are unchanged. Recompile and update the existing `anomeme_ui`
 Workshop entry for this combined update, even though #512 alone needed no UI
 resource changes. Native two-throw acceptance for both final faces remains
 required; source tests cannot establish actual Panorama rendering.
+
+
+## Biggest Boy opening grid (#518)
+
+With no booked spin, opening or refreshing Biggest Boy shows five Biggest Boy
+wild sashes across the top, Kebap/G/O/A/T in the middle, and
+Cigarette/Funnel/Beer/Shot/Butter across the bottom. This is presentation only;
+accepted paid results and resumed free spins continue to show their stored grid.
+No odds, symbol roles, balances, stakes or sound settings change. Install the
+updated server plugin and restart; this change requires no Workshop rebuild.
+Native acceptance: open and refresh with no active round, then play and reopen
+an active bonus to verify the booked grid and locked stake are preserved.
