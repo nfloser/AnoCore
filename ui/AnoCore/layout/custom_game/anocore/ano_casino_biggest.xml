@@ -31,71 +31,141 @@
           <Panel class="book-reels" hittest="false">
             <Panel id="casino_round_bb_reel0" class="book-reel bb-reel bb-reel-0" hittest="false">
               <Panel class="bb-motion" hittest="false">
-                <Panel id="casino_round_bb_motion0_0" class="bb-symbol" hittest="false" />
-                <Panel id="casino_round_bb_motion0_1" class="bb-symbol" hittest="false" />
-                <Panel id="casino_round_bb_motion0_2" class="bb-symbol" hittest="false" />
-                <Panel id="casino_round_bb_motion0_3" class="bb-symbol" hittest="false" />
+                <Panel id="casino_round_bb_motion0_0" class="bb-symbol" hittest="false">
+                  <Label class="bb-book-label" text="BUCH" hittest="false" />
+                </Panel>
+                <Panel id="casino_round_bb_motion0_1" class="bb-symbol" hittest="false">
+                  <Label class="bb-book-label" text="BUCH" hittest="false" />
+                </Panel>
+                <Panel id="casino_round_bb_motion0_2" class="bb-symbol" hittest="false">
+                  <Label class="bb-book-label" text="BUCH" hittest="false" />
+                </Panel>
+                <Panel id="casino_round_bb_motion0_3" class="bb-symbol" hittest="false">
+                  <Label class="bb-book-label" text="BUCH" hittest="false" />
+                </Panel>
               </Panel>
               <Panel class="bb-final" hittest="false">
-                <Panel id="casino_round_bb_symbol0" class="bb-symbol" hittest="false" />
-                <Panel id="casino_round_bb_symbol1" class="bb-symbol" hittest="false" />
-                <Panel id="casino_round_bb_symbol2" class="bb-symbol" hittest="false" />
+                <Panel id="casino_round_bb_symbol0" class="bb-symbol" hittest="false">
+                  <Label class="bb-book-label" text="BUCH" hittest="false" />
+                </Panel>
+                <Panel id="casino_round_bb_symbol1" class="bb-symbol" hittest="false">
+                  <Label class="bb-book-label" text="BUCH" hittest="false" />
+                </Panel>
+                <Panel id="casino_round_bb_symbol2" class="bb-symbol" hittest="false">
+                  <Label class="bb-book-label" text="BUCH" hittest="false" />
+                </Panel>
               </Panel>
             </Panel>
             <Panel class="bb-divider" />
             <Panel id="casino_round_bb_reel1" class="book-reel bb-reel bb-reel-1" hittest="false">
               <Panel class="bb-motion" hittest="false">
-                <Panel id="casino_round_bb_motion1_0" class="bb-symbol" hittest="false" />
-                <Panel id="casino_round_bb_motion1_1" class="bb-symbol" hittest="false" />
-                <Panel id="casino_round_bb_motion1_2" class="bb-symbol" hittest="false" />
-                <Panel id="casino_round_bb_motion1_3" class="bb-symbol" hittest="false" />
+                <Panel id="casino_round_bb_motion1_0" class="bb-symbol" hittest="false">
+                  <Label class="bb-book-label" text="BUCH" hittest="false" />
+                </Panel>
+                <Panel id="casino_round_bb_motion1_1" class="bb-symbol" hittest="false">
+                  <Label class="bb-book-label" text="BUCH" hittest="false" />
+                </Panel>
+                <Panel id="casino_round_bb_motion1_2" class="bb-symbol" hittest="false">
+                  <Label class="bb-book-label" text="BUCH" hittest="false" />
+                </Panel>
+                <Panel id="casino_round_bb_motion1_3" class="bb-symbol" hittest="false">
+                  <Label class="bb-book-label" text="BUCH" hittest="false" />
+                </Panel>
               </Panel>
               <Panel class="bb-final" hittest="false">
-                <Panel id="casino_round_bb_symbol3" class="bb-symbol" hittest="false" />
-                <Panel id="casino_round_bb_symbol4" class="bb-symbol" hittest="false" />
-                <Panel id="casino_round_bb_symbol5" class="bb-symbol" hittest="false" />
+                <Panel id="casino_round_bb_symbol3" class="bb-symbol" hittest="false">
+                  <Label class="bb-book-label" text="BUCH" hittest="false" />
+                </Panel>
+                <Panel id="casino_round_bb_symbol4" class="bb-symbol" hittest="false">
+                  <Label class="bb-book-label" text="BUCH" hittest="false" />
+                </Panel>
+                <Panel id="casino_round_bb_symbol5" class="bb-symbol" hittest="false">
+                  <Label class="bb-book-label" text="BUCH" hittest="false" />
+                </Panel>
               </Panel>
             </Panel>
             <Panel class="bb-divider" />
             <Panel id="casino_round_bb_reel2" class="book-reel bb-reel bb-reel-2" hittest="false">
               <Panel class="bb-motion" hittest="false">
-                <Panel id="casino_round_bb_motion2_0" class="bb-symbol" hittest="false" />
-                <Panel id="casino_round_bb_motion2_1" class="bb-symbol" hittest="false" />
-                <Panel id="casino_round_bb_motion2_2" class="bb-symbol" hittest="false" />
-                <Panel id="casino_round_bb_motion2_3" class="bb-symbol" hittest="false" />
+                <Panel id="casino_round_bb_motion2_0" class="bb-symbol" hittest="false">
+                  <Label class="bb-book-label" text="BUCH" hittest="false" />
+                </Panel>
+                <Panel id="casino_round_bb_motion2_1" class="bb-symbol" hittest="false">
+                  <Label class="bb-book-label" text="BUCH" hittest="false" />
+                </Panel>
+                <Panel id="casino_round_bb_motion2_2" class="bb-symbol" hittest="false">
+                  <Label class="bb-book-label" text="BUCH" hittest="false" />
+                </Panel>
+                <Panel id="casino_round_bb_motion2_3" class="bb-symbol" hittest="false">
+                  <Label class="bb-book-label" text="BUCH" hittest="false" />
+                </Panel>
               </Panel>
               <Panel class="bb-final" hittest="false">
-                <Panel id="casino_round_bb_symbol6" class="bb-symbol" hittest="false" />
-                <Panel id="casino_round_bb_symbol7" class="bb-symbol" hittest="false" />
-                <Panel id="casino_round_bb_symbol8" class="bb-symbol" hittest="false" />
+                <Panel id="casino_round_bb_symbol6" class="bb-symbol" hittest="false">
+                  <Label class="bb-book-label" text="BUCH" hittest="false" />
+                </Panel>
+                <Panel id="casino_round_bb_symbol7" class="bb-symbol" hittest="false">
+                  <Label class="bb-book-label" text="BUCH" hittest="false" />
+                </Panel>
+                <Panel id="casino_round_bb_symbol8" class="bb-symbol" hittest="false">
+                  <Label class="bb-book-label" text="BUCH" hittest="false" />
+                </Panel>
               </Panel>
             </Panel>
             <Panel class="bb-divider" />
             <Panel id="casino_round_bb_reel3" class="book-reel bb-reel bb-reel-3" hittest="false">
               <Panel class="bb-motion" hittest="false">
-                <Panel id="casino_round_bb_motion3_0" class="bb-symbol" hittest="false" />
-                <Panel id="casino_round_bb_motion3_1" class="bb-symbol" hittest="false" />
-                <Panel id="casino_round_bb_motion3_2" class="bb-symbol" hittest="false" />
-                <Panel id="casino_round_bb_motion3_3" class="bb-symbol" hittest="false" />
+                <Panel id="casino_round_bb_motion3_0" class="bb-symbol" hittest="false">
+                  <Label class="bb-book-label" text="BUCH" hittest="false" />
+                </Panel>
+                <Panel id="casino_round_bb_motion3_1" class="bb-symbol" hittest="false">
+                  <Label class="bb-book-label" text="BUCH" hittest="false" />
+                </Panel>
+                <Panel id="casino_round_bb_motion3_2" class="bb-symbol" hittest="false">
+                  <Label class="bb-book-label" text="BUCH" hittest="false" />
+                </Panel>
+                <Panel id="casino_round_bb_motion3_3" class="bb-symbol" hittest="false">
+                  <Label class="bb-book-label" text="BUCH" hittest="false" />
+                </Panel>
               </Panel>
               <Panel class="bb-final" hittest="false">
-                <Panel id="casino_round_bb_symbol9" class="bb-symbol" hittest="false" />
-                <Panel id="casino_round_bb_symbol10" class="bb-symbol" hittest="false" />
-                <Panel id="casino_round_bb_symbol11" class="bb-symbol" hittest="false" />
+                <Panel id="casino_round_bb_symbol9" class="bb-symbol" hittest="false">
+                  <Label class="bb-book-label" text="BUCH" hittest="false" />
+                </Panel>
+                <Panel id="casino_round_bb_symbol10" class="bb-symbol" hittest="false">
+                  <Label class="bb-book-label" text="BUCH" hittest="false" />
+                </Panel>
+                <Panel id="casino_round_bb_symbol11" class="bb-symbol" hittest="false">
+                  <Label class="bb-book-label" text="BUCH" hittest="false" />
+                </Panel>
               </Panel>
             </Panel>
             <Panel class="bb-divider" />
             <Panel id="casino_round_bb_reel4" class="book-reel bb-reel bb-reel-4" hittest="false">
               <Panel class="bb-motion" hittest="false">
-                <Panel id="casino_round_bb_motion4_0" class="bb-symbol" hittest="false" />
-                <Panel id="casino_round_bb_motion4_1" class="bb-symbol" hittest="false" />
-                <Panel id="casino_round_bb_motion4_2" class="bb-symbol" hittest="false" />
-                <Panel id="casino_round_bb_motion4_3" class="bb-symbol" hittest="false" />
+                <Panel id="casino_round_bb_motion4_0" class="bb-symbol" hittest="false">
+                  <Label class="bb-book-label" text="BUCH" hittest="false" />
+                </Panel>
+                <Panel id="casino_round_bb_motion4_1" class="bb-symbol" hittest="false">
+                  <Label class="bb-book-label" text="BUCH" hittest="false" />
+                </Panel>
+                <Panel id="casino_round_bb_motion4_2" class="bb-symbol" hittest="false">
+                  <Label class="bb-book-label" text="BUCH" hittest="false" />
+                </Panel>
+                <Panel id="casino_round_bb_motion4_3" class="bb-symbol" hittest="false">
+                  <Label class="bb-book-label" text="BUCH" hittest="false" />
+                </Panel>
               </Panel>
               <Panel class="bb-final" hittest="false">
-                <Panel id="casino_round_bb_symbol12" class="bb-symbol" hittest="false" />
-                <Panel id="casino_round_bb_symbol13" class="bb-symbol" hittest="false" />
-                <Panel id="casino_round_bb_symbol14" class="bb-symbol" hittest="false" />
+                <Panel id="casino_round_bb_symbol12" class="bb-symbol" hittest="false">
+                  <Label class="bb-book-label" text="BUCH" hittest="false" />
+                </Panel>
+                <Panel id="casino_round_bb_symbol13" class="bb-symbol" hittest="false">
+                  <Label class="bb-book-label" text="BUCH" hittest="false" />
+                </Panel>
+                <Panel id="casino_round_bb_symbol14" class="bb-symbol" hittest="false">
+                  <Label class="bb-book-label" text="BUCH" hittest="false" />
+                </Panel>
               </Panel>
             </Panel>
           </Panel>
@@ -122,7 +192,7 @@
           <Label text="{s:text}" hittest="false" id="casino_round_biggest_spin_win" class="bb-hidden" />
           <Label text="{s:text}" hittest="false" id="casino_round_biggest_total_win" class="bb-hidden" />
         </Panel>
-        <Panel class="bb-rules" hittest="false">
+        <Panel class="bb-rules bb-biggest-rules" hittest="false">
           <Label text="GEWINNPLAN · 5×3 · 10 Linien · nur virtuelle Beträge" hittest="false" />
           <Label text="Liniengewinn = Einsatz ÷ 10 × Faktor. Drei, vier oder fünf passende Symbole von links. Pro Linie nur der höchste Gewinn; verschiedene Linien addieren sich." hittest="false" />
           <Label text="Biggest-Boy-Schärpe ist Wild, nie Scatter. Döner ist ein reguläres Gewinnsymbol. Süßilix ist ausschließlich Freispiel-Scatter." hittest="false" />
@@ -148,6 +218,14 @@
           <Label text="Linie 8: 2 – 1 – 2 – 3 – 2" hittest="false" />
           <Label text="Linie 9: 2 – 3 – 2 – 1 – 2" hittest="false" />
           <Label text="Linie 10: 1 – 2 – 2 – 2 – 3" hittest="false" />
+        </Panel>
+        <Panel class="bb-rules bb-book-rules" hittest="false">
+          <Label text="BOOK FREISPIELE · 5×3 · 10 Linien · nur virtuelle Beträge" hittest="false" />
+          <Label text="Bilder: Kirsche, Zitrone, Pflaume, Orange, Traube, Glocke, Sieben, Buch. Das Buch ist Scatter und Wild." hittest="false" />
+          <Label text="Drei oder mehr Bücher: 10 Freispiele. Bei erneuten drei Büchern: +5 Freispiele; höchstens 20 gleichzeitig und höchstens 30 insgesamt." hittest="false" />
+          <Label text="Ein Bonussymbol (außer Buch) wird zum Start zufällig festgelegt. Erscheint es während eines Freispiels auf einer Walze, expandiert es über die drei Felder." hittest="false" />
+          <Label text="Gewinne: Mindestens 3 gleiche von links auf einer der 10 Linien. Mehrere Linien addieren sich. Einsatz bleibt während der Freispielserie konstant." hittest="false" />
+          <Label text="Die gebuchten Gewinne werden während der Serie gesammelt und nach der letzten Freispielrunde ausgezahlt." hittest="false" />
         </Panel>
         <Label text="{s:text}" hittest="false" id="casino_round_detail" class="round-detail" />
         <Panel class="bb-controls">

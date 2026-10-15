@@ -1,4 +1,4 @@
-"""Generate v4-only native reels from authoritative C# data; never edit Book UI."""
+"""Generate a shared Biggest Boy / Book cabinet without changing the legacy Book layout."""
 from pathlib import Path
 import xml.etree.ElementTree as ET
 from audit_biggest_boy_expanding import profile
@@ -47,23 +47,28 @@ def generate():
         # Four bounded panels, updated from the frozen physical strip during the animation.
         motion = ET.SubElement(r,'Panel',{'class':'bb-motion','hittest':'false'})
         for row in range(4):
-            ET.SubElement(motion,'Panel',{'id':f'casino_round_bb_motion{reel}_{row}','class':'bb-symbol','hittest':'false'})
+            item = ET.SubElement(motion,'Panel',{'id':f'casino_round_bb_motion{reel}_{row}','class':'bb-symbol','hittest':'false'})
+            ET.SubElement(item,'Label',{'class':'bb-book-label','text':'BUCH','hittest':'false'})
         final = ET.SubElement(r,'Panel',{'class':'bb-final','hittest':'false'})
         for row in range(3):
-            ET.SubElement(final,'Panel',{'id':f'casino_round_bb_symbol{reel*3+row}','class':'bb-symbol','hittest':'false'})
+            item = ET.SubElement(final,'Panel',{'id':f'casino_round_bb_symbol{reel*3+row}','class':'bb-symbol','hittest':'false'})
+            ET.SubElement(item,'Label',{'class':'bb-book-label','text':'BUCH','hittest':'false'})
     bonus=panel(table,'bb-bonus-strip')
     for name,title in [('bb_remaining','FREISPIELE'),('bb_expanding','EXPANDING SYMBOL'),('bb_free_win','FREISPIELGEWINN'),('bb_series','SERIENGEWINN')]:
         c=panel(bonus,'bb-bonus-item');label(c,title);label(c,'{s:text}',name)
     for name in ['biggest_win','biggest_bonus','biggest_spin_win','biggest_total_win']:
         label(table,'{s:text}',name,'bb-hidden')
-    rules = ET.Element('Panel',{'class':'bb-rules','hittest':'false'})
+    rules = ET.Element('Panel',{'class':'bb-rules bb-biggest-rules','hittest':'false'})
     text=['GEWINNPLAN · 5×3 · 10 Linien · nur virtuelle Beträge','Liniengewinn = Einsatz ÷ 10 × Faktor. Drei, vier oder fünf passende Symbole von links. Pro Linie nur der höchste Gewinn; verschiedene Linien addieren sich.','Biggest-Boy-Schärpe ist Wild, nie Scatter. Döner ist ein reguläres Gewinnsymbol. Süßilix ist ausschließlich Freispiel-Scatter.']
     labels=['Döner','Bier','Zigarette','Butter','Shot','Trichter','G','O','A','T']
     text += [f'{name}: {p[0]}× / {p[1]}× / {p[2]}×' for name,p in zip(labels,pays)]
     text += ['3/4/5 Süßilix-Symbole: 10/15/20 Freispiele. Erneuter Trigger: +5, maximal 30 tatsächlich gespielte Freispiele. Ein reguläres Expanding Symbol wird beim Bonusstart gleichverteilt festgelegt und bleibt unverändert.','Trifft das Expanding Symbol eine Walze, füllt es genau drei Positionen. Linien werden einmal auf dem expandierten Feld ausgewertet. Scatter für Verlängerungen zählen vor der Expansion. Einsatz bleibt fest, Gesamtauszahlung am Rundenende.']
     text += [f'Linie {n+1}: '+' – '.join(str(x%3+1) for x in line) for n,line in enumerate(lines)]
     for t in text: ET.SubElement(rules,'Label',{'text':t,'hittest':'false'})
-    window.append(table);window.append(rules)
+    book_rules = ET.Element('Panel',{'class':'bb-rules bb-book-rules','hittest':'false'})
+    for text in ["BOOK FREISPIELE · 5×3 · 10 Linien · nur virtuelle Beträge","Bilder: Kirsche, Zitrone, Pflaume, Orange, Traube, Glocke, Sieben, Buch. Das Buch ist Scatter und Wild.","Drei oder mehr Bücher: 10 Freispiele. Bei erneuten drei Büchern: +5 Freispiele; höchstens 20 gleichzeitig und höchstens 30 insgesamt.","Ein Bonussymbol (außer Buch) wird zum Start zufällig festgelegt. Erscheint es während eines Freispiels auf einer Walze, expandiert es über die drei Felder.","Gewinne: Mindestens 3 gleiche von links auf einer der 10 Linien. Mehrere Linien addieren sich. Einsatz bleibt während der Freispielserie konstant.","Die gebuchten Gewinne werden während der Serie gesammelt und nach der letzten Freispielrunde ausgezahlt."]:
+        ET.SubElement(book_rules,'Label',{'text':text,'hittest':'false'})
+    window.append(table);window.append(rules);window.append(book_rules)
     label(window,'{s:text}','detail','round-detail')
     controls=panel(window,'bb-controls')
     stake=panel(controls,'bb-stake')
@@ -152,6 +157,7 @@ def generate():
 '''
     for i,name in enumerate(NAMES):
         css += f'.bb-symbol-{i} {{ background-image:url("s2r://panorama/styles/custom_game/anocore/casino/biggest_{name}.vtex"); }}\n'
+    css += "\n/* Book shares the bounded five-reel cabinet but always uses its original fruit textures. */\n.bb-v4.book-mode .bb-table { visibility:visible; }\n.bb-v4.book-mode.biggest-rules .bb-table { visibility:collapse; }\n.bb-v4.biggest-rules .bb-book-rules { visibility:collapse; }\n.bb-v4.book-mode.biggest-rules .bb-biggest-rules { visibility:collapse; }\n.bb-v4.book-mode.biggest-rules .bb-book-rules { visibility:visible; }\n.bb-book-label { visibility:collapse; }\n.bb-v4.book-mode .bb-symbol-7 .bb-book-label { visibility:visible; horizontal-align:center; vertical-align:center; font-size:25px; font-weight:bold; color:#754719; }\n.bb-v4.book-mode .bb-symbol-7 { background-image:none; background-color:#fff1bf; border:2px solid #bf8d35; }\n.bb-v4.book-mode .bb-symbol-0 { background-image:url(\"s2r://panorama/styles/custom_game/anocore/arcade/cherry.vtex\"); }\n.bb-v4.book-mode .bb-symbol-1 { background-image:url(\"s2r://panorama/styles/custom_game/anocore/arcade/lemon.vtex\"); }\n.bb-v4.book-mode .bb-symbol-2 { background-image:url(\"s2r://panorama/styles/custom_game/anocore/arcade/plum.vtex\"); }\n.bb-v4.book-mode .bb-symbol-3 { background-image:url(\"s2r://panorama/styles/custom_game/anocore/arcade/orange.vtex\"); }\n.bb-v4.book-mode .bb-symbol-4 { background-image:url(\"s2r://panorama/styles/custom_game/anocore/arcade/grapes.vtex\"); }\n.bb-v4.book-mode .bb-symbol-5 { background-image:url(\"s2r://panorama/styles/custom_game/anocore/arcade/bell.vtex\"); }\n.bb-v4.book-mode .bb-symbol-6 { background-image:url(\"s2r://panorama/styles/custom_game/anocore/arcade/seven.vtex\"); }\n.bb-v4.book-mode .bb-symbol.winning { border:3px solid #ff3030; }\n.bb-v4.book-mode .bb-symbol.active-line { border:4px solid #ff3030; }\n"
     (STYLE / 'ano_casino_biggest.css').write_text(css)
     descriptor=(STYLE / 'casino/biggest_kebap.vtex').read_text().replace('biggest_kebap.png','biggest_book.png')
     (STYLE / 'casino/biggest_book.vtex').write_text(descriptor)

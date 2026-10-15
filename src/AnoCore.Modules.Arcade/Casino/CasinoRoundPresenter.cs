@@ -107,7 +107,7 @@ public sealed class CasinoRoundPresenter : IDisposable
                 if (state.Pending || state.AnimatingUntil is not null) return;
                 if (state.Unconfirmed is not null && action is not ("retry" or "rules"))
                 { state.Status = "Unbestätigte Aktion: BUCHUNG PRÜFEN verwenden."; Render(state); return; }
-                if (action == "rules") { state.BiggestRules = !state.BiggestRules; state.Status = state.Game == CasinoRoundGame.BiggestBoy ? state.BiggestRules ? "Gewinnplan geöffnet · REGELN schließt die Ansicht" : "Gewinnplan geschlossen" : Rules(state.Game); Render(state); return; }
+                if (action == "rules") { state.BiggestRules = !state.BiggestRules; state.Status = state.Game is CasinoRoundGame.BiggestBoy or CasinoRoundGame.Book ? state.BiggestRules ? "Gewinnplan geöffnet · REGELN schließt die Ansicht" : "Gewinnplan geschlossen" : Rules(state.Game); Render(state); return; }
                 if (action is "minus" or "plus")
                 {
                     if (state.Round is { IsComplete: false }) return;
@@ -176,7 +176,8 @@ public sealed class CasinoRoundPresenter : IDisposable
                             }
                         state.BookSettles = 0; state.BookStops = 0;
                         state.WinCycle = 0; state.WinCycleAt = null;
-                        if (round is { Game: CasinoRoundGame.BiggestBoy } && Read<BiggestBoySpinResult>(round).State.RulesVersion == BiggestBoyExpandingRules.Version)
+                        if (round is { Game: CasinoRoundGame.Book } ||
+                            round is { Game: CasinoRoundGame.BiggestBoy } && Read<BiggestBoySpinResult>(round).State.RulesVersion == BiggestBoyExpandingRules.Version)
                         {
                             state.PreviousStops = previousStops.Length == 5 ? previousStops.ToArray() : new int[5];
                             Array.Fill(state.MotionProgress, -1);
@@ -186,7 +187,8 @@ public sealed class CasinoRoundPresenter : IDisposable
                         state.AnimationStartsAt = state.Game is CasinoRoundGame.Book or CasinoRoundGame.BiggestBoy
                             ? now.AddMilliseconds(200) : null;
                         var v4 = round is { Game: CasinoRoundGame.BiggestBoy } && Read<BiggestBoySpinResult>(round).State.RulesVersion == BiggestBoyExpandingRules.Version;
-                        state.AnimatingUntil = (state.AnimationStartsAt ?? now).AddSeconds(v4 ? 6.2 : state.Game == CasinoRoundGame.BiggestBoy ? 3.2 : state.Game == CasinoRoundGame.Book ? 3 : state.Game == CasinoRoundGame.Blackjack ? .95 : .65);
+                        state.AnimatingUntil = (state.AnimationStartsAt ?? now).AddSeconds(v4 || state.Game == CasinoRoundGame.Book
+                            ? BiggestBoyReelMotion.TotalDurationSeconds : state.Game == CasinoRoundGame.BiggestBoy ? 3.2 : state.Game == CasinoRoundGame.Blackjack ? .95 : .65);
                         state.Status = "Aktion gebucht · Animation läuft";
                     }
                 }
@@ -241,8 +243,9 @@ public sealed class CasinoRoundPresenter : IDisposable
             if (state.Hud == ExpandingHudId && state.AnimatingUntil is null && state.Round is { } won
                 && state.Visible && state.WinCycleAt is { } next && _clock.GetUtcNow() >= next)
             {
-                var wins = Read<BiggestBoySpinResult>(won).LineWins;
-                if (wins.Length > 1) { state.WinCycle = (state.WinCycle + 1) % wins.Length; state.WinCycleAt = _clock.GetUtcNow().AddSeconds(1.2); Render(state); }
+                var winCount = state.Game == CasinoRoundGame.Book
+                    ? Read<BonusSlotSpinResult>(won).LineWins.Length : Read<BiggestBoySpinResult>(won).LineWins.Length;
+                if (winCount > 1) { state.WinCycle = (state.WinCycle + 1) % winCount; state.WinCycleAt = _clock.GetUtcNow().AddSeconds(1.2); Render(state); }
                 else state.WinCycleAt = null;
             }
             if (state.AnimatingUntil is { } end && _clock.GetUtcNow() >= end)
@@ -252,7 +255,7 @@ public sealed class CasinoRoundPresenter : IDisposable
 
     private void Render(State state)
     {
-        var expanding = state.Game == CasinoRoundGame.BiggestBoy && (state.Round is null
+        var expanding = state.Game == CasinoRoundGame.Book || state.Game == CasinoRoundGame.BiggestBoy && (state.Round is null
             || Read<BiggestBoySpinResult>(state.Round).State.RulesVersion == BiggestBoyExpandingRules.Version);
         var desired = expanding ? ExpandingHudId : HudId;
         var changed = state.Hud != desired;
@@ -341,6 +344,10 @@ public sealed class CasinoRoundPresenter : IDisposable
 
     private void RenderExpanding(State state)
     {
+        if (state.Game == CasinoRoundGame.Book) { RenderBook(state); return; }
+        // Both modes use the same HUD, so explicitly discard Book skin when switching games.
+        Class(state, "root", "book-mode", false);
+        Class(state, "root", "view-book", false);
         var spin = state.Round is null ? null : Read<BiggestBoySpinResult>(state.Round);
         var moving = state.AnimatingUntil is not null;
         var rolling = moving && state.AnimationStartsAt is null;
@@ -380,7 +387,7 @@ public sealed class CasinoRoundPresenter : IDisposable
             // Movement is a bounded four-cell window. Every frame uses the original
             // physical strip and the server-booked stops, never a client RNG.
             var elapsed = moving && state.AnimatingUntil is { } finish
-                ? (_clock.GetUtcNow() - finish.AddSeconds(-6.2)).TotalSeconds : 0;
+                ? (_clock.GetUtcNow() - finish.AddSeconds(-BiggestBoyReelMotion.TotalDurationSeconds)).TotalSeconds : 0;
             var travelled = rolling ? BiggestBoyReelMotion.Travelled(previous, stop, elapsed, reel) : 0;
             if (state.MotionProgress[reel] != travelled)
             {
@@ -406,6 +413,81 @@ public sealed class CasinoRoundPresenter : IDisposable
                 Class(state, "bb_symbol" + cell, "winning", !moving && spin is not null && spin.LineWins.Any(w => BiggestBoyExpandingRules.Paylines[w.Payline].Take(w.MatchCount).Contains(cell)));
                 Class(state, "bb_symbol" + cell, "active-line", current is not null && BiggestBoyExpandingRules.Paylines[current.Payline].Take(current.MatchCount).Contains(cell));
                 Class(state, "bb_symbol" + cell, "expanded", !moving && spin is not null && spin.ExpandedReels.Contains(reel));
+            }
+        }
+    }
+
+
+    /// <summary>Book shares the native five-reel cabinet, but never changes Book payouts or symbol assets.</summary>
+    private void RenderBook(State state)
+    {
+        var spin = state.Round is null ? null : Read<BonusSlotSpinResult>(state.Round);
+        var moving = state.AnimatingUntil is not null;
+        var rolling = moving && state.AnimationStartsAt is null;
+        var active = state.Round is { IsComplete: false };
+        Class(state, "root", "view-biggestboy", false);
+        Class(state, "root", "view-book", true);
+        Class(state, "root", "book-mode", true);
+        Class(state, "root", "active", active);
+        Class(state, "root", "busy", state.Pending || moving);
+        Class(state, "root", "reels-armed", moving && !rolling);
+        Class(state, "root", "motion-a", rolling && state.Animation % 2 == 1);
+        Class(state, "root", "motion-b", rolling && state.Animation % 2 == 0);
+        Class(state, "root", "biggest-rules", state.BiggestRules);
+        Class(state, "root", "uncertain", state.Unconfirmed is not null);
+        Text(state, "title", "BOOK · FREISPIELE · 5×3");
+        Text(state, "account", Points(state.Balance.Available));
+        Text(state, "bankroll", Points(state.Balance.Allocated));
+        Text(state, "bankroll_footer", Points(state.Balance.Allocated));
+        Text(state, "stake", Points(active ? state.Round!.Stake : state.Stake));
+        Text(state, "status", state.StatusError || state.Unconfirmed is not null ? state.Status : "");
+        Text(state, "payout", moving ? "–" : Points(spin?.Payout ?? 0));
+        Text(state, "bb_remaining", (spin?.State.FreeSpinsRemaining ?? 0).ToString(CultureInfo.InvariantCulture));
+        Text(state, "bb_expanding", spin?.State.ExpandingSymbol is { } bonus ? SymbolName(bonus) : "–");
+        Text(state, "bb_free_win", moving ? "–" : Points(spin is { State.SpinsPlayed: > 1 } ? spin.Payout : 0));
+        Text(state, "bb_series", Points(spin?.State.TotalPayout ?? 0));
+        Text(state, "biggest_bonus", spin is null ? "Drei oder mehr Bücher starten Freispiele" :
+            $"{spin.State.FreeSpinsRemaining} Freispiele · gesammelt {Points(spin.State.TotalPayout)}");
+        Text(state, "biggest_win", moving ? "" : "SPINGEWINN: " + Points(spin?.Payout ?? 0));
+        Text(state, "biggest_spin_win", moving ? "" : Points(spin?.Payout ?? 0));
+        Text(state, "biggest_total_win", Points(spin?.State.TotalPayout ?? 0));
+        var current = !moving && spin is { LineWins.Length: > 0 } ? spin.LineWins[state.WinCycle % spin.LineWins.Length] : null;
+        Text(state, "detail", moving ? "" : current is not null
+            ? $"Liniengesamt: {Points(spin!.LineWins.Sum(x => x.Payout))} · Linie {current.Payline + 1}: {current.MatchCount}× {SymbolName(current.Symbol)} = {Points(current.Payout)}"
+            : spin is null ? Rules(CasinoRoundGame.Book) : $"Spingewinn: {Points(spin.Payout)} · kumuliert: {Points(spin.State.TotalPayout)}");
+
+        var elapsed = moving && state.AnimatingUntil is { } finish
+            ? (_clock.GetUtcNow() - finish.AddSeconds(-BiggestBoyReelMotion.TotalDurationSeconds)).TotalSeconds : 0;
+        for (var reel = 0; reel < 5; reel++)
+        {
+            var travelled = rolling ? BookReelMotion.Travelled(elapsed, reel) : 0;
+            if (state.MotionProgress[reel] != travelled)
+            {
+                state.MotionProgress[reel] = travelled;
+                if (rolling && travelled > 0) state.MotionFrames[reel]++;
+            }
+            var stopped = rolling && elapsed >= BiggestBoyReelMotion.Duration(reel);
+            Class(state, "bb_reel" + reel, "stopped", stopped);
+            Class(state, "bb_reel" + reel, "bb-step-a", rolling && !stopped && state.MotionFrames[reel] % 2 == 1);
+            Class(state, "bb_reel" + reel, "bb-step-b", rolling && !stopped && state.MotionFrames[reel] % 2 == 0 && travelled > 0);
+            for (var row = 0; row < 4; row++)
+            {
+                var visible = BookReelMotion.VisibleSymbol(reel, travelled, row);
+                for (var id = 0; id < 12; id++)
+                    Class(state, $"bb_motion{reel}_{row}", "bb-symbol-" + id, (int)visible == id);
+            }
+            for (var row = 0; row < 3; row++)
+            {
+                var cell = reel * 3 + row;
+                var actual = spin is null ? (BonusSlotSymbol)(cell % 8) : spin.Grid[cell];
+                for (var id = 0; id < 12; id++)
+                    Class(state, "bb_symbol" + cell, "bb-symbol-" + id, (int)actual == id);
+                Class(state, "bb_symbol" + cell, "winning", !moving && spin is not null &&
+                    spin.LineWins.Any(w => BonusSlotRules.Paylines[w.Payline].Take(w.MatchCount).Contains(cell)));
+                Class(state, "bb_symbol" + cell, "active-line", current is not null &&
+                    BonusSlotRules.Paylines[current.Payline].Take(current.MatchCount).Contains(cell));
+                Class(state, "bb_symbol" + cell, "expanded", !moving && spin?.State.ExpandingSymbol is { } symbol &&
+                    actual == symbol && Enumerable.Range(0, 3).All(r => spin.Grid[reel * 3 + r] == symbol));
             }
         }
     }

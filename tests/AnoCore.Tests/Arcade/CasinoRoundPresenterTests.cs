@@ -140,6 +140,7 @@ public sealed class CasinoRoundPresenterTests
         Assert.AreEqual(0, f.Hud.VisiblePlayers(CasinoRoundPresenter.HudId).Count);
         await f.Click("play");
         Assert.IsTrue(f.Class("reels-armed"));
+        Assert.IsFalse(f.Class("book-mode"));
         Assert.AreEqual("–", f.Text("payout"));
         Assert.AreEqual("", f.Text("detail"), "Rolling must not overwrite payout/details with status text.");
         Assert.AreEqual("", f.Text("status"));
@@ -171,8 +172,12 @@ public sealed class CasinoRoundPresenterTests
         Assert.AreEqual(calls, f.Rounds.Calls.Count, "Cycling winning lines must not replay a money action.");
         f.Rounds.Current = f.Rounds.Current! with { IsComplete = true };
         await f.Presenter.OpenAsync(Player, CasinoRoundGame.Book);
-        Assert.AreEqual(CasinoRoundPresenter.HudId, f.ActiveHud);
-        Assert.AreEqual(0, f.Hud.VisiblePlayers(CasinoRoundPresenter.ExpandingHudId).Count);
+        Assert.AreEqual(CasinoRoundPresenter.ExpandingHudId, f.ActiveHud);
+        Assert.IsTrue(f.Class("book-mode"));
+        Assert.AreEqual(0, f.Hud.VisiblePlayers(CasinoRoundPresenter.HudId).Count);
+        await f.Presenter.OpenAsync(Player, CasinoRoundGame.BiggestBoy);
+        Assert.AreEqual(CasinoRoundPresenter.ExpandingHudId, f.ActiveHud);
+        Assert.IsFalse(f.Class("book-mode"), "Book fruit skins must be cleared before returning to Biggest Boy.");
     }
 
     [TestMethod]
@@ -250,28 +255,46 @@ public sealed class CasinoRoundPresenterTests
     }
 
     [TestMethod]
-    public async Task BookSettlesBeforeEachStopAndResetsForNextFreeSpin()
+    public async Task BookSharesCabinet_StopsInVisible450MsOrder_AndPreservesBookedGrid()
     {
         using var f = await Fixture.Create();
         var spin = BonusSlotRules.StartRound(100, bound => bound - 1);
         f.Rounds.NextSnapshot = new(Guid.NewGuid(), Player, CasinoRoundGame.Book, 100, 1, false, 100, 0, JsonSerializer.Serialize(spin));
         await f.Presenter.OpenAsync(Player, CasinoRoundGame.Book);
+        Assert.AreEqual(CasinoRoundPresenter.ExpandingHudId, f.ActiveHud);
+        Assert.IsTrue(f.Class("book-mode"));
+        Assert.AreEqual("BOOK · FREISPIELE · 5×3", f.Text("title"));
         await f.Click("play");
-        f.Clock.AdvanceMilliseconds(1750); f.Presenter.Tick();
-        Assert.IsTrue(f.PanelClass("reel0", "settling"));
-        Assert.IsFalse(f.PanelClass("reel0", "stopped"));
-        Assert.IsFalse(f.PanelClass("reel1", "settling"));
-        f.Clock.AdvanceMilliseconds(450); f.Presenter.Tick();
-        Assert.IsTrue(f.PanelClass("reel0", "stopped"));
-        Assert.IsFalse(f.PanelClass("reel0", "settling"));
-        f.FinishAnimation();
-        await f.Click("free");
-        Assert.IsFalse(f.PanelClass("reel0", "stopped"));
-        Assert.IsFalse(f.PanelClass("reel0", "settling"));
         Assert.IsTrue(f.Class("reels-armed"));
         f.Clock.AdvanceMilliseconds(250); f.Presenter.Tick();
+        Assert.IsFalse(f.Class("reels-armed"));
+        Assert.IsTrue(f.Class("motion-a"));
+        for (var reel = 0; reel < 5; reel++)
+            for (var row = 0; row < 4; row++)
+                Assert.IsTrue(f.PanelClass($"bb_motion{reel}_{row}", "bb-symbol-"
+                    + (int)BookReelMotion.VisibleSymbol(reel, BookReelMotion.Travelled(.05, reel), row)));
+        f.Clock.AdvanceMilliseconds(1850); f.Presenter.Tick();
+        Assert.IsTrue(f.PanelClass("bb_reel0", "stopped"));
+        for (var reel = 1; reel < 5; reel++)
+            Assert.IsFalse(f.PanelClass("bb_reel" + reel, "stopped"));
+        f.Clock.AdvanceMilliseconds(450); f.Presenter.Tick();
+        Assert.IsTrue(f.PanelClass("bb_reel1", "stopped"));
+        Assert.IsFalse(f.PanelClass("bb_reel2", "stopped"));
+        f.Clock.AdvanceMilliseconds(450); f.Presenter.Tick();
+        Assert.IsTrue(f.PanelClass("bb_reel2", "stopped"));
+        Assert.IsFalse(f.PanelClass("bb_reel3", "stopped"));
+        f.FinishAnimation();
+        Assert.AreEqual(CasinoMoney.Format(spin.Payout), f.Text("payout"));
+        Assert.AreEqual(f.Text("bankroll"), f.Text("bankroll_footer"));
+        Assert.AreEqual(spin.State.FreeSpinsRemaining.ToString(), f.Text("bb_remaining"));
+        for (var cell = 0; cell < 15; cell++)
+            Assert.IsTrue(f.PanelClass("bb_symbol" + cell, "bb-symbol-" + (int)spin.Grid[cell]));
+        await f.Click("free");
+        Assert.IsTrue(f.Class("reels-armed"));
+        Assert.IsFalse(f.PanelClass("bb_reel0", "stopped"));
+        f.Clock.AdvanceMilliseconds(250); f.Presenter.Tick();
         Assert.IsTrue(f.Class("motion-b"));
-        Assert.AreEqual(2, f.Rounds.Calls.Count);
+        Assert.AreEqual(2, f.Rounds.Calls.Count, "Animation must never create a second booking.");
     }
 
     [TestMethod]
@@ -285,7 +308,7 @@ public sealed class CasinoRoundPresenterTests
             Assert.IsFalse(string.IsNullOrWhiteSpace(f.Text("detail")));
             if (game == CasinoRoundGame.Book)
                 for (var index = 0; index < 15; index++)
-                    Assert.IsFalse(string.IsNullOrWhiteSpace(f.Text("symbol" + index)));
+                    Assert.IsTrue(f.PanelClass("bb_symbol" + index, "bb-symbol-" + index % 8));
             Assert.AreEqual(0, f.Rounds.Calls.Count, "Opening a game must not place a stake.");
             f.Presenter.Close(Player);
         }
@@ -548,7 +571,7 @@ public sealed class CasinoRoundPresenterTests
         public string? Text(string panel) => Hud.Text(Player, ActiveHud, "casino_round_" + panel);
         public bool Class(string name) => Hud.Class(Player, ActiveHud, "casino_round_root", name);
         public bool PanelClass(string panel, string name) => Hud.Class(Player, ActiveHud, "casino_round_" + panel, name);
-        public void FinishAnimation() { if (ActiveHud == CasinoRoundPresenter.ExpandingHudId) Clock.AdvanceMilliseconds(6500); else Clock.Advance(); Presenter.Tick(); }
+        public void FinishAnimation() { if (ActiveHud == CasinoRoundPresenter.ExpandingHudId) Clock.AdvanceMilliseconds(4200); else Clock.Advance(); Presenter.Tick(); }
         public void Dispose() => Presenter.Dispose();
     }
 }

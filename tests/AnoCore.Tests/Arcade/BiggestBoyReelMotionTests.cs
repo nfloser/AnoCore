@@ -35,6 +35,25 @@ public sealed class BiggestBoyReelMotionTests
                 }
             }
         for (var reel = 1; reel < 5; reel++)
-            Assert.AreEqual(.2, BiggestBoyReelMotion.Duration(reel) - BiggestBoyReelMotion.Duration(reel - 1), .00001);
+            Assert.AreEqual(.45, BiggestBoyReelMotion.Duration(reel) - BiggestBoyReelMotion.Duration(reel - 1), .00001);
+        Assert.AreEqual(1.9, BiggestBoyReelMotion.Duration(0), .00001);
+        Assert.AreEqual(3.7, BiggestBoyReelMotion.Duration(4), .00001);
+        Assert.IsTrue(BiggestBoyReelMotion.TotalDurationSeconds > BiggestBoyReelMotion.Duration(4));
+    }
+    [TestMethod]
+    public void BookMotionLoopsExactlyEightExistingFruitsWithoutTouchingOutcome()
+    {
+        for (var reel = 0; reel < 5; reel++)
+        {
+            Assert.AreEqual(0, BookReelMotion.Travelled(-1, reel));
+            Assert.IsTrue(BookReelMotion.Travelled(BiggestBoyReelMotion.Duration(reel) / 2, reel) > 0);
+            for (var step = 0; step <= 72; step++)
+                for (var row = 0; row < 4; row++)
+                {
+                    var symbol = BookReelMotion.VisibleSymbol(reel, step, row);
+                    Assert.AreEqual((BonusSlotSymbol)((reel + step + row) % 8), symbol);
+                }
+        }
+        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => BookReelMotion.VisibleSymbol(5, 0, 0));
     }
 }
