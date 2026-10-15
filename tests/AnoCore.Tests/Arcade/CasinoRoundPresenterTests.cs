@@ -255,6 +255,34 @@ public sealed class CasinoRoundPresenterTests
     }
 
     [TestMethod]
+    [DataRow(CasinoRoundGame.Book)]
+    [DataRow(CasinoRoundGame.BiggestBoy)]
+    public async Task ReelStopSoundIsPrivateExactlyOncePerReelAndResetsOnNextSpin(CasinoRoundGame game)
+    {
+        using var f = await Fixture.Create();
+        var result = game == CasinoRoundGame.Book
+            ? JsonSerializer.Serialize(BonusSlotRules.StartRound(100, _ => 0))
+            : JsonSerializer.Serialize(BiggestBoyExpandingRules.StartRound(100, _ => 0));
+        f.Rounds.NextSnapshot = new(Guid.NewGuid(), Player, game, 100, 1, false, 100, 0, result);
+        await f.Presenter.OpenAsync(Player, game);
+        await f.Click("play");
+        f.Clock.AdvanceMilliseconds(1900); f.Presenter.Tick();
+        Assert.AreEqual(0, f.ReelClicks.Count, "No click before the first visual reel stops.");
+        f.Clock.AdvanceMilliseconds(250); f.Presenter.Tick();
+        Assert.AreEqual(1, f.ReelClicks.Count);
+        f.Presenter.Tick();
+        Assert.AreEqual(1, f.ReelClicks.Count, "Tick must not repeat the stop click.");
+        f.Clock.AdvanceMilliseconds(450); f.Presenter.Tick();
+        Assert.AreEqual(2, f.ReelClicks.Count);
+        f.FinishAnimation();
+        Assert.AreEqual(5, f.ReelClicks.Count);
+        Assert.IsTrue(f.ReelClicks.All(p => p == Player));
+        await f.Click("free");
+        f.Clock.AdvanceMilliseconds(2400); f.Presenter.Tick();
+        Assert.AreEqual(6, f.ReelClicks.Count, "A second spin must reset the sound latch.");
+    }
+
+    [TestMethod]
     public async Task BookSharesCabinet_StopsInVisible450MsOrder_AndPreservesBookedGrid()
     {
         using var f = await Fixture.Create();
@@ -549,6 +577,7 @@ public sealed class CasinoRoundPresenterTests
         public readonly Rounds Rounds;
         public int BeforeOpenCalls;
         public int BackCalls;
+        public readonly List<PlayerId> ReelClicks = [];
 
         private Fixture(CasinoStakeLimits? stakeLimits = null)
         {
@@ -556,7 +585,8 @@ public sealed class CasinoRoundPresenterTests
             Players = new(events);
             Rounds = new(Wallet);
             Presenter = new(Hud, Players, Permission, Wallet, Rounds, events, _ => BeforeOpenCalls++,
-                (_, _) => { BackCalls++; return ValueTask.CompletedTask; }, Clock, stakeLimits: stakeLimits);
+                (_, _) => { BackCalls++; return ValueTask.CompletedTask; }, Clock, stakeLimits: stakeLimits,
+                reelStopSound: playerId => ReelClicks.Add(playerId));
         }
 
         public static async Task<Fixture> Create(CasinoStakeLimits? stakeLimits = null)
