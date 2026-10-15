@@ -18,9 +18,12 @@ public sealed class ControlledSlotRulesTests
         Assert.AreEqual("anocore-biggest-boy-controlled-v6", spin.State.RulesVersion);
         var legacy = spin.State with
         {
-            RulesVersion = "anocore-biggest-boy-controlled-v5", FreeSpinsRemaining = 10,
-            FreeSpinsAwarded = 10, ExpandingSymbol = BiggestBoySymbol.Kebap,
-            TotalPayout = 0, OutcomeSettings = new(100, 0, 0)
+            RulesVersion = "anocore-biggest-boy-controlled-v5",
+            FreeSpinsRemaining = 10,
+            FreeSpinsAwarded = 10,
+            ExpandingSymbol = BiggestBoySymbol.Kebap,
+            TotalPayout = 0,
+            OutcomeSettings = new(100, 0, 0)
         };
         var resumed = ControlledSlotRules.Biggest(100, _ => 0, new(0, 100, 0), legacy);
         Assert.AreEqual(300000L, resumed.Payout);
@@ -37,8 +40,10 @@ public sealed class ControlledSlotRulesTests
         var first = ControlledSlotRules.Book(100, _ => 0, new(100, 100, 0));
         var legacy = first.State with
         {
-            RulesVersion = ControlledSlotRules.LegacyBookVersion, TotalPayout = 0,
-            ExpandingSymbol = BonusSlotSymbol.Seven, OutcomeSettings = new(100, 0, 0)
+            RulesVersion = ControlledSlotRules.LegacyBookVersion,
+            TotalPayout = 0,
+            ExpandingSymbol = BonusSlotSymbol.Seven,
+            OutcomeSettings = new(100, 0, 0)
         };
         int Seven(int bound) => bound == 7 ? 6 : 0;
         var resumed = ControlledSlotRules.Book(100, Seven, new(0, 100, 0), legacy);
