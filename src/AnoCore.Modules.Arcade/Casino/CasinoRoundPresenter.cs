@@ -23,6 +23,7 @@ public sealed class CasinoRoundPresenter : IDisposable
     private readonly ICasinoRounds _rounds;
     private readonly Action<PlayerId> _beforeOpen;
     private readonly Func<PlayerId, CancellationToken, ValueTask> _back;
+    private readonly Action<PlayerId>? _reelStopSound;
     private readonly TimeProvider _clock;
     private readonly int _biggestBoyMaximumStake;
     private readonly CasinoStakeLimits _stakeLimits;
@@ -35,11 +36,12 @@ public sealed class CasinoRoundPresenter : IDisposable
     public CasinoRoundPresenter(ICustomHudService hud, IPlayerRegistry players, IPermissionEvaluator permissions,
         ICasinoWallet wallet, ICasinoRounds rounds, IAnoEventBus events, Action<PlayerId> beforeOpen,
         Func<PlayerId, CancellationToken, ValueTask> back, TimeProvider? clock = null, int biggestBoyMaximumStake = BiggestBoyRules.MaximumStake,
-        string biggestBoyProfile = BiggestBoyProfiles.Standard, CasinoStakeLimits? stakeLimits = null)
+        string biggestBoyProfile = BiggestBoyProfiles.Standard, CasinoStakeLimits? stakeLimits = null,
+        Action<PlayerId>? reelStopSound = null)
     {
         _stakeLimits = (stakeLimits ?? new()).Validate();
         _hud = hud; _players = players; _permissions = permissions; _wallet = wallet; _rounds = rounds;
-        _beforeOpen = beforeOpen; _back = back; _clock = clock ?? TimeProvider.System;
+        _beforeOpen = beforeOpen; _back = back; _reelStopSound = reelStopSound; _clock = clock ?? TimeProvider.System;
         _biggestBoyProfile = BiggestBoyProfiles.Validate(biggestBoyProfile);
         _biggestBoyMaximumStake = Math.Clamp(biggestBoyMaximumStake, BiggestBoyRules.StakeSteps[0], BiggestBoyRules.MaximumStake);
         try
@@ -174,7 +176,7 @@ public sealed class CasinoRoundPresenter : IDisposable
                                 Class(state, "biggest_reel" + reel, "stopped", false);
                                 Class(state, "biggest_reel" + reel, "settling", false);
                             }
-                        state.BookSettles = 0; state.BookStops = 0;
+                        state.BookSettles = 0; state.BookStops = 0; state.SoundStops = 0;
                         state.WinCycle = 0; state.WinCycleAt = null;
                         if (round is { Game: CasinoRoundGame.Book } ||
                             round is { Game: CasinoRoundGame.BiggestBoy } && Read<BiggestBoySpinResult>(round).State.RulesVersion == BiggestBoyExpandingRules.Version)
@@ -236,6 +238,21 @@ public sealed class CasinoRoundPresenter : IDisposable
                         Class(state, reelId, "stopped", true);
                     }
                 }
+            // One click per reel when its visual reel actually stops, only to this
+            // player. A late Tick catches up missing stops once without replaying.
+            if (state.Hud == ExpandingHudId && state.AnimationStartsAt is null
+                && state.AnimatingUntil is { } soundEnd && state.Visible)
+            {
+                var motionStarted = soundEnd.AddSeconds(-BiggestBoyReelMotion.TotalDurationSeconds);
+                var elapsed = (_clock.GetUtcNow() - motionStarted).TotalSeconds;
+                for (var reel = 0; reel < 5; reel++)
+                {
+                    var bit = 1 << reel;
+                    if ((state.SoundStops & bit) != 0 || elapsed < BiggestBoyReelMotion.Duration(reel)) continue;
+                    state.SoundStops |= bit;
+                    _reelStopSound?.Invoke(state.Player.Id);
+                }
+            }
             // Four visible symbols per reel advance on a cyclic strip; no huge off-screen panels.
             if (state.Hud == ExpandingHudId && state.AnimationStartsAt is null
                 && state.AnimatingUntil is { } movingEnd && _clock.GetUtcNow() < movingEnd && state.Visible)
