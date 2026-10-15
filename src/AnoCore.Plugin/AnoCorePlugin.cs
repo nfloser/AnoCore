@@ -200,6 +200,7 @@ public sealed class AnoCorePlugin : BasePlugin
         RegisterLifecycleHooks();
 
         AddCommand("css_anostatus", "Show AnoCore runtime status", OnStatus);
+        AddCommand("css_casinosound", "Toggle your quiet casino reel click", OnCasinoSoundAlias);
         Server.NextWorldUpdate(BootstrapConnectedPlayers);
         _startup = new CancellationTokenSource();
         _runtimeStatus = "starting";
@@ -430,6 +431,52 @@ public sealed class AnoCorePlugin : BasePlugin
         DeregisterLifecycleHooks();
         _players = null;
         _eventBus = null;
+    }
+
+    // CounterStrikeSharp chat shortcut: !casinosound. AnoCore's logical registry
+    // enforces the ano* namespace, so its corresponding command is !anocasinosound.
+    private void OnCasinoSoundAlias(CCSPlayerController? player, CommandInfo command)
+    {
+        if (player is not { IsValid: true } || player.SteamID == 0)
+        {
+            command.ReplyToCommand("[ANO] Nur für verbundene Spieler.");
+            return;
+        }
+        if (command.ArgCount != 1)
+        {
+            command.ReplyToCommand("[ANO] Verwendung: !casinosound");
+            return;
+        }
+        if (_runtime is not { } runtime || _casinoSoundPreferences is null)
+        {
+            command.ReplyToCommand("[ANO] Casino nicht verfügbar.");
+            return;
+        }
+        var caller = new PlayerId(player.SteamID);
+        _ = ToggleCasinoSoundAliasAsync(runtime, player, caller, command.CallingContext);
+    }
+
+    private async Task ToggleCasinoSoundAliasAsync(RuntimeServices runtime,
+        CCSPlayerController player, PlayerId caller,
+        CounterStrikeSharp.API.Modules.Commands.CommandCallingContext callingContext)
+    {
+        try
+        {
+            var result = await runtime.Commands.ExecuteAsync("!anocasinosound", caller).ConfigureAwait(false);
+            Server.NextWorldUpdate(() =>
+            {
+                if (!ReferenceEquals(_runtime, runtime) || !player.IsValid
+                    || player.SteamID != caller.SteamId64) return;
+                if (callingContext == CounterStrikeSharp.API.Modules.Commands.CommandCallingContext.Console)
+                    player.PrintToConsole(result.Message ?? "[ANO] Casino-Walzensound aktualisiert.");
+                else
+                    player.PrintToChat(result.Message ?? "[ANO] Casino-Walzensound aktualisiert.");
+            });
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Casino sound toggle failed.");
+        }
     }
 
     private void OnStatus(CCSPlayerController? player, CommandInfo command)
