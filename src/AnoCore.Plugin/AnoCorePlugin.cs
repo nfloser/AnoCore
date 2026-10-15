@@ -106,6 +106,8 @@ public sealed class AnoCorePlugin : BasePlugin
     private CasinoStakeLimits _casinoMaximumStakes = new();
     private int _biggestBoyMaximumStake = 10_000;
     private string _biggestBoyProfile = BiggestBoyProfiles.Standard;
+    private SlotOutcomeSettings _biggestBoyOutcomes = new();
+    private SlotOutcomeSettings _bookOutcomes = new();
     private bool _casinoReelStopSoundEnabled = true;
     private CounterStrikeSharp.API.Modules.Timers.Timer? _arcadeProbeTimer;
     private bool _tournamentDashboardEnabled;
@@ -482,6 +484,8 @@ public sealed class AnoCorePlugin : BasePlugin
             _biggestBoyProfile = settings.BiggestBoyLuckPercent == 0
                 ? BiggestBoyProfiles.Validate(settings.BiggestBoyProfile)
                 : BiggestBoyProfiles.Validate("lucky:" + settings.BiggestBoyLuckPercent.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            _biggestBoyOutcomes = settings.BiggestBoyOutcomes.Validate();
+            _bookOutcomes = settings.BookOutcomes.Validate();
             _casinoReelStopSoundEnabled = settings.CasinoReelStopSoundEnabled;
             if (_casinoEnabled && !settings.PanoramaMenusEnabled) throw new InvalidOperationException("CasinoEnabled requires PanoramaMenusEnabled.");
             if (_arcadeProbeEnabled && !_panoramaMenusEnabled)
@@ -1254,7 +1258,7 @@ public sealed class AnoCorePlugin : BasePlugin
                         openRound: (playerId, game, token) => casinoRounds!.OpenAsync(playerId, game, token),
                         reportError: exception => Logger.LogError(exception, "Casino persistence command failed."), stakeLimits: _casinoMaximumStakes);
                     casinoRounds = new CasinoRoundPresenter(_customHud, runtime.Players, runtime.Authorization,
-                        wallet, new CasinoRoundService(new MySqlCasinoRoundStore(casinoDatabase), _biggestBoyMaximumStake, _biggestBoyProfile, _casinoMaximumStakes), _eventBus!,
+                        wallet, new CasinoRoundService(new MySqlCasinoRoundStore(casinoDatabase), _biggestBoyMaximumStake, _biggestBoyProfile, _casinoMaximumStakes, _biggestBoyOutcomes, _bookOutcomes), _eventBus!,
                         playerId => casino.CloseForPlayer(playerId), async (playerId, token) =>
                         {
                             await runtime.Commands.ExecuteAsync("!anocasino", playerId, token).ConfigureAwait(false);
@@ -1266,7 +1270,7 @@ public sealed class AnoCorePlugin : BasePlugin
                             {
                                 var listener = CounterStrikeSharp.API.Utilities.GetPlayerFromSteamId(playerId.SteamId64);
                                 if (listener is { IsValid: true })
-                                    listener.ExecuteClientCommand("play sounds/ui/counter_beep.vsnd");
+                                    listener.ExecuteClientCommand("playvol sounds/ui/counter_beep.vsnd 0.12");
                             }
                             catch (Exception exception)
                             {
@@ -2000,6 +2004,8 @@ public sealed class AnoCorePlugin : BasePlugin
         public int BiggestBoyMaximumStake { get; set; } = 10_000;
         public string BiggestBoyProfile { get; set; } = BiggestBoyProfiles.Standard;
         public int BiggestBoyLuckPercent { get; set; }
+        public SlotOutcomeSettings BiggestBoyOutcomes { get; set; } = new();
+        public SlotOutcomeSettings BookOutcomes { get; set; } = new();
         public bool CasinoReelStopSoundEnabled { get; set; } = true;
 
         // Requires the compiled ano_tournament.xml in the mounted Workshop addon.

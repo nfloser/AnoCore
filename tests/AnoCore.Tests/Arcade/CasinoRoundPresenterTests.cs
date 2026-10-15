@@ -15,6 +15,53 @@ public sealed class CasinoRoundPresenterTests
     private static readonly PlayerId Player = new(76561198000911901);
 
     [TestMethod]
+    public async Task SoundToggleIsPerSessionAndDoesNotBookOrReplayStops()
+    {
+        using var f = await Fixture.Create();
+        var spin = ControlledSlotRules.Biggest(100, new Random(509).Next, new(100, 0, 100));
+        f.Rounds.NextSnapshot = new(Guid.NewGuid(), Player, CasinoRoundGame.BiggestBoy, 100, 1, true,
+            100, spin.Payout, JsonSerializer.Serialize(spin));
+        await f.Presenter.OpenAsync(Player, CasinoRoundGame.BiggestBoy);
+        Assert.AreEqual("WALZENTON: AN", f.Text("sound_text"));
+        await f.Click("sound");
+        Assert.AreEqual("WALZENTON: AUS", f.Text("sound_text"));
+        Assert.AreEqual(0, f.Rounds.Calls.Count);
+        await f.Click("play");
+        f.FinishAnimation();
+        Assert.AreEqual(0, f.ReelClicks.Count);
+        Assert.IsTrue(f.Text("detail")!.Contains("VOLLBILD!", StringComparison.Ordinal));
+        await f.Click("sound");
+        await f.Click("play");
+        f.FinishAnimation();
+        Assert.AreEqual(5, f.ReelClicks.Count);
+        f.Presenter.Tick();
+        Assert.AreEqual(5, f.ReelClicks.Count);
+    }
+
+    [TestMethod]
+    [DataRow(CasinoRoundGame.BiggestBoy)]
+    [DataRow(CasinoRoundGame.Book)]
+    public async Task StakeRemainsLockedDuringBonusAndUnlocksAfterFinalSpin(CasinoRoundGame game)
+    {
+        using var f = await Fixture.Create();
+        var rng = new Random(7);
+        var json = game == CasinoRoundGame.BiggestBoy
+            ? JsonSerializer.Serialize(ControlledSlotRules.Biggest(100, rng.Next, new(0, 100, 0)))
+            : JsonSerializer.Serialize(ControlledSlotRules.Book(100, rng.Next, new(0, 100, 0)));
+        f.Rounds.NextSnapshot = new(Guid.NewGuid(), Player, game, 100, 1, false, 100, 0, json);
+        await f.Presenter.OpenAsync(Player, game);
+        await f.Click("play");
+        f.FinishAnimation();
+        await f.Click("plus");
+        Assert.AreEqual("100 €", f.Text("stake"));
+        f.Rounds.NextSnapshot = f.Rounds.Current! with { Revision = 2, IsComplete = true };
+        await f.Click("free");
+        f.FinishAnimation();
+        await f.Click("plus");
+        Assert.AreEqual(game == CasinoRoundGame.BiggestBoy ? "250 €" : "150 €", f.Text("stake"));
+    }
+
+    [TestMethod]
     public async Task RoundControlsUseEachConfiguredMaximum()
     {
         using var f = await Fixture.Create(new() { Blackjack = 1000, Risk = 50 });
