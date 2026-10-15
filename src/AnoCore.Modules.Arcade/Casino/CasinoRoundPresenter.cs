@@ -81,6 +81,7 @@ public sealed class CasinoRoundPresenter : IDisposable
                 state.Stake = state.Round?.Stake ?? (state.Game == CasinoRoundGame.BiggestBoy ? BiggestBoyRules.ClampStakeToConfiguredMaximum(state.Stake, _biggestBoyMaximumStake) : Math.Min(state.Stake, _stakeLimits.For(state.Game)));
                 state.Balance = balance; state.Visible = true; state.Pending = false;
                 state.Status = round is { IsComplete: false } ? "Gespeicherte Runde fortsetzen" : "Einsatz wählen und Runde starten";
+                state.StatusError = false;
                 _beforeOpen(player); Render(state);
                 return _hud.Show(player, state.Hud);
             }
@@ -125,6 +126,7 @@ public sealed class CasinoRoundPresenter : IDisposable
                 else if (state.Round is { IsComplete: false } activeRound && ParseAction(action) is { } roundAction)
                     operation = new(Guid.NewGuid(), context.PlayerId, activeRound.Id, activeRound.Game, roundAction, activeRound.Stake, activeRound.Revision);
                 if (operation is null && action != "refresh") return;
+                state.StatusError = false;
                 state.Pending = true;
                 if (operation is not null) state.Unconfirmed = operation;
                 Render(state);
@@ -145,6 +147,7 @@ public sealed class CasinoRoundPresenter : IDisposable
                 var previousStops = previousSpin?.State.RulesVersion == BiggestBoyExpandingRules.Version
                     ? previousSpin.Stops : ImmutableArray<int>.Empty;
                 state.Round = round; state.Balance = balance;
+                state.StatusError = false;
                 if (round is not null)
                 {
                     state.Game = round.Game;
@@ -174,7 +177,11 @@ public sealed class CasinoRoundPresenter : IDisposable
                         state.BookSettles = 0; state.BookStops = 0;
                         state.WinCycle = 0; state.WinCycleAt = null;
                         if (round is { Game: CasinoRoundGame.BiggestBoy } && Read<BiggestBoySpinResult>(round).State.RulesVersion == BiggestBoyExpandingRules.Version)
+                        {
                             state.PreviousStops = previousStops.Length == 5 ? previousStops.ToArray() : new int[5];
+                            Array.Fill(state.MotionProgress, -1);
+                            Array.Fill(state.MotionFrames, 0);
+                        }
                         var now = _clock.GetUtcNow();
                         state.AnimationStartsAt = state.Game is CasinoRoundGame.Book or CasinoRoundGame.BiggestBoy
                             ? now.AddMilliseconds(200) : null;
@@ -193,6 +200,7 @@ public sealed class CasinoRoundPresenter : IDisposable
                 if (ex is ArgumentException or CasinoRejectedException) state.Unconfirmed = null;
                 state.Status = ex is ArgumentException or CasinoRejectedException ? ex.Message
                     : "Buchung unbestätigt. BUCHUNG PRÜFEN verwendet dieselbe Aktions-ID.";
+                state.StatusError = true;
             }
         }
         finally { lock (_gate) { state.Pending = false; if (Current(state) && state.Visible) Render(state); } }
@@ -226,6 +234,10 @@ public sealed class CasinoRoundPresenter : IDisposable
                         Class(state, reelId, "stopped", true);
                     }
                 }
+            // Four visible symbols per reel advance on a cyclic strip; no huge off-screen panels.
+            if (state.Hud == ExpandingHudId && state.AnimationStartsAt is null
+                && state.AnimatingUntil is { } movingEnd && _clock.GetUtcNow() < movingEnd && state.Visible)
+                Render(state);
             if (state.Hud == ExpandingHudId && state.AnimatingUntil is null && state.Round is { } won
                 && state.Visible && state.WinCycleAt is { } next && _clock.GetUtcNow() >= next)
             {
@@ -342,9 +354,11 @@ public sealed class CasinoRoundPresenter : IDisposable
         Class(state, "root", "uncertain", state.Unconfirmed is not null);
         Text(state, "title", "BIGGEST BOY · 5×3");
         Text(state, "account", Points(state.Balance.Available)); Text(state, "bankroll", Points(state.Balance.Allocated));
-        Text(state, "stake", Points(active ? state.Round!.Stake : state.Stake)); Text(state, "status", state.Status);
-        Text(state, "payout", moving ? "WALZEN LAUFEN …" : Points(spin?.Payout ?? 0));
-        Text(state, "biggest_win", moving ? "WALZEN LAUFEN …" : "SPINGEWINN GESAMT: " + Points(spin?.Payout ?? 0)
+        Text(state, "stake", Points(active ? state.Round!.Stake : state.Stake));
+        Text(state, "status", state.StatusError || state.Unconfirmed is not null ? state.Status : "");
+        Text(state, "bankroll_footer", Points(state.Balance.Allocated));
+        Text(state, "payout", moving ? "–" : Points(spin?.Payout ?? 0));
+        Text(state, "biggest_win", moving ? "" : "SPINGEWINN GESAMT: " + Points(spin?.Payout ?? 0)
             + (spin is { State.SpinsPlayed: > 1 } ? " · Freispiel: " + Points(spin.Payout) : ""));
         Text(state, "biggest_spin_win", "Liniengewinn: " + (moving ? "–" : Points(spin?.LineWins.Sum(x => x.Payout) ?? 0))
             + " · Freispiel aktuell: " + (moving ? "–" : Points(spin is { State.SpinsPlayed: > 1 } ? spin.Payout : 0)));
@@ -356,16 +370,34 @@ public sealed class CasinoRoundPresenter : IDisposable
         Text(state, "bb_free_win", moving ? "–" : Points(spin is { State.SpinsPlayed: > 1 } ? spin.Payout : 0));
         Text(state, "bb_series", Points(spin?.State.BonusPayout ?? 0));
         var current = !moving && spin is { LineWins.Length: > 0 } ? spin.LineWins[state.WinCycle % spin.LineWins.Length] : null;
-        Text(state, "detail", moving ? "Walzen laufen …" : current is not null
+        Text(state, "detail", moving ? "" : current is not null
             ? $"Liniengesamt: {Points(spin!.LineWins.Sum(x => x.Payout))} · Linie {current.Payline + 1}: {current.MatchCount}× {BiggestName(current.Symbol)} = {Points(current.Payout)} · {spin.LineWins.Length} Gewinnlinien"
             : spin is null ? "3/4/5 Süßilix: 10/15/20 Freispiele · Schärpe ist Wild · Profil: " + _biggestBoyProfile : "Kein Liniengewinn in diesem Spin");
         for (var reel = 0; reel < 5; reel++)
         {
             var previous = state.PreviousStops[reel];
             var stop = spin is null ? 0 : spin.Stops[reel];
-            var distance = BiggestBoyReelMotion.Steps(previous, stop);
-            for (var bit = 0; bit < 7; bit++) Class(state, $"bb_offset{reel}_{bit}", "shifted", (previous & (1 << bit)) != 0);
-            for (var d = 30; d <= 129; d++) Class(state, "bb_reel" + reel, "bb-distance-" + d, distance == d);
+            // Movement is a bounded four-cell window. Every frame uses the original
+            // physical strip and the server-booked stops, never a client RNG.
+            var elapsed = moving && state.AnimatingUntil is { } finish
+                ? (_clock.GetUtcNow() - finish.AddSeconds(-6.2)).TotalSeconds : 0;
+            var travelled = rolling ? BiggestBoyReelMotion.Travelled(previous, stop, elapsed, reel) : 0;
+            if (state.MotionProgress[reel] != travelled)
+            {
+                state.MotionProgress[reel] = travelled;
+                if (rolling && travelled > 0) state.MotionFrames[reel]++;
+            }
+            var stopped = rolling && elapsed >= BiggestBoyReelMotion.Duration(reel);
+            Class(state, "bb_reel" + reel, "stopped", stopped);
+            Class(state, "bb_reel" + reel, "bb-step-a", rolling && !stopped && state.MotionFrames[reel] % 2 == 1);
+            Class(state, "bb_reel" + reel, "bb-step-b", rolling && !stopped && state.MotionFrames[reel] % 2 == 0 && travelled > 0);
+            for (var row = 0; row < 4; row++)
+            {
+                var index = BiggestBoyReelMotion.VisibleIndex(previous, travelled, row);
+                var symbol = BiggestBoyExpandingRules.ReelStrips[reel][index];
+                for (var id = 0; id < 12; id++)
+                    Class(state, $"bb_motion{reel}_{row}", "bb-symbol-" + id, (int)symbol == id);
+            }
             for (var row = 0; row < 3; row++)
             {
                 var cell = reel * 3 + row;
@@ -516,6 +548,8 @@ public sealed class CasinoRoundPresenter : IDisposable
         public PlayerSnapshot Player { get; } = player;
         public CustomHudId Hud { get; set; } = HudId;
         public int[] PreviousStops { get; set; } = new int[5];
+        public int[] MotionProgress { get; } = [-1, -1, -1, -1, -1];
+        public int[] MotionFrames { get; } = new int[5];
         public int WinCycle { get; set; }
         public DateTimeOffset? WinCycleAt { get; set; }
         public CasinoRoundGame Game { get; set; } = game;
@@ -534,5 +568,6 @@ public sealed class CasinoRoundPresenter : IDisposable
         public Dictionary<string, string> Cards { get; } = [];
         public Dictionary<(string Id, string Name), bool> Classes { get; } = [];
         public string Status { get; set; } = "";
+        public bool StatusError { get; set; }
     }
 }
