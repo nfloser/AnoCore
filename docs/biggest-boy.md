@@ -210,3 +210,35 @@ Snapshot-Defaults, Profilwechsel bei laufenden Boni, AP-Abrechnung, zyklische
 Stopps, 15 Zellen, vier feste Trennlinien und reproduzierbare UI-Generierung ab.
 Native FPS, Panorama-Kompilierung und visuelle CS2-Abnahme können nur mit den
 Valve-Werkzeugen und dem Client bestätigt werden.
+
+## Native UI-Korrektur: leere Walzen (#501)
+
+Nach dem CS2-Test mit leeren Feldern **während** der Drehung ersetzt die v4-UI
+den ursprünglich 303 Zellen langen, über 48.000 px hohen Bewegungsstreifen
+durch vier sichtbare Bildfelder pro Walze. Die Anzeige wird im vorhandenen
+Presenter-Tick entlang derselben unveränderlichen 100er-Walzenfolgen
+fortgeschaltet. Der gebuchte Stopp und die 15 Ergebnisbilder bleiben
+ausschließlich serverseitig festgelegt; Darstellung, RNG, Bonus und
+Auszahlung sind getrennt. Die Walzen enden weiterhin um je 200 ms versetzt.
+
+Profilkonto und Automatenguthaben haben eigene umrahmte Anzeigeflächen.
+Unten stehen Einsatz, Rundengewinn, Automatenguthaben und Drehen nebeneinander.
+Gewinnende Symbole haben einen klar roten Rand; Titel und Zahlen sind
+zentriert. Der unspezifische Text »Walzen laufen« in der Gewinn-/Detailanzeige
+ist entfernt. Buchungsfehler und unsichere Aktionen bleiben sichtbar.
+
+Der Generator `tools/generate_biggest_boy_ui.py` erzeugt weiterhin reproduzierbar
+XML und CSS; `tests/operator/test_biggest_boy_expanding.py` prüft die
+begrenzte Geometrie, und `BiggestBoyReelMotionTests` prüft alle 10.000
+Kombinationen von Start-/Zielstopps samt vier sichtbaren Bildpositionen
+und Nachbarübergängen.
+
+**Abnahme auf dem Testserver ist noch offen:** zunächst zwei bezahlte
+Drehungen mit unterschiedlichen Ergebnissen prüfen, dabei auf sichtbare
+Symbole während der gesamten Drehung, den vier Zeichenwechseln pro
+Walzenfenster, gestaffelte Stopps und rote Gewinnrahmen achten. Danach
+eine Bonusserie inklusive Kontostand, Schließen und Wiederöffnen prüfen.
+Der rein textuelle Quell-/Generatorcheck beweist die native Valve-Darstellung
+noch nicht. Neue nachträglich erzeugte Grafiken dürfen erst als tatsächlich
+vorliegende, geprüfte PNG/VTEX-Paare gegen die älteren Quelldateien
+ausgetauscht werden; keine stillen Fallbacks auf alte Symbole.
