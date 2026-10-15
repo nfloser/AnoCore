@@ -107,6 +107,7 @@ public sealed class AnoCorePlugin : BasePlugin
     private int _biggestBoyMaximumStake = 10_000;
     private string _biggestBoyProfile = BiggestBoyProfiles.Standard;
     private bool _casinoReelStopSoundEnabled = true;
+    private CasinoSoundPreferences? _casinoSoundPreferences;
     private CounterStrikeSharp.API.Modules.Timers.Timer? _arcadeProbeTimer;
     private bool _tournamentDashboardEnabled;
     private TournamentMatchRuntime? _tournamentMatch;
@@ -313,6 +314,8 @@ public sealed class AnoCorePlugin : BasePlugin
             _casino = null;
             _casinoRounds?.Dispose();
             _casinoRounds = null;
+            _casinoSoundPreferences?.Dispose();
+            _casinoSoundPreferences = null;
             _arcadeProbeTimer?.Kill();
             _arcadeProbeTimer = null;
             _arcadeProbe?.Dispose();
@@ -1195,6 +1198,7 @@ public sealed class AnoCorePlugin : BasePlugin
             TournamentEventCommandController? tournamentEventCommands = null;
             CasinoPresenter? casino = null;
             CasinoRoundPresenter? casinoRounds = null;
+            CasinoSoundPreferences? casinoSound = null;
             CounterStrikeSharp.API.Modules.Timers.Timer? casinoTimer = null;
             ArcadeProbePresenter? arcadeProbe = null;
             CounterStrikeSharp.API.Modules.Timers.Timer? arcadeProbeTimer = null;
@@ -1241,6 +1245,8 @@ public sealed class AnoCorePlugin : BasePlugin
                 if (_casinoEnabled && _customHud is not null)
                 {
                     var casinoDatabase = (IDatabase)runtime.GetService(typeof(IDatabase))!;
+                    casinoSound = new CasinoSoundPreferences(runtime.Commands, runtime.ToggleCatalog,
+                        runtime.Settings, runtime.Players, _eventBus!);
                     var wallet = new MySqlCasinoWallet(casinoDatabase, _casinoMaximumStakes);
                     casino = new CasinoPresenter(_customHud, runtime.Players, runtime.Authorization,
                         wallet, runtime.Commands, _eventBus!, playerId =>
@@ -1251,7 +1257,16 @@ public sealed class AnoCorePlugin : BasePlugin
                             presenter.Reconcile();
                             _arcadeProbe?.CloseForPlayer(playerId);
                         },
-                        openRound: (playerId, game, token) => casinoRounds!.OpenAsync(playerId, game, token),
+                        openRound: async (playerId, game, token) =>
+                        {
+                            try { await casinoSound!.RefreshAsync(playerId, token).ConfigureAwait(false); }
+                            catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
+                            catch (Exception exception)
+                            {
+                                Logger.LogWarning(exception, "Casino sound preference unavailable; this round will be silent.");
+                            }
+                            return await casinoRounds!.OpenAsync(playerId, game, token).ConfigureAwait(false);
+                        },
                         reportError: exception => Logger.LogError(exception, "Casino persistence command failed."), stakeLimits: _casinoMaximumStakes);
                     casinoRounds = new CasinoRoundPresenter(_customHud, runtime.Players, runtime.Authorization,
                         wallet, new CasinoRoundService(new MySqlCasinoRoundStore(casinoDatabase), _biggestBoyMaximumStake, _biggestBoyProfile, _casinoMaximumStakes), _eventBus!,
@@ -1261,12 +1276,18 @@ public sealed class AnoCorePlugin : BasePlugin
                         }, biggestBoyMaximumStake: _biggestBoyMaximumStake, biggestBoyProfile: _biggestBoyProfile, stakeLimits: _casinoMaximumStakes,
                         reelStopSound: playerId =>
                         {
-                            if (!_casinoReelStopSoundEnabled) return;
+                            if (!_casinoReelStopSoundEnabled || casinoSound is null || !casinoSound.IsEnabled(playerId)) return;
                             try
                             {
                                 var listener = CounterStrikeSharp.API.Utilities.GetPlayerFromSteamId(playerId.SteamId64);
                                 if (listener is { IsValid: true })
-                                    listener.ExecuteClientCommand("play sounds/ui/counter_beep.vsnd");
+                                {
+                                    var recipients = new CounterStrikeSharp.API.Modules.Utils.RecipientFilter();
+                                    recipients.Add(listener);
+                                    // Fixed quiet game volume; do not change the player's global snd_toolvolume.
+                                    listener.EmitSound(CasinoSoundPreferences.ReelClickEvent, recipients,
+                                        CasinoSoundPreferences.ReelClickVolume);
+                                }
                             }
                             catch (Exception exception)
                             {
@@ -1746,6 +1767,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 _tournamentEventCommands = tournamentEventCommands;
                 _casino = casino;
                 _casinoRounds = casinoRounds;
+                _casinoSoundPreferences = casinoSound;
                 _casinoTimer = casinoTimer;
                 _arcadeProbe = arcadeProbe;
                 _arcadeProbeTimer = arcadeProbeTimer;
@@ -1849,6 +1871,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 casinoTimer?.Kill();
                 casino?.Dispose();
                 casinoRounds?.Dispose();
+                casinoSound?.Dispose();
                 arcadeProbeTimer?.Kill();
                 arcadeProbe?.Dispose();
                 tournamentPanorama?.Dispose();
