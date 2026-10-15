@@ -319,3 +319,76 @@ Buchungsanzahl, Wechselphasen, Originaldateien, beide Buildpfade, voneinander
 unabhängige Einsatzgrenzen, größere Auszahlungen und Restore/Replay bei reduzierten
 Grenzen. Native Valve-Kompilierung und Sichtprüfung im CS2-Client bleiben vor
 Workshop-Veröffentlichung erforderlich.
+
+## Glücksregler, native Walzen-Klicks und Kokosnuss für Book (#506)
+
+In `addons/counterstrikesharp/plugins/AnoCore/config/core.json` kann ein
+Serverbetreiber **einen numerischen Glückswert zwischen 0 und 100**
+konfigurieren (zusätzliche vorhandene Einstellungen beibehalten):
+
+```json
+{
+  "BiggestBoyProfile": "standard",
+  "BiggestBoyLuckPercent": 85,
+  "CasinoReelStopSoundEnabled": true
+}
+```
+
+- **0** verwendet das vorhandene Profil (standard/frequent/generous)
+  **unverändert**, ohne zusätzliche RNG-Aufrufe.
+- **1–99**: mit genau dieser Wahrscheinlichkeit wird bei jedem Spin eine
+  bestimmte vorhandene und mathematisch zulässige 5-Walzen-Position gezogen,
+  auf der mindestens ein **5er-Liniengewinn** und **drei Scatter** auftreten.
+  Der nicht erzwungene Anteil verwendet die normalen Walzenstopps, sodass
+  die tatsächliche Gesamtchance auch höher als der Zahlenwert sein kann.
+- **100** garantiert für **bezahlte Spins** einen Liniengewinn sowie einen
+  Freispieltrigger. Dies gilt nur für neue Biggest-Boy-Runden.
+  Freispiele übernehmen das Profil unverändert; ihre **Rohfelder** besitzen
+  ebenfalls garantiert Scatter, doch ein Expanding Symbol kann während der
+  Freispielberechnung einen Teil der Gewinnlinien überdecken.
+- Es gibt keine clientseitig erfundenen Gewinnsymbole oder Auszahlungen.
+  Sonderstopps verwenden `[50, 0, 49]` auf den ersten drei Walzen und
+  zufällig eine der jeweils 14 O-Positionen auf Walze vier und fünf.
+  Auf der dritten Linie erscheinen dadurch stets 5× O, auf den
+  ersten drei Walzen insgesamt 3× Scatter. Die letzten beiden Walzen
+  sind nicht auf dieselbe Bildfolge festgelegt. Gewinnfaktoren und
+  Guthaben-Reservierungen bleiben **unverändert**.
+- Der Wert wird beim Start als `lucky:N` im persistierten Rundenstatus
+  gespeichert, damit Änderungen am Server keine begonnenen Boni umstellen.
+  Er wirkt **global** für Biggest Boy, nicht nur für ausgewählte Spieler,
+  und erhöht nicht die Book-Gewinnwahrscheinlichkeit.
+
+Die laufende Animation gibt beim Stopp jeder der fünf Walzen genau einen
+**lokalen** CS2-Standardsound `sounds/ui/counter_beep.vsnd` an den
+betroffenen Spieler aus. Keine neue Sounddatei und kein neues Workshop-Audio
+nötig. Per `CasinoReelStopSoundEnabled: false` ausschaltbar. Klang,
+Clientberechtigung und Lautstärke sind auf dem CS2-Testserver zu prüfen.
+
+Das abgeschnittene zweite Textfeld in den oberen zwei Konto-Boxen wird durch
+84px hohe Kontokästen, 100px Gesamtbereich, kleinere Titelabstände
+und entfernte vererbte Label-Ränder korrigiert.
+
+In der neuen Book-/Früchte-Oberfläche ersetzt die
+**vom Nutzer hochgeladene goldene Kokosnuss** das bisher textuelle
+`BUCH` bei Gewinnreihen **und** in bewegten Bildfeldern. Das Wild-/Scatter-
+Verhalten bleibt das des ursprünglichen Buchs. Die Quelldatei aus der
+Chatdatei heißt `image(20261015-151531).png`. Ihre Prüfsumme lautet
+`SHA256 1e8f1cbcb2c6c174a68cb5c50acbebbf39a1e21f9397e91d44ae046388805604`.
+Sie muss in der Verzeichnisstruktur unter
+`ui/AnoCore/styles/custom_game/anocore/casino/book_coconut.png`
+liegen. Dazu gibt es ein separates ZIP mit der unveränderten Original-PNG.
+
+Windows: GitHub-Quellstand und Originalbild-ZIP in **denselben Hauptordner**
+entpacken, PowerShell dort öffnen, dann:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\ui\AnoCore\build-biggest-boy.ps1 -Addon anomeme_ui -InstallLocalClient
+```
+
+Das Build-Skript verweigert nun die native Kompilierung, wenn die
+Kokosnuss-Datei fehlt. Alternativ `-BookCoconutPng
+"<original-uploaded-image.png>"` übergeben. Ein reines GitHub-CI-Paket
+enthält die vom Nutzer über den Chat gelieferte PNG noch nicht; **zuerst**
+das separate Originalbild-ZIP einfügen. Beim ersten Test native
+`.vtex_c`-Ausgabe, die alte Workshop-Assetcache-Version und
+fünf stoppende Walzen einschließlich Sound prüfen. Kein Merge ohne Abnahme.

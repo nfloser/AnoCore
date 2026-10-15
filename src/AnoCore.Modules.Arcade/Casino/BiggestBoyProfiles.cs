@@ -8,15 +8,36 @@ public static class BiggestBoyProfiles
     public const string Generous = "generous";
     public static IReadOnlyList<string> Names { get; } = Array.AsReadOnly(new[] { Standard, Frequent, Generous });
 
-    public static string Validate(string profile) => Names.Contains(profile)
-        ? profile : throw new ArgumentException("BiggestBoyProfile must be standard, frequent or generous.", nameof(profile));
+    /// <summary>Number 0..100 is a direct probability for a combined line win / bonus trigger.</summary>
+    public static int LuckyPercent(string profile)
+    {
+        if (!profile.StartsWith("lucky:", StringComparison.Ordinal)) return 0;
+        var number = profile["lucky:".Length..];
+        if (!int.TryParse(number, System.Globalization.NumberStyles.None,
+                System.Globalization.CultureInfo.InvariantCulture, out var percent)
+            || percent is < 0 or > 100 || number != percent.ToString(System.Globalization.CultureInfo.InvariantCulture))
+            throw new ArgumentException("BiggestBoyProfile lucky number must be 0..100.", nameof(profile));
+        return percent;
+    }
+
+    public static string Validate(string profile)
+    {
+        ArgumentNullException.ThrowIfNull(profile);
+        if (Names.Contains(profile)) return profile;
+        if (profile.StartsWith("lucky:", StringComparison.Ordinal))
+        {
+            _ = LuckyPercent(profile);
+            return profile;
+        }
+        throw new ArgumentException("BiggestBoyProfile must be standard, frequent, generous or lucky:0..100.", nameof(profile));
+    }
 
     public static int StopWeight(string profile, int reel, int stop)
     {
         Validate(profile);
         if (reel is < 0 or >= 5 || stop is < 0 or >= 100) throw new ArgumentOutOfRangeException(nameof(stop));
         var strip = BiggestBoyExpandingRules.ReelStrips[reel];
-        return profile switch
+        return profile.StartsWith("lucky:", StringComparison.Ordinal) ? 1 : profile switch
         {
             Frequent => strip[stop] is >= BiggestBoySymbol.G and <= BiggestBoySymbol.T ? 2 : 1,
             Generous => Enumerable.Range(0, 3).Any(row => strip[(stop + row) % 100] is BiggestBoySymbol.Book or BiggestBoySymbol.Scatter) ? 11 : 10,
@@ -33,7 +54,7 @@ public static class BiggestBoyProfiles
         Validate(profile);
         ArgumentNullException.ThrowIfNull(random);
         if (reel is < 0 or >= 5) throw new ArgumentOutOfRangeException(nameof(reel));
-        var tickets = Tickets.Value[profile][reel];
+        var tickets = Tickets.Value[profile.StartsWith("lucky:", StringComparison.Ordinal) ? Standard : profile][reel];
         var ticket = random(tickets.Length);
         if (ticket < 0 || ticket >= tickets.Length) throw new ArgumentException("Invalid random draw.", nameof(random));
         return tickets[ticket];

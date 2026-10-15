@@ -97,3 +97,18 @@
 .bb-v4.book-mode .bb-symbol-6 { background-image:url("s2r://panorama/styles/custom_game/anocore/arcade/seven.vtex"); }
 .bb-v4.book-mode .bb-symbol.winning { border:3px solid #ff3030; }
 .bb-v4.book-mode .bb-symbol.active-line { border:4px solid #ff3030; }
+
+/* The base Panorama stylesheet gives every Label a 4px margin: prevent clipping
+   in the two top counters when large thousands-formatted account values render. */
+.bb-v4 .bb-accounts { height:100px; min-height:100px; margin:10px 0px; }
+.bb-v4 .bb-account { height:84px; min-height:84px; padding:8px 12px; }
+.bb-v4 .bb-account Label { margin:0px; padding:0px; horizontal-align:center; text-align:center; }
+.bb-v4 .bb-account > Label { font-size:18px; }
+.bb-v4 .bb-account #casino_round_account,
+.bb-v4 .bb-account #casino_round_bankroll { font-size:27px; font-weight:bold; color:#e5f4e8; }
+
+/* Dedicated Book scatter/wild: the user's gold coconut, never the Biggest Boy Wild. */
+.bb-v4.book-mode .bb-symbol-7 { background-image:url("s2r://panorama/styles/custom_game/anocore/casino/book_coconut.vtex"); background-color:transparent; border:0px solid transparent; }
+.bb-v4.book-mode .bb-symbol-7 .bb-book-label { visibility:collapse; }
+.bb-v4.book-mode .bb-symbol-7.winning { border:3px solid #ff3030; }
+.bb-v4.book-mode .bb-symbol-7.active-line { border:4px solid #ff3030; }

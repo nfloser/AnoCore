@@ -2,6 +2,8 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$Cs2,
     [string]$BiggestBoyWildPng = "",
+    [string]$BookCoconutPng = "",
+    [switch]$RequireBookCoconut,
     [switch]$IncludeBiggestBoy,
     [ValidatePattern('^[a-z][a-z0-9_]*$')]
     [string]$Addon = "anocasino_ui"
@@ -26,6 +28,27 @@ if ($buildBiggestBoy) {
     }
 }
 
+
+# Always compile the user's specific golden coconut asset for the Book wild/scatter.
+# Check it before modifying an installed CS2 addon.
+$coconutTarget = Join-Path $src "styles\\custom_game\\anocore\\casino\\book_coconut.png"
+if ($BookCoconutPng) {
+    $coconutSource = (Resolve-Path -LiteralPath $BookCoconutPng).Path
+    $coconutBytes = [System.IO.File]::ReadAllBytes($coconutSource)
+    if ($coconutBytes.Length -lt 8 -or [BitConverter]::ToString($coconutBytes, 0, 8) -ne "89-50-4E-47-0D-0A-1A-0A") {
+        throw "BookCoconutPng must be a real PNG file."
+    }
+    if ([System.IO.Path]::GetFullPath($coconutSource) -ne [System.IO.Path]::GetFullPath($coconutTarget)) {
+        Copy-Item -LiteralPath $coconutSource -Destination $coconutTarget -Force
+    }
+}
+$coconutAvailable = Test-Path -LiteralPath $coconutTarget -PathType Leaf
+if (-not $coconutAvailable -and $RequireBookCoconut) {
+    throw "The original golden coconut PNG is missing: $coconutTarget. Provide -BookCoconutPng '<image.png>' before building."
+}
+if (-not $coconutAvailable) {
+    Write-Warning "Book coconut PNG absent; dedicated Book UI texture will not be compiled. Use -RequireBookCoconut for the complete casino addon."
+}
 
 $compiler = Join-Path $Cs2 "game\bin\win64\resourcecompiler.exe"
 if (-not (Test-Path $compiler)) {
@@ -56,6 +79,7 @@ foreach ($symbol in @("cherry", "lemon", "plum", "orange", "grapes", "watermelon
 New-Item -ItemType Directory -Force -Path (Join-Path $content "$style\casino") | Out-Null
 $casinoTextures = @("slots", "coinflip", "coin_heads", "coin_tails", "roulette", "blackjack", "book", "risk", "wheel", "biggest_kebap", "biggest_beer", "biggest_cigarette", "biggest_butter", "biggest_shot", "biggest_funnel", "biggest_g", "biggest_o", "biggest_a", "biggest_t", "biggest_scatter")
 if ($buildBiggestBoy) { $casinoTextures += "biggest_book" }
+if ($coconutAvailable) { $casinoTextures += "book_coconut" }
 foreach ($texture in $casinoTextures) {
     Copy-Item (Join-Path $src "$style\casino\$texture.png") (Join-Path $content "$style\casino\$texture.png") -Force
     Compile-Resource "$style\casino\$texture.vtex" "$style\casino\$texture.vtex_c"
