@@ -231,3 +231,19 @@ Eigenständige siebte Slot mit 5×5-Feld, elf eigenen Symbolen und Kebap-Wild.
 Alle Casino-Guthaben, Einsätze und Gewinne erscheinen mit `€`. Die Zahlen
 bleiben unveränderte virtuelle Kontoeinheiten; dies ist keine Umrechnung in
 Echtgeld. Bestehende `anoap`-Befehle und Datenbanknamen bleiben kompatibel.
+
+## Biggest Boy: gemeinsame Freispiele-Oberfläche
+
+Biggest Boy verwendet dieselbe Fensterhülle, Tabellenumrandung, Walzengestaltung,
+Kontenanzeige und Bedienleiste wie die Freispiele-Slot. Beide Walzenflächen füllen
+die verfügbare Tabellenbreite. Biggest Boy zeigt fünf statt drei Reihen mit den elf
+vorhandenen Symbolbildern. Separate Biggest-Boy-Gewinnkästen sind ausgeblendet;
+Auszahlung und Bonusstand erscheinen an den gewohnten Stellen. Spielregeln und
+Kontobuchungen bleiben unverändert. Die fünf Ergebniswalzen bremsen wie bei Book
+je 0,45 Sekunden ab und stoppen im Abstand von 0,2 Sekunden. Der Ergebnisstreifen
+enthält zwei identische Fenster, sodass beim Abbremsen keine Leerfläche entsteht.
+
+Native Abnahme: beide Spiele öffnen, volle Breite und sichtbare Bedienleiste prüfen;
+Biggest Boy mehrfach drehen, fünf Reihen, gestaffelte Stopps, Symbolwahl,
+Freispiel-Fortsetzung und unveränderten Kontostand beim Schließen kontrollieren.
+Valve-Kompilierung und CS2-Abnahme sind weiterhin vor Veröffentlichung erforderlich.

@@ -56,9 +56,9 @@
           <Label text="Linie 10: 3 – 2 – 1 – 2 – 3" hittest="false" />
           <Label text="Eigenes Modell: RTP 94,1822 % inklusive Freispiele. Bonuschance 0,856 % pro bezahltem Spin. Nur virtuelle AnoPoints." hittest="false" />
         </Panel>
-        <Panel class="biggest-table" hittest="false">
-          <Panel class="biggest-reels" hittest="false">
-            <Panel class="biggest-reel biggest-reel-0" hittest="false">
+        <Panel class="book-table biggest-table" hittest="false">
+          <Panel class="book-reels biggest-reels" hittest="false">
+            <Panel id="casino_round_biggest_reel0" class="book-reel biggest-reel biggest-reel-0" hittest="false">
               <Panel id="casino_round_biggest_offset0" class="biggest-offset" hittest="false">
                 <Panel id="casino_round_biggest_shift0_0" class="biggest-shift biggest-shift-0" hittest="false">
                 <Panel id="casino_round_biggest_shift0_1" class="biggest-shift biggest-shift-1" hittest="false">
@@ -283,14 +283,20 @@
                 </Panel>
               </Panel>
               <Panel class="biggest-final" hittest="false">
-                <Panel id="casino_round_biggest_symbol0" class="biggest-symbol" hittest="false" />
-                <Panel id="casino_round_biggest_symbol1" class="biggest-symbol" hittest="false" />
-                <Panel id="casino_round_biggest_symbol2" class="biggest-symbol" hittest="false" />
-                <Panel id="casino_round_biggest_symbol3" class="biggest-symbol" hittest="false" />
-                <Panel id="casino_round_biggest_symbol4" class="biggest-symbol" hittest="false" />
+                <Panel id="casino_round_biggest_repeat0" class="book-symbol biggest-symbol" hittest="false" />
+                <Panel id="casino_round_biggest_repeat1" class="book-symbol biggest-symbol" hittest="false" />
+                <Panel id="casino_round_biggest_repeat2" class="book-symbol biggest-symbol" hittest="false" />
+                <Panel id="casino_round_biggest_repeat3" class="book-symbol biggest-symbol" hittest="false" />
+                <Panel id="casino_round_biggest_repeat4" class="book-symbol biggest-symbol" hittest="false" />
+              
+                <Panel id="casino_round_biggest_symbol0" class="book-symbol biggest-symbol" hittest="false" />
+                <Panel id="casino_round_biggest_symbol1" class="book-symbol biggest-symbol" hittest="false" />
+                <Panel id="casino_round_biggest_symbol2" class="book-symbol biggest-symbol" hittest="false" />
+                <Panel id="casino_round_biggest_symbol3" class="book-symbol biggest-symbol" hittest="false" />
+                <Panel id="casino_round_biggest_symbol4" class="book-symbol biggest-symbol" hittest="false" />
               </Panel>
             </Panel>
-            <Panel class="biggest-reel biggest-reel-1" hittest="false">
+            <Panel id="casino_round_biggest_reel1" class="book-reel biggest-reel biggest-reel-1" hittest="false">
               <Panel id="casino_round_biggest_offset1" class="biggest-offset" hittest="false">
                 <Panel id="casino_round_biggest_shift1_0" class="biggest-shift biggest-shift-0" hittest="false">
                 <Panel id="casino_round_biggest_shift1_1" class="biggest-shift biggest-shift-1" hittest="false">
@@ -515,14 +521,20 @@
                 </Panel>
               </Panel>
               <Panel class="biggest-final" hittest="false">
-                <Panel id="casino_round_biggest_symbol5" class="biggest-symbol" hittest="false" />
-                <Panel id="casino_round_biggest_symbol6" class="biggest-symbol" hittest="false" />
-                <Panel id="casino_round_biggest_symbol7" class="biggest-symbol" hittest="false" />
-                <Panel id="casino_round_biggest_symbol8" class="biggest-symbol" hittest="false" />
-                <Panel id="casino_round_biggest_symbol9" class="biggest-symbol" hittest="false" />
+                <Panel id="casino_round_biggest_repeat5" class="book-symbol biggest-symbol" hittest="false" />
+                <Panel id="casino_round_biggest_repeat6" class="book-symbol biggest-symbol" hittest="false" />
+                <Panel id="casino_round_biggest_repeat7" class="book-symbol biggest-symbol" hittest="false" />
+                <Panel id="casino_round_biggest_repeat8" class="book-symbol biggest-symbol" hittest="false" />
+                <Panel id="casino_round_biggest_repeat9" class="book-symbol biggest-symbol" hittest="false" />
+              
+                <Panel id="casino_round_biggest_symbol5" class="book-symbol biggest-symbol" hittest="false" />
+                <Panel id="casino_round_biggest_symbol6" class="book-symbol biggest-symbol" hittest="false" />
+                <Panel id="casino_round_biggest_symbol7" class="book-symbol biggest-symbol" hittest="false" />
+                <Panel id="casino_round_biggest_symbol8" class="book-symbol biggest-symbol" hittest="false" />
+                <Panel id="casino_round_biggest_symbol9" class="book-symbol biggest-symbol" hittest="false" />
               </Panel>
             </Panel>
-            <Panel class="biggest-reel biggest-reel-2" hittest="false">
+            <Panel id="casino_round_biggest_reel2" class="book-reel biggest-reel biggest-reel-2" hittest="false">
               <Panel id="casino_round_biggest_offset2" class="biggest-offset" hittest="false">
                 <Panel id="casino_round_biggest_shift2_0" class="biggest-shift biggest-shift-0" hittest="false">
                 <Panel id="casino_round_biggest_shift2_1" class="biggest-shift biggest-shift-1" hittest="false">
@@ -747,14 +759,20 @@
                 </Panel>
               </Panel>
               <Panel class="biggest-final" hittest="false">
-                <Panel id="casino_round_biggest_symbol10" class="biggest-symbol" hittest="false" />
-                <Panel id="casino_round_biggest_symbol11" class="biggest-symbol" hittest="false" />
-                <Panel id="casino_round_biggest_symbol12" class="biggest-symbol" hittest="false" />
-                <Panel id="casino_round_biggest_symbol13" class="biggest-symbol" hittest="false" />
-                <Panel id="casino_round_biggest_symbol14" class="biggest-symbol" hittest="false" />
+                <Panel id="casino_round_biggest_repeat10" class="book-symbol biggest-symbol" hittest="false" />
+                <Panel id="casino_round_biggest_repeat11" class="book-symbol biggest-symbol" hittest="false" />
+                <Panel id="casino_round_biggest_repeat12" class="book-symbol biggest-symbol" hittest="false" />
+                <Panel id="casino_round_biggest_repeat13" class="book-symbol biggest-symbol" hittest="false" />
+                <Panel id="casino_round_biggest_repeat14" class="book-symbol biggest-symbol" hittest="false" />
+              
+                <Panel id="casino_round_biggest_symbol10" class="book-symbol biggest-symbol" hittest="false" />
+                <Panel id="casino_round_biggest_symbol11" class="book-symbol biggest-symbol" hittest="false" />
+                <Panel id="casino_round_biggest_symbol12" class="book-symbol biggest-symbol" hittest="false" />
+                <Panel id="casino_round_biggest_symbol13" class="book-symbol biggest-symbol" hittest="false" />
+                <Panel id="casino_round_biggest_symbol14" class="book-symbol biggest-symbol" hittest="false" />
               </Panel>
             </Panel>
-            <Panel class="biggest-reel biggest-reel-3" hittest="false">
+            <Panel id="casino_round_biggest_reel3" class="book-reel biggest-reel biggest-reel-3" hittest="false">
               <Panel id="casino_round_biggest_offset3" class="biggest-offset" hittest="false">
                 <Panel id="casino_round_biggest_shift3_0" class="biggest-shift biggest-shift-0" hittest="false">
                 <Panel id="casino_round_biggest_shift3_1" class="biggest-shift biggest-shift-1" hittest="false">
@@ -979,14 +997,20 @@
                 </Panel>
               </Panel>
               <Panel class="biggest-final" hittest="false">
-                <Panel id="casino_round_biggest_symbol15" class="biggest-symbol" hittest="false" />
-                <Panel id="casino_round_biggest_symbol16" class="biggest-symbol" hittest="false" />
-                <Panel id="casino_round_biggest_symbol17" class="biggest-symbol" hittest="false" />
-                <Panel id="casino_round_biggest_symbol18" class="biggest-symbol" hittest="false" />
-                <Panel id="casino_round_biggest_symbol19" class="biggest-symbol" hittest="false" />
+                <Panel id="casino_round_biggest_repeat15" class="book-symbol biggest-symbol" hittest="false" />
+                <Panel id="casino_round_biggest_repeat16" class="book-symbol biggest-symbol" hittest="false" />
+                <Panel id="casino_round_biggest_repeat17" class="book-symbol biggest-symbol" hittest="false" />
+                <Panel id="casino_round_biggest_repeat18" class="book-symbol biggest-symbol" hittest="false" />
+                <Panel id="casino_round_biggest_repeat19" class="book-symbol biggest-symbol" hittest="false" />
+              
+                <Panel id="casino_round_biggest_symbol15" class="book-symbol biggest-symbol" hittest="false" />
+                <Panel id="casino_round_biggest_symbol16" class="book-symbol biggest-symbol" hittest="false" />
+                <Panel id="casino_round_biggest_symbol17" class="book-symbol biggest-symbol" hittest="false" />
+                <Panel id="casino_round_biggest_symbol18" class="book-symbol biggest-symbol" hittest="false" />
+                <Panel id="casino_round_biggest_symbol19" class="book-symbol biggest-symbol" hittest="false" />
               </Panel>
             </Panel>
-            <Panel class="biggest-reel biggest-reel-4" hittest="false">
+            <Panel id="casino_round_biggest_reel4" class="book-reel biggest-reel biggest-reel-4" hittest="false">
               <Panel id="casino_round_biggest_offset4" class="biggest-offset" hittest="false">
                 <Panel id="casino_round_biggest_shift4_0" class="biggest-shift biggest-shift-0" hittest="false">
                 <Panel id="casino_round_biggest_shift4_1" class="biggest-shift biggest-shift-1" hittest="false">
@@ -1211,11 +1235,17 @@
                 </Panel>
               </Panel>
               <Panel class="biggest-final" hittest="false">
-                <Panel id="casino_round_biggest_symbol20" class="biggest-symbol" hittest="false" />
-                <Panel id="casino_round_biggest_symbol21" class="biggest-symbol" hittest="false" />
-                <Panel id="casino_round_biggest_symbol22" class="biggest-symbol" hittest="false" />
-                <Panel id="casino_round_biggest_symbol23" class="biggest-symbol" hittest="false" />
-                <Panel id="casino_round_biggest_symbol24" class="biggest-symbol" hittest="false" />
+                <Panel id="casino_round_biggest_repeat20" class="book-symbol biggest-symbol" hittest="false" />
+                <Panel id="casino_round_biggest_repeat21" class="book-symbol biggest-symbol" hittest="false" />
+                <Panel id="casino_round_biggest_repeat22" class="book-symbol biggest-symbol" hittest="false" />
+                <Panel id="casino_round_biggest_repeat23" class="book-symbol biggest-symbol" hittest="false" />
+                <Panel id="casino_round_biggest_repeat24" class="book-symbol biggest-symbol" hittest="false" />
+              
+                <Panel id="casino_round_biggest_symbol20" class="book-symbol biggest-symbol" hittest="false" />
+                <Panel id="casino_round_biggest_symbol21" class="book-symbol biggest-symbol" hittest="false" />
+                <Panel id="casino_round_biggest_symbol22" class="book-symbol biggest-symbol" hittest="false" />
+                <Panel id="casino_round_biggest_symbol23" class="book-symbol biggest-symbol" hittest="false" />
+                <Panel id="casino_round_biggest_symbol24" class="book-symbol biggest-symbol" hittest="false" />
               </Panel>
             </Panel>
           </Panel>
@@ -1224,7 +1254,7 @@
             <Label id="casino_round_biggest_spin_win" class="biggest-spin-win" text="SPINGEWINN: –" hittest="false" />
             <Label id="casino_round_biggest_total_win" class="biggest-total-win" text="BONUS / GESAMT: 0 €" hittest="false" />
           </Panel>
-          <Label id="casino_round_biggest_bonus" class="biggest-bonus" text="3/4/5 Gesichter: 10/15/20 Freispiele" hittest="false" />
+          <Label id="casino_round_biggest_bonus" class="bonus-summary biggest-bonus" text="3/4/5 Gesichter: 10/15/20 Freispiele" hittest="false" />
           <Panel class="biggest-bonus-picker">
             <Label class="biggest-picker-title" text="BONUSSYMBOL WÄHLEN" hittest="false" />
             <Panel class="biggest-picker-row">

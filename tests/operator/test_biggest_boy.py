@@ -29,6 +29,22 @@ class BiggestBoyTests(unittest.TestCase):
         for cell in range(25):
             self.assertIsNotNone(tree.find(f'.//*[@id="casino_round_biggest_symbol{cell}"]'))
 
+    def test_layout_reuses_book_styles_with_five_full_width_rows(self):
+        tree = ET.parse(UI / 'layout/custom_game/anocore/ano_casino_rounds.xml')
+        for reel in range(5):
+            panel = tree.find(f'.//*[@id="casino_round_biggest_reel{reel}"]')
+            self.assertIsNotNone(panel)
+            self.assertIn('book-reel', panel.attrib['class'].split())
+            final = panel.find('./Panel[@class="biggest-final"]')
+            self.assertEqual(10, len(final))
+            for cell in final:
+                self.assertIn('book-symbol', cell.attrib['class'].split())
+        css = (STYLE / 'ano_casino_rounds.css').read_text()
+        self.assertIn('.book-reels, .biggest-reels { width:100%;', css)
+        self.assertIn('width:fill-parent-flow(1)', css)
+        self.assertIn("@keyframes 'biggest-settle-a'", css)
+        self.assertNotIn('.biggest-reel { width:82px;', css)
+
     def test_every_symbol_texture_is_compiled_by_both_builders(self):
         for name in ['kebap','beer','cigarette','butter','shot','funnel','g','o','a','t','scatter']:
             png = STYLE / f'casino/biggest_{name}.png'

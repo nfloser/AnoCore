@@ -151,6 +151,8 @@ public sealed class CasinoRoundPresenter : IDisposable
                         {
                             Class(state, "reel" + reel, "stopped", false);
                             Class(state, "reel" + reel, "settling", false);
+                            Class(state, "biggest_reel" + reel, "stopped", false);
+                            Class(state, "biggest_reel" + reel, "settling", false);
                         }
                         state.BookSettles = 0; state.BookStops = 0;
                         state.AnimatingUntil = _clock.GetUtcNow().AddSeconds(state.Game == CasinoRoundGame.BiggestBoy ? 3.2 : state.Game == CasinoRoundGame.Book ? 3 : state.Game == CasinoRoundGame.Blackjack ? .95 : .65);
@@ -177,21 +179,22 @@ public sealed class CasinoRoundPresenter : IDisposable
         lock (_gate) foreach (var state in _states.Values.ToArray())
         {
             if (!Current(state)) { Forget(state.Player); continue; }
-            if (state.Game == CasinoRoundGame.Book && state.AnimatingUntil is { } bookEnd)
+            if (state.Game is CasinoRoundGame.Book or CasinoRoundGame.BiggestBoy && state.AnimatingUntil is { } bookEnd)
                 for (var reel = 0; reel < 5; reel++)
                 {
+                    var reelId = (state.Game == CasinoRoundGame.BiggestBoy ? "biggest_reel" : "reel") + reel;
                     var stop = bookEnd.AddSeconds(-1 + reel * .2);
                     var now = _clock.GetUtcNow();
                     if ((state.BookSettles & (1 << reel)) == 0 && now >= stop.AddSeconds(-.45) && now < stop)
                     {
                         state.BookSettles |= 1 << reel;
-                        Class(state, "reel" + reel, "settling", true);
+                        Class(state, reelId, "settling", true);
                     }
                     if ((state.BookStops & (1 << reel)) == 0 && now >= stop)
                     {
                         state.BookStops |= 1 << reel;
-                        Class(state, "reel" + reel, "settling", false);
-                        Class(state, "reel" + reel, "stopped", true);
+                        Class(state, reelId, "settling", false);
+                        Class(state, reelId, "stopped", true);
                     }
                 }
             if (state.AnimatingUntil is { } end && _clock.GetUtcNow() >= end)
@@ -294,7 +297,11 @@ public sealed class CasinoRoundPresenter : IDisposable
             {
                 var cell = reel * 5 + row;
                 var symbol = spin is null ? BiggestBoyRules.ReelStrips[reel][row] : spin.Grid[cell];
-                for (var index = 0; index < 11; index++) Class(state, "biggest_symbol" + cell, "biggest-symbol-" + index, (int)symbol == index);
+                for (var index = 0; index < 11; index++)
+                {
+                    Class(state, "biggest_symbol" + cell, "biggest-symbol-" + index, (int)symbol == index);
+                    Class(state, "biggest_repeat" + cell, "biggest-symbol-" + index, (int)symbol == index);
+                }
                 Class(state, "biggest_symbol" + cell, "winning", !moving && spin is not null &&
                     spin.LineWins.Any(win => BiggestBoyRules.Paylines[win.Payline].Take(win.MatchCount).Contains(cell)));
                 Class(state, "biggest_symbol" + cell, "expanded", !moving && spin is not null && spin.ExpandedReels.Contains(reel));
