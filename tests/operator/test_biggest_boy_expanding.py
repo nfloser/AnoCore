@@ -127,6 +127,23 @@ class BiggestBoyExpandingUiTests(unittest.TestCase):
         self.assertIn('state.Game == CasinoRoundGame.Book || state.Game == CasinoRoundGame.BiggestBoy', presenter)
         self.assertIn('BookReelMotion.VisibleSymbol(reel, travelled, row)', presenter)
 
+
+    def test_book_coconut_uses_real_uploaded_asset_and_counters_do_not_clip(self):
+        ui = ROOT / 'ui/AnoCore'
+        style = (ui / 'styles/custom_game/anocore/ano_casino_biggest.css').read_text()
+        self.assertIn('.bb-v4.book-mode .bb-symbol-7 { background-image:url("s2r://panorama/styles/custom_game/anocore/casino/book_coconut.vtex")', style)
+        self.assertIn('.bb-v4.book-mode .bb-symbol-7 .bb-book-label { visibility:collapse;', style)
+        self.assertIn('.bb-v4 .bb-accounts { height:100px;', style)
+        self.assertIn('.bb-v4 .bb-account { height:84px;', style)
+        self.assertIn('.bb-v4 .bb-account Label { margin:0px;', style)
+        self.assertIn('book_coconut.png', (ui / 'styles/custom_game/anocore/casino/book_coconut.vtex').read_text())
+        for script in ('build.ps1', 'build-casino.ps1'):
+            content = (ui / script).read_text()
+            self.assertIn('BookCoconutPng', content)
+            self.assertIn('The original golden coconut PNG is missing', content)
+            self.assertIn('book_coconut', content)
+        self.assertIn('BookCoconutPng', (ui / 'build-biggest-boy.ps1').read_text())
+
     def test_missing_original_asset_is_reported_instead_of_substituted(self):
         missing=missing_assets()
         self.assertTrue(all(path.endswith('biggest_book.png') for path in missing),missing)
