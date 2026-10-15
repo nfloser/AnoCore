@@ -36,9 +36,9 @@ public sealed class CasinoRoundService(ICasinoRoundStore store, int biggestBoyMa
 
     public async ValueTask<DurableCasinoRoundReceipt> ApplyAsync(DurableCasinoRoundOperation operation, CancellationToken token = default)
     {
-        var maximumStake = operation.Game == CasinoRoundGame.BiggestBoy ? BiggestBoyRules.MaximumStake : CasinoStakeLimits.TechnicalMaximum;
+        var maximumStake = operation.Game == CasinoRoundGame.BiggestBoy ? BiggestBoyStakeLimits.Maximum : CasinoStakeLimits.TechnicalMaximum;
         var stakeValid = operation.Game == CasinoRoundGame.BiggestBoy
-            ? BiggestBoyRules.IsValidStake(operation.Stake) && operation.Stake <= maximumStake
+            ? BiggestBoyStakeLimits.IsValid(operation.Stake) && operation.Stake <= maximumStake
             : operation.Stake >= 50 && operation.Stake <= maximumStake && operation.Stake % 50 == 0;
         if (operation.Id == Guid.Empty || operation.SessionId == Guid.Empty || operation.Player is null
             || !Enum.IsDefined(operation.Game) || !Enum.IsDefined(operation.Action)
@@ -63,7 +63,9 @@ public sealed class CasinoRoundService(ICasinoRoundStore store, int biggestBoyMa
     {
         if (current is null)
         {
-            var maximum = op.Game == CasinoRoundGame.BiggestBoy ? Math.Clamp(biggestBoyMaximumStake, 50, BiggestBoyRules.MaximumStake) : _stakeLimits.For(op.Game);
+            var maximum = op.Game == CasinoRoundGame.BiggestBoy ? Math.Clamp(biggestBoyMaximumStake, 50, _biggestBoyOutcomes is null ? BiggestBoyRules.MaximumStake : BiggestBoyStakeLimits.Maximum) : _stakeLimits.For(op.Game);
+            if (op.Game == CasinoRoundGame.BiggestBoy && _biggestBoyOutcomes is null && !BiggestBoyRules.IsValidStake(op.Stake))
+                throw new CasinoRejectedException("Ungültiger Einsatz für historische Spielregeln.");
             if (op.Stake > maximum) throw new CasinoRejectedException("Konfiguriertes Einsatzlimit überschritten.");
             return new(op.Stake, Exposure(op.Game, op.Stake, op.Game == CasinoRoundGame.BiggestBoy && _biggestBoyOutcomes is not null
                 ? ControlledSlotRules.BiggestVersion : op.Game == CasinoRoundGame.Book && _bookOutcomes is not null
