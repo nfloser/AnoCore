@@ -52,6 +52,39 @@ public sealed class MySqlCasinoRoundServiceTests
     }
 
     [TestMethod]
+    public async Task ExpandingBonusRestoresAndConcurrentFreeSpinsSettleExactlyOnce()
+    {
+        var spin = BiggestBoyExpandingRules.StartRound(100, _ => 0);
+        await new MySqlCasinoRoundStore(_database).ApplyAsync(
+            new(Guid.NewGuid(), Guid.NewGuid(), Player, CasinoRoundKind.BiggestBoy, 0, "expanding-trigger-fixture"),
+            _ => new(100, BiggestBoyExpandingRules.MaximumRoundExposure(100)),
+            _ => new(BiggestBoyExpandingRules.Version, JsonSerializer.Serialize(spin), 100, 0,
+                BiggestBoyExpandingRules.MaximumRoundExposure(100), false, "{}"));
+        var restored = await Service().ReadAsync(Player);
+        Assert.IsNotNull(restored);
+        var receipt = await Service().ApplyAsync(Next(restored, CasinoRoundAction.FreeSpin));
+        var turns = 1;
+        while (!receipt.Round.IsComplete)
+        {
+            Assert.IsTrue(turns++ <= BiggestBoyExpandingRules.MaximumFreeSpinsAwarded);
+            var action = Next(receipt.Round, CasinoRoundAction.FreeSpin);
+            var duplicates = await Task.WhenAll(Enumerable.Range(0, 3).Select(_ => Service().ApplyAsync(action).AsTask()));
+            Assert.IsTrue(duplicates.All(value => value == duplicates[0]));
+            receipt = duplicates[0];
+            if (!receipt.Round.IsComplete)
+            {
+                Assert.AreEqual(1900L, receipt.Balance.Allocated);
+                Assert.AreEqual(receipt.Round, await Service().ReadAsync(Player));
+            }
+        }
+        Assert.AreEqual(1900L + receipt.Round.Payout, receipt.Balance.Allocated);
+        Assert.IsNull(await Service().ReadAsync(Player));
+        var result = JsonSerializer.Deserialize<BiggestBoySpinResult>(receipt.Round.StateJson)!;
+        Assert.AreEqual(BiggestBoyExpandingRules.Version, result.State.RulesVersion);
+        Assert.AreEqual(15, result.Grid.Length);
+    }
+
+    [TestMethod]
     public async Task CollectorBonusRestoresAndConcurrentFreeSpinsSettleExactlyOnce()
     {
         var spin = BiggestBoyCollectorRules.StartRound(100, _ => 0);

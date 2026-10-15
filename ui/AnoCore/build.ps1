@@ -1,5 +1,7 @@
 param(
     [string]$Cs2 = "",
+    [string]$BiggestBoyWildPng = "",
+    [switch]$IncludeBiggestBoy,
     [ValidatePattern('^[a-z][a-z0-9_]*$')]
     [string]$Addon = "anomeme_ui",
     [string]$PreviewSource = "",
@@ -11,6 +13,24 @@ param(
 
 $ErrorActionPreference = "Stop"
 $src = Split-Path -Parent $MyInvocation.MyCommand.Path
+$wildTarget = Join-Path $src "styles\custom_game\anocore\casino\biggest_book.png"
+$buildBiggestBoy = $IncludeBiggestBoy -or $BiggestBoyWildPng -or (Test-Path -LiteralPath $wildTarget -PathType Leaf)
+if ($buildBiggestBoy) {
+    if ($BiggestBoyWildPng) {
+        $wildBytes = [System.IO.File]::ReadAllBytes((Resolve-Path -LiteralPath $BiggestBoyWildPng).Path)
+        if ($wildBytes.Length -lt 8 -or [BitConverter]::ToString($wildBytes, 0, 8) -ne "89-50-4E-47-0D-0A-1A-0A") {
+            throw "BiggestBoyWildPng must be the original golden Book PNG."
+        }
+        if ([System.IO.Path]::GetFullPath($BiggestBoyWildPng) -ne [System.IO.Path]::GetFullPath($wildTarget)) {
+            Copy-Item -LiteralPath $BiggestBoyWildPng -Destination $wildTarget -Force
+        }
+    }
+    if (-not (Test-Path -LiteralPath $wildTarget -PathType Leaf)) {
+        throw "Biggest Boy original golden Book PNG is missing: $wildTarget. Supply -BiggestBoyWildPng <original.png>. Build stopped before changing the addon."
+    }
+}
+
+
 
 if (-not $Cs2) {
     $roots = @("C:\Program Files (x86)\Steam")
@@ -173,7 +193,9 @@ foreach ($symbol in @("cherry", "lemon", "plum", "orange", "grapes", "watermelon
 # Casino covers and exact numbered roulette wheel belong to the matching HUD build.
 $casinoTextureDir = Join-Path $styleDir "casino"
 New-Item -ItemType Directory -Force -Path $casinoTextureDir | Out-Null
-foreach ($texture in @("slots", "coinflip", "roulette", "blackjack", "book", "risk", "wheel", "biggest_kebap", "biggest_beer", "biggest_cigarette", "biggest_butter", "biggest_shot", "biggest_funnel", "biggest_g", "biggest_o", "biggest_a", "biggest_t", "biggest_scatter")) {
+$casinoTextures = @("slots", "coinflip", "roulette", "blackjack", "book", "risk", "wheel", "biggest_kebap", "biggest_beer", "biggest_cigarette", "biggest_butter", "biggest_shot", "biggest_funnel", "biggest_g", "biggest_o", "biggest_a", "biggest_t", "biggest_scatter")
+if ($buildBiggestBoy) { $casinoTextures += "biggest_book" }
+foreach ($texture in $casinoTextures) {
     foreach ($extension in @(".png", ".vtex")) {
         Copy-Item (Join-Path $src "styles\custom_game\anocore\casino\$texture$extension") (Join-Path $casinoTextureDir "$texture$extension") -Force
     }
@@ -189,7 +211,9 @@ foreach ($texture in @("slots", "coinflip", "roulette", "blackjack", "book", "ri
     }
 }
 
-foreach ($name in @("ano_veto_cards", "ano_veto", "ano_veto_create", "menu", "ano_tournament", "ano_arcade", "ano_casino", "ano_casino_native_v2", "ano_casino_lobby", "ano_casino_slots", "ano_casino_coinflip", "ano_casino_roulette", "ano_casino_rounds")) {
+$casinoViews = @("ano_veto_cards", "ano_veto", "ano_veto_create", "menu", "ano_tournament", "ano_arcade", "ano_casino", "ano_casino_native_v2", "ano_casino_lobby", "ano_casino_slots", "ano_casino_coinflip", "ano_casino_roulette", "ano_casino_rounds")
+if ($buildBiggestBoy) { $casinoViews += "ano_casino_biggest" }
+foreach ($name in $casinoViews) {
     $layoutTarget = Join-Path $layoutDir "$name.xml"
     $styleTarget = Join-Path $styleDir "$name.css"
     Copy-Item (Join-Path $src "layout\custom_game\anocore\$name.xml") $layoutTarget -Force

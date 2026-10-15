@@ -111,6 +111,46 @@ public sealed class CasinoRoundPresenterTests
     }
 
     [TestMethod]
+    public async Task ExpandingUsesItsOwnThreeRowHudAndShowsSeparateSpinAndBonusValues()
+    {
+        using var f = await Fixture.Create();
+        var trigger = BiggestBoyExpandingRules.StartRound(100, _ => 0);
+        var selected = trigger.State.ExpandingSymbol!.Value;
+        var stops = Enumerable.Range(0, 5).Select(reel => Enumerable.Range(0, 100).First(stop =>
+            Enumerable.Range(0, 3).Any(row => BiggestBoyExpandingRules.ReelStrips[reel][(stop + row) % 100] == selected)));
+        var queue = new Queue<int>(stops);
+        var spin = BiggestBoyExpandingRules.PlayFreeSpin(trigger.State, _ => queue.Dequeue());
+        f.Rounds.NextSnapshot = new(Guid.NewGuid(), Player, CasinoRoundGame.BiggestBoy, 100, 1, false,
+            100, spin.State.TotalPayout, JsonSerializer.Serialize(spin));
+        await f.Presenter.OpenAsync(Player, CasinoRoundGame.BiggestBoy);
+        Assert.AreEqual(CasinoRoundPresenter.ExpandingHudId, f.ActiveHud);
+        Assert.AreEqual(0, f.Hud.VisiblePlayers(CasinoRoundPresenter.HudId).Count);
+        await f.Click("play");
+        Assert.IsTrue(f.Class("reels-armed"));
+        Assert.AreEqual("WALZEN LAUFEN …", f.Text("payout"));
+        f.Clock.AdvanceMilliseconds(250); f.Presenter.Tick();
+        Assert.IsTrue(f.Class("motion-a"));
+        for (var reel = 0; reel < 5; reel++)
+            Assert.IsTrue(f.PanelClass("bb_reel" + reel, "bb-distance-" + BiggestBoyReelMotion.Steps(0, spin.Stops[reel])));
+        f.FinishAnimation();
+        Assert.AreEqual(CasinoMoney.Format(spin.Payout), f.Text("payout"));
+        Assert.IsTrue(f.Text("biggest_bonus")!.Contains("Expanding Symbol:", StringComparison.Ordinal));
+        Assert.IsTrue(f.Text("biggest_bonus")!.Contains(CasinoMoney.Format(spin.State.BonusPayout), StringComparison.Ordinal));
+        for (var cell = 0; cell < 15; cell++)
+        {
+            Assert.IsTrue(f.PanelClass("bb_symbol" + cell, "bb-symbol-" + (int)spin.Grid[cell]));
+            Assert.IsTrue(f.PanelClass("bb_symbol" + cell, "expanded"));
+        }
+        var calls = f.Rounds.Calls.Count;
+        f.Clock.AdvanceMilliseconds(1250); f.Presenter.Tick();
+        Assert.AreEqual(calls, f.Rounds.Calls.Count, "Cycling winning lines must not replay a money action.");
+        f.Rounds.Current = f.Rounds.Current! with { IsComplete = true };
+        await f.Presenter.OpenAsync(Player, CasinoRoundGame.Book);
+        Assert.AreEqual(CasinoRoundPresenter.HudId, f.ActiveHud);
+        Assert.AreEqual(0, f.Hud.VisiblePlayers(CasinoRoundPresenter.ExpandingHudId).Count);
+    }
+
+    [TestMethod]
     public async Task BiggestBoyBonusPickerBooksExactlyOnePersistentSymbolChoice()
     {
         using var f = await Fixture.Create();
@@ -216,7 +256,7 @@ public sealed class CasinoRoundPresenterTests
         foreach (var game in Enum.GetValues<CasinoRoundGame>())
         {
             Assert.IsTrue(await f.Presenter.OpenAsync(Player, game));
-            Assert.AreEqual(1, f.Hud.VisiblePlayers(CasinoRoundPresenter.HudId).Count);
+            Assert.AreEqual(1, f.Hud.VisiblePlayers(f.ActiveHud).Count);
             Assert.IsFalse(string.IsNullOrWhiteSpace(f.Text("detail")));
             if (game == CasinoRoundGame.Book)
                 for (var index = 0; index < 15; index++)
@@ -478,11 +518,12 @@ public sealed class CasinoRoundPresenterTests
             return f;
         }
 
-        public ValueTask Click(string action) => Hud.ClickAsync(Player, CasinoRoundPresenter.HudId, "casino_round_" + action);
-        public string? Text(string panel) => Hud.Text(Player, CasinoRoundPresenter.HudId, "casino_round_" + panel);
-        public bool Class(string name) => Hud.Class(Player, CasinoRoundPresenter.HudId, "casino_round_root", name);
-        public bool PanelClass(string panel, string name) => Hud.Class(Player, CasinoRoundPresenter.HudId, "casino_round_" + panel, name);
-        public void FinishAnimation() { Clock.Advance(); Presenter.Tick(); }
+        public AnoCore.Abstractions.Hud.CustomHudId ActiveHud => Hud.VisiblePlayers(CasinoRoundPresenter.ExpandingHudId).Contains(Player) ? CasinoRoundPresenter.ExpandingHudId : CasinoRoundPresenter.HudId;
+        public ValueTask Click(string action) => Hud.ClickAsync(Player, ActiveHud, "casino_round_" + action);
+        public string? Text(string panel) => Hud.Text(Player, ActiveHud, "casino_round_" + panel);
+        public bool Class(string name) => Hud.Class(Player, ActiveHud, "casino_round_root", name);
+        public bool PanelClass(string panel, string name) => Hud.Class(Player, ActiveHud, "casino_round_" + panel, name);
+        public void FinishAnimation() { if (ActiveHud == CasinoRoundPresenter.ExpandingHudId) Clock.AdvanceMilliseconds(6500); else Clock.Advance(); Presenter.Tick(); }
         public void Dispose() => Presenter.Dispose();
     }
 }
