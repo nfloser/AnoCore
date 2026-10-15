@@ -36,7 +36,7 @@ public sealed class CasinoSoundPreferencesTests
         Assert.IsTrue(preferences.IsEnabled(One));
         Assert.IsTrue(preferences.IsEnabled(Two));
 
-        var off = await commands.ExecuteAsync("!casinosound", One);
+        var off = await commands.ExecuteAsync("!anocasinosound", One);
         Assert.IsTrue(off.Success);
         StringAssert.Contains(off.Message, "AUS");
         Assert.IsFalse(preferences.IsEnabled(One));
@@ -50,7 +50,7 @@ public sealed class CasinoSoundPreferencesTests
         await preferences.RefreshAsync(One);
         Assert.IsFalse(preferences.IsEnabled(One)); // stored off survives the reconnect.
 
-        var on = await commands.ExecuteAsync("!casinosound", One);
+        var on = await commands.ExecuteAsync("!anocasinosound", One);
         Assert.IsTrue(on.Success);
         StringAssert.Contains(on.Message, "AN");
         Assert.IsTrue(preferences.IsEnabled(One));
@@ -81,7 +81,7 @@ public sealed class CasinoSoundPreferencesTests
         preferences.Dispose();
         Assert.IsFalse(catalog.TryGet(CasinoSoundPreferences.Key.Name, out _));
         Assert.AreEqual(CommandFailureReason.NotFound,
-            (await commands.ExecuteAsync("!casinosound", One)).FailureReason);
+            (await commands.ExecuteAsync("!anocasinosound", One)).FailureReason);
     }
 
     [TestMethod]
@@ -95,12 +95,12 @@ public sealed class CasinoSoundPreferencesTests
         using var preferences = new CasinoSoundPreferences(
             commands, new PlayerToggleCatalog(), settings, players, events);
 
-        Assert.IsFalse((await commands.ExecuteAsync("!casinosound", null)).Success);
-        Assert.IsFalse((await commands.ExecuteAsync("!casinosound 50", One)).Success);
+        Assert.IsFalse((await commands.ExecuteAsync("!anocasinosound", null)).Success);
+        Assert.IsFalse((await commands.ExecuteAsync("!anocasinosound 50", One)).Success);
         Assert.AreEqual(0, settings.WriteCount);
         var old = players.OnlinePlayers.Single();
         await players.DisconnectAsync(One, old.SessionId, DateTimeOffset.UtcNow);
-        Assert.IsFalse((await commands.ExecuteAsync("!casinosound", One)).Success);
+        Assert.IsFalse((await commands.ExecuteAsync("!anocasinosound", One)).Success);
         Assert.AreEqual(0, settings.WriteCount);
     }
 
