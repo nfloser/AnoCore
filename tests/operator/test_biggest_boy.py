@@ -42,6 +42,7 @@ class BiggestBoyTests(unittest.TestCase):
         css = (STYLE / 'ano_casino_rounds.css').read_text()
         self.assertIn('.book-reels, .biggest-reels { width:100%;', css)
         self.assertIn('width:fill-parent-flow(1)', css)
+        self.assertIn('.view-book .biggest-table { visibility:collapse; }', css)
         self.assertIn("@keyframes 'biggest-settle-a'", css)
         self.assertNotIn('.biggest-reel { width:82px;', css)
 
