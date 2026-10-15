@@ -38,10 +38,11 @@ public static class BiggestBoyExpandingRules
         return checked(stake * (long)Pays.Max(x => x[2]) * (MaximumFreeSpinsAwarded + 1));
     }
 
-    public static BiggestBoySpinResult StartRound(int stake, Func<int, int> random)
+    public static BiggestBoySpinResult StartRound(int stake, Func<int, int> random, string profile = BiggestBoyProfiles.Standard)
     {
         ValidateStake(stake);
-        var (grid, stops) = Draw(random);
+        BiggestBoyProfiles.Validate(profile);
+        var (grid, stops) = Draw(random, profile);
         var result = EvaluateGrid(stake, grid);
         var free = FreeSpinsForScatters(result.ScatterCount);
         var expanding = free > 0 ? (BiggestBoySymbol?)Next(random, Counts.Length) : null;
@@ -49,14 +50,14 @@ public static class BiggestBoyExpandingRules
         {
             Stops = stops,
             ChargedStake = stake,
-            State = new(stake, free, free, 1, result.Payout, Version, expanding)
+            State = new(stake, free, free, 1, result.Payout, Version, expanding, Profile: profile)
         };
     }
 
     public static BiggestBoySpinResult PlayFreeSpin(BiggestBoyRoundState state, Func<int, int> random)
     {
         ValidateState(state);
-        var (raw, stops) = Draw(random);
+        var (raw, stops) = Draw(random, state.Profile);
         var grid = raw.ToArray();
         var expanded = ImmutableArray.CreateBuilder<int>();
         for (var reel = 0; reel < ReelCount; reel++)
@@ -116,14 +117,14 @@ public static class BiggestBoyExpandingRules
             new(stake, 0, 0, 0, total, Version, null), immutable);
     }
 
-    private static (ImmutableArray<BiggestBoySymbol> Grid, ImmutableArray<int> Stops) Draw(Func<int, int> random)
+    private static (ImmutableArray<BiggestBoySymbol> Grid, ImmutableArray<int> Stops) Draw(Func<int, int> random, string profile)
     {
         ArgumentNullException.ThrowIfNull(random);
         var grid = ImmutableArray.CreateBuilder<BiggestBoySymbol>(GridSize);
         var stops = ImmutableArray.CreateBuilder<int>(ReelCount);
         for (var reel = 0; reel < ReelCount; reel++)
         {
-            var stop = Next(random, StripLength); stops.Add(stop);
+            var stop = BiggestBoyProfiles.SelectStop(profile, reel, random); stops.Add(stop);
             for (var row = 0; row < Rows; row++) grid.Add(ReelStrips[reel][(stop + row) % StripLength]);
         }
         return (grid.ToImmutable(), stops.ToImmutable());
@@ -153,6 +154,7 @@ public static class BiggestBoyExpandingRules
     private static void ValidateState(BiggestBoyRoundState state)
     {
         ArgumentNullException.ThrowIfNull(state); ValidateStake(state.LockedStake);
+        BiggestBoyProfiles.Validate(state.Profile);
         if (state.RulesVersion != Version || state.ExpandingSymbol is not { } symbol || !IsRegular(symbol)
             || state.FreeSpinsRemaining is <= 0 or > MaximumFreeSpinsAwarded
             || state.FreeSpinsAwarded is < 10 or > MaximumFreeSpinsAwarded || state.FreeSpinsAwarded % 5 != 0

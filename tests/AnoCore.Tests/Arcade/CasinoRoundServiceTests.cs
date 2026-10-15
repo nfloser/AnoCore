@@ -9,6 +9,26 @@ public sealed class CasinoRoundServiceTests
     private static readonly PlayerId Player = new(76561198000911603);
 
     [TestMethod]
+    public async Task ConfiguredProfileIsAppliedOnlyToNewRoundsAndFrozenAcrossServiceRestart()
+    {
+        var store = new MemoryStore();
+        var service = new CasinoRoundService(store, biggestBoyProfile: "generous");
+        var op = new DurableCasinoRoundOperation(Guid.NewGuid(), Player, Guid.NewGuid(),
+            CasinoRoundGame.BiggestBoy, CasinoRoundAction.Start, 100, 0);
+        var receipt = await service.ApplyAsync(op);
+        Assert.AreEqual("generous", System.Text.Json.JsonSerializer.Deserialize<BiggestBoySpinResult>(receipt.Round.StateJson)!.State.Profile);
+        var bonus = BiggestBoyExpandingRules.StartRound(100, _ => 0, "frequent");
+        store = new MemoryStore();
+        store.Seed(new(Guid.NewGuid(), Player, CasinoRoundKind.BiggestBoy, BiggestBoyExpandingRules.Version,
+            System.Text.Json.JsonSerializer.Serialize(bonus), CasinoRoundStatus.Active, 1, BiggestBoyExpandingRules.MaximumRoundExposure(100)));
+        service = new CasinoRoundService(store, biggestBoyProfile: "generous");
+        receipt = await service.ApplyAsync(op with { Id = Guid.NewGuid(), SessionId = store.Current!.RoundId, Action = CasinoRoundAction.FreeSpin, ExpectedRevision = 1 });
+        Assert.AreEqual("frequent", System.Text.Json.JsonSerializer.Deserialize<BiggestBoySpinResult>(receipt.Round.StateJson)!.State.Profile);
+        Assert.AreEqual(0L, store.LastPlan!.AdditionalDebit);
+        Assert.AreEqual(1000L, receipt.Balance.Allocated);
+    }
+
+    [TestMethod]
     public async Task BiggestBoyHasSeparateVersionAndConfigurableStakeWhileBookKeepsItsLimit()
     {
         var store = new MemoryStore();

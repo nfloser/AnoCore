@@ -15,14 +15,14 @@ if ($buildBiggestBoy) {
     if ($BiggestBoyWildPng) {
         $wildBytes = [System.IO.File]::ReadAllBytes((Resolve-Path -LiteralPath $BiggestBoyWildPng).Path)
         if ($wildBytes.Length -lt 8 -or [BitConverter]::ToString($wildBytes, 0, 8) -ne "89-50-4E-47-0D-0A-1A-0A") {
-            throw "BiggestBoyWildPng must be the original golden Book PNG."
+            throw "BiggestBoyWildPng must be the original Biggest Boy Wild PNG."
         }
         if ([System.IO.Path]::GetFullPath($BiggestBoyWildPng) -ne [System.IO.Path]::GetFullPath($wildTarget)) {
             Copy-Item -LiteralPath $BiggestBoyWildPng -Destination $wildTarget -Force
         }
     }
     if (-not (Test-Path -LiteralPath $wildTarget -PathType Leaf)) {
-        throw "Biggest Boy original golden Book PNG is missing: $wildTarget. Supply -BiggestBoyWildPng <original.png>. Build stopped before changing the addon."
+        throw "Biggest Boy original Biggest Boy Wild PNG is missing: $wildTarget. Supply -BiggestBoyWildPng <original.png>. Build stopped before changing the addon."
     }
 }
 

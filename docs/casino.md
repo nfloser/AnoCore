@@ -235,7 +235,7 @@ Echtgeld. Bestehende `anoap`-Befehle und Datenbanknamen bleiben kompatibel.
 ## Biggest Boy: verbindlicher 5×3-Expanding-Slot
 
 Neue Runden verwenden `anocore-biggest-boy-5x3-expanding-v4`: 15 sichtbare Felder,
-dieselben zehn Linien wie die Freispiele-Slot, goldenes Buch als Wild, Döner als
+dieselben zehn Linien wie die Freispiele-Slot, Biggest-Boy-Schärpe als Wild, Döner als
 reguläres Top-Symbol und Gesicht als Scatter. 3/4/5 Scatter starten 10/15/20
 Freispiele; erneute Trigger geben fünf weitere, maximal 30 tatsächlich gespielte.
 Ein gespeichertes reguläres Expanding Symbol füllt bei einem Treffer genau drei
@@ -245,6 +245,13 @@ Gewinnkürzung in v4. Bestehende v2-/v3-Runden behalten ihre ursprünglichen Reg
 
 Vollständiger Gewinnplan, Mathematik, Simulation, UI-/Bewegungsmodell, Legacy-
 Kompatibilität und native Abnahmeschritte: [Biggest Boy](biggest-boy.md).
-Die Original-PNG des goldenen Buchs ist noch erforderlich; der dedizierte v4-
-Workshop-Build verweigert eine unvollständige Veröffentlichung. Book-Ressourcen
-und Book-Regeln bleiben unverändert.
+Alle zwölf Originalsymbole sind enthalten. Der dedizierte v4-Build prüft die
+Bildvollständigkeit vor dem Kompilieren. Native Valve-/CS2-Abnahme bleibt erforderlich.
+
+### Biggest Boy: wählbares Gewinnprofil
+
+`BiggestBoyProfile` in `config/core.json` akzeptiert `standard`, `frequent` oder
+`generous`. Nach Änderung Plugin neu laden; gespeicherte Boni behalten ihr Profil.
+RTP, Stoppgewichte, Trefferhäufigkeiten und die aktuelle Wild-/Scatter-Bildzuordnung
+stehen in [biggest-boy.md](biggest-boy.md). Süßilix löst Freispiele aus, die
+Biggest-Boy-Schärpe ersetzt reguläre Symbole als Wild. Keine Echtgeld-Abrechnung.

@@ -32,17 +32,17 @@ class BiggestBoyExpandingUiTests(unittest.TestCase):
             for i, p in enumerate(motion):
                 self.assertIn(f'bb-symbol-{strips[reel][i % 100]}', p.attrib['class'].split())
         css = (ui / 'styles/custom_game/anocore/ano_casino_biggest.css').read_text()
-        self.assertIn('height:240px', css)
+        self.assertIn('height:480px', css)
         self.assertIn('width:fill-parent-flow(1)', css)
         self.assertIn('animation-fill-mode:forwards', css)
         for n in range(30,130):
             chunk = css.split(f"@keyframes 'bb-travel-{n}' {{",1)[1].split('@keyframes',1)[0]
             frames = [(float(t),int(y)) for t,y in re.findall(r'([\d.]+)%\s*\{\s*transform:translateY\((\d+)px\)',chunk)]
             self.assertEqual(2*n+1,len(frames))
-            self.assertEqual((0.0,0),frames[0]); self.assertEqual((100.0,n*80),frames[-1])
+            self.assertEqual((0.0,0),frames[0]); self.assertEqual((100.0,n*160),frames[-1])
             for step in range(n):
                 a,b,c=frames[2*step:2*step+3]
-                self.assertEqual(80,b[1]-a[1]); self.assertEqual(b[1],c[1]); self.assertLess(b[0],c[0])
+                self.assertEqual(160,b[1]-a[1]); self.assertEqual(b[1],c[1]); self.assertLess(b[0],c[0])
 
     def test_same_book_buttons_and_short_style_holds_are_native(self):
         ui=ROOT/'ui/AnoCore'; tree=ET.parse(ui/'layout/custom_game/anocore/ano_casino_biggest.xml')
@@ -56,7 +56,7 @@ class BiggestBoyExpandingUiTests(unittest.TestCase):
         for element in tree.iter():self.assertNotIn('style',element.attrib)
         for build in ['build.ps1','build-casino.ps1']:
             text=(ui/build).read_text();self.assertIn('"biggest_book"',text);self.assertIn('"ano_casino_biggest"',text)
-            self.assertLess(text.index('original golden Book PNG is missing'),text.index('New-Item'))
+            self.assertLess(text.index('original Biggest Boy Wild PNG is missing'),text.index('New-Item'))
 
     def test_reproducible_generation_and_exact_math(self):
         result=audit(); self.assertAlmostEqual(.941800002051252,result['total_rtp'],places=12)
@@ -65,6 +65,23 @@ class BiggestBoyExpandingUiTests(unittest.TestCase):
         before=[p.read_bytes() for p in paths]
         subprocess.run([sys.executable,str(ROOT/'tools/generate_biggest_boy_ui.py')],check=True)
         self.assertEqual(before,[p.read_bytes() for p in paths])
+
+    def test_approved_full_width_layout_and_original_artwork(self):
+        ui=ROOT/'ui/AnoCore'
+        tree=ET.parse(ui/'layout/custom_game/anocore/ano_casino_biggest.xml')
+        self.assertEqual(4,len(tree.findall('.//*[@class="bb-divider"]')))
+        self.assertEqual(4,len(tree.findall('.//*[@class="bb-bonus-item"]')))
+        controls=tree.find('.//*[@class="bb-controls"]')
+        self.assertEqual(['bb-stake','bb-payout','bb-actions'],[p.attrib['class'] for p in controls])
+        self.assertFalse(any(p.attrib.get('text') == 'Echtgeld' for p in tree.iter('Label')))
+        self.assertFalse(missing_assets())
+        self.assertIn('width:100%; height:100%',(ui/'styles/custom_game/anocore/ano_casino_biggest.css').read_text())
+
+    def test_profile_math_and_original_hashes(self):
+        expected={'standard':.941800002051252,'frequent':.9238081885566861,'generous':.9826858821485963}
+        for name,rtp in expected.items(): self.assertAlmostEqual(rtp,audit(name)['total_rtp'],places=12)
+        for name,item in json.loads((ROOT/'docs/biggest-boy-original-assets.json').read_text()).items():
+            self.assertEqual(item['sha256'],hashlib.sha256((ROOT/'ui/AnoCore/styles/custom_game/anocore/casino'/name).read_bytes()).hexdigest())
 
     def test_missing_original_asset_is_reported_instead_of_substituted(self):
         missing=missing_assets()
