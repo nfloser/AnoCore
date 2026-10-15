@@ -25,6 +25,7 @@ public sealed class CasinoRoundPresenterTests
         await f.Click("refresh");
         for (var cell = 0; cell < expected.Length; cell++)
             Assert.IsTrue(f.PanelClass("bb_symbol" + cell, "bb-symbol-" + expected[cell]), $"Refresh cell {cell}");
+        Assert.IsTrue(f.Class("balanced-mode"));
         Assert.AreEqual(0, f.Rounds.Calls.Count);
     }
 

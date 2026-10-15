@@ -46,6 +46,38 @@ public sealed class CasinoRoundServiceTests
     }
 
     [TestMethod]
+    public async Task HistoricalControlledBonusesRetainVersionAndExposureAfterUpgrade()
+    {
+        foreach (var game in new[] { CasinoRoundGame.BiggestBoy, CasinoRoundGame.Book })
+        {
+            var store = new MemoryStore();
+            var settings = new SlotOutcomeSettings(0, 100, 0);
+            var service = new CasinoRoundService(store, biggestBoyOutcomes: settings, bookOutcomes: settings);
+            var op = new DurableCasinoRoundOperation(Guid.NewGuid(), Player, Guid.NewGuid(), game, CasinoRoundAction.Start, 100, 0);
+            await service.ApplyAsync(op);
+            var version = game == CasinoRoundGame.BiggestBoy ? ControlledSlotRules.LegacyBiggestVersion : ControlledSlotRules.LegacyBookVersion;
+            var currentVersion = game == CasinoRoundGame.BiggestBoy ? ControlledSlotRules.BiggestVersion : ControlledSlotRules.BookVersion;
+            var exposure = game == CasinoRoundGame.BiggestBoy ? BiggestBoyExpandingRules.MaximumRoundExposure(100) : BonusSlotRules.MaximumRoundExposure(100);
+            store.Seed(store.Current! with
+            {
+                RulesVersion = version,
+                ReservedPayout = exposure,
+                StateJson = store.Current!.StateJson.Replace(currentVersion, version, StringComparison.Ordinal)
+            });
+            var receipt = await service.ApplyAsync(op with
+            {
+                Id = Guid.NewGuid(),
+                Action = CasinoRoundAction.FreeSpin,
+                ExpectedRevision = 1
+            });
+            Assert.AreEqual(version, store.Current!.RulesVersion);
+            Assert.AreEqual(exposure, store.LastPlan!.MaximumPayoutExposure);
+            Assert.AreEqual(0L, store.LastPlan.AdditionalDebit);
+            Assert.IsFalse(receipt.Round.IsComplete);
+        }
+    }
+
+    [TestMethod]
     public async Task EveryRoundGameEnforcesItsConfiguredStartingLimitBeforeDrawing()
     {
         foreach (var game in new[] { CasinoRoundGame.Blackjack, CasinoRoundGame.Risk, CasinoRoundGame.Book })
