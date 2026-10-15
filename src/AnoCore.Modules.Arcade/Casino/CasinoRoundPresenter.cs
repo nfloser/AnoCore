@@ -394,9 +394,9 @@ public sealed class CasinoRoundPresenter : IDisposable
             for (var row = 0; row < 4; row++)
             {
                 var index = BiggestBoyReelMotion.VisibleIndex(previous, travelled, row);
-                var symbol = BiggestBoyExpandingRules.ReelStrips[reel][index];
+                var visibleSymbol = BiggestBoyExpandingRules.ReelStrips[reel][index];
                 for (var id = 0; id < 12; id++)
-                    Class(state, $"bb_motion{reel}_{row}", "bb-symbol-" + id, (int)symbol == id);
+                    Class(state, $"bb_motion{reel}_{row}", "bb-symbol-" + id, (int)visibleSymbol == id);
             }
             for (var row = 0; row < 3; row++)
             {
