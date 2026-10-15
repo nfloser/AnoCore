@@ -6,7 +6,7 @@ param(
     [switch]$InstallLocalClient
 )
 $ErrorActionPreference = "Stop"
-$arguments = @{ Addon = $Addon; IncludeBiggestBoy = $true }
+$arguments = @{ Addon = $Addon; IncludeBiggestBoy = $true; RequireBookCoconut = $true }
 if ($Cs2) { $arguments.Cs2 = $Cs2 }
 if ($BiggestBoyWildPng) { $arguments.BiggestBoyWildPng = $BiggestBoyWildPng }
 if ($BookCoconutPng) { $arguments.BookCoconutPng = $BookCoconutPng }
