@@ -1,15 +1,17 @@
 # Biggest Boy Slots — verbindliches 5×3-Profil
 
-Status: Code und lokale Prüfungen umgesetzt; **Original-Buch-PNG und native Abnahme fehlen**.
+Status: Alle zwölf Originalsymbole integriert; Build und automatisierte Prüfungen vorhanden. **Native Valve-/CS2-Abnahme bleibt erforderlich.**
 Neue Regelversion: `anocore-biggest-boy-5x3-expanding-v4`. Neue Runden verwenden
 exakt fünf Walzen mit je drei sichtbaren Symbolen, insgesamt 15 Positionen.
 Das ersetzt für neue Spiele sowohl das frühere 5×5-Profil als auch den Collector-Bonus.
 
 ## Vorlage und Bedienung
 
-Die zehn Gewinnlinien stammen direkt aus `BonusSlotRules.Paylines`. Fensterhülle,
-Kontoanzeigen, Einsatz- und Freispielaktionen sowie Navigation sind aus der
-funktionierenden Freispiele-XML übernommen. Biggest Boy hat eine eigene native
+Die zehn Gewinnlinien stammen direkt aus `BonusSlotRules.Paylines`. Konten,
+Einsatz- und Freispielaktionen sowie Navigation verwenden die bestehende Infrastruktur.
+Das am 15.10.2026 bestätigte Layout nutzt die volle Breite: vier feste schmale
+Trennlinien, Bonusleiste, Einsatz links, Gewinn mittig und Drehen rechts.
+Biggest Boy hat eine eigene native
 XML-/CSS-Ressource. Book-XML, Book-CSS und `BonusSlotRules.cs` bleiben bytegleich;
 `biggest-boy-v4-source-lock.json` und Regressionen prüfen das.
 
@@ -20,13 +22,13 @@ AP-Beträge. Einsatz und mathematisches Modell werden mit der Runde eingefroren.
 
 ## Symbole und Linienauszahlungen
 
-Ein eigenes goldenes Buch ist ausschließlich Wild. Döner ist das höchste reguläre
-Symbol. Das Gesicht ist ausschließlich Scatter, niemals Wild. Die übrigen Bilder
+Die Biggest-Boy-Schärpe ist ausschließlich Wild. Döner ist das höchste reguläre
+Symbol. Süßilix ist ausschließlich Freispiel-Scatter, niemals Wild. Die übrigen Bilder
 sind unverändert jeweils eigenständige PNG-Dateien. Enum-IDs 0–10 bleiben wegen
-alter gespeicherter Runden stabil; das Buch erhält ID 11.
+alter gespeicherter Runden stabil; die Schärpe verwendet aus Kompatibilitätsgründen die interne ID `Book = 11`.
 
 Drei, vier oder fünf passende Symbole müssen auf einer gültigen Linie von links
-aufeinanderfolgen. Das Buch ersetzt jedes reguläre Symbol. Pro Linie wird nur
+aufeinanderfolgen. Die Schärpe ersetzt jedes reguläre Symbol. Pro Linie wird nur
 der höchste mögliche Gewinn bezahlt; mehrere gewinnende Linien addieren sich.
 Die Auszahlung beträgt **Gesamteinsatz / 10 × Linienfaktor**. Es gibt keine
 Scatter-Geldauszahlung und keinen zusätzlichen Expansion-Aufschlag.
@@ -44,19 +46,19 @@ Scatter-Geldauszahlung und keinen zusätzlichen Expansion-Aufschlag.
 | A | 14 | 13 | 60 | 129 |
 | T | 14 | 13 | 60 | 129 |
 | Gesicht / Scatter | 2 | – | – | – |
-| Goldenes Buch / Wild | 1 | Ersetzt reguläre Symbole | Ersetzt reguläre Symbole | Ersetzt reguläre Symbole |
+| Biggest-Boy-Schärpe / Wild | 1 | Ersetzt reguläre Symbole | Ersetzt reguläre Symbole | Ersetzt reguläre Symbole |
 
 Alle fünf Walzen haben 100 feste zyklische Positionen. Scatter liegen an 0/50,
-das Buch an 25. Die 97 regulären Positionen werden deterministisch aus den oben
+die Schärpe an 25. Die 97 regulären Positionen werden deterministisch aus den oben
 aufgeführten Häufigkeiten angeordnet: Index `(n × 37 + Walze × 19) mod 97`.
 Die tatsächlichen vollständigen Streifen sind reproduzierbar in den generierten
 Panorama-Panels und in `BiggestBoyExpandingRules.ReelStrips` enthalten.
 
 ## Freispiele und Expansion
 
-3/4/5 Gesichter im Rohfeld vergeben 10/15/20 Freispiele. Beim Bonusstart wird
+3/4/5 Süßilix-Symbole im Rohfeld vergeben 10/15/20 Freispiele. Beim Bonusstart wird
 einmal gleichverteilt eines der zehn regulären Symbole gezogen und gespeichert;
-es gibt keine zusätzliche Auswahloberfläche. Bücher und Scatter sind ausgeschlossen.
+es gibt keine zusätzliche Auswahloberfläche. Wild-Schärpe und Scatter sind ausgeschlossen.
 Die Identität bleibt bis zum Bonusende unverändert.
 
 Erscheint das ausgewählte Symbol während eines Freispiels auf einer Walze, füllt
@@ -89,7 +91,7 @@ Symbole pulsieren; die aktuell erklärte Linie wird zusätzlich markiert.
 Die Ergebnisziehung und die Bewegung nutzen **denselben** festen Symbolstreifen.
 Die letzte sichtbare Stoppposition wird als Start gespeichert. Die native
 Animation läuft 30–129 Positionen abwärts, benötigt 5,2–6,0 Sekunden je nach Walze
-und stoppt links nach rechts im Abstand von 0,2 Sekunden. Jede 80px-Bewegung hat
+und stoppt links nach rechts im Abstand von 0,2 Sekunden. Jede 160px-Bewegung hat
 eine kurze Haltephase (20 % des Schritts). Der 200ms-Vorbereitungszustand setzt
 den Streifen vor Aktivierung der Animation. Das Ende ist exakt auf den gebuchten
 Stop ausgerichtet; kein Austausch gegen ein unverbundenes Ergebnisband.
@@ -128,26 +130,69 @@ dotnet run --project tools/AnoCore.BiggestBoyAudit -c Release -- 2000000 2026101
 python tools/generate_biggest_boy_ui.py
 ```
 
-## Fehlende Originaldatei und native Freigabe
+## Originalbilder und native Prüfung
 
-Die elf regulären/Scatter-PNGs liegen vor. Die eigenständige Originaldatei für
-das **goldene Buch** wurde bisher nicht im Repository oder den zugeordneten
-Bildanhängen gefunden. Sie wird nicht durch ein anderes Symbol ersetzt.
-`python tools/check_biggest_boy_assets.py` meldet den fehlenden Pfad explizit:
-`ui/AnoCore/styles/custom_game/anocore/casino/biggest_book.png`.
+Alle zwölf vom Nutzer gelieferten PNGs sind bytegleich eingebunden. Die Zuordnung
+und SHA-256-Prüfsummen stehen in `biggest-boy-original-assets.json`.
+`süßilix.png` ist der Freispiel-Scatter (`biggest_scatter.png`).
+`biggest boy.png` ist die Wild-Schärpe (`biggest_book.png`); der historische interne
+Dateiname und Enumwert bleiben zur Snapshot-Kompatibilität erhalten. Es wird
+kein zusätzliches goldenes Buch benötigt. Die übrigen zehn PNGs sind reguläre Symbole.
+Die Darstellung der alten Book-Freispiel-Slot bleibt unverändert.
 
-Der bestehende Addon-Build bleibt ohne v4-Anforderung verwendbar. Der dedizierte
-v4-Build stoppt bei fehlendem Originalbild, bevor er das Addon verändert:
+Der vollständige UI-Build enthält nun alle Bilder ohne zusätzlichen Parameter:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\ui\AnoCore\build-biggest-boy.ps1 -Addon anomeme_ui -BiggestBoyWildPng "C:\Pfad\Original-Buch.png" -InstallLocalClient
+powershell -NoProfile -ExecutionPolicy Bypass -File .\ui\AnoCore\build-biggest-boy.ps1 -Addon anomeme_ui -InstallLocalClient
 ```
 
-Noch erforderlich: Original-Buch-PNG hinzufügen, sämtliche zwölf PNG/VTEX-Paare
-prüfen, Valve-Ressourcen kompilieren und im nativen Client zweimal bezahlte Spins
-sowie eine Bonusserie testen. Schließen/Reconnect, Einsatzsperre, 30er-Grenze,
-Summen, Bildlauf, aktive Linien und Parserlogs prüfen. Keine Workshop-Veröffentlichung
-oder Produktions-Merge vor dieser Abnahme.
+Auf Windows mit installierten CS2 Workshop Tools ausführen. Das Skript kompiliert
+die echten Panorama-Ressourcen; der Linux-Quellcheck ersetzt diesen Schritt nicht.
+Danach im nativen Client zweimal bezahlte Spins sowie eine Bonusserie testen:
+Schließen/Reconnect, Einsatzsperre, 30er-Grenze, Summen, Bildlauf, aktive Linien,
+15 sichtbare Positionen, feste Trennlinien und Parserlogs prüfen. Keine
+Workshop-Veröffentlichung oder Produktions-Merge vor dieser Abnahme.
+
+## Gewinnprofil in der Konfiguration
+
+In der bestehenden `addons/counterstrikesharp/plugins/AnoCore/config/core.json`
+das Feld ergänzen (die übrigen Einstellungen behalten):
+
+```json
+{
+  "BiggestBoyProfile": "standard",
+  "BiggestBoyMaximumStake": 10000
+}
+```
+
+Nach Änderung AnoCore kontrolliert neu laden oder den Testserver neu starten.
+Das Feld wird beim Pluginstart gelesen; es gibt keine sofortige Live-Umschaltung.
+Unbekannte Namen einschließlich Tippfehler werden abgewiesen.
+
+| Profil | Stoppgewicht | Exakte Gesamt-RTP |
+| --- | --- | ---: |
+| `standard` | Jeder Stopp gleich wahrscheinlich | 94,1800002 % |
+| `frequent` | Stopps mit G/O/A/T oben erhalten Gewicht 2 statt 1 | 92,3808189 % |
+| `generous` | Fenster mit Wild oder Scatter erhalten Gewicht 11, andere 10 | 98,2685882 % |
+
+`frequent` gewichtet kleine Symbole stärker. Mehr Treffer sind von der
+Gesamtausschüttung zu unterscheiden: seine RTP liegt unter dem Standardprofil.
+`generous` erhöht die langfristige Ausschüttung und Bonuswahrscheinlichkeit.
+Das ist keine garantierte Gewinnquote für einzelne Sessions und keine Einstellung
+für bestimmte Spieler. Physische Streifen und Auszahlungstabelle bleiben identisch;
+die geprüfte Gewichtung bestimmt ausschließlich die Ziehung der fünf Stopps.
+
+Das gewählte Profil wird in jedem akzeptierten v4-Rundenstatus gespeichert.
+Fortgesetzte Freispiele verwenden nach Config-Wechsel, Reconnect oder Neustart
+weiter dieses Profil. Snapshots ohne Feld `Profile` erhalten `standard`.
+Einsatz, Maximalreservierung und genau einmal ausgeführte AP-Abrechnung bleiben
+unverändert. Die gesamte Runde wird weiter vor der Darstellung serverseitig gebucht.
+
+Die unabhängige exakte Rechnung akzeptiert den Profilnamen als Argument:
+`python tools/audit_biggest_boy_expanding.py generous`.
+Die Simulation des Produktionscodes akzeptiert ihn als drittes Argument:
+`dotnet run --project tools/AnoCore.BiggestBoyAudit -c Release -- 1000000 20261017 generous`.
+Prüfbericht und Trefferhäufigkeiten: `biggest-boy-profiles-audit.json`.
 
 ## Gespeicherte frühere Runden
 
@@ -159,9 +204,9 @@ in `biggest-boy-legacy-v2.md` dokumentiert.
 
 ## Aktueller Prüfstand
 
-Release-Solution-Build: 0 Warnungen/Fehler. Lokal 104 Casino-Tests und 70 Operator-Tests
-bestanden; 17 Datenbank- bzw. 18 PowerShell-Prüfungen übersprungen. Breitere Suite:
-1.193 bestanden, 201 übersprungen; lokale PipeBridge wegen gesperrter Unix-Sockets
-ausgeschlossen. Der verpflichtende Asset-Check in CI steht vor der
-Paketveröffentlichung und muss wegen des fehlenden Original-Buch-PNG aktuell fehlschlagen.
-Das ist eine offene Abnahmebedingung und kein freigegebenes Feature.
+Alle zwölf Original-PNG/VTEX-Paare bestehen den verpflichtenden CI-Assetcheck.
+Automatisierte Prüfungen decken Profilvalidierung, sämtliche gewichteten Tickets,
+Snapshot-Defaults, Profilwechsel bei laufenden Boni, AP-Abrechnung, zyklische
+Stopps, 15 Zellen, vier feste Trennlinien und reproduzierbare UI-Generierung ab.
+Native FPS, Panorama-Kompilierung und visuelle CS2-Abnahme können nur mit den
+Valve-Werkzeugen und dem Client bestätigt werden.
