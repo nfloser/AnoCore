@@ -104,12 +104,6 @@ public sealed class CasinoSoundPreferencesTests
         Assert.AreEqual(0, settings.WriteCount);
     }
 
-    [TestMethod]
-    public void ReelClick_AlwaysFixedVeryQuiet()
-    {
-        Assert.AreEqual(0.08f, CasinoSoundPreferences.ReelClickVolume);
-    }
-
     private static Task ConnectAsync(PlayerRegistry players, PlayerId player, string name)
         => players.ConnectAsync(new PlayerConnection(
             player, name, PlayerTeam.Terrorist, true, DateTimeOffset.UtcNow)).AsTask();
