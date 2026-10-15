@@ -15,6 +15,34 @@ public sealed class CasinoRoundPresenterTests
     private static readonly PlayerId Player = new(76561198000911901);
 
     [TestMethod]
+    public async Task ControlledBiggestBoyScrollsAllSymbolsBeforeLandingOnBookedFullScreen()
+    {
+        using var f = await Fixture.Create();
+        var spin = ControlledSlotRules.Biggest(100, _ => 0, new(100, 0, 100));
+        Assert.AreEqual(1, spin.RawGrid.Distinct().Count());
+        f.Rounds.NextSnapshot = new(Guid.NewGuid(), Player, CasinoRoundGame.BiggestBoy, 100, 1, true,
+            100, spin.Payout, JsonSerializer.Serialize(spin));
+        await f.Presenter.OpenAsync(Player, CasinoRoundGame.BiggestBoy);
+        await f.Click("play");
+        var seen = new HashSet<int>();
+        for (var tick = 0; tick < 30; tick++)
+        {
+            f.Clock.AdvanceMilliseconds(50); f.Presenter.Tick();
+            for (var row = 0; row < 4; row++)
+                for (var symbol = 0; symbol < 12; symbol++)
+                    if (f.PanelClass($"bb_motion0_{row}", "bb-symbol-" + symbol)) seen.Add(symbol);
+        }
+        Assert.AreEqual(12, seen.Count, "A full-screen result must not restrict the spinning ribbon to the booked symbol.");
+        Assert.IsFalse(f.PanelClass("bb_reel0", "stopped"));
+        Assert.AreEqual("–", f.Text("payout"));
+        f.FinishAnimation();
+        for (var cell = 0; cell < 15; cell++)
+            Assert.IsTrue(f.PanelClass("bb_symbol" + cell, "bb-symbol-" + (int)spin.Grid[cell]));
+        Assert.AreEqual(CasinoMoney.Format(spin.Payout), f.Text("payout"));
+        Assert.AreEqual(1, f.Rounds.Calls.Count);
+    }
+
+    [TestMethod]
     public async Task SoundToggleIsPerSessionAndDoesNotBookOrReplayStops()
     {
         using var f = await Fixture.Create();
