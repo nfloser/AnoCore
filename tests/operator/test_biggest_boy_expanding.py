@@ -113,6 +113,20 @@ class BiggestBoyExpandingUiTests(unittest.TestCase):
         for name in approved:
             self.assertIn(name.replace('.png', '.vtex'), css)
 
+    def test_shared_native_book_cabinet_reuses_original_fruit_textures(self):
+        ui = ROOT / 'ui/AnoCore'
+        tree = ET.parse(ui / 'layout/custom_game/anocore/ano_casino_biggest.xml')
+        self.assertEqual(35, len(tree.findall('.//*[@class="bb-book-label"]')))
+        self.assertEqual(1, len(tree.findall('.//*[@class="bb-rules bb-book-rules"]')))
+        css = (ui / 'styles/custom_game/anocore/ano_casino_biggest.css').read_text()
+        for fruit in ('cherry', 'lemon', 'plum', 'orange', 'grapes', 'bell', 'seven'):
+            self.assertIn('arcade/' + fruit + '.vtex', css)
+        self.assertIn('.bb-v4.book-mode.biggest-rules .bb-book-rules', css)
+        self.assertIn('.bb-v4.book-mode .bb-symbol.winning { border:3px solid #ff3030', css)
+        presenter = (ROOT / 'src/AnoCore.Modules.Arcade/Casino/CasinoRoundPresenter.cs').read_text()
+        self.assertIn('state.Game == CasinoRoundGame.Book || state.Game == CasinoRoundGame.BiggestBoy', presenter)
+        self.assertIn('BookReelMotion.VisibleSymbol(reel, travelled, row)', presenter)
+
     def test_missing_original_asset_is_reported_instead_of_substituted(self):
         missing=missing_assets()
         self.assertTrue(all(path.endswith('biggest_book.png') for path in missing),missing)
