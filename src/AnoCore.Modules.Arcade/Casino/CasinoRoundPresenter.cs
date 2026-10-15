@@ -278,7 +278,9 @@ public sealed class CasinoRoundPresenter : IDisposable
     {
         var needsBonusSymbol = spin is { State.FreeSpinsRemaining: > 0, State.ExpandingSymbol: null };
         Class(state, "root", "needs-bonus-symbol", needsBonusSymbol);
-        Text(state, "biggest_win", moving ? "WALZEN LAUFEN …" : "GEWINN: " + Points(spin?.Payout ?? 0));
+        Text(state, "biggest_win", moving ? "WALZEN LAUFEN …" : spin is null ? "BEREIT ZUM SPIELEN" : spin.Payout > 0 ? "GEWINN DIESES SPINS: " + Points(spin.Payout) : "KEIN GEWINN");
+        Text(state, "biggest_spin_win", moving ? "SPIN LÄUFT" : spin is null ? "SPINGEWINN: –" : "SPINGEWINN: " + Points(spin.Payout));
+        Text(state, "biggest_total_win", spin is null ? "BONUS / GESAMT: 0 €" : "BONUS / GESAMT: " + Points(spin.State.TotalPayout));
         Text(state, "biggest_bonus", spin is null ? "3/4/5 Gesichter: 10/15/20 Freispiele · Kebap ist Wild" :
             needsBonusSymbol ? $"{spin.State.FreeSpinsRemaining} Freispiele · BONUSSYMBOL WÄHLEN" :
             $"{spin.State.FreeSpinsRemaining} Freispiele · gesammelt {Points(spin.State.TotalPayout)} · {spin.ScatterCount} Scatter · Symbol: {(spin.State.ExpandingSymbol is { } expanding ? BiggestName(expanding) : "–")}");
