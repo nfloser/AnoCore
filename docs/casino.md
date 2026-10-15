@@ -347,9 +347,11 @@ konfigurieren (zusätzliche vorhandene Einstellungen beibehalten):
   ebenfalls garantiert Scatter, doch ein Expanding Symbol kann während der
   Freispielberechnung einen Teil der Gewinnlinien überdecken.
 - Es gibt keine clientseitig erfundenen Gewinnsymbole oder Auszahlungen.
-  Sonderstopps sind exakt `[50, 0, 49, 7, 4]` auf den bereits bestehenden
-  physischen Streifen; auf der dritten Linie zeigen sie 5× O, auf den
-  ersten drei Walzen insgesamt 3× Scatter. Gewinnfaktoren und
+  Sonderstopps verwenden `[50, 0, 49]` auf den ersten drei Walzen und
+  zufällig eine der jeweils 14 O-Positionen auf Walze vier und fünf.
+  Auf der dritten Linie erscheinen dadurch stets 5× O, auf den
+  ersten drei Walzen insgesamt 3× Scatter. Die letzten beiden Walzen
+  sind nicht auf dieselbe Bildfolge festgelegt. Gewinnfaktoren und
   Guthaben-Reservierungen bleiben **unverändert**.
 - Der Wert wird beim Start als `lucky:N` im persistierten Rundenstatus
   gespeichert, damit Änderungen am Server keine begonnenen Boni umstellen.
