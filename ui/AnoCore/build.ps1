@@ -193,7 +193,7 @@ foreach ($symbol in @("cherry", "lemon", "plum", "orange", "grapes", "watermelon
 # Casino covers and exact numbered roulette wheel belong to the matching HUD build.
 $casinoTextureDir = Join-Path $styleDir "casino"
 New-Item -ItemType Directory -Force -Path $casinoTextureDir | Out-Null
-$casinoTextures = @("slots", "coinflip", "coin_heads", "coin_tails", "roulette", "blackjack", "book", "risk", "wheel", "biggest_kebap", "biggest_beer", "biggest_cigarette", "biggest_butter", "biggest_shot", "biggest_funnel", "biggest_g", "biggest_o", "biggest_a", "biggest_t", "biggest_scatter")
+$casinoTextures = @("slots", "coinflip", "coin_heads", "coin_tails", "roulette", "blackjack", "book", "book_coconut", "risk", "wheel", "biggest_kebap", "biggest_beer", "biggest_cigarette", "biggest_butter", "biggest_shot", "biggest_funnel", "biggest_g", "biggest_o", "biggest_a", "biggest_t", "biggest_scatter")
 if ($buildBiggestBoy) { $casinoTextures += "biggest_book" }
 foreach ($texture in $casinoTextures) {
     foreach ($extension in @(".png", ".vtex")) {
