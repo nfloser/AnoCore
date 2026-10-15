@@ -345,6 +345,9 @@ public sealed class CasinoRoundPresenter : IDisposable
     private void RenderExpanding(State state)
     {
         if (state.Game == CasinoRoundGame.Book) { RenderBook(state); return; }
+        // Both modes use the same HUD, so explicitly discard Book skin when switching games.
+        Class(state, "root", "book-mode", false);
+        Class(state, "root", "view-book", false);
         var spin = state.Round is null ? null : Read<BiggestBoySpinResult>(state.Round);
         var moving = state.AnimatingUntil is not null;
         var rolling = moving && state.AnimationStartsAt is null;
