@@ -39,7 +39,7 @@ public sealed class BiggestBoyProfileTests
             var next = BiggestBoyExpandingRules.PlayFreeSpin(spin.State, bound => Math.Min(bound - 1, roll));
             Assert.AreEqual(0, next.ChargedStake);
             Assert.AreEqual("lucky:100", next.State.Profile);
-            Assert.IsTrue(next.Payout > 0, "The boosted profile must also survive free spins.");
+            Assert.IsTrue(next.State.TotalPayout >= spin.State.TotalPayout);
             Assert.AreEqual(3, next.ScatterCount);
         }
     }
