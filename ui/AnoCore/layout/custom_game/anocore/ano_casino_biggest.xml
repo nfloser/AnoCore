@@ -13,6 +13,10 @@
           </Button>
           <Label text="ANOMEME · ANOCASINO" hittest="false" class="bb-brand" />
           <Label text="{s:text}" hittest="false" id="casino_round_title" class="bb-title" />
+          <Button id="casino_round_sound" class="button">
+            <Label text="" hittest="false" />
+            <Label text="{s:text}" hittest="false" id="casino_round_sound_text" />
+          </Button>
           <Button id="casino_round_close" class="button">
             <Label text="✕" hittest="false" />
           </Button>
@@ -195,7 +199,7 @@
         <Panel class="bb-rules bb-biggest-rules" hittest="false">
           <Label text="GEWINNPLAN · 5×3 · 10 Linien · nur virtuelle Beträge" hittest="false" />
           <Label text="Liniengewinn = Einsatz ÷ 10 × Faktor. Drei, vier oder fünf passende Symbole von links. Pro Linie nur der höchste Gewinn; verschiedene Linien addieren sich." hittest="false" />
-          <Label text="Biggest-Boy-Schärpe ist Wild, nie Scatter. Döner ist ein reguläres Gewinnsymbol. Süßilix ist ausschließlich Freispiel-Scatter." hittest="false" />
+          <Label text="Gesicht ist Freispiel-Scatter. Die Biggest-Boy-Schärpe ist Wild und ersetzt reguläre Gewinnsymbole." hittest="false" />
           <Label text="Döner: 270× / 1350× / 3000×" hittest="false" />
           <Label text="Bier: 216× / 945× / 2900×" hittest="false" />
           <Label text="Zigarette: 162× / 675× / 2160×" hittest="false" />
@@ -206,7 +210,7 @@
           <Label text="O: 26× / 68× / 194×" hittest="false" />
           <Label text="A: 13× / 60× / 129×" hittest="false" />
           <Label text="T: 13× / 60× / 129×" hittest="false" />
-          <Label text="3/4/5 Süßilix-Symbole: 10/15/20 Freispiele. Erneuter Trigger: +5, maximal 30 tatsächlich gespielte Freispiele. Ein reguläres Expanding Symbol wird beim Bonusstart gleichverteilt festgelegt und bleibt unverändert." hittest="false" />
+          <Label text="3/4/5 Gesichter vergeben 10/15/20 Freispiele. Erneuter Trigger: +5, maximal 30 tatsächlich gespielte Freispiele. Ein reguläres Expanding Symbol wird beim Bonusstart gleichverteilt festgelegt und bleibt unverändert." hittest="false" />
           <Label text="Trifft das Expanding Symbol eine Walze, füllt es genau drei Positionen. Linien werden einmal auf dem expandierten Feld ausgewertet. Scatter für Verlängerungen zählen vor der Expansion. Einsatz bleibt fest, Gesamtauszahlung am Rundenende." hittest="false" />
           <Label text="Linie 1: 1 – 1 – 1 – 1 – 1" hittest="false" />
           <Label text="Linie 2: 2 – 2 – 2 – 2 – 2" hittest="false" />
@@ -221,9 +225,9 @@
         </Panel>
         <Panel class="bb-rules bb-book-rules" hittest="false">
           <Label text="BOOK FREISPIELE · 5×3 · 10 Linien · nur virtuelle Beträge" hittest="false" />
-          <Label text="Bilder: Kirsche, Zitrone, Pflaume, Orange, Traube, Glocke, Sieben, Buch. Das Buch ist Scatter und Wild." hittest="false" />
-          <Label text="Drei oder mehr Bücher: 10 Freispiele. Bei erneuten drei Büchern: +5 Freispiele; höchstens 20 gleichzeitig und höchstens 30 insgesamt." hittest="false" />
-          <Label text="Ein Bonussymbol (außer Buch) wird zum Start zufällig festgelegt. Erscheint es während eines Freispiels auf einer Walze, expandiert es über die drei Felder." hittest="false" />
+          <Label text="Bilder: Kirsche, Zitrone, Pflaume, Orange, Traube, Glocke, Sieben, goldene Kokosnuss. Die Kokosnuss ist Scatter und Wild." hittest="false" />
+          <Label text="Drei oder mehr Kokosnüsse: 10 Freispiele. Bei erneuten drei Kokosnüssen: +5 Freispiele; höchstens 20 gleichzeitig und höchstens 30 insgesamt." hittest="false" />
+          <Label text="Ein Bonussymbol (außer Kokosnuss) wird zum Start zufällig festgelegt. Erscheint es während eines Freispiels auf einer Walze, expandiert es über die drei Felder." hittest="false" />
           <Label text="Gewinne: Mindestens 3 gleiche von links auf einer der 10 Linien. Mehrere Linien addieren sich. Einsatz bleibt während der Freispielserie konstant." hittest="false" />
           <Label text="Die gebuchten Gewinne werden während der Serie gesammelt und nach der letzten Freispielrunde ausgezahlt." hittest="false" />
         </Panel>

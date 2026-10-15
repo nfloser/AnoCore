@@ -288,3 +288,63 @@ Risk und fortgesetzte ältere Biggest-Boy-Runden gebraucht.
    Book erscheinen.
 
 Der native CS2-/Steam-Workshop-Test steht weiterhin aus.
+
+## Unabhängige Ergebnisregler (#509)
+
+Neue Plugin-Runden verwenden `anocore-biggest-boy-controlled-v5` bzw.
+`anocore-book-controlled-v2`. Bestehende v1/v2/v3/v4-Runden behalten ihre
+bisherigen Regeln. Gesicht bleibt Scatter, Biggest-Boy-Schärpe bleibt Wild.
+Das transparente Kokosnuss-PNG ersetzt das frühere Frucht-Buch-Bild bytegenau.
+
+In `config/core.json` die vorhandenen Felder behalten und ergänzen:
+
+```json
+{
+  "BiggestBoyOutcomes": { "WinPercent": 25, "FreeSpinPercent": 1, "FullScreenPercent": 1 },
+  "BookOutcomes": { "WinPercent": 25, "FreeSpinPercent": 1, "FullScreenPercent": 1 },
+  "CasinoReelStopSoundEnabled": true
+}
+```
+
+Alle Werte sind ganzzahlige Prozente von 0 bis 100. `WinPercent` ist die
+Wahrscheinlichkeit eines tatsächlichen Nettogewinns (Auszahlung größer als
+Einsatz); bei Freispielen bedeutet es Auszahlung größer als null.
+`FreeSpinPercent` zieht unabhängig davon einen Freispieltrigger. Ein Spin kann
+also gewinnen, Freispiele auslösen, beides oder keines. 0 unterbindet das
+jeweilige Ereignis, 100 garantiert es, solange bei Verlängerungen noch Platz
+unter der unveränderten 30-Freispiel-Grenze besteht. Gewinne und Auszahlungen
+werden aus dem angezeigten Feld mit den bisherigen Linien und Faktoren berechnet.
+`FullScreenPercent` ist die zusätzliche Vollbildchance innerhalb gewinnender
+Spins ohne Scattertrigger; alle regulären Symbole sind dafür möglich.
+Natürlich gezogene Vollbilder können zusätzlich auftreten. Ein Vollbild und drei
+Scatter können nicht gleichzeitig dasselbe 15er-Feld belegen.
+
+Die Zufallsauswahl wird serverseitig vor der Darstellung gebucht. Neue Runden
+verwenden virtuelle Symbolfelder statt der historischen festen 100er-Streifen,
+weil diese keine frei einstellbaren, unabhängigen Ergebnisse oder Vollbilder
+aller Symbole darstellen können. Es gibt höchstens 128 Feldversuche; ein
+endlicher Konstruktionsweg sichert seltene Kombinationen ab. Wilds werden als
+Kandidaten mit 2 % pro Zelle gezogen, anschließend auf das vorab gewählte
+Gewinnereignis konditioniert. Daher sind 2 % keine garantierte sichtbare
+Wildhäufigkeit. Einzelne/zweifache Scatter können auch ohne Bonus erscheinen.
+3/4/5 Gesichter vergeben weiter 10/15/20 Freispiele; ein Retrigger gibt +5.
+
+Die neuen Regler ersetzen bei neuen Plugin-Runden `BiggestBoyLuckPercent`
+und `BiggestBoyProfile`. Diese bleiben für ältere direkte API-Aufrufer und
+akzeptierte Altrunden erhalten. Die alten RTP-Werte gelten ausschließlich für
+die alten Profile, nicht für diese frei konfigurierbaren Ergebnisverteilungen.
+Die Gewinnchance ist keine RTP-Einstellung: hohe Gewinn- oder Vollbildwerte
+können weit mehr als den Einsatz ausschütten.
+
+Alle drei Einstellungen werden mit der Runde gespeichert. Konfigurationsänderungen
+wirken nach kontrolliertem Neuladen nur auf neue Runden. Der Einsatz bleibt während
+der gesamten Freispielserie gesperrt und wird nach deren Ende wieder bedienbar.
+Die bestehende Reservierung deckt weiterhin sämtliche möglichen Linienauszahlungen.
+`BonusSlotRules.cs` erhielt ausschließlich ein optionales Snapshot-Metadatenfeld;
+seine bisherigen Ziehungs- und Auswertungsalgorithmen bleiben unverändert.
+
+Im gemeinsamen Slotfenster schaltet `WALZENTON: AN/AUS` die Stopptöne für die
+aktuelle Spielersitzung. Der globale Schalter kann sie vollständig abschalten.
+Die vorhandene CS2-Datei wird über `EmitSound("UI.CounterBeep", ..., volume: 0.12f)` leise nur beim jeweiligen
+Spieler abgespielt; fünf gestaffelte Stopptöne pro Drehung, keine Sounddatei im
+Workshop nötig. Native Tonwiedergabe und Panorama-Anordnung sind auf CS2 zu prüfen.

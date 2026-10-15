@@ -9,6 +9,43 @@ public sealed class CasinoRoundServiceTests
     private static readonly PlayerId Player = new(76561198000911603);
 
     [TestMethod]
+    public async Task IndependentControlsArePersistedAndAcceptedBonusSurvivesConfigChange()
+    {
+        foreach (var game in new[] { CasinoRoundGame.BiggestBoy, CasinoRoundGame.Book })
+        {
+            var store = new MemoryStore();
+            var original = new SlotOutcomeSettings(0, 100, 0);
+            var service = new CasinoRoundService(store, biggestBoyOutcomes: original, bookOutcomes: original);
+            var op = new DurableCasinoRoundOperation(Guid.NewGuid(), Player, Guid.NewGuid(), game, CasinoRoundAction.Start, 100, 0);
+            var first = await service.ApplyAsync(op);
+            Assert.IsFalse(first.Round.IsComplete);
+            Assert.AreEqual(100L, first.Round.TotalStake);
+            Assert.AreEqual(game == CasinoRoundGame.BiggestBoy ? ControlledSlotRules.BiggestVersion : ControlledSlotRules.BookVersion, store.Current!.RulesVersion);
+            service = new CasinoRoundService(store, biggestBoyOutcomes: new(100, 0, 100), bookOutcomes: new(100, 0, 100));
+            var next = await service.ApplyAsync(op with
+            {
+                Id = Guid.NewGuid(),
+                SessionId = first.Round.Id,
+                Action = CasinoRoundAction.FreeSpin,
+                ExpectedRevision = first.Round.Revision
+            });
+            Assert.AreEqual(0L, store.LastPlan!.AdditionalDebit);
+            if (game == CasinoRoundGame.BiggestBoy)
+            {
+                var state = System.Text.Json.JsonSerializer.Deserialize<BiggestBoySpinResult>(next.Round.StateJson)!;
+                Assert.AreEqual(original, state.State.OutcomeSettings);
+                Assert.AreEqual(0L, state.Payout);
+            }
+            else
+            {
+                var state = System.Text.Json.JsonSerializer.Deserialize<BonusSlotSpinResult>(next.Round.StateJson)!;
+                Assert.AreEqual(original, state.State.OutcomeSettings);
+                Assert.AreEqual(0L, state.Payout);
+            }
+        }
+    }
+
+    [TestMethod]
     public async Task EveryRoundGameEnforcesItsConfiguredStartingLimitBeforeDrawing()
     {
         foreach (var game in new[] { CasinoRoundGame.Blackjack, CasinoRoundGame.Risk, CasinoRoundGame.Book })
