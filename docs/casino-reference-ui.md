@@ -64,3 +64,29 @@ Keep the #473 inline-style repair while testing #472: revert the presentation
 commits only, then build matching binaries and resources from that revision.
 Never restore the rejected inline-style Slots XML to the client.
 No schema migration, config replacement or AP data rollback is needed.
+
+## Native reel timing experiment (#492)
+
+The native report shows Book jumping from its initial to final image. The cause
+has not been confirmed in CS2. Book and new Biggest Boy rounds now use a separate
+200 ms preparation phase before enabling the animation class on a later presenter
+update. Input remains blocked and no outcome is redrawn or settled by this phase.
+The Casino presentation timer runs every 50 ms, so the 200 ms preparation and
+staggered stops are quantized to that interval rather than the former 250 ms.
+This is not a promise of an exact client paint delay; no per-frame drawing is
+performed by the server.
+
+Each looping strip moves down by one 80 px symbol over about 100 ms, then holds
+for about 20 ms. Eight Book steps take 0.96 seconds; eleven Biggest Boy steps take
+1.32 seconds. Both strip halves are identical, so loop wrap preserves symbol order.
+The 0.45 second result settling and 0.2 second staggered reel stops are preserved.
+The pauses live in native CSS keyframes; they add no per-frame server traffic.
+
+Native acceptance: compile the matching addon and replace the matching plugin;
+open Book, run two consecutive paid/bonus spins, then repeat with Biggest Boy.
+Check whether symbols visibly cross cell boundaries before the stop. If the
+client still renders only the first and last frame, this experiment has not
+solved interpolation and must remain unaccepted. Record a short clip and any
+Panorama parser errors before changing timings again. Compare the same client,
+addon and server build. No Workshop publication or production merge before this
+native check. Existing 5x5 legacy strips are retained separately.

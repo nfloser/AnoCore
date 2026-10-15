@@ -15,6 +15,33 @@ public sealed class CasinoRoundPresenterTests
     private static readonly PlayerId Player = new(76561198000911901);
 
     [TestMethod]
+    [DataRow(CasinoRoundGame.Book)]
+    [DataRow(CasinoRoundGame.BiggestBoy)]
+    public async Task ReelSpinArmsBeforeStartingOnALaterUiUpdate(CasinoRoundGame game)
+    {
+        using var f = await Fixture.Create();
+        var json = game == CasinoRoundGame.Book
+            ? JsonSerializer.Serialize(BonusSlotRules.StartRound(100, _ => 0))
+            : JsonSerializer.Serialize(BiggestBoyCollectorRules.StartRound(100, _ => 0));
+        f.Rounds.NextSnapshot = new(Guid.NewGuid(), Player, game, 100, 1, false, 100, 0, json);
+        await f.Presenter.OpenAsync(Player, game);
+        await f.Click("play");
+        Assert.IsTrue(f.Class("reels-armed"));
+        Assert.IsFalse(f.Class("motion-a"));
+        f.Clock.AdvanceMilliseconds(150); f.Presenter.Tick();
+        Assert.IsTrue(f.Class("reels-armed"));
+        Assert.IsFalse(f.Class("motion-a"));
+        f.Clock.AdvanceMilliseconds(100); f.Presenter.Tick();
+        Assert.IsFalse(f.Class("reels-armed"));
+        Assert.IsTrue(f.Class("motion-a"));
+        await f.Click("free");
+        Assert.AreEqual(1, f.Rounds.Calls.Count);
+        f.FinishAnimation();
+        Assert.IsFalse(f.Class("motion-a"));
+        Assert.IsFalse(f.Class("reels-armed"));
+    }
+
+    [TestMethod]
     public async Task BiggestBoyProjectsAllCellsAndHidesWinningLinesUntilFiveLapsFinish()
     {
         using var f = await Fixture.Create();
@@ -37,7 +64,7 @@ public sealed class CasinoRoundPresenterTests
         }
         await f.Click("free");
         Assert.AreEqual(1, f.Rounds.Calls.Count);
-        f.Clock.AdvanceMilliseconds(1750); f.Presenter.Tick();
+        f.Clock.AdvanceMilliseconds(1950); f.Presenter.Tick();
         Assert.IsTrue(f.PanelClass("biggest_reel0", "settling"));
         Assert.IsFalse(f.PanelClass("biggest_reel1", "settling"));
         f.Clock.AdvanceMilliseconds(450); f.Presenter.Tick();
@@ -50,6 +77,8 @@ public sealed class CasinoRoundPresenterTests
         Assert.IsTrue(spin.ExpandedReels.Any(reel => f.PanelClass("biggest_symbol" + reel * 5, "expanded")));
         await f.Click("free");
         Assert.AreEqual(2, f.Rounds.Calls.Count);
+        Assert.IsTrue(f.Class("reels-armed"));
+        f.Clock.AdvanceMilliseconds(250); f.Presenter.Tick();
         Assert.IsTrue(f.Class("motion-b"));
         Assert.IsFalse(f.PanelClass("biggest_reel0", "stopped"));
         Assert.IsFalse(f.PanelClass("biggest_reel0", "settling"));
@@ -163,7 +192,7 @@ public sealed class CasinoRoundPresenterTests
         f.Rounds.NextSnapshot = new(Guid.NewGuid(), Player, CasinoRoundGame.Book, 100, 1, false, 100, 0, JsonSerializer.Serialize(spin));
         await f.Presenter.OpenAsync(Player, CasinoRoundGame.Book);
         await f.Click("play");
-        f.Clock.AdvanceMilliseconds(1550); f.Presenter.Tick();
+        f.Clock.AdvanceMilliseconds(1750); f.Presenter.Tick();
         Assert.IsTrue(f.PanelClass("reel0", "settling"));
         Assert.IsFalse(f.PanelClass("reel0", "stopped"));
         Assert.IsFalse(f.PanelClass("reel1", "settling"));
@@ -174,6 +203,8 @@ public sealed class CasinoRoundPresenterTests
         await f.Click("free");
         Assert.IsFalse(f.PanelClass("reel0", "stopped"));
         Assert.IsFalse(f.PanelClass("reel0", "settling"));
+        Assert.IsTrue(f.Class("reels-armed"));
+        f.Clock.AdvanceMilliseconds(250); f.Presenter.Tick();
         Assert.IsTrue(f.Class("motion-b"));
         Assert.AreEqual(2, f.Rounds.Calls.Count);
     }

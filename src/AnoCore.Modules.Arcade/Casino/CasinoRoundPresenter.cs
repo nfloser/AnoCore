@@ -141,6 +141,7 @@ public sealed class CasinoRoundPresenter : IDisposable
                     if (operation?.Action == CasinoRoundAction.SelectSymbol)
                     {
                         state.AnimatingUntil = null;
+                        state.AnimationStartsAt = null;
                         state.Status = "Bonussymbol gewählt · Freispiele bereit";
                     }
                     else
@@ -155,7 +156,10 @@ public sealed class CasinoRoundPresenter : IDisposable
                             Class(state, "biggest_reel" + reel, "settling", false);
                         }
                         state.BookSettles = 0; state.BookStops = 0;
-                        state.AnimatingUntil = _clock.GetUtcNow().AddSeconds(state.Game == CasinoRoundGame.BiggestBoy ? 3.2 : state.Game == CasinoRoundGame.Book ? 3 : state.Game == CasinoRoundGame.Blackjack ? .95 : .65);
+                        var now = _clock.GetUtcNow();
+                        state.AnimationStartsAt = state.Game is CasinoRoundGame.Book or CasinoRoundGame.BiggestBoy
+                            ? now.AddMilliseconds(200) : null;
+                        state.AnimatingUntil = (state.AnimationStartsAt ?? now).AddSeconds(state.Game == CasinoRoundGame.BiggestBoy ? 3.2 : state.Game == CasinoRoundGame.Book ? 3 : state.Game == CasinoRoundGame.Blackjack ? .95 : .65);
                         state.Status = "Aktion gebucht · Animation läuft";
                     }
                 }
@@ -179,6 +183,11 @@ public sealed class CasinoRoundPresenter : IDisposable
         lock (_gate) foreach (var state in _states.Values.ToArray())
         {
             if (!Current(state)) { Forget(state.Player); continue; }
+            if (state.AnimationStartsAt is { } start && _clock.GetUtcNow() >= start)
+            {
+                state.AnimationStartsAt = null;
+                if (state.AnimatingUntil is { } animationEnd && _clock.GetUtcNow() < animationEnd && state.Visible) Render(state);
+            }
             if (state.Game is CasinoRoundGame.Book or CasinoRoundGame.BiggestBoy && state.AnimatingUntil is { } bookEnd)
                 for (var reel = 0; reel < 5; reel++)
                 {
@@ -198,7 +207,7 @@ public sealed class CasinoRoundPresenter : IDisposable
                     }
                 }
             if (state.AnimatingUntil is { } end && _clock.GetUtcNow() >= end)
-            { state.AnimatingUntil = null; state.Status = "Gespeichertes Ergebnis"; if (state.Visible) Render(state); }
+            { state.AnimatingUntil = null; state.AnimationStartsAt = null; state.Status = "Gespeichertes Ergebnis"; if (state.Visible) Render(state); }
         }
     }
 
@@ -212,8 +221,10 @@ public sealed class CasinoRoundPresenter : IDisposable
         Class(state, "root", "complete", state.Round is { IsComplete: true });
         Class(state, "root", "active", active); Class(state, "root", "busy", state.Pending || moving);
         Class(state, "root", "uncertain", state.Unconfirmed is not null);
-        Class(state, "root", "motion-a", moving && state.Animation % 2 == 1);
-        Class(state, "root", "motion-b", moving && state.Animation % 2 == 0);
+        var rolling = moving && state.AnimationStartsAt is null;
+        Class(state, "root", "reels-armed", moving && !rolling);
+        Class(state, "root", "motion-a", rolling && state.Animation % 2 == 1);
+        Class(state, "root", "motion-b", rolling && state.Animation % 2 == 0);
         Text(state, "title", state.Game switch { CasinoRoundGame.Blackjack => "BLACKJACK", CasinoRoundGame.Book => "BOOK · FREISPIELE", CasinoRoundGame.BiggestBoy => "BIGGEST BOY · 5×3", _ => "RISK · DOUBLE OR BANK" });
         Text(state, "account", Points(state.Balance.Available)); Text(state, "bankroll", Points(state.Balance.Allocated));
         Text(state, "stake", Points(active ? state.Round!.Stake : state.Stake)); Text(state, "status", state.Status);
@@ -421,6 +432,7 @@ public sealed class CasinoRoundPresenter : IDisposable
         public bool Pending { get; set; }
         public DurableCasinoRoundOperation? Unconfirmed { get; set; }
         public DateTimeOffset? AnimatingUntil { get; set; }
+        public DateTimeOffset? AnimationStartsAt { get; set; }
         public int Animation { get; set; }
         public bool BiggestRules { get; set; }
         public int BookSettles { get; set; }

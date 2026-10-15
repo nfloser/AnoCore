@@ -1251,7 +1251,7 @@ public sealed class AnoCorePlugin : BasePlugin
                         }, biggestBoyMaximumStake: _biggestBoyMaximumStake);
                     var activeCasino = casino;
                     var activeRounds = casinoRounds;
-                    casinoTimer = AddTimer(0.25f, () => { activeCasino.Tick(); activeRounds.Tick(); }, TimerFlags.REPEAT);
+                    casinoTimer = AddTimer(0.05f, () => { activeCasino.Tick(); activeRounds.Tick(); }, TimerFlags.REPEAT);
                 }
                 if (_arcadeProbeEnabled && _customHud is not null)
                 {

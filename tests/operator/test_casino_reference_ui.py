@@ -1,5 +1,6 @@
 """Native adaptation contracts: no browser runtime and no clipped or false cards."""
 import pathlib
+import re
 import unittest
 import xml.etree.ElementTree as ET
 
@@ -34,7 +35,24 @@ class CasinoReferenceUiTests(unittest.TestCase):
                 self.assertIn(f'book-row-{index}', panel.attrib['class'].split())
         css = (STYLE / 'ano_casino_rounds.css').read_text()
         for name in ['book-down-a', 'book-down-b']:
-            self.assertIn(f"@keyframes '{name}' {{ 0% {{ transform: translateY(-640px); }} 100% {{ transform: translateY(0px); }} }}", css)
+            self.assertIn(f"@keyframes '{name}' {{ 0% {{ transform: translateY(-640px); }}", css)
+
+    def test_reel_loops_have_row_sized_steps_and_short_visible_holds(self):
+        css = (STYLE / 'ano_casino_rounds.css').read_text()
+        for prefix, rows, duration in [('book', 8, .96), ('collector', 11, 1.32)]:
+            for variant in ['a', 'b']:
+                chunk = css.split(f"@keyframes '{prefix}-down-{variant}' {{", 1)[1].split('@keyframes', 1)[0]
+                frames = [(float(t), int(y)) for t, y in re.findall(
+                    r'([\d.]+)%\s*\{\s*transform:\s*translateY\((-?\d+)px\);', chunk)]
+                self.assertEqual(2 * rows + 1, len(frames))
+                self.assertEqual((0.0, -80 * rows), frames[0])
+                self.assertEqual((100.0, 0), frames[-1])
+                for step in range(rows):
+                    before, landed, held = frames[2 * step:2 * step + 3]
+                    self.assertEqual(80, landed[1] - before[1])
+                    self.assertEqual(landed[1], held[1])
+                    self.assertAlmostEqual(20, (held[0] - landed[0]) * duration * 10, delta=.3)
+        self.assertIn('.reels-armed', css)
 
     def test_settle_uses_result_strip_before_stop_and_alternates_names(self):
         for file, prefix in [('ano_casino_slots.css', 'slot'), ('ano_casino_rounds.css', 'book')]:
