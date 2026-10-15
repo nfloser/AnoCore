@@ -114,7 +114,7 @@
 .bb-v4.book-mode .bb-symbol-7.active-line { border:4px solid #ff3030; }
 
 /* Paytables follow the booked rules version, including resumed historical bonuses. */
-.bb-balanced-paytable, .bb-legacy-paytable { width: 100%; flow-children: down; }
-.bb-balanced-paytable { visibility: collapse; }
-.balanced-mode .bb-balanced-paytable { visibility: visible; }
-.balanced-mode .bb-legacy-paytable { visibility: collapse; }
+.bb-balanced-paytable, .bb-legacy-paytable { width:100%; flow-children:down; }
+.bb-balanced-paytable { visibility:collapse; }
+.balanced-mode .bb-balanced-paytable { visibility:visible; }
+.balanced-mode .bb-legacy-paytable { visibility:collapse; }

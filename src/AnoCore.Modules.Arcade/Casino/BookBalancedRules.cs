@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+
 namespace AnoCore.Modules.Arcade.Casino;
 
 /// <summary>Versioned fruit-slot multipliers, expressed per one tenth of the total stake.</summary>
@@ -14,7 +16,21 @@ public static class BookBalancedRules
             ? Pays[(int)symbol][count - 3] : 0;
 
     public static BonusSlotSpinResult EvaluateGrid(int stake, IReadOnlyList<BonusSlotSymbol> grid)
-        => BonusSlotRules.EvaluateGrid(stake, grid, Multiplier);
+    {
+        ArgumentNullException.ThrowIfNull(grid);
+        if (grid.Count != 15 || grid.Any(symbol => !Enum.IsDefined(symbol)))
+            throw new ArgumentException("Expected 15 valid fruit symbols.", nameof(grid));
+        // The frozen Book evaluator stays byte-identical. Both cabinets share these
+        // ten lines and wild substitution rules; map only symbols, never money.
+        var mapped = grid.Select(symbol => symbol == BonusSlotSymbol.Book
+            ? BiggestBoySymbol.Book : (BiggestBoySymbol)(int)symbol).ToArray();
+        var result = BiggestBoyExpandingRules.EvaluateGrid(stake, mapped,
+            (symbol, count) => Multiplier((BonusSlotSymbol)(int)symbol, count));
+        return new(grid.ToImmutableArray(), grid.Count(symbol => symbol == BonusSlotSymbol.Book),
+            result.LineWins.Select(win => new BonusSlotLineWin(win.Payline,
+                (BonusSlotSymbol)(int)win.Symbol, win.MatchCount, win.Payout)).ToImmutableArray(),
+            result.Payout, 0, new(stake, 0, 0, 0, result.Payout, null, ControlledSlotRules.BookVersion));
+    }
 
     public static long MaximumRoundExposure(int stake) => checked(stake * 50L * 31);
 }

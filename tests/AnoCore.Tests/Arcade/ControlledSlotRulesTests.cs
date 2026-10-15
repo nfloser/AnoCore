@@ -64,6 +64,19 @@ public sealed class ControlledSlotRulesTests
     }
 
     [TestMethod]
+    public void FruitWildLineSelectsBestNewPayoutRatherThanRescalingOldWinner()
+    {
+        var grid = Enumerable.Range(0, 15).Select(cell => (BonusSlotSymbol)(cell % 7)).ToArray();
+        grid[0] = grid[3] = grid[6] = BonusSlotSymbol.Book;
+        grid[9] = grid[12] = BonusSlotSymbol.Cherry;
+        var oldLine = BonusSlotRules.EvaluateGrid(100, grid).LineWins.Single(win => win.Payline == 0);
+        var newLine = BookBalancedRules.EvaluateGrid(100, grid).LineWins.Single(win => win.Payline == 0);
+        Assert.AreEqual(BonusSlotSymbol.Seven, oldLine.Symbol);
+        Assert.AreEqual(BonusSlotSymbol.Cherry, newLine.Symbol);
+        Assert.AreEqual(100L, newLine.Payout);
+    }
+
+    [TestMethod]
     public void IndependentBoundaryProbabilitiesMatchActualPaidResults()
     {
         foreach (var win in new[] { 0, 100 })
