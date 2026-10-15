@@ -175,6 +175,9 @@ public sealed class CasinoRoundPresenterTests
         Assert.AreEqual(CasinoRoundPresenter.ExpandingHudId, f.ActiveHud);
         Assert.IsTrue(f.Class("book-mode"));
         Assert.AreEqual(0, f.Hud.VisiblePlayers(CasinoRoundPresenter.HudId).Count);
+        await f.Presenter.OpenAsync(Player, CasinoRoundGame.BiggestBoy);
+        Assert.AreEqual(CasinoRoundPresenter.ExpandingHudId, f.ActiveHud);
+        Assert.IsFalse(f.Class("book-mode"), "Book fruit skins must be cleared before returning to Biggest Boy.");
     }
 
     [TestMethod]
