@@ -664,6 +664,7 @@ public sealed class CasinoRoundPresenter : IDisposable
         public bool BiggestRules { get; set; }
         public int BookSettles { get; set; }
         public int BookStops { get; set; }
+        public int SoundStops { get; set; }
         public Dictionary<string, string> Cards { get; } = [];
         public Dictionary<(string Id, string Name), bool> Classes { get; } = [];
         public string Status { get; set; } = "";
