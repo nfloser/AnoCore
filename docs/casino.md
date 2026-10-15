@@ -358,11 +358,31 @@ konfigurieren (zusätzliche vorhandene Einstellungen beibehalten):
   Er wirkt **global** für Biggest Boy, nicht nur für ausgewählte Spieler,
   und erhöht nicht die Book-Gewinnwahrscheinlichkeit.
 
-Die laufende Animation gibt beim Stopp jeder der fünf Walzen genau einen
-**lokalen** CS2-Standardsound `sounds/ui/counter_beep.vsnd` an den
-betroffenen Spieler aus. Keine neue Sounddatei und kein neues Workshop-Audio
-nötig. Per `CasinoReelStopSoundEnabled: false` ausschaltbar. Klang,
-Clientberechtigung und Lautstärke sind auf dem CS2-Testserver zu prüfen.
+### Walzensound: nur AN/AUS, sehr leise (#508)
+
+Der bisherige laute Client-Befehl `play sounds/ui/counter_beep.vsnd` entfällt.
+Ein Walzenstopp verwendet stattdessen `EmitSound` über einen ausschließlich
+auf den betroffenen Spieler gerichteten `RecipientFilter`. Die feste relative
+Event-Lautstärke ist `0.08f` (8 %, kein Spieler-Lautstärkeregler);
+der eingebaute Eventname ist vorläufig `UI.ButtonClick`. CS2 muss diesen
+Sound-Event-Namen beim nativen Test auflösen können, sonst bleibt es stumm.
+Keine neue Sounddatei und kein zusätzliches Workshop-Audio nötig.
+
+Jeder Spieler kann unabhängig mit **`!casinosound`** zwischen **AN** und
+**AUS** umschalten. Die Option `casino.reel_sound` (Standard: AN) wird
+über AnoCores bestehenden `IPlayerSettingsService` dauerhaft zur SteamID
+hinterlegt und erscheint auch in `!anosettingsmenu`. Alternativ funktioniert
+`!anotoggle casino.reel_sound on|off|default`. Beim Öffnen eines Slots
+wird die gespeicherte Einstellung geladen. Solange der Abruf aussteht oder
+fehlschlägt, spielt AnoCore keinen Klick; der Slot selbst bleibt spielbar.
+Ein Reconnect lädt die Einstellung neu, ein Spieler kann den Sound
+nicht für andere Spieler aktivieren.
+
+Die bestehende Einstellung `CasinoReelStopSoundEnabled: false` bleibt ein
+globaler Kill-Switch. Bei `true` gilt zusätzlich die jeweilige Spieleroption.
+Die fünf Klicks pro Spin bleiben an dieselben Walzenstopps gekoppelt.
+CS2-Soundevent, feste Dämpfung und hörbare Ausgabe müssen auf dem Testserver
+mit zwei Clients nativ bestätigt werden; CI beweist nur die Verdrahtung.
 
 Das abgeschnittene zweite Textfeld in den oberen zwei Konto-Boxen wird durch
 84px hohe Kontokästen, 100px Gesamtbereich, kleinere Titelabstände
