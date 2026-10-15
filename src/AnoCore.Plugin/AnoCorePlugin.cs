@@ -107,6 +107,7 @@ public sealed class AnoCorePlugin : BasePlugin
     private int _biggestBoyMaximumStake = 10_000;
     private string _biggestBoyProfile = BiggestBoyProfiles.Standard;
     private bool _casinoReelStopSoundEnabled = true;
+    private CasinoSoundPreferences? _casinoSoundPreferences;
     private CounterStrikeSharp.API.Modules.Timers.Timer? _arcadeProbeTimer;
     private bool _tournamentDashboardEnabled;
     private TournamentMatchRuntime? _tournamentMatch;
@@ -199,6 +200,7 @@ public sealed class AnoCorePlugin : BasePlugin
         RegisterLifecycleHooks();
 
         AddCommand("css_anostatus", "Show AnoCore runtime status", OnStatus);
+        AddCommand("css_casinosound", "Toggle your quiet casino reel click", OnCasinoSoundAlias);
         Server.NextWorldUpdate(BootstrapConnectedPlayers);
         _startup = new CancellationTokenSource();
         _runtimeStatus = "starting";
@@ -313,6 +315,8 @@ public sealed class AnoCorePlugin : BasePlugin
             _casino = null;
             _casinoRounds?.Dispose();
             _casinoRounds = null;
+            _casinoSoundPreferences?.Dispose();
+            _casinoSoundPreferences = null;
             _arcadeProbeTimer?.Kill();
             _arcadeProbeTimer = null;
             _arcadeProbe?.Dispose();
@@ -427,6 +431,52 @@ public sealed class AnoCorePlugin : BasePlugin
         DeregisterLifecycleHooks();
         _players = null;
         _eventBus = null;
+    }
+
+    // CounterStrikeSharp chat shortcut: !casinosound. AnoCore's logical registry
+    // enforces the ano* namespace, so its corresponding command is !anocasinosound.
+    private void OnCasinoSoundAlias(CCSPlayerController? player, CommandInfo command)
+    {
+        if (player is not { IsValid: true } || player.SteamID == 0)
+        {
+            command.ReplyToCommand("[ANO] Nur für verbundene Spieler.");
+            return;
+        }
+        if (command.ArgCount != 1)
+        {
+            command.ReplyToCommand("[ANO] Verwendung: !casinosound");
+            return;
+        }
+        if (_runtime is not { } runtime || _casinoSoundPreferences is null)
+        {
+            command.ReplyToCommand("[ANO] Casino nicht verfügbar.");
+            return;
+        }
+        var caller = new PlayerId(player.SteamID);
+        _ = ToggleCasinoSoundAliasAsync(runtime, player, caller, command.CallingContext);
+    }
+
+    private async Task ToggleCasinoSoundAliasAsync(RuntimeServices runtime,
+        CCSPlayerController player, PlayerId caller,
+        CounterStrikeSharp.API.Modules.Commands.CommandCallingContext callingContext)
+    {
+        try
+        {
+            var result = await runtime.Commands.ExecuteAsync("!anocasinosound", caller).ConfigureAwait(false);
+            Server.NextWorldUpdate(() =>
+            {
+                if (!ReferenceEquals(_runtime, runtime) || !player.IsValid
+                    || player.SteamID != caller.SteamId64) return;
+                if (callingContext == CounterStrikeSharp.API.Modules.Commands.CommandCallingContext.Console)
+                    player.PrintToConsole(result.Message ?? "[ANO] Casino-Walzensound aktualisiert.");
+                else
+                    player.PrintToChat(result.Message ?? "[ANO] Casino-Walzensound aktualisiert.");
+            });
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Casino sound toggle failed.");
+        }
     }
 
     private void OnStatus(CCSPlayerController? player, CommandInfo command)
@@ -1195,6 +1245,7 @@ public sealed class AnoCorePlugin : BasePlugin
             TournamentEventCommandController? tournamentEventCommands = null;
             CasinoPresenter? casino = null;
             CasinoRoundPresenter? casinoRounds = null;
+            CasinoSoundPreferences? casinoSound = null;
             CounterStrikeSharp.API.Modules.Timers.Timer? casinoTimer = null;
             ArcadeProbePresenter? arcadeProbe = null;
             CounterStrikeSharp.API.Modules.Timers.Timer? arcadeProbeTimer = null;
@@ -1241,6 +1292,8 @@ public sealed class AnoCorePlugin : BasePlugin
                 if (_casinoEnabled && _customHud is not null)
                 {
                     var casinoDatabase = (IDatabase)runtime.GetService(typeof(IDatabase))!;
+                    casinoSound = new CasinoSoundPreferences(runtime.Commands, runtime.ToggleCatalog,
+                        runtime.Settings, runtime.Players, _eventBus!);
                     var wallet = new MySqlCasinoWallet(casinoDatabase, _casinoMaximumStakes);
                     casino = new CasinoPresenter(_customHud, runtime.Players, runtime.Authorization,
                         wallet, runtime.Commands, _eventBus!, playerId =>
@@ -1251,7 +1304,16 @@ public sealed class AnoCorePlugin : BasePlugin
                             presenter.Reconcile();
                             _arcadeProbe?.CloseForPlayer(playerId);
                         },
-                        openRound: (playerId, game, token) => casinoRounds!.OpenAsync(playerId, game, token),
+                        openRound: async (playerId, game, token) =>
+                        {
+                            try { await casinoSound!.RefreshAsync(playerId, token).ConfigureAwait(false); }
+                            catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
+                            catch (Exception exception)
+                            {
+                                Logger.LogWarning(exception, "Casino sound preference unavailable; this round will be silent.");
+                            }
+                            return await casinoRounds!.OpenAsync(playerId, game, token).ConfigureAwait(false);
+                        },
                         reportError: exception => Logger.LogError(exception, "Casino persistence command failed."), stakeLimits: _casinoMaximumStakes);
                     casinoRounds = new CasinoRoundPresenter(_customHud, runtime.Players, runtime.Authorization,
                         wallet, new CasinoRoundService(new MySqlCasinoRoundStore(casinoDatabase), _biggestBoyMaximumStake, _biggestBoyProfile, _casinoMaximumStakes), _eventBus!,
@@ -1261,12 +1323,18 @@ public sealed class AnoCorePlugin : BasePlugin
                         }, biggestBoyMaximumStake: _biggestBoyMaximumStake, biggestBoyProfile: _biggestBoyProfile, stakeLimits: _casinoMaximumStakes,
                         reelStopSound: playerId =>
                         {
-                            if (!_casinoReelStopSoundEnabled) return;
+                            if (!_casinoReelStopSoundEnabled || casinoSound is null || !casinoSound.IsEnabled(playerId)) return;
                             try
                             {
                                 var listener = CounterStrikeSharp.API.Utilities.GetPlayerFromSteamId(playerId.SteamId64);
                                 if (listener is { IsValid: true })
-                                    listener.ExecuteClientCommand("play sounds/ui/counter_beep.vsnd");
+                                {
+                                    var recipients = new CounterStrikeSharp.API.Modules.Utils.RecipientFilter();
+                                    recipients.Add(listener);
+                                    // Fixed quiet game volume; do not change the player's global snd_toolvolume.
+                                    listener.EmitSound(CasinoSoundPreferences.ReelClickEvent, recipients,
+                                        CasinoSoundPreferences.ReelClickVolume);
+                                }
                             }
                             catch (Exception exception)
                             {
@@ -1746,6 +1814,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 _tournamentEventCommands = tournamentEventCommands;
                 _casino = casino;
                 _casinoRounds = casinoRounds;
+                _casinoSoundPreferences = casinoSound;
                 _casinoTimer = casinoTimer;
                 _arcadeProbe = arcadeProbe;
                 _arcadeProbeTimer = arcadeProbeTimer;
@@ -1849,6 +1918,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 casinoTimer?.Kill();
                 casino?.Dispose();
                 casinoRounds?.Dispose();
+                casinoSound?.Dispose();
                 arcadeProbeTimer?.Kill();
                 arcadeProbe?.Dispose();
                 tournamentPanorama?.Dispose();
