@@ -33,6 +33,23 @@ public sealed class MySqlCasinoWalletTests
     });
     private ValueTask<CasinoReceipt> Credit(int amount) => _wallet.ApplyAsync(new(Guid.NewGuid(), Player, CasinoAction.Credit, amount, null));
     [TestMethod]
+    public async Task ConfiguredCoinLimitRejectsNewBetsButReplaysBookedReceiptAfterReduction()
+    {
+        await Credit(20000);
+        await _wallet.ApplyAsync(new(Guid.NewGuid(), Player, CasinoAction.Load, 20000, null));
+        var high = new MySqlCasinoWallet(_db, new() { Coinflip = 10000 });
+        var op = new CasinoOperation(Guid.NewGuid(), Player, CasinoAction.Play, 0, new(CasinoGame.Coinflip, 10000, 0));
+        var receipt = await high.ApplyAsync(op);
+        var low = new MySqlCasinoWallet(_db, new() { Coinflip = 50 });
+        var replay = await low.ApplyAsync(op);
+        Assert.AreEqual(receipt.Balance, replay.Balance);
+        Assert.AreEqual(receipt.Outcome!.Payout, replay.Outcome!.Payout);
+        var before = await low.ReadAsync(Player);
+        await Assert.ThrowsExactlyAsync<CasinoRejectedException>(async () => await low.ApplyAsync(op with { Id = Guid.NewGuid() }));
+        Assert.AreEqual(before, await low.ReadAsync(Player));
+    }
+
+    [TestMethod]
     public async Task BootstrapRepairsMissingPhysicalCasinoTables()
     {
         await _db.WithConnectionAsync(async (connection, token) =>

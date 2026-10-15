@@ -18,8 +18,10 @@ public interface ICasinoWallet
     ValueTask<IReadOnlyList<CasinoReceipt>> HistoryAsync(PlayerId player, CancellationToken token = default);
 }
 /// <summary>Shared SteamID AP account; every transfer or game commits once under a row lock.</summary>
-public sealed class MySqlCasinoWallet(IDatabase database) : ICasinoWallet
+public sealed class MySqlCasinoWallet(IDatabase database, CasinoStakeLimits? stakeLimits = null) : ICasinoWallet
 {
+    private readonly CasinoStakeLimits _stakeLimits = (stakeLimits ?? new()).Validate();
+
     public ValueTask<CasinoBalance> ReadAsync(PlayerId player, CancellationToken token = default)
         => database.WithConnectionAsync(async (connection, ct) => await BalanceAsync(connection, null, player, false, ct).ConfigureAwait(false), token);
     public ValueTask<CasinoReceipt> ApplyAsync(CasinoOperation op, CancellationToken token = default)
@@ -52,6 +54,7 @@ public sealed class MySqlCasinoWallet(IDatabase database) : ICasinoWallet
                 case CasinoAction.Return: available = checked(available + allocated); allocated = 0; break;
                 case CasinoAction.Credit: available = checked(available + op.Amount); break;
                 case CasinoAction.Play:
+                    _stakeLimits.Check(op.Game!);
                     if (allocated < op.Game!.Stake) throw new CasinoRejectedException("Nicht genügend Automatenguthaben.");
                     if (available + allocated - op.Game.Stake + CasinoRules.MaximumPayout(op.Game) + reservedPayout > 1000000000L)
                         throw new CasinoRejectedException("Kontolimit: nicht genügend Spielraum für die maximale Auszahlung.");

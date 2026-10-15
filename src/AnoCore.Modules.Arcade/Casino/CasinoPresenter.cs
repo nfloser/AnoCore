@@ -62,6 +62,7 @@ public sealed class CasinoPresenter : IDisposable
     private readonly IPlayerRegistry _players;
     private readonly IPermissionEvaluator _permissions;
     private readonly ICasinoWallet _wallet;
+    private readonly CasinoStakeLimits _stakeLimits;
     private readonly IAnoCommandRegistry _commands;
     private readonly Action<PlayerId> _beforeOpen;
     private readonly TimeProvider _clock;
@@ -82,12 +83,14 @@ public sealed class CasinoPresenter : IDisposable
         Action<PlayerId> beforeOpen,
         TimeProvider? clock = null,
         Func<PlayerId, CasinoRoundGame, CancellationToken, ValueTask<bool>>? openRound = null,
-        Action<Exception>? reportError = null)
+        Action<Exception>? reportError = null,
+        CasinoStakeLimits? stakeLimits = null)
     {
         _hud = hud;
         _players = players;
         _permissions = permissions;
         _wallet = wallet;
+        _stakeLimits = (stakeLimits ?? new()).Validate();
         _commands = commands;
         _beforeOpen = beforeOpen;
         _clock = clock ?? TimeProvider.System;
@@ -350,7 +353,7 @@ public sealed class CasinoPresenter : IDisposable
                         state.Stake = Math.Max(50, state.Stake - 50);
                         break;
                     case "plus":
-                        state.Stake = Math.Min(500, state.Stake + 50);
+                        state.Stake = Math.Min(_stakeLimits.For(state.Game ?? CasinoGame.Slots), state.Stake + 50);
                         break;
                     case "loadminus":
                         state.Load = Math.Max(50, state.Load - 50);
@@ -592,6 +595,7 @@ public sealed class CasinoPresenter : IDisposable
                     if (settled.Game == CasinoGame.Coinflip)
                     {
                         CoinClass(state, "coin", "flipping", false);
+                        CoinText(state, "result", settled.Number == 0 ? "KOPF" : "ZAHL");
                         CoinClass(state, "coin", settled.Number == 0 ? "land-heads" : "land-tails", true);
                     }
                     else if (settled.Game == CasinoGame.Roulette)
@@ -637,6 +641,7 @@ public sealed class CasinoPresenter : IDisposable
     {
         HideAllViews(state.Player.Id);
         state.Game = game;
+        state.Stake = Math.Min(state.Stake, _stakeLimits.For(game));
         state.Status = game switch
         {
             CasinoGame.Slots => "5 Gewinnlinien · Einsatz wählen und spielen",
@@ -726,7 +731,12 @@ public sealed class CasinoPresenter : IDisposable
         }
         else if (outcome.Game == CasinoGame.Coinflip)
         {
-            CoinText(state, "result", outcome.Number == 0 ? "KOPF" : "ZAHL");
+            CoinText(state, "result", state.Started is null ? outcome.Number == 0 ? "KOPF" : "ZAHL" : "…");
+            if (state.Started is null)
+            {
+                CoinClass(state, "coin", "land-heads", outcome.Number == 0);
+                CoinClass(state, "coin", "land-tails", outcome.Number == 1);
+            }
         }
         else if (outcome.Game == CasinoGame.Roulette)
         {

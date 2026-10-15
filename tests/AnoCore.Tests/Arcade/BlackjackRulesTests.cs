@@ -17,6 +17,18 @@ public sealed class BlackjackRulesTests
     }
 
     [TestMethod]
+    public void HigherStartingStakeKeepsDoubleAndSettlementAccounting()
+    {
+        var deck = Deck(C(BlackjackSuit.Clubs, BlackjackRank.Ten), C(BlackjackSuit.Hearts, BlackjackRank.Six),
+            C(BlackjackSuit.Spades, BlackjackRank.Five), C(BlackjackSuit.Diamonds, BlackjackRank.Nine), C(BlackjackSuit.Clubs, BlackjackRank.Two));
+        var state = BlackjackRules.Start(10000, deck);
+        Assert.IsTrue(BlackjackRules.LegalActions(state).Contains(BlackjackAction.Double));
+        var doubled = BlackjackRules.Apply(state, state.Revision, BlackjackAction.Double);
+        Assert.AreEqual(20000L, doubled.PlayerHands.Sum(hand => hand.Stake));
+        Assert.AreEqual(20000L, doubled.PlayerHands[0].Stake);
+    }
+
+    [TestMethod]
     public void Start_is_deterministic_and_serializable()
     {
         var deck = Deck(C(BlackjackSuit.Clubs, BlackjackRank.Ten),

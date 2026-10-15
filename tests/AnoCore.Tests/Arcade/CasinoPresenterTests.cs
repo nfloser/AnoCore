@@ -14,6 +14,43 @@ public sealed class CasinoPresenterTests
     private static readonly PlayerId Player = new(76561198000911901);
 
     [TestMethod]
+    [DataRow(0)]
+    [DataRow(1)]
+    public async Task CoinFacesAnimateBeforeBookedLandingAndNextThrowRestarts(int number)
+    {
+        using var f = await Fixture.Create();
+        f.Wallet.CoinNumber = number;
+        await f.ClickLobby("load"); await f.ClickLobby("coinflip"); await f.ClickCoin("play");
+        Assert.AreEqual("…", f.CoinText("result"));
+        Assert.IsTrue(f.Hud.Class(Player, CasinoPresenter.CoinflipHudId, "casino_coinflip_coin", "flipping"));
+        f.Clock.AdvanceMilliseconds(1000); f.Presenter.Tick();
+        Assert.AreEqual("…", f.CoinText("result"));
+        Assert.AreEqual(2, f.Wallet.Operations.Count);
+        f.Clock.AdvanceMilliseconds(2600); f.Presenter.Tick();
+        Assert.AreEqual(number == 0 ? "KOPF" : "ZAHL", f.CoinText("result"));
+        Assert.IsFalse(f.Hud.Class(Player, CasinoPresenter.CoinflipHudId, "casino_coinflip_coin", "flipping"));
+        Assert.IsTrue(f.Hud.Class(Player, CasinoPresenter.CoinflipHudId, "casino_coinflip_coin", number == 0 ? "land-heads" : "land-tails"));
+        f.Clock.AdvanceMilliseconds(400); f.Presenter.Tick();
+        await f.ClickCoin("play");
+        Assert.AreEqual("…", f.CoinText("result"));
+        Assert.IsFalse(f.Hud.Class(Player, CasinoPresenter.CoinflipHudId, "casino_coinflip_coin", "land-heads"));
+        Assert.AreEqual(3, f.Wallet.Operations.Count);
+    }
+
+    [TestMethod]
+    public async Task ImmediateGameControlsRespectIndependentLimitsWhenSwitching()
+    {
+        using var f = await Fixture.Create(new() { Coinflip = 1000, Roulette = 50 });
+        await f.ClickLobby("coinflip");
+        for (var n = 0; n < 30; n++) await f.ClickCoin("plus");
+        Assert.AreEqual("1.000 €", f.CoinText("stake"));
+        await f.ClickCoin("back"); await f.ClickLobby("roulette");
+        Assert.AreEqual("50 €", f.RouletteText("stake"));
+        await f.ClickRoulette("plus");
+        Assert.AreEqual("50 €", f.RouletteText("stake"));
+    }
+
+    [TestMethod]
     public async Task OpenUsesDedicatedLobby_AndGameSelectionSwapsHud()
     {
         using var f = await Fixture.Create();
@@ -230,6 +267,7 @@ public sealed class CasinoPresenterTests
 
     private sealed class Wallet : ICasinoWallet
     {
+        public int CoinNumber;
         public CasinoBalance Balance = new(1000, 0, 0);
         public bool FailRead;
         public Exception? RejectOnce;
@@ -283,7 +321,7 @@ public sealed class CasinoPresenterTests
                     available += operation.Amount;
                     break;
                 case CasinoAction.Play:
-                    result = CasinoRules.Draw(operation.Game!, _ => 0);
+                    result = CasinoRules.Draw(operation.Game!, max => max == 2 ? CoinNumber : 0);
                     allocated = allocated - operation.Game!.Stake + result.Payout;
                     break;
             }
@@ -306,19 +344,19 @@ public sealed class CasinoPresenterTests
         public readonly CommandRegistry Commands;
         public readonly CasinoPresenter Presenter;
 
-        private Fixture()
+        private Fixture(CasinoStakeLimits? stakeLimits = null)
         {
             var events = new AnoEventBus();
             Players = new(events);
             Commands = new(Permission);
             Presenter = new(
                 Hud, Players, Permission, Wallet, Commands, events,
-                _ => { }, Clock, reportError: Errors.Add);
+                _ => { }, Clock, reportError: Errors.Add, stakeLimits: stakeLimits);
         }
 
-        public static async Task<Fixture> Create()
+        public static async Task<Fixture> Create(CasinoStakeLimits? stakeLimits = null)
         {
-            var fixture = new Fixture();
+            var fixture = new Fixture(stakeLimits);
             await fixture.Players.ConnectAsync(
                 new(Player, "Tester", PlayerTeam.Terrorist, true, DateTimeOffset.UtcNow));
             Assert.IsTrue((await fixture.Commands.ExecuteAsync("!anocasino", Player)).Success);

@@ -255,3 +255,67 @@ Bildvollständigkeit vor dem Kompilieren. Native Valve-/CS2-Abnahme bleibt erfor
 RTP, Stoppgewichte, Trefferhäufigkeiten und die aktuelle Wild-/Scatter-Bildzuordnung
 stehen in [biggest-boy.md](biggest-boy.md). Süßilix löst Freispiele aus, die
 Biggest-Boy-Schärpe ersetzt reguläre Symbole als Wild. Keine Echtgeld-Abrechnung.
+
+
+## Maximale Starteinsätze pro Spiel
+
+Ab dem Coinflip-/Limit-Update kann `config/core.json` folgenden Block enthalten.
+Bestehende Verbindung und übrige Einstellungen behalten; keine produktiven
+Zugangsdaten in Issues, Pull Requests oder Beispieldateien ablegen.
+
+```json
+{
+  "CasinoMaximumStakes": {
+    "Slots": 10000,
+    "Coinflip": 10000,
+    "Roulette": 10000,
+    "Blackjack": 10000,
+    "Risk": 10000,
+    "Book": 10000
+  },
+  "BiggestBoyMaximumStake": 10000,
+  "BiggestBoyProfile": "generous"
+}
+```
+
+Die sechs neuen Felder akzeptieren 50 bis 1.000.000 in Schritten von 50; fehlende
+Felder bleiben bei 500. Biggest Boy behält seine vorhandene Grenze bis 10.000 und
+seine festen Einsatzstufen. Nach Änderung Plugin kontrolliert neu laden oder
+Testserver neu starten. Ein `null`-Block und ungültige Werte werden abgewiesen.
+Die Einsatzsteuerungen verwenden die jeweilige Grenze und reduzieren beim
+Spielwechsel einen zu hohen ausgewählten Einsatz. Die serverseitige Buchung
+prüft dieselben Grenzen vor der Ziehung. Pure Gewinnregeln akzeptieren höhere
+Einsätze, behalten aber ihre bisherigen Gewinnfaktoren und Wahrscheinlichkeiten.
+
+Es handelt sich um den **anfänglichen Einsatz**, nicht um einen Höchstgewinn oder
+eine Gesamtkostenbegrenzung beim Blackjack: Double/Split können zusätzliche
+Einsätze einer bereits begonnenen Runde buchen. Vorhandene Kontolimits und
+Maximalgewinn-Reservierungen bleiben wirksam; sie können trotz erlaubtem Einsatz
+einen Start ablehnen. Risk behält seine absolute Grenze für den gehaltenen Betrag
+und maximal fünf Verdopplungen. Kontoaufladungen bleiben eine separate Funktion.
+
+Bereits gebuchte Aktionen werden auch nach einer Verringerung des Limits
+unverändert wiedergegeben; laufende Runden und Freispiele behalten ihren Einsatz.
+Nur neue Starts unterliegen dem neuen Limit. Keine Migration aktiver Spielstände
+und keine nachträgliche Neuberechnung von Auszahlungen.
+
+## Coinflip mit Originalbildern
+
+`kopf.png` wird als `coin_heads.png`, `zahl.png` als `coin_tails.png` bytegleich
+übernommen. Zuordnung und SHA-256 stehen in `coinflip-original-assets.json`.
+Beide PNG/VTEX-Paare gehören zum vollständigen und zum Casino-Addon-Build.
+Die Dateizuordnung bestimmt die Seite; die Abbildungen werden nicht umgestaltet.
+
+Während des Wurfs läuft eine native 480-ms-Schleife: zwei Bildflächen wechseln
+mit komplementärer Deckkraft und kurzen sichtbaren Haltephasen an den schmalen
+Kantenphasen. Aufeinanderfolgende Würfe wechseln die Animationsklasse. Das
+gebuchte Ergebnis wird währenddessen noch nicht als Ergebnistext gezeigt.
+Bei 3,6 Sekunden beendet der bestehende Presenter die Schleife und setzt die
+gebuchte Seite samt Kopf-/Zahl-Text; der Gewinn wird wie bisher danach angezeigt.
+Animation und Timer führen keine neue Zufallsziehung oder AP-Buchung aus.
+
+Automatisiert geprüft werden beide Landeseiten, Wiederholungswürfe, unveränderte
+Buchungsanzahl, Wechselphasen, Originaldateien, beide Buildpfade, voneinander
+unabhängige Einsatzgrenzen, größere Auszahlungen und Restore/Replay bei reduzierten
+Grenzen. Native Valve-Kompilierung und Sichtprüfung im CS2-Client bleiben vor
+Workshop-Veröffentlichung erforderlich.

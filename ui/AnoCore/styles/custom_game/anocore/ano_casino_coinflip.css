@@ -23,3 +23,21 @@
 .casino-header .casino-title { font-size: 28px; color: #98f277; }
  .casino-coin .casino-coin-mark { font-size: 110px; color: #b4f58b; }
 .casino-coin .casino-result { font-size: 30px; color: #d7bd77; }
+
+/* Two real faces; native loops keep each side visible between edge-on swaps. */
+.casino-coin { border:0px solid transparent; background-color:transparent; box-shadow:none; border-radius:0px; }
+.coin-face { width:100%; height:100%; background-size:contain; background-position:center; background-repeat:no-repeat; animation-name:none; }
+.coin-heads { background-image:url("s2r://panorama/styles/custom_game/anocore/casino/coin_heads.vtex"); opacity:1; }
+.coin-tails { background-image:url("s2r://panorama/styles/custom_game/anocore/casino/coin_tails.vtex"); opacity:0; }
+.land-tails .coin-heads { opacity:0; }
+.land-tails .coin-tails { opacity:1; }
+.flipping { animation-name:'coin-swap-a'; animation-duration:0.48s; animation-timing-function:linear; animation-iteration-count:infinite; }
+.flipping.toss-b { animation-name:'coin-swap-b'; }
+.flipping .coin-face { animation-duration:0.48s; animation-timing-function:linear; animation-iteration-count:infinite; }
+.flipping .coin-heads { animation-name:'coin-heads-visible'; }
+.flipping .coin-tails { animation-name:'coin-tails-visible'; }
+.casino-flip-result { width:100%; height:32px; text-align:center; font-size:26px; color:#d7bd77; }
+@keyframes 'coin-heads-visible' { 0% { opacity:1; } 24% { opacity:1; } 25% { opacity:0; } 74% { opacity:0; } 75% { opacity:1; } 100% { opacity:1; } }
+@keyframes 'coin-tails-visible' { 0% { opacity:0; } 24% { opacity:0; } 25% { opacity:1; } 74% { opacity:1; } 75% { opacity:0; } 100% { opacity:0; } }
+@keyframes 'coin-swap-a' { 0% { transform:translateY(0px) scale3d(1,1,1); } 25% { transform:translateY(-14px) scale3d(0.08,1,1); } 50% { transform:translateY(-24px) scale3d(1,1,1); } 75% { transform:translateY(-14px) scale3d(0.08,1,1); } 100% { transform:translateY(0px) scale3d(1,1,1); } }
+@keyframes 'coin-swap-b' { 0% { transform:translateY(0px) scale3d(1,1,1); } 25% { transform:translateY(-14px) scale3d(0.08,1,1); } 50% { transform:translateY(-24px) scale3d(1,1,1); } 75% { transform:translateY(-14px) scale3d(0.08,1,1); } 100% { transform:translateY(0px) scale3d(1,1,1); } }

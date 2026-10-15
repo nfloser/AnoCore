@@ -15,6 +15,19 @@ public sealed class CasinoRoundPresenterTests
     private static readonly PlayerId Player = new(76561198000911901);
 
     [TestMethod]
+    public async Task RoundControlsUseEachConfiguredMaximum()
+    {
+        using var f = await Fixture.Create(new() { Blackjack = 1000, Risk = 50 });
+        await f.Presenter.OpenAsync(Player, CasinoRoundGame.Blackjack);
+        for (var n = 0; n < 25; n++) await f.Click("plus");
+        Assert.AreEqual("1.000 €", f.Text("stake"));
+        await f.Presenter.OpenAsync(Player, CasinoRoundGame.Risk);
+        Assert.AreEqual("50 €", f.Text("stake"));
+        await f.Click("plus");
+        Assert.AreEqual("50 €", f.Text("stake"));
+    }
+
+    [TestMethod]
     [DataRow(CasinoRoundGame.Book)]
     [DataRow(CasinoRoundGame.BiggestBoy)]
     public async Task ReelSpinArmsBeforeStartingOnALaterUiUpdate(CasinoRoundGame game)
@@ -502,18 +515,18 @@ public sealed class CasinoRoundPresenterTests
         public int BeforeOpenCalls;
         public int BackCalls;
 
-        private Fixture()
+        private Fixture(CasinoStakeLimits? stakeLimits = null)
         {
             var events = new AnoEventBus();
             Players = new(events);
             Rounds = new(Wallet);
             Presenter = new(Hud, Players, Permission, Wallet, Rounds, events, _ => BeforeOpenCalls++,
-                (_, _) => { BackCalls++; return ValueTask.CompletedTask; }, Clock);
+                (_, _) => { BackCalls++; return ValueTask.CompletedTask; }, Clock, stakeLimits: stakeLimits);
         }
 
-        public static async Task<Fixture> Create()
+        public static async Task<Fixture> Create(CasinoStakeLimits? stakeLimits = null)
         {
-            var f = new Fixture();
+            var f = new Fixture(stakeLimits);
             await f.Players.ConnectAsync(new(Player, "Tester", PlayerTeam.Terrorist, true, DateTimeOffset.UtcNow));
             return f;
         }
