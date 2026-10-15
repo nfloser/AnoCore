@@ -2,6 +2,7 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$Cs2,
     [string]$BiggestBoyWildPng = "",
+    [string]$BookCoconutPng = "",
     [switch]$IncludeBiggestBoy,
     [ValidatePattern('^[a-z][a-z0-9_]*$')]
     [string]$Addon = "anocasino_ui"
@@ -26,6 +27,23 @@ if ($buildBiggestBoy) {
     }
 }
 
+
+# Always compile the user's specific golden coconut asset for the Book wild/scatter.
+# Check it before modifying an installed CS2 addon.
+$coconutTarget = Join-Path $src "styles\\custom_game\\anocore\\casino\\book_coconut.png"
+if ($BookCoconutPng) {
+    $coconutSource = (Resolve-Path -LiteralPath $BookCoconutPng).Path
+    $coconutBytes = [System.IO.File]::ReadAllBytes($coconutSource)
+    if ($coconutBytes.Length -lt 8 -or [BitConverter]::ToString($coconutBytes, 0, 8) -ne "89-50-4E-47-0D-0A-1A-0A") {
+        throw "BookCoconutPng must be a real PNG file."
+    }
+    if ([System.IO.Path]::GetFullPath($coconutSource) -ne [System.IO.Path]::GetFullPath($coconutTarget)) {
+        Copy-Item -LiteralPath $coconutSource -Destination $coconutTarget -Force
+    }
+}
+if (-not (Test-Path -LiteralPath $coconutTarget -PathType Leaf)) {
+    throw "The original golden coconut PNG is missing: $coconutTarget. Provide -BookCoconutPng '<image.png>' before building."
+}
 
 $compiler = Join-Path $Cs2 "game\bin\win64\resourcecompiler.exe"
 if (-not (Test-Path $compiler)) {
