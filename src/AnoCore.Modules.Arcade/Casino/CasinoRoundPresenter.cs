@@ -314,7 +314,7 @@ public sealed class CasinoRoundPresenter : IDisposable
         Class(state, "root", "motion-b", rolling && state.Animation % 2 == 0);
         Text(state, "title", state.Game switch { CasinoRoundGame.Blackjack => "BLACKJACK", CasinoRoundGame.Book => "BOOK · FREISPIELE", CasinoRoundGame.BiggestBoy => "BIGGEST BOY · 5×3", _ => "RISK · DOUBLE OR BANK" });
         Text(state, "account", Points(state.Balance.Available)); Text(state, "bankroll", Points(state.Balance.Allocated));
-        Text(state, "stake", Points(active ? state.Round!.Stake : state.Stake)); Text(state, "status", state.Status);
+        Text(state, "stake", CasinoMoney.FormatExact(active ? state.Round!.Stake : state.Stake)); Text(state, "status", state.Status);
         Text(state, "payout", state.Round is { IsComplete: true } round && !moving ? Points(round.Payout) : "0 €");
         Class(state, "root", "can-risk", false);
         Class(state, "root", "can-double", false); Class(state, "root", "can-split", false);
@@ -350,7 +350,7 @@ public sealed class CasinoRoundPresenter : IDisposable
                 var blackjack = Read<BlackjackState>(snapshot);
                 RenderCards(state, blackjack, moving);
                 Text(state, "dealer", "Dealer: " + Cards((blackjack.Status == BlackjackRoundStatus.Settled) ? blackjack.DealerCards : blackjack.DealerCards.Take(1)) + ((blackjack.Status == BlackjackRoundStatus.Settled) ? $" ({new BlackjackHand(blackjack.DealerCards, 0, true, false, false).BestTotal})" : " · verdeckt"));
-                Text(state, "detail", string.Join("\n", blackjack.PlayerHands.Select((hand, index) => $"{(index == blackjack.ActiveHandIndex ? "▶ " : "")}Hand {index + 1}: {Cards(hand.Cards)} ({hand.BestTotal}) · {Points(hand.Stake)}")));
+                Text(state, "detail", string.Join("\n", blackjack.PlayerHands.Select((hand, index) => $"{(index == blackjack.ActiveHandIndex ? "▶ " : "")}Hand {index + 1}: {Cards(hand.Cards)} ({hand.BestTotal}) · {CasinoMoney.FormatExact(hand.Stake)}")));
                 if (!(blackjack.Status == BlackjackRoundStatus.Settled))
                 {
                     Class(state, "root", "can-double", BlackjackRules.LegalActions(blackjack).Contains(BlackjackAction.Double));
@@ -397,7 +397,7 @@ public sealed class CasinoRoundPresenter : IDisposable
         Class(state, "root", "uncertain", state.Unconfirmed is not null);
         Text(state, "title", "BIGGEST BOY · 5×3");
         Text(state, "account", Points(state.Balance.Available)); Text(state, "bankroll", Points(state.Balance.Allocated));
-        Text(state, "stake", Points(active ? state.Round!.Stake : state.Stake));
+        Text(state, "stake", CasinoMoney.FormatExact(active ? state.Round!.Stake : state.Stake));
         Text(state, "status", state.StatusError || state.Unconfirmed is not null ? state.Status : "");
         Text(state, "bankroll_footer", Points(state.Balance.Allocated));
         Text(state, "payout", moving ? "–" : Points(spin?.Payout ?? 0));
@@ -480,7 +480,7 @@ public sealed class CasinoRoundPresenter : IDisposable
         Text(state, "account", Points(state.Balance.Available));
         Text(state, "bankroll", Points(state.Balance.Allocated));
         Text(state, "bankroll_footer", Points(state.Balance.Allocated));
-        Text(state, "stake", Points(active ? state.Round!.Stake : state.Stake));
+        Text(state, "stake", CasinoMoney.FormatExact(active ? state.Round!.Stake : state.Stake));
         Text(state, "status", state.StatusError || state.Unconfirmed is not null ? state.Status : "");
         Text(state, "payout", moving ? "–" : Points(spin?.Payout ?? 0));
         Text(state, "bb_remaining", (spin?.State.FreeSpinsRemaining ?? 0).ToString(CultureInfo.InvariantCulture));
@@ -614,7 +614,7 @@ public sealed class CasinoRoundPresenter : IDisposable
             var hand = handIndex < blackjack.PlayerHands.Length ? blackjack.PlayerHands[handIndex] : null;
             Class(state, "hand" + handIndex, "present", hand is not null);
             Class(state, "hand" + handIndex, "active-hand", hand is not null && !settled && blackjack.ActiveHandIndex == handIndex);
-            Text(state, "hand" + handIndex + "_summary", hand is null ? "" : $"Hand {handIndex + 1} · {hand.BestTotal}{(hand.IsSoft ? " / weich" : "")} · {Points(hand.Stake)}{(hand.IsBust ? " · ÜBER 21" : hand.IsStanding ? " · STEHT" : "")}");
+            Text(state, "hand" + handIndex + "_summary", hand is null ? "" : $"Hand {handIndex + 1} · {hand.BestTotal}{(hand.IsSoft ? " / weich" : "")} · {CasinoMoney.FormatExact(hand.Stake)}{(hand.IsBust ? " · ÜBER 21" : hand.IsStanding ? " · STEHT" : "")}");
             for (var index = 0; index < 21; index++)
                 RenderCard(state, "hand" + handIndex + "_card" + index,
                     hand is not null && index < hand.Cards.Length ? hand.Cards[index] : null, false, moving);

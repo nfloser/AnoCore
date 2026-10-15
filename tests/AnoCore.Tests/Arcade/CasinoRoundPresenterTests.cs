@@ -15,6 +15,21 @@ public sealed class CasinoRoundPresenterTests
     private static readonly PlayerId Player = new(76561198000911901);
 
     [TestMethod]
+    [DataRow(CasinoRoundGame.BiggestBoy)]
+    [DataRow(CasinoRoundGame.Book)]
+    [DataRow(CasinoRoundGame.Blackjack)]
+    [DataRow(CasinoRoundGame.Risk)]
+    public async Task RoundBalancesAreCompactAndStakeRemainsExact(CasinoRoundGame game)
+    {
+        using var f = await Fixture.Create();
+        f.Wallet.Balance = new(75_000_000, 1_250_000_000, 0);
+        await f.Presenter.OpenAsync(Player, game);
+        Assert.AreEqual("75 Mio. €", f.Text("account"));
+        Assert.AreEqual("1,25 Mrd. €", f.Text("bankroll"));
+        Assert.AreEqual("100 €", f.Text("stake"));
+    }
+
+    [TestMethod]
     public async Task BiggestBoyWelcomeGridAppearsOnOpenAndIdleRefresh()
     {
         using var f = await Fixture.Create();

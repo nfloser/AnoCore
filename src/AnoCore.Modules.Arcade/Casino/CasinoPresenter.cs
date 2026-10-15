@@ -709,7 +709,7 @@ public sealed class CasinoPresenter : IDisposable
     {
         SlotsText(state, "account", Points(state.Balance.Available));
         SlotsText(state, "bank", Points(state.Balance.Allocated));
-        SlotsText(state, "stake", Points(state.Stake));
+        SlotsText(state, "stake", CasinoMoney.FormatExact(state.Stake));
         SlotsText(state, "win", Points(state.Win));
         SlotsText(state, "status", state.Status);
         SlotsClass(state, "root", "busy", state.Pending || state.Started is not null);
@@ -719,7 +719,7 @@ public sealed class CasinoPresenter : IDisposable
     {
         CoinText(state, "account", Points(state.Balance.Available));
         CoinText(state, "bank", Points(state.Balance.Allocated));
-        CoinText(state, "stake", Points(state.Stake));
+        CoinText(state, "stake", CasinoMoney.FormatExact(state.Stake));
         CoinText(state, "win", Points(state.Win));
         CoinText(state, "choice", state.Coin == 0 ? "Kopf ausgewählt" : "Zahl ausgewählt");
         CoinText(state, "status", state.Status);
@@ -730,7 +730,7 @@ public sealed class CasinoPresenter : IDisposable
     {
         RouletteText(state, "account", Points(state.Balance.Available));
         RouletteText(state, "bank", Points(state.Balance.Allocated));
-        RouletteText(state, "stake", Points(state.Stake));
+        RouletteText(state, "stake", CasinoMoney.FormatExact(state.Stake));
         RouletteText(state, "win", Points(state.Win));
         RouletteText(state, "numbervalue", state.Number.ToString(CultureInfo.InvariantCulture));
         RouletteText(state, "choice", "Wette: " + BetLabel(state.Bet));

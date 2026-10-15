@@ -1112,3 +1112,23 @@ Native labels with their own IDs inside map/start buttons were still hit-testabl
 ## Biggest Boy Bücher – Issue #481
 
 Branch `feat/481-biggest-boy-symbols`, basiert auf Casino-UI PR #475. Eigenständiges 5×5-Spiel; die elf gelieferten Symbole sind unverändert eingebunden. Separate persistierte Spielart und Regelversion, genaue Linienauszahlungen, 10/+5/max.30 Freispiele, Kebap-Expansion, vier Umläufe, Einsatzkonfiguration und RTP-Audit. Siehe [biggest-boy.md](biggest-boy.md). GitHub-Push/PR durch automatische Freigabeprüfung wegen öffentlicher Bildveröffentlichung blockiert; noch kein CI-Lauf oder Merge dieses Branches. Native Abnahme offen.
+
+
+## 2026-10-16 — compact money and wallet capacity (#524)
+
+Local branch `feat/compact-casino-money` is based on `feat/521-biggest-boy-high-stakes`.
+Balances, load amounts and wins use German short units; every stake field and
+Blackjack hand stake retains exact grouping. Both wallet write paths now share
+`CasinoMoney.AccountLimit = 10^18`; existing signed BIGINT storage needs no migration.
+No UI assets changed and no Workshop upload is needed. See `casino-money.md`.
+
+Validation: 13 compiled C# formatter/exact-stake checks passed, including rollover,
+negative values and long.MinValue. Operator suite: 96 run, 18 skipped, no failures.
+Added presenter and MariaDB limit/reservation/idempotence regression tests.
+Full dotnet build/test/format remain unverified: default MSBuild workers fail on
+sandbox named pipes; single-worker attempts stalled without completing and were
+cancelled. MariaDB was not configured. No native CS2 acceptance or deployment.
+
+The owner explicitly approved publication and requested a deployment download.
+The shell git transport has no credentials; publish using the authenticated GitHub
+connector. CI and native acceptance status must be updated before delivery.

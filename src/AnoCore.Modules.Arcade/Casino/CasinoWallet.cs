@@ -56,12 +56,12 @@ public sealed class MySqlCasinoWallet(IDatabase database, CasinoStakeLimits? sta
                 case CasinoAction.Play:
                     _stakeLimits.Check(op.Game!);
                     if (allocated < op.Game!.Stake) throw new CasinoRejectedException("Nicht genügend Automatenguthaben.");
-                    if (available + allocated - op.Game.Stake + CasinoRules.MaximumPayout(op.Game) + reservedPayout > 1000000000L)
+                    if (available + allocated - op.Game.Stake + CasinoRules.MaximumPayout(op.Game) + reservedPayout > CasinoMoney.AccountLimit)
                         throw new CasinoRejectedException("Kontolimit: nicht genügend Spielraum für die maximale Auszahlung.");
                     outcome = CasinoRules.Draw(op.Game);
                     allocated = checked(allocated - op.Game.Stake + outcome.Payout); break;
             }
-            if (available + allocated + reservedPayout > 1000000000L) throw new CasinoRejectedException("Guthabenlimit erreicht.");
+            if (available + allocated + reservedPayout > CasinoMoney.AccountLimit) throw new CasinoRejectedException("Guthabenlimit erreicht.");
             var result = new CasinoReceipt(op.Id, new(available, allocated, checked(before.Revision + 1)), outcome);
             await using (var update = Command(connection, transaction, "UPDATE ano_ap_accounts SET available=@available, allocated=@allocated, revision=@revision WHERE player_steam_id=@player", op.Player))
             {

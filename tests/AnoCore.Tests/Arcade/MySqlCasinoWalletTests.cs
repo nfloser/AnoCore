@@ -119,7 +119,7 @@ public sealed class MySqlCasinoWalletTests
         await _db.WithConnectionAsync(async (connection, token) =>
         {
             await using var command = connection.CreateCommand();
-            command.CommandText = $"INSERT INTO ano_ap_accounts VALUES ({Player.SteamId64},999999900,0,1)";
+            command.CommandText = $"INSERT INTO ano_ap_accounts VALUES ({Player.SteamId64},{CasinoMoney.AccountLimit - 100},0,1)";
             await command.ExecuteNonQueryAsync(token);
             return true;
         });
@@ -130,6 +130,6 @@ public sealed class MySqlCasinoWalletTests
 
         await Assert.ThrowsExactlyAsync<CasinoRejectedException>(async () =>
             await _wallet.ApplyAsync(new(Guid.NewGuid(), Player, CasinoAction.Credit, 1, null)));
-        Assert.AreEqual(999_999_900, (await _wallet.ReadAsync(Player)).Available);
+        Assert.AreEqual(CasinoMoney.AccountLimit - 100, (await _wallet.ReadAsync(Player)).Available);
     }
 }

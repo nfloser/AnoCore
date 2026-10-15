@@ -66,7 +66,7 @@ public interface ICasinoRoundStore
 /// </summary>
 public sealed class MySqlCasinoRoundStore(IDatabase database) : ICasinoRoundStore
 {
-    private const long AccountLimit = 1_000_000_000;
+    private const long AccountLimit = CasinoMoney.AccountLimit;
     private const int MaximumJsonLength = 262_144;
 
     public ValueTask<CasinoRoundSnapshot?> ReadActiveAsync(PlayerId player, CancellationToken token = default) =>
