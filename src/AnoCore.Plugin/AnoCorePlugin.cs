@@ -106,6 +106,7 @@ public sealed class AnoCorePlugin : BasePlugin
     private CasinoStakeLimits _casinoMaximumStakes = new();
     private int _biggestBoyMaximumStake = 10_000;
     private string _biggestBoyProfile = BiggestBoyProfiles.Standard;
+    private bool _casinoReelStopSoundEnabled = true;
     private CounterStrikeSharp.API.Modules.Timers.Timer? _arcadeProbeTimer;
     private bool _tournamentDashboardEnabled;
     private TournamentMatchRuntime? _tournamentMatch;
@@ -476,7 +477,12 @@ public sealed class AnoCorePlugin : BasePlugin
             if (settings.BiggestBoyMaximumStake is < 50 or > 10_000 || settings.BiggestBoyMaximumStake % 50 != 0)
                 throw new InvalidOperationException("BiggestBoyMaximumStake must be 50..10000 in steps of 50.");
             _biggestBoyMaximumStake = settings.BiggestBoyMaximumStake;
-            _biggestBoyProfile = BiggestBoyProfiles.Validate(settings.BiggestBoyProfile);
+            if (settings.BiggestBoyLuckPercent is < 0 or > 100)
+                throw new InvalidOperationException("BiggestBoyLuckPercent must be between 0 and 100.");
+            _biggestBoyProfile = settings.BiggestBoyLuckPercent == 0
+                ? BiggestBoyProfiles.Validate(settings.BiggestBoyProfile)
+                : BiggestBoyProfiles.Validate("lucky:" + settings.BiggestBoyLuckPercent.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            _casinoReelStopSoundEnabled = settings.CasinoReelStopSoundEnabled;
             if (_casinoEnabled && !settings.PanoramaMenusEnabled) throw new InvalidOperationException("CasinoEnabled requires PanoramaMenusEnabled.");
             if (_arcadeProbeEnabled && !_panoramaMenusEnabled)
                 throw new InvalidOperationException("ArcadeAnimationProbeEnabled requires PanoramaMenusEnabled in core.json.");
@@ -1252,7 +1258,21 @@ public sealed class AnoCorePlugin : BasePlugin
                         playerId => casino.CloseForPlayer(playerId), async (playerId, token) =>
                         {
                             await runtime.Commands.ExecuteAsync("!anocasino", playerId, token).ConfigureAwait(false);
-                        }, biggestBoyMaximumStake: _biggestBoyMaximumStake, biggestBoyProfile: _biggestBoyProfile, stakeLimits: _casinoMaximumStakes);
+                        }, biggestBoyMaximumStake: _biggestBoyMaximumStake, biggestBoyProfile: _biggestBoyProfile, stakeLimits: _casinoMaximumStakes,
+                        reelStopSound: playerId =>
+                        {
+                            if (!_casinoReelStopSoundEnabled) return;
+                            try
+                            {
+                                var listener = CounterStrikeSharp.API.Utilities.GetPlayerFromSteamId(playerId.SteamId64);
+                                if (listener is { IsValid: true })
+                                    listener.ExecuteClientCommand("play sounds/ui/counter_beep.vsnd");
+                            }
+                            catch (Exception exception)
+                            {
+                                Logger.LogDebug(exception, "Optional native casino reel click could not be played.");
+                            }
+                        });
                     var activeCasino = casino;
                     var activeRounds = casinoRounds;
                     casinoTimer = AddTimer(0.05f, () => { activeCasino.Tick(); activeRounds.Tick(); }, TimerFlags.REPEAT);
@@ -1979,6 +1999,8 @@ public sealed class AnoCorePlugin : BasePlugin
         public CasinoStakeLimits CasinoMaximumStakes { get; set; } = new();
         public int BiggestBoyMaximumStake { get; set; } = 10_000;
         public string BiggestBoyProfile { get; set; } = BiggestBoyProfiles.Standard;
+        public int BiggestBoyLuckPercent { get; set; }
+        public bool CasinoReelStopSoundEnabled { get; set; } = true;
 
         // Requires the compiled ano_tournament.xml in the mounted Workshop addon.
         // Keep disabled until the one-time native client acceptance has passed.
