@@ -103,6 +103,7 @@ public sealed class AnoCorePlugin : BasePlugin
     private CasinoRoundPresenter? _casinoRounds;
     private CounterStrikeSharp.API.Modules.Timers.Timer? _casinoTimer;
     private bool _casinoEnabled;
+    private CasinoStakeLimits _casinoMaximumStakes = new();
     private int _biggestBoyMaximumStake = 10_000;
     private string _biggestBoyProfile = BiggestBoyProfiles.Standard;
     private CounterStrikeSharp.API.Modules.Timers.Timer? _arcadeProbeTimer;
@@ -471,6 +472,7 @@ public sealed class AnoCorePlugin : BasePlugin
             _panoramaMenusEnabled = settings.PanoramaMenusEnabled;
             _arcadeProbeEnabled = settings.ArcadeAnimationProbeEnabled;
             _casinoEnabled = settings.CasinoEnabled;
+            _casinoMaximumStakes = (settings.CasinoMaximumStakes ?? throw new InvalidOperationException("CasinoMaximumStakes cannot be null.")).Validate();
             if (settings.BiggestBoyMaximumStake is < 50 or > 10_000 || settings.BiggestBoyMaximumStake % 50 != 0)
                 throw new InvalidOperationException("BiggestBoyMaximumStake must be 50..10000 in steps of 50.");
             _biggestBoyMaximumStake = settings.BiggestBoyMaximumStake;
@@ -1233,7 +1235,7 @@ public sealed class AnoCorePlugin : BasePlugin
                 if (_casinoEnabled && _customHud is not null)
                 {
                     var casinoDatabase = (IDatabase)runtime.GetService(typeof(IDatabase))!;
-                    var wallet = new MySqlCasinoWallet(casinoDatabase);
+                    var wallet = new MySqlCasinoWallet(casinoDatabase, _casinoMaximumStakes);
                     casino = new CasinoPresenter(_customHud, runtime.Players, runtime.Authorization,
                         wallet, runtime.Commands, _eventBus!, playerId =>
                         {
@@ -1244,13 +1246,13 @@ public sealed class AnoCorePlugin : BasePlugin
                             _arcadeProbe?.CloseForPlayer(playerId);
                         },
                         openRound: (playerId, game, token) => casinoRounds!.OpenAsync(playerId, game, token),
-                        reportError: exception => Logger.LogError(exception, "Casino persistence command failed."));
+                        reportError: exception => Logger.LogError(exception, "Casino persistence command failed."), stakeLimits: _casinoMaximumStakes);
                     casinoRounds = new CasinoRoundPresenter(_customHud, runtime.Players, runtime.Authorization,
-                        wallet, new CasinoRoundService(new MySqlCasinoRoundStore(casinoDatabase), _biggestBoyMaximumStake, _biggestBoyProfile), _eventBus!,
+                        wallet, new CasinoRoundService(new MySqlCasinoRoundStore(casinoDatabase), _biggestBoyMaximumStake, _biggestBoyProfile, _casinoMaximumStakes), _eventBus!,
                         playerId => casino.CloseForPlayer(playerId), async (playerId, token) =>
                         {
                             await runtime.Commands.ExecuteAsync("!anocasino", playerId, token).ConfigureAwait(false);
-                        }, biggestBoyMaximumStake: _biggestBoyMaximumStake, biggestBoyProfile: _biggestBoyProfile);
+                        }, biggestBoyMaximumStake: _biggestBoyMaximumStake, biggestBoyProfile: _biggestBoyProfile, stakeLimits: _casinoMaximumStakes);
                     var activeCasino = casino;
                     var activeRounds = casinoRounds;
                     casinoTimer = AddTimer(0.05f, () => { activeCasino.Tick(); activeRounds.Tick(); }, TimerFlags.REPEAT);
@@ -1974,6 +1976,7 @@ public sealed class AnoCorePlugin : BasePlugin
         public bool ArcadeAnimationProbeEnabled { get; set; }
 
         public bool CasinoEnabled { get; set; }
+        public CasinoStakeLimits CasinoMaximumStakes { get; set; } = new();
         public int BiggestBoyMaximumStake { get; set; } = 10_000;
         public string BiggestBoyProfile { get; set; } = BiggestBoyProfiles.Standard;
 

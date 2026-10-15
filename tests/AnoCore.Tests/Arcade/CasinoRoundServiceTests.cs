@@ -9,6 +9,37 @@ public sealed class CasinoRoundServiceTests
     private static readonly PlayerId Player = new(76561198000911603);
 
     [TestMethod]
+    public async Task EveryRoundGameEnforcesItsConfiguredStartingLimitBeforeDrawing()
+    {
+        foreach (var game in new[] { CasinoRoundGame.Blackjack, CasinoRoundGame.Risk, CasinoRoundGame.Book })
+        {
+            var store = new MemoryStore();
+            var service = new CasinoRoundService(store, stakeLimits: new() { Blackjack = 1000, Risk = 1000, Book = 1000 });
+            var op = new DurableCasinoRoundOperation(Guid.NewGuid(), Player, Guid.NewGuid(), game, CasinoRoundAction.Start, 1050, 0);
+            await Assert.ThrowsExactlyAsync<CasinoRejectedException>(async () => await service.ApplyAsync(op));
+            Assert.AreEqual(0, store.Transitions);
+            var receipt = await service.ApplyAsync(op with { Id = Guid.NewGuid(), Stake = 1000 });
+            Assert.AreEqual(1000, receipt.Round.Stake);
+            Assert.AreEqual(1000L, receipt.Round.TotalStake);
+        }
+    }
+
+    [TestMethod]
+    public async Task LowerBookLimitStillAllowsAcceptedBonusWithoutAnotherDebit()
+    {
+        var spin = BonusSlotRules.StartRound(1000, bound => bound - 1);
+        Assert.IsTrue(spin.State.FreeSpinsRemaining > 0);
+        var store = new MemoryStore();
+        store.Seed(new(Guid.NewGuid(), Player, CasinoRoundKind.BonusSlot, BonusSlotRules.Version,
+            System.Text.Json.JsonSerializer.Serialize(spin), CasinoRoundStatus.Active, 1, BonusSlotRules.MaximumRoundExposure(1000)));
+        var service = new CasinoRoundService(store, stakeLimits: new() { Book = 50 });
+        var receipt = await service.ApplyAsync(new(Guid.NewGuid(), Player, store.Current!.RoundId,
+            CasinoRoundGame.Book, CasinoRoundAction.FreeSpin, 1000, 1));
+        Assert.AreEqual(1000, receipt.Round.Stake);
+        Assert.AreEqual(0L, store.LastPlan!.AdditionalDebit);
+    }
+
+    [TestMethod]
     public async Task ConfiguredProfileIsAppliedOnlyToNewRoundsAndFrozenAcrossServiceRestart()
     {
         var store = new MemoryStore();

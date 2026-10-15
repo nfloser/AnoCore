@@ -66,7 +66,7 @@ public sealed record BlackjackState(
 public static class BlackjackRules
 {
     public const long MinimumStake = 50;
-    public const long MaximumStake = 500;
+    public const long MaximumStake = CasinoStakeLimits.TechnicalMaximum;
     public const int MaximumHands = 2;
     public const string RulesVersion = "anoblackjack-v1";
 
@@ -270,7 +270,7 @@ public static class BlackjackRules
     private static void ValidateStake(long stake)
     {
         if (stake is < MinimumStake or > MaximumStake || stake % 50 != 0)
-            throw new ArgumentOutOfRangeException(nameof(stake), "Stake must be 50–500 in 50-unit increments.");
+            throw new ArgumentOutOfRangeException(nameof(stake), "Stake must be 50–1,000,000 in 50-unit increments.");
     }
 
     private static void ValidateDeck(ImmutableArray<BlackjackCard> deck)

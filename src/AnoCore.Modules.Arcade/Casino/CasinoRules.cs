@@ -26,8 +26,8 @@ public static class CasinoRules
 
     public static void Validate(CasinoRequest request)
     {
-        if (!Enum.IsDefined(request.Game) || request.Stake is < 50 or > 500 || request.Stake % 50 != 0)
-            throw new ArgumentException("Einsatz muss 50–500 AP in 50er-Schritten sein.");
+        if (!Enum.IsDefined(request.Game) || request.Stake is < 50 or > CasinoStakeLimits.TechnicalMaximum || request.Stake % 50 != 0)
+            throw new ArgumentException("Einsatz muss 50–1.000.000 AP in 50er-Schritten sein.");
         if (request.Game == CasinoGame.Coinflip && request.Choice is not (0 or 1)
             || request.Game == CasinoGame.Roulette && request.Choice is < 0 or > 48)
             throw new ArgumentException("Ungültige Auswahl.");

@@ -20,8 +20,9 @@ public interface ICasinoRounds
 
 /// <summary>Adapts versioned native rules to account-serialized durable rounds.</summary>
 public sealed class CasinoRoundService(ICasinoRoundStore store, int biggestBoyMaximumStake = BiggestBoyRules.MaximumStake,
-    string biggestBoyProfile = BiggestBoyProfiles.Standard) : ICasinoRounds
+    string biggestBoyProfile = BiggestBoyProfiles.Standard, CasinoStakeLimits? stakeLimits = null) : ICasinoRounds
 {
+    private readonly CasinoStakeLimits _stakeLimits = (stakeLimits ?? new()).Validate();
     private readonly string _biggestBoyProfile = BiggestBoyProfiles.Validate(biggestBoyProfile);
 
     public async ValueTask<DurableCasinoRoundSnapshot?> ReadAsync(PlayerId player, CancellationToken token = default)
@@ -32,11 +33,7 @@ public sealed class CasinoRoundService(ICasinoRoundStore store, int biggestBoyMa
 
     public async ValueTask<DurableCasinoRoundReceipt> ApplyAsync(DurableCasinoRoundOperation operation, CancellationToken token = default)
     {
-        var maximumStake = operation.Game == CasinoRoundGame.BiggestBoy
-            ? operation.Action == CasinoRoundAction.Start
-                ? Math.Clamp(biggestBoyMaximumStake, 50, BiggestBoyRules.MaximumStake)
-                : BiggestBoyRules.MaximumStake
-            : 500;
+        var maximumStake = operation.Game == CasinoRoundGame.BiggestBoy ? BiggestBoyRules.MaximumStake : CasinoStakeLimits.TechnicalMaximum;
         var stakeValid = operation.Game == CasinoRoundGame.BiggestBoy
             ? BiggestBoyRules.IsValidStake(operation.Stake) && operation.Stake <= maximumStake
             : operation.Stake >= 50 && operation.Stake <= maximumStake && operation.Stake % 50 == 0;
@@ -59,9 +56,14 @@ public sealed class CasinoRoundService(ICasinoRoundStore store, int biggestBoyMa
         return new(receipt.OperationId, receipt.Balance, View(receipt.Round, operation.Stake));
     }
 
-    private static CasinoRoundPlan Plan(DurableCasinoRoundOperation op, CasinoRoundSnapshot? current)
+    private CasinoRoundPlan Plan(DurableCasinoRoundOperation op, CasinoRoundSnapshot? current)
     {
-        if (current is null) return new(op.Stake, Exposure(op.Game, op.Stake));
+        if (current is null)
+        {
+            var maximum = op.Game == CasinoRoundGame.BiggestBoy ? Math.Clamp(biggestBoyMaximumStake, 50, BiggestBoyRules.MaximumStake) : _stakeLimits.For(op.Game);
+            if (op.Stake > maximum) throw new CasinoRejectedException("Konfiguriertes Einsatzlimit überschritten.");
+            return new(op.Stake, Exposure(op.Game, op.Stake));
+        }
         var view = View(current);
         if (view.Game != op.Game || view.Stake != op.Stake || (current.RulesVersion != Version(op.Game)
                 && !(op.Game == CasinoRoundGame.BiggestBoy && current.RulesVersion is BiggestBoyRules.Version or BiggestBoyCollectorRules.Version)))
@@ -225,7 +227,7 @@ public sealed class CasinoRoundService(ICasinoRoundStore store, int biggestBoyMa
     private static long Exposure(CasinoRoundGame game, int stake, string? version = null) => game switch
     {
         CasinoRoundGame.Blackjack => stake * 8L,
-        CasinoRoundGame.Risk => stake * (1L << RiskRules.MaximumGambles),
+        CasinoRoundGame.Risk => Math.Min(RiskRules.MaximumHeldExposure, stake * (1L << RiskRules.MaximumGambles)),
         CasinoRoundGame.BiggestBoy => version switch
         {
             BiggestBoyRules.Version => BiggestBoyRules.MaximumRoundExposure(stake),
