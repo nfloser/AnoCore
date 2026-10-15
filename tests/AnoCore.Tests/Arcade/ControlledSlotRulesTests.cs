@@ -7,6 +7,63 @@ namespace AnoCore.Tests.Arcade;
 public sealed class ControlledSlotRulesTests
 {
     [TestMethod]
+    public void NewPaytableReducesPayoutsAndPreservesLegacyBonusRules()
+    {
+        var grid = Enumerable.Repeat(BiggestBoySymbol.Scatter, 15).ToArray();
+        grid[0] = grid[3] = grid[6] = BiggestBoySymbol.Kebap;
+        Assert.AreEqual(50L, BiggestBoyBalancedRules.EvaluateGrid(100, grid).Payout);
+        Assert.AreEqual(2700L, BiggestBoyExpandingRules.EvaluateGrid(100, grid).Payout);
+        var spin = ControlledSlotRules.Biggest(100, _ => 0, new(100, 0, 100));
+        Assert.AreEqual(5000L, spin.Payout);
+        Assert.AreEqual("anocore-biggest-boy-controlled-v6", spin.State.RulesVersion);
+        var legacy = spin.State with
+        {
+            RulesVersion = "anocore-biggest-boy-controlled-v5", FreeSpinsRemaining = 10,
+            FreeSpinsAwarded = 10, ExpandingSymbol = BiggestBoySymbol.Kebap,
+            TotalPayout = 0, OutcomeSettings = new(100, 0, 0)
+        };
+        var resumed = ControlledSlotRules.Biggest(100, _ => 0, new(0, 100, 0), legacy);
+        Assert.AreEqual(300000L, resumed.Payout);
+        Assert.AreEqual(legacy.RulesVersion, resumed.State.RulesVersion);
+        Assert.AreEqual(0, resumed.ChargedStake);
+    }
+
+    [TestMethod]
+    public void FruitPaytableAndHistoricalBonusKeepTheirOwnMultipliers()
+    {
+        var grid = Enumerable.Repeat(BonusSlotSymbol.Seven, 15).ToArray();
+        Assert.AreEqual(5000L, BookBalancedRules.EvaluateGrid(100, grid).Payout);
+        Assert.AreEqual(20000L, BonusSlotRules.EvaluateGrid(100, grid).Payout);
+        var first = ControlledSlotRules.Book(100, _ => 0, new(100, 100, 0));
+        var legacy = first.State with
+        {
+            RulesVersion = ControlledSlotRules.LegacyBookVersion, TotalPayout = 0,
+            ExpandingSymbol = BonusSlotSymbol.Seven, OutcomeSettings = new(100, 0, 0)
+        };
+        int Seven(int bound) => bound == 7 ? 6 : 0;
+        var resumed = ControlledSlotRules.Book(100, Seven, new(0, 100, 0), legacy);
+        Assert.AreEqual(20000L, resumed.Payout);
+        Assert.AreEqual(legacy.RulesVersion, resumed.State.RulesVersion);
+        Assert.AreEqual(0, resumed.ChargedStake);
+        Assert.AreEqual(155000000L, BookBalancedRules.MaximumRoundExposure(100000));
+        Assert.AreEqual(155000000L, BiggestBoyBalancedRules.MaximumRoundExposure(100000));
+    }
+
+    [TestMethod]
+    public void OrdinaryWinningFallbackDoesNotForceAFullScreen()
+    {
+        var draws = 0;
+        int Random(int bound) => bound == 100 ? 99 : bound == 3 ? 0 : draws++ % bound;
+        var spin = ControlledSlotRules.Biggest(100, Random, new(100, 0, 0));
+        Assert.IsTrue(spin.Payout > 100);
+        Assert.IsTrue(spin.RawGrid.Distinct().Count() > 1);
+        draws = 0;
+        var fruit = ControlledSlotRules.Book(100, Random, new(100, 0, 0));
+        Assert.IsTrue(fruit.Payout > 100);
+        Assert.IsTrue(fruit.Grid.Distinct().Count() > 1);
+    }
+
+    [TestMethod]
     public void IndependentBoundaryProbabilitiesMatchActualPaidResults()
     {
         foreach (var win in new[] { 0, 100 })
@@ -39,7 +96,7 @@ public sealed class ControlledSlotRulesTests
             var biggest = ControlledSlotRules.Biggest(100, rng.Next, settings);
             Assert.AreEqual(1, biggest.Grid.Distinct().Count());
             Assert.AreEqual(10, biggest.LineWins.Length);
-            Assert.AreEqual(100L * BiggestBoyExpandingRules.Multiplier(biggest.Grid[0], 5), biggest.Payout);
+            Assert.AreEqual(100L * BiggestBoyBalancedRules.Multiplier(biggest.Grid[0], 5), biggest.Payout);
             biggestSymbols.Add(biggest.Grid[0]);
             var book = ControlledSlotRules.Book(100, rng.Next, settings);
             Assert.AreEqual(1, book.Grid.Distinct().Count());

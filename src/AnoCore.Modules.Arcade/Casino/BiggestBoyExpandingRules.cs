@@ -91,6 +91,14 @@ public static class BiggestBoyExpandingRules
     public static BiggestBoySpinResult EvaluateGrid(int stake, IReadOnlyList<BiggestBoySymbol> grid)
     {
         ValidateStake(stake);
+        return EvaluateGrid(stake, grid, Multiplier);
+    }
+
+    internal static BiggestBoySpinResult EvaluateGrid(int stake, IReadOnlyList<BiggestBoySymbol> grid,
+        Func<BiggestBoySymbol, int, int> multiplier)
+    {
+        if (stake < 50 || stake > CasinoStakeLimits.TechnicalMaximum || stake % 50 != 0)
+            throw new ArgumentOutOfRangeException(nameof(stake));
         ArgumentNullException.ThrowIfNull(grid);
         if (grid.Count != GridSize || grid.Any(x => !Enum.IsDefined(x))) throw new ArgumentException("Expected 15 valid symbols.", nameof(grid));
         var wins = ImmutableArray.CreateBuilder<BiggestBoyLineWin>();
@@ -106,7 +114,7 @@ public static class BiggestBoyExpandingRules
                     count++;
                 }
                 if (count < 3) continue;
-                var payout = checked(stake / PaylineCount * (long)Multiplier(candidate, count));
+                var payout = checked(stake / PaylineCount * (long)multiplier(candidate, count));
                 if (best is null || payout > best.Payout) best = new(line, candidate, count, payout);
             }
             if (best is not null) wins.Add(best);

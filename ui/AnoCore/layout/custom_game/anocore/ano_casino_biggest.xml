@@ -200,6 +200,7 @@
           <Label text="GEWINNPLAN · 5×3 · 10 Linien · nur virtuelle Beträge" hittest="false" />
           <Label text="Liniengewinn = Einsatz ÷ 10 × Faktor. Drei, vier oder fünf passende Symbole von links. Pro Linie nur der höchste Gewinn; verschiedene Linien addieren sich." hittest="false" />
           <Label text="Gesicht ist Freispiel-Scatter. Die Biggest-Boy-Schärpe ist Wild und ersetzt reguläre Gewinnsymbole." hittest="false" />
+          <Panel class="bb-legacy-paytable" hittest="false">
           <Label text="Döner: 270× / 1350× / 3000×" hittest="false" />
           <Label text="Bier: 216× / 945× / 2900×" hittest="false" />
           <Label text="Zigarette: 162× / 675× / 2160×" hittest="false" />
@@ -210,6 +211,19 @@
           <Label text="O: 26× / 68× / 194×" hittest="false" />
           <Label text="A: 13× / 60× / 129×" hittest="false" />
           <Label text="T: 13× / 60× / 129×" hittest="false" />
+          </Panel>
+          <Panel class="bb-balanced-paytable" hittest="false">
+            <Label text="Döner: 5× / 15× / 50×" hittest="false" />
+            <Label text="Bier: 4× / 12× / 40×" hittest="false" />
+            <Label text="Zigarette: 3× / 10× / 30×" hittest="false" />
+            <Label text="Butter: 2× / 8× / 25×" hittest="false" />
+            <Label text="Shot: 2× / 6× / 20×" hittest="false" />
+            <Label text="Trichter: 1× / 5× / 15×" hittest="false" />
+            <Label text="G: 1× / 3× / 10×" hittest="false" />
+            <Label text="O: 1× / 3× / 10×" hittest="false" />
+            <Label text="A: 1× / 2× / 8×" hittest="false" />
+            <Label text="T: 1× / 2× / 8×" hittest="false" />
+          </Panel>
           <Label text="3/4/5 Gesichter vergeben 10/15/20 Freispiele. Erneuter Trigger: +5, maximal 30 tatsächlich gespielte Freispiele. Ein reguläres Expanding Symbol wird beim Bonusstart gleichverteilt festgelegt und bleibt unverändert." hittest="false" />
           <Label text="Trifft das Expanding Symbol eine Walze, füllt es genau drei Positionen. Linien werden einmal auf dem expandierten Feld ausgewertet. Scatter für Verlängerungen zählen vor der Expansion. Einsatz bleibt fest, Gesamtauszahlung am Rundenende." hittest="false" />
           <Label text="Linie 1: 1 – 1 – 1 – 1 – 1" hittest="false" />
@@ -229,6 +243,19 @@
           <Label text="Drei oder mehr Kokosnüsse: 10 Freispiele. Bei erneuten drei Kokosnüssen: +5 Freispiele; höchstens 20 gleichzeitig und höchstens 30 insgesamt." hittest="false" />
           <Label text="Ein Bonussymbol (außer Kokosnuss) wird zum Start zufällig festgelegt. Erscheint es während eines Freispiels auf einer Walze, expandiert es über die drei Felder." hittest="false" />
           <Label text="Gewinne: Mindestens 3 gleiche von links auf einer der 10 Linien. Mehrere Linien addieren sich. Einsatz bleibt während der Freispielserie konstant." hittest="false" />
+          <Label text="Liniengewinn = Einsatz ÷ 10 × Faktor (3 / 4 / 5 Symbole)." hittest="false" />
+          <Panel class="bb-balanced-paytable" hittest="false">
+            <Label text="Kirsche: 2× / 5× / 10×" hittest="false" />
+            <Label text="Zitrone: 1× / 4× / 8×" hittest="false" />
+            <Label text="Pflaume: 2× / 5× / 10×" hittest="false" />
+            <Label text="Orange: 3× / 8× / 15×" hittest="false" />
+            <Label text="Traube: 4× / 10× / 20×" hittest="false" />
+            <Label text="Glocke: 5× / 15× / 30×" hittest="false" />
+            <Label text="Sieben: 8× / 25× / 50×" hittest="false" />
+          </Panel>
+          <Panel class="bb-legacy-paytable" hittest="false">
+            <Label text="Alter Gewinnplan: Kirsche 2/5/10; Zitrone 1/4/8; Pflaume 3/6/12; Orange 4/8/20; Traube 5/10/30; Glocke 8/20/60; Sieben 15/50/200." hittest="false" />
+          </Panel>
           <Label text="Die gebuchten Gewinne werden während der Serie gesammelt und nach der letzten Freispielrunde ausgezahlt." hittest="false" />
         </Panel>
         <Label text="{s:text}" hittest="false" id="casino_round_detail" class="round-detail" />

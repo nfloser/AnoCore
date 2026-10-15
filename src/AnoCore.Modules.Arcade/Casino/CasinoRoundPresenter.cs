@@ -158,7 +158,7 @@ public sealed class CasinoRoundPresenter : IDisposable
                 if (!Current(state)) return;
                 var previousSpin = state.Round is { Game: CasinoRoundGame.BiggestBoy } previousRound
                     ? Read<BiggestBoySpinResult>(previousRound) : null;
-                var previousStops = previousSpin?.State.RulesVersion is BiggestBoyExpandingRules.Version or ControlledSlotRules.BiggestVersion
+                var previousStops = previousSpin?.State.RulesVersion is BiggestBoyExpandingRules.Version or ControlledSlotRules.BiggestVersion or ControlledSlotRules.LegacyBiggestVersion
                     ? previousSpin.Stops : ImmutableArray<int>.Empty;
                 state.Round = round; state.Balance = balance;
                 state.StatusError = false;
@@ -197,7 +197,7 @@ public sealed class CasinoRoundPresenter : IDisposable
                             Array.Fill(state.MotionProgress, -1);
                             Array.Fill(state.MotionFrames, 0);
                             state.CosmeticMotion = round.Game == CasinoRoundGame.BiggestBoy
-                                && Read<BiggestBoySpinResult>(round).State.RulesVersion == ControlledSlotRules.BiggestVersion
+                                && ControlledSlotRules.IsControlledBiggest(Read<BiggestBoySpinResult>(round).State.RulesVersion)
                                 ? CosmeticReelMotion.Create(12, Read<BiggestBoySpinResult>(round).RawGrid.Select(x => (int)x).ToArray(), Random.Shared.Next)
                                 : null;
                         }
@@ -383,7 +383,8 @@ public sealed class CasinoRoundPresenter : IDisposable
         Class(state, "root", "book-mode", false);
         Class(state, "root", "view-book", false);
         var spin = state.Round is null ? null : Read<BiggestBoySpinResult>(state.Round);
-        Class(state, "root", "controlled-mode", spin is null || spin.State.RulesVersion == ControlledSlotRules.BiggestVersion);
+        Class(state, "root", "controlled-mode", spin is null || ControlledSlotRules.IsControlledBiggest(spin.State.RulesVersion));
+        Class(state, "root", "balanced-mode", spin is null || spin.State.RulesVersion == ControlledSlotRules.BiggestVersion);
         var moving = state.AnimatingUntil is not null;
         var rolling = moving && state.AnimationStartsAt is null;
         var active = state.Round is { IsComplete: false };
@@ -459,6 +460,8 @@ public sealed class CasinoRoundPresenter : IDisposable
     /// <summary>Book shares the native five-reel cabinet, but never changes Book payouts or symbol assets.</summary>
     private void RenderBook(State state)
     {
+        var balanced = state.Round is null || Read<BonusSlotSpinResult>(state.Round).State.RulesVersion == ControlledSlotRules.BookVersion;
+        Class(state, "root", "balanced-mode", balanced);
         var spin = state.Round is null ? null : Read<BonusSlotSpinResult>(state.Round);
         var moving = state.AnimatingUntil is not null;
         var rolling = moving && state.AnimationStartsAt is null;
