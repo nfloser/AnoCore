@@ -116,7 +116,9 @@ public sealed class CasinoRoundPresenter : IDisposable
                     if (state.Round is { IsComplete: false }) return;
                     state.Stake = state.Game == CasinoRoundGame.BiggestBoy
                         ? BiggestBoyRules.StepStake(state.Stake, action == "plus" ? 1 : -1, _biggestBoyMaximumStake)
-                        : Math.Clamp(state.Stake + (action == "plus" ? 50 : -50), 50, _stakeLimits.For(state.Game));
+                        : state.Game == CasinoRoundGame.Book
+                            ? _stakeLimits.StepBookStake(state.Stake, action == "plus" ? 1 : -1)
+                            : Math.Clamp(state.Stake + (action == "plus" ? 50 : -50), 50, _stakeLimits.For(state.Game));
                     Render(state); return;
                 }
                 if (action == "retry") operation = state.Unconfirmed;

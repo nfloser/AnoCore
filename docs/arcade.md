@@ -255,3 +255,31 @@ Die volle Drei-Spiele-Anbindung und das persistente AP-Konto sind separat
 unter [casino.md](casino.md) dokumentiert. Aktivierung über `CasinoEnabled`,
 Berechtigung `ano.casino.play` und Befehl `anocasino`. Der ursprüngliche
 Animationstest bleibt unabhängig und kann deaktiviert bleiben.
+
+## Higher fruit free-spin stakes (#513)
+
+The Book/fruit cabinet defaults to a 10,000 maximum starting stake, instead of
+500. Existing configured ceilings are preserved. Set only its field in the
+existing `config/core.json` (preserve all other configuration):
+
+```json
+"CasinoMaximumStakes": {
+  "Book": 100000
+}
+```
+
+Restart/reload for new starts to use the updated ceiling. The fruit cabinet's
+plus/minus controls use 50, 100, 250, 500, 1,000, 2,500, 5,000, 10,000, 25,000,
+50,000 and 100,000, with additional technical steps up to 1,000,000 when configured.
+A nonstandard valid ceiling such as 750 is also reachable. Other games retain
+their prior controls and ceilings. Accepted bonuses keep their locked stake
+through completion even if the configured starting limit is lowered.
+
+The existing 64-bit payout and reservation checks remain mandatory. At a
+100,000 stake, the highest fruit full-screen pays 20,000,000; the conservative
+31-spin reservation is 620,000,000. The total account limit is 1,000,000,000,
+so account headroom can reject a new round even when its configured stake is
+allowed. The 1,000,000 technical stake ceiling does not imply that a fruit
+round can reserve 6,200,000,000: that start is safely rejected. No reservation
+or accounting guard is bypassed for high stakes. Biggest Boy remains capped
+at 10,000 in this update.
