@@ -1,0 +1,10 @@
+{
+  "coin_heads.png": {
+    "original_filename": "kopf.png",
+    "sha256": "79cb52de5749e279d479bb0774e2a4e55446fcf0e78ad4c2edc09af1baf5925b"
+  },
+  "coin_tails.png": {
+    "original_filename": "zahl.png",
+    "sha256": "a01b6f700b4034ed42b5206e8349822e58033d828bd58464a42c3bc58072189f"
+  }
+}

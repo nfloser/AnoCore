@@ -595,6 +595,7 @@ public sealed class CasinoPresenter : IDisposable
                     if (settled.Game == CasinoGame.Coinflip)
                     {
                         CoinClass(state, "coin", "flipping", false);
+                        CoinText(state, "result", settled.Number == 0 ? "KOPF" : "ZAHL");
                         CoinClass(state, "coin", settled.Number == 0 ? "land-heads" : "land-tails", true);
                     }
                     else if (settled.Game == CasinoGame.Roulette)
@@ -730,7 +731,12 @@ public sealed class CasinoPresenter : IDisposable
         }
         else if (outcome.Game == CasinoGame.Coinflip)
         {
-            CoinText(state, "result", outcome.Number == 0 ? "KOPF" : "ZAHL");
+            CoinText(state, "result", state.Started is null ? outcome.Number == 0 ? "KOPF" : "ZAHL" : "…");
+            if (state.Started is null)
+            {
+                CoinClass(state, "coin", "land-heads", outcome.Number == 0);
+                CoinClass(state, "coin", "land-tails", outcome.Number == 1);
+            }
         }
         else if (outcome.Game == CasinoGame.Roulette)
         {
