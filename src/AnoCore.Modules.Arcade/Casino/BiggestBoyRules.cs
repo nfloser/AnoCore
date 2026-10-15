@@ -2,7 +2,7 @@ using System.Collections.Immutable;
 
 namespace AnoCore.Modules.Arcade.Casino;
 
-public enum BiggestBoySymbol { Kebap, Beer, Cigarette, Butter, Shot, Funnel, G, O, A, T, Scatter }
+public enum BiggestBoySymbol { Kebap, Beer, Cigarette, Butter, Shot, Funnel, G, O, A, T, Scatter, Book }
 public sealed record BiggestBoyLineWin(int Payline, BiggestBoySymbol Symbol, int MatchCount, long Payout);
 public sealed record BiggestBoyRoundState(int LockedStake, int FreeSpinsRemaining, int FreeSpinsAwarded,
     int SpinsPlayed, long TotalPayout, string RulesVersion, BiggestBoySymbol? ExpandingSymbol, int Collectors = 0);
