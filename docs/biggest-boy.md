@@ -1,6 +1,6 @@
 # Biggest Boy Slots — verbindliches 5×3-Profil
 
-Status: Implementierung/Tests in Arbeit; **keine native Produktionsfreigabe**.
+Status: Code und lokale Prüfungen umgesetzt; **Original-Buch-PNG und native Abnahme fehlen**.
 Neue Regelversion: `anocore-biggest-boy-5x3-expanding-v4`. Neue Runden verwenden
 exakt fünf Walzen mit je drei sichtbaren Symbolen, insgesamt 15 Positionen.
 Das ersetzt für neue Spiele sowohl das frühere 5×5-Profil als auch den Collector-Bonus.
@@ -115,6 +115,10 @@ Expanding Symbole und der auf 30 Freispiele begrenzten Bonuskette.
 - 95-%-Intervall des Simulationslaufs: 93,4160–95,1680 %. Die Stichprobe ist mit
   der exakten Erwartung vereinbar; sie ist kein Nachweis auf Nachkommastellen.
 
+- Zweiter unabhängiger Seed 20261016: weitere 2.000.000 bezahlte Spins, RTP
+  94,90108 % (95-%-Intervall 93,8842–95,9179 %). Zusammen ergeben vier Millionen
+  Spins 94,59654 %; auch das kombinierte Intervall enthält den exakten Modellwert.
+
 Rohdaten und vollständige Paytable: `biggest-boy-v4-audit.json`.
 Reproduzieren:
 
@@ -152,3 +156,12 @@ Reservierung bis zum Abschluss. Sie werden nicht in v4 umgerechnet. Der alte HUD
 bleibt nur für solche gespeicherten Runden zuständig; neue Biggest-Boy-Runden
 verwenden ausschließlich v4 und das 5×3-HUD. Das historische v2-Profil ist separat
 in `biggest-boy-legacy-v2.md` dokumentiert.
+
+## Aktueller Prüfstand
+
+Release-Solution-Build: 0 Warnungen/Fehler. Lokal 104 Casino-Tests und 70 Operator-Tests
+bestanden; 17 Datenbank- bzw. 18 PowerShell-Prüfungen übersprungen. Breitere Suite:
+1.193 bestanden, 201 übersprungen; lokale PipeBridge wegen gesperrter Unix-Sockets
+ausgeschlossen. Der verpflichtende Asset-Check in CI steht vor der
+Paketveröffentlichung und muss wegen des fehlenden Original-Buch-PNG aktuell fehlschlagen.
+Das ist eine offene Abnahmebedingung und kein freigegebenes Feature.

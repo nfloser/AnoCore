@@ -169,5 +169,39 @@
     ],
     "exact_rtp": 0.941800002051252,
     "within_six_standard_errors": true
+  },
+  "simulation_second_seed": {
+    "version": "anocore-biggest-boy-5x3-expanding-v4",
+    "seed": 20261016,
+    "paid_spins": 2000000,
+    "paid_total": 200000000,
+    "returned_total": 189802160,
+    "empirical_rtp": 0.9490108000000181,
+    "standard_error": 0.005188008655395445,
+    "confidence95_low": 0.938842303035443,
+    "confidence95_high": 0.9591792969645933,
+    "bonus_count": 3910,
+    "free_spins_played": 40105,
+    "expanding_selections": [
+      391,
+      380,
+      400,
+      385,
+      362,
+      423,
+      406,
+      380,
+      361,
+      422
+    ],
+    "exact_rtp": 0.941800002051252,
+    "within_six_standard_errors": true
+  },
+  "combined_simulations": {
+    "paid_spins": 4000000,
+    "empirical_rtp": 0.9459654000000102,
+    "standard_error": 0.00342384392580018,
+    "confidence95_low": 0.9392546659054418,
+    "confidence95_high": 0.9526761340945785
   }
 }
