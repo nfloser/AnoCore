@@ -38,7 +38,7 @@ public sealed class CasinoRoundPresenterTests
         Assert.AreEqual(1, f.Rounds.Calls.Count);
         f.Clock.AdvanceMilliseconds(3300); f.Presenter.Tick();
         Assert.IsTrue(f.Text("biggest_win")!.StartsWith(spin.Payout > 0 ? "GEWINN DIESES SPINS: " : "KEIN GEWINN", StringComparison.Ordinal));
-        Assert.AreEqual("SPINGEWINN: " + CasinoPointsFormat.Format(spin.Payout), f.Text("biggest_spin_win"));
+        Assert.AreEqual("SPINGEWINN: " + CasinoMoney.Format(spin.Payout), f.Text("biggest_spin_win"));
         Assert.IsTrue(spin.ExpandedReels.Length > 0);
         Assert.IsTrue(spin.ExpandedReels.Any(reel => f.PanelClass("biggest_symbol" + reel * 5, "expanded")));
         await f.Click("free");
