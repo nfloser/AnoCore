@@ -24,7 +24,7 @@ class BiggestBoyTests(unittest.TestCase):
                 self.assertIn(f'biggest-symbol-{strips[reel][index % 100]}', panel.attrib['class'].split())
                 self.assertIn(f'biggest-row-{index}', panel.attrib['class'].split())
         css = (STYLE / 'ano_casino_rounds.css').read_text()
-        self.assertIn('animation-iteration-count:4', css)
+        self.assertIn('animation-iteration-count:5', css)
         self.assertIn('translateY(-8000px)', css)
         for cell in range(25):
             self.assertIsNotNone(tree.find(f'.//*[@id="casino_round_biggest_symbol{cell}"]'))
