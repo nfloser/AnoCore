@@ -5,6 +5,9 @@ public static class BiggestBoyReelMotion
 {
     public const int BaseOffset = 200;
     public const int RenderedCells = 303;
+    public const double TotalDurationSeconds = 3.9;
+    public const double FirstReelDurationSeconds = 1.9;
+    public const double StopIntervalSeconds = .45;
     public const int MinimumSteps = 30;
     public const int MaximumSteps = 129;
     public static int Steps(int previousStop, int bookedStop)
@@ -34,6 +37,24 @@ public static class BiggestBoyReelMotion
     public static double Duration(int reel)
     {
         if (reel is < 0 or >= 5) throw new ArgumentOutOfRangeException(nameof(reel));
-        return 5.2 + reel * .2;
+        return FirstReelDurationSeconds + reel * StopIntervalSeconds;
+    }
+}
+
+/// <summary>Cosmetic eight-symbol loop for Book; the durable booked grid remains authoritative.</summary>
+public static class BookReelMotion
+{
+    public static int Travelled(double elapsedSeconds, int reel)
+    {
+        _ = BiggestBoyReelMotion.Duration(reel); // validate the reel index
+        if (double.IsNaN(elapsedSeconds)) throw new ArgumentOutOfRangeException(nameof(elapsedSeconds));
+        return Math.Clamp((int)Math.Floor(Math.Max(0, elapsedSeconds) * 18), 0, 72);
+    }
+
+    public static BonusSlotSymbol VisibleSymbol(int reel, int travelled, int row)
+    {
+        if (reel is < 0 or >= 5 || row is < 0 or >= 4 || travelled is < 0 or > 72)
+            throw new ArgumentOutOfRangeException(nameof(reel));
+        return (BonusSlotSymbol)((reel + travelled + row) % 8);
     }
 }
