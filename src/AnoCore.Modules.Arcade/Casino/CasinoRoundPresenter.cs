@@ -13,7 +13,7 @@ public sealed class CasinoRoundPresenter : IDisposable
 {
     public static readonly CustomHudId HudId = new("ano.casino.rounds");
     private static readonly PermissionId Permission = new("ano.casino.play");
-    private static readonly string[] Buttons = ["play", "minus", "plus", "hit", "stand", "double", "split", "risk", "bank", "free", "retry", "close", "back", "refresh", "rules"];
+    private static readonly string[] Buttons = ["play", "minus", "plus", "hit", "stand", "double", "split", "risk", "bank", "free", "bonus1", "bonus2", "bonus3", "bonus4", "bonus5", "bonus6", "bonus7", "bonus8", "bonus9", "retry", "close", "back", "refresh", "rules"];
     private readonly ICustomHudService _hud;
     private readonly IPlayerRegistry _players;
     private readonly IPermissionEvaluator _permissions;
@@ -34,7 +34,7 @@ public sealed class CasinoRoundPresenter : IDisposable
     {
         _hud = hud; _players = players; _permissions = permissions; _wallet = wallet; _rounds = rounds;
         _beforeOpen = beforeOpen; _back = back; _clock = clock ?? TimeProvider.System;
-        _biggestBoyMaximumStake = Math.Clamp(biggestBoyMaximumStake / 50 * 50, 50, BiggestBoyRules.MaximumStake);
+        _biggestBoyMaximumStake = Math.Clamp(biggestBoyMaximumStake, BiggestBoyRules.StakeSteps[0], BiggestBoyRules.MaximumStake);
         try
         {
             _owned.Add(hud.Register(new("ano.casino"), new(HudId,
@@ -67,7 +67,7 @@ public sealed class CasinoRoundPresenter : IDisposable
                 if (!Current(state)) return false;
                 state.Game = round is { IsComplete: false } ? round.Game : game;
                 state.Round = round?.Game == state.Game ? round : null;
-                state.Stake = state.Round?.Stake ?? Math.Min(state.Stake, state.Game == CasinoRoundGame.BiggestBoy ? _biggestBoyMaximumStake : 500);
+                state.Stake = state.Round?.Stake ?? (state.Game == CasinoRoundGame.BiggestBoy ? BiggestBoyRules.ClampStakeToConfiguredMaximum(state.Stake, _biggestBoyMaximumStake) : Math.Min(state.Stake, 500));
                 state.Balance = balance; state.Visible = true; state.Pending = false;
                 state.Status = round is { IsComplete: false } ? "Gespeicherte Runde fortsetzen" : "Einsatz wählen und Runde starten";
                 _beforeOpen(player); Render(state);
@@ -99,13 +99,20 @@ public sealed class CasinoRoundPresenter : IDisposable
                 if (action is "minus" or "plus")
                 {
                     if (state.Round is { IsComplete: false }) return;
-                    state.Stake = Math.Clamp(state.Stake + (action == "plus" ? 50 : -50), 50, state.Game == CasinoRoundGame.BiggestBoy ? _biggestBoyMaximumStake : 500); Render(state); return;
+                    state.Stake = state.Game == CasinoRoundGame.BiggestBoy
+                        ? BiggestBoyRules.StepStake(state.Stake, action == "plus" ? 1 : -1, _biggestBoyMaximumStake)
+                        : Math.Clamp(state.Stake + (action == "plus" ? 50 : -50), 50, 500);
+                    Render(state); return;
                 }
                 if (action == "retry") operation = state.Unconfirmed;
                 else if (action == "play" && state.Round is not { IsComplete: false })
                     operation = new(Guid.NewGuid(), context.PlayerId, Guid.NewGuid(), state.Game, CasinoRoundAction.Start, state.Stake, 0);
-                else if (state.Round is { IsComplete: false } round && ParseAction(action) is { } roundAction)
-                    operation = new(Guid.NewGuid(), context.PlayerId, round.Id, round.Game, roundAction, round.Stake, round.Revision);
+                else if (state.Round is { IsComplete: false } round && action.StartsWith("bonus", StringComparison.Ordinal)
+                    && int.TryParse(action.AsSpan(5), out var bonusChoice))
+                    operation = new(Guid.NewGuid(), context.PlayerId, round.Id, round.Game, CasinoRoundAction.SelectSymbol,
+                        round.Stake, round.Revision, bonusChoice);
+                else if (state.Round is { IsComplete: false } activeRound && ParseAction(action) is { } roundAction)
+                    operation = new(Guid.NewGuid(), context.PlayerId, activeRound.Id, activeRound.Game, roundAction, activeRound.Stake, activeRound.Revision);
                 if (operation is null && action != "refresh") return;
                 state.Pending = true;
                 if (operation is not null) state.Unconfirmed = operation;
@@ -126,20 +133,29 @@ public sealed class CasinoRoundPresenter : IDisposable
                 if (round is not null)
                 {
                     state.Game = round.Game;
-                    if (round.IsComplete) state.Stake = Math.Min(state.Stake, state.Game == CasinoRoundGame.BiggestBoy ? _biggestBoyMaximumStake : 500);
+                    if (round.IsComplete) state.Stake = state.Game == CasinoRoundGame.BiggestBoy ? BiggestBoyRules.ClampStakeToConfiguredMaximum(state.Stake, _biggestBoyMaximumStake) : Math.Min(state.Stake, 500);
                 }
                 if (receipt is not null)
                 {
-                    state.Unconfirmed = null; state.Animation++;
-                    if (operation?.Action == CasinoRoundAction.Start) state.Cards.Clear();
-                    for (var reel = 0; reel < 5; reel++)
+                    state.Unconfirmed = null;
+                    if (operation?.Action == CasinoRoundAction.SelectSymbol)
                     {
-                        Class(state, "reel" + reel, "stopped", false);
-                        Class(state, "reel" + reel, "settling", false);
+                        state.AnimatingUntil = null;
+                        state.Status = "Bonussymbol gewählt · Freispiele bereit";
                     }
-                    state.BookSettles = 0; state.BookStops = 0;
-                    state.AnimatingUntil = _clock.GetUtcNow().AddSeconds(state.Game == CasinoRoundGame.BiggestBoy ? 3.2 : state.Game == CasinoRoundGame.Book ? 3 : state.Game == CasinoRoundGame.Blackjack ? .95 : .65);
-                    state.Status = "Aktion gebucht · Animation läuft";
+                    else
+                    {
+                        state.Animation++;
+                        if (operation?.Action == CasinoRoundAction.Start) state.Cards.Clear();
+                        for (var reel = 0; reel < 5; reel++)
+                        {
+                            Class(state, "reel" + reel, "stopped", false);
+                            Class(state, "reel" + reel, "settling", false);
+                        }
+                        state.BookSettles = 0; state.BookStops = 0;
+                        state.AnimatingUntil = _clock.GetUtcNow().AddSeconds(state.Game == CasinoRoundGame.BiggestBoy ? 3.2 : state.Game == CasinoRoundGame.Book ? 3 : state.Game == CasinoRoundGame.Blackjack ? .95 : .65);
+                        state.Status = "Aktion gebucht · Animation läuft";
+                    }
                 }
                 else state.Status = "Spielstand aktualisiert";
             }
@@ -260,9 +276,14 @@ public sealed class CasinoRoundPresenter : IDisposable
 
     private void RenderBiggestBoy(State state, BiggestBoySpinResult? spin, bool moving)
     {
-        Text(state, "biggest_win", moving ? "WALZEN LAUFEN …" : "GEWINN: " + Points(spin?.Payout ?? 0));
-        Text(state, "biggest_bonus", spin is null ? "3+ Gesichter: 10 Freispiele · Kebap ist Wild" :
-            $"{spin.State.FreeSpinsRemaining} Freispiele · gesammelt {Points(spin.State.TotalPayout)} · {spin.ScatterCount} Scatter");
+        var needsBonusSymbol = spin is { State.FreeSpinsRemaining: > 0, State.ExpandingSymbol: null };
+        Class(state, "root", "needs-bonus-symbol", needsBonusSymbol);
+        Text(state, "biggest_win", moving ? "WALZEN LAUFEN …" : spin is null ? "BEREIT ZUM SPIELEN" : spin.Payout > 0 ? "GEWINN DIESES SPINS: " + Points(spin.Payout) : "KEIN GEWINN");
+        Text(state, "biggest_spin_win", moving ? "SPIN LÄUFT" : spin is null ? "SPINGEWINN: –" : "SPINGEWINN: " + Points(spin.Payout));
+        Text(state, "biggest_total_win", spin is null ? "BONUS / GESAMT: 0 €" : "BONUS / GESAMT: " + Points(spin.State.TotalPayout));
+        Text(state, "biggest_bonus", spin is null ? "3/4/5 Gesichter: 10/15/20 Freispiele · Kebap ist Wild" :
+            needsBonusSymbol ? $"{spin.State.FreeSpinsRemaining} Freispiele · BONUSSYMBOL WÄHLEN" :
+            $"{spin.State.FreeSpinsRemaining} Freispiele · gesammelt {Points(spin.State.TotalPayout)} · {spin.ScatterCount} Scatter · Symbol: {(spin.State.ExpandingSymbol is { } expanding ? BiggestName(expanding) : "–")}");
         Text(state, "detail", moving ? "" : spin is null ? Rules(state.Game) :
             string.Join(" · ", spin.LineWins.Select(win => $"Linie {win.Payline + 1}: {win.MatchCount}× {BiggestName(win.Symbol)} = {Points(win.Payout)}")));
         for (var reel = 0; reel < 5; reel++)
@@ -350,7 +371,7 @@ public sealed class CasinoRoundPresenter : IDisposable
     private static string Rules(CasinoRoundGame game) => game switch
     {
         CasinoRoundGame.Blackjack => "Blackjack 3:2 · Dealer steht auf Soft 17 · max. 2 Hände · Split-Asse erhalten eine Karte · Double/Split kosten einen zusätzlichen Handeinsatz.",
-        CasinoRoundGame.BiggestBoy => "5×5 · 10 Linien von links · Einsatz/10 · Kebap ersetzt Gewinnsymbole, nie Scatter. Im Bonus expandiert Kebap. 3+ Gesichter: 10 Freispiele, erneut +5; höchstens 30 insgesamt/20 verbleibend. Keine Scatter-Auszahlung. Auszahlung am Bonusende.",
+        CasinoRoundGame.BiggestBoy => "5×5 · 25 Linien von links · Einsatz/25 · Kebap ist Wild, nie Scatter. 3/4/5 Gesichter: 10/15/20 Freispiele. Vor dem Bonus ein Symbol wählen; erscheint es auf einer Walze, expandiert genau dieses Symbol dort. Retrigger: +5, max. 30 Freispiele. Keine Scatter-Auszahlung. Auszahlung am Bonusende.",
         CasinoRoundGame.Book => "5 Walzen · 10 Linien · BUCH ist Wild/Scatter · 3+ Bücher: 10 Freispiele · erneute Scatter: +5, max. 30 Freispiele · Einsatz bleibt fix. Auszahlung am Bonusende.",
         _ => "50 % Chance: Zwischenstand verdoppeln oder verlieren · BANK bucht den Zwischenstand zurück · nach 5 Erfolgen BANK wählen.",
     };

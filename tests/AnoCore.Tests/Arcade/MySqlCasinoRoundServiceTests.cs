@@ -68,7 +68,13 @@ public sealed class MySqlCasinoRoundServiceTests
             Next(restored, CasinoRoundAction.FreeSpin) with { Stake = 50 }));
         await Assert.ThrowsExactlyAsync<CasinoRejectedException>(async () => await reduced.ApplyAsync(
             Next(restored, CasinoRoundAction.FreeSpin) with { Game = CasinoRoundGame.Book }));
-        var receipt = new DurableCasinoRoundReceipt(stored.OperationId, stored.Balance, restored);
+        var choose = Next(restored, CasinoRoundAction.SelectSymbol) with { Choice = (int)BiggestBoySymbol.Beer };
+        var chosen = await reduced.ApplyAsync(choose);
+        Assert.AreEqual(chosen, await reduced.ApplyAsync(choose));
+        Assert.AreEqual(1900L, chosen.Balance.Allocated);
+        var chosenState = JsonSerializer.Deserialize<BiggestBoySpinResult>(chosen.Round.StateJson)!;
+        Assert.AreEqual(BiggestBoySymbol.Beer, chosenState.State.ExpandingSymbol);
+        var receipt = chosen;
         var spins = 0;
         while (!receipt.Round.IsComplete)
         {
@@ -84,7 +90,7 @@ public sealed class MySqlCasinoRoundServiceTests
             }
         }
         Assert.AreEqual(1900L + receipt.Round.Payout, (await _wallet.ReadAsync(Player)).Allocated);
-        Assert.AreEqual(spins + 1L, await CountActions());
+        Assert.AreEqual(spins + 2L, await CountActions());
         Assert.IsNull(await reduced.ReadAsync(Player));
         await Assert.ThrowsExactlyAsync<CasinoRejectedException>(async () => await reduced.ApplyAsync(Start(CasinoRoundGame.BiggestBoy)));
     }

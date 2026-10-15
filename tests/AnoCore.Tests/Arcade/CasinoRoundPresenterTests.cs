@@ -15,11 +15,14 @@ public sealed class CasinoRoundPresenterTests
     private static readonly PlayerId Player = new(76561198000911901);
 
     [TestMethod]
-    public async Task BiggestBoyProjectsAllCellsAndHidesWinningLinesUntilFourLapsFinish()
+    public async Task BiggestBoyProjectsAllCellsAndHidesWinningLinesUntilFiveLapsFinish()
     {
         using var f = await Fixture.Create();
         var trigger = BiggestBoyRules.StartRound(100, _ => 0);
-        var spin = BiggestBoyRules.PlayFreeSpin(trigger.State, _ => 1);
+        var selected = BiggestBoyRules.SelectExpandingSymbol(trigger, BiggestBoySymbol.Beer);
+        var stop = Enumerable.Range(0, 100)
+            .First(value => BiggestBoyRules.DrawGrid(_ => value).Contains(BiggestBoySymbol.Beer));
+        var spin = BiggestBoyRules.PlayFreeSpin(selected.State, _ => stop);
         f.Rounds.NextSnapshot = new(Guid.NewGuid(), Player, CasinoRoundGame.BiggestBoy, 100, 1, false,
             100, spin.State.TotalPayout, JsonSerializer.Serialize(spin));
         Assert.IsTrue(await f.Presenter.OpenAsync(Player, CasinoRoundGame.BiggestBoy));
@@ -34,11 +37,40 @@ public sealed class CasinoRoundPresenterTests
         await f.Click("free");
         Assert.AreEqual(1, f.Rounds.Calls.Count);
         f.Clock.AdvanceMilliseconds(3300); f.Presenter.Tick();
-        Assert.IsTrue(f.Text("biggest_win")!.StartsWith("GEWINN: ", StringComparison.Ordinal));
-        Assert.IsTrue(f.PanelClass("biggest_symbol0", "expanded"));
+        Assert.IsTrue(f.Text("biggest_win")!.StartsWith(spin.Payout > 0 ? "GEWINN DIESES SPINS: " : "KEIN GEWINN", StringComparison.Ordinal));
+        Assert.AreEqual("SPINGEWINN: " + CasinoMoney.Format(spin.Payout), f.Text("biggest_spin_win"));
+        Assert.IsTrue(spin.ExpandedReels.Length > 0);
+        Assert.IsTrue(spin.ExpandedReels.Any(reel => f.PanelClass("biggest_symbol" + reel * 5, "expanded")));
         await f.Click("free");
         Assert.AreEqual(2, f.Rounds.Calls.Count);
         Assert.IsTrue(f.Class("motion-b"));
+    }
+
+    [TestMethod]
+    public async Task BiggestBoyBonusPickerBooksExactlyOnePersistentSymbolChoice()
+    {
+        using var f = await Fixture.Create();
+        var trigger = BiggestBoyRules.StartRound(100, _ => 0);
+        f.Rounds.Current = new(Guid.NewGuid(), Player, CasinoRoundGame.BiggestBoy, 100, 1, false,
+            100, trigger.State.TotalPayout, JsonSerializer.Serialize(trigger));
+        Assert.IsTrue(await f.Presenter.OpenAsync(Player, CasinoRoundGame.BiggestBoy));
+        Assert.IsTrue(f.Class("needs-bonus-symbol"));
+
+        var selected = BiggestBoyRules.SelectExpandingSymbol(trigger, BiggestBoySymbol.Beer);
+        f.Rounds.NextSnapshot = f.Rounds.Current with
+        {
+            Revision = 2,
+            StateJson = JsonSerializer.Serialize(selected),
+        };
+        await f.Click("bonus1");
+
+        Assert.AreEqual(CasinoRoundAction.SelectSymbol, f.Rounds.Last!.Action);
+        Assert.AreEqual((int)BiggestBoySymbol.Beer, f.Rounds.Last.Choice);
+        Assert.AreEqual(100, f.Rounds.Last.Stake);
+        Assert.IsFalse(f.Class("needs-bonus-symbol"));
+        Assert.IsFalse(f.Class("motion-a"));
+        Assert.IsFalse(f.Class("motion-b"));
+        Assert.AreEqual("Bonussymbol gewählt · Freispiele bereit", f.Text("status"));
     }
 
     [TestMethod]

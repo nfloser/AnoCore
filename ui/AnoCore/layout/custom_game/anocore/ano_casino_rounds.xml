@@ -1220,7 +1220,29 @@
             </Panel>
           </Panel>
           <Label id="casino_round_biggest_win" class="biggest-win" text="GEWINN: 0 €" hittest="false" />
-          <Label id="casino_round_biggest_bonus" class="biggest-bonus" text="3+ Gesichter: 10 Freispiele" hittest="false" />
+          <Panel class="biggest-payout-panel" hittest="false">
+            <Label id="casino_round_biggest_spin_win" class="biggest-spin-win" text="SPINGEWINN: –" hittest="false" />
+            <Label id="casino_round_biggest_total_win" class="biggest-total-win" text="BONUS / GESAMT: 0 €" hittest="false" />
+          </Panel>
+          <Label id="casino_round_biggest_bonus" class="biggest-bonus" text="3/4/5 Gesichter: 10/15/20 Freispiele" hittest="false" />
+          <Panel class="biggest-bonus-picker">
+            <Label class="biggest-picker-title" text="BONUSSYMBOL WÄHLEN" hittest="false" />
+            <Panel class="biggest-picker-row">
+              <Button id="casino_round_bonus1" class="biggest-picker-button"><Panel class="biggest-picker-icon biggest-symbol-1" hittest="false" /><Label text="BIER" hittest="false" /></Button>
+              <Button id="casino_round_bonus2" class="biggest-picker-button"><Panel class="biggest-picker-icon biggest-symbol-2" hittest="false" /><Label text="ZIGARETTE" hittest="false" /></Button>
+              <Button id="casino_round_bonus3" class="biggest-picker-button"><Panel class="biggest-picker-icon biggest-symbol-3" hittest="false" /><Label text="BUTTER" hittest="false" /></Button>
+            </Panel>
+            <Panel class="biggest-picker-row">
+              <Button id="casino_round_bonus4" class="biggest-picker-button"><Panel class="biggest-picker-icon biggest-symbol-4" hittest="false" /><Label text="SHOT" hittest="false" /></Button>
+              <Button id="casino_round_bonus5" class="biggest-picker-button"><Panel class="biggest-picker-icon biggest-symbol-5" hittest="false" /><Label text="TRICHTER" hittest="false" /></Button>
+              <Button id="casino_round_bonus6" class="biggest-picker-button"><Panel class="biggest-picker-icon biggest-symbol-6" hittest="false" /><Label text="G" hittest="false" /></Button>
+            </Panel>
+            <Panel class="biggest-picker-row">
+              <Button id="casino_round_bonus7" class="biggest-picker-button"><Panel class="biggest-picker-icon biggest-symbol-7" hittest="false" /><Label text="O" hittest="false" /></Button>
+              <Button id="casino_round_bonus8" class="biggest-picker-button"><Panel class="biggest-picker-icon biggest-symbol-8" hittest="false" /><Label text="A" hittest="false" /></Button>
+              <Button id="casino_round_bonus9" class="biggest-picker-button"><Panel class="biggest-picker-icon biggest-symbol-9" hittest="false" /><Label text="T" hittest="false" /></Button>
+            </Panel>
+          </Panel>
         </Panel>
         <Panel class="book-table">
           <Panel class="book-reels">
