@@ -78,3 +78,22 @@
 .bb-symbol-9 { background-image:url("s2r://panorama/styles/custom_game/anocore/casino/biggest_t.vtex"); }
 .bb-symbol-10 { background-image:url("s2r://panorama/styles/custom_game/anocore/casino/biggest_scatter.vtex"); }
 .bb-symbol-11 { background-image:url("s2r://panorama/styles/custom_game/anocore/casino/biggest_book.vtex"); }
+
+/* Book shares the bounded five-reel cabinet but always uses its original fruit textures. */
+.bb-v4.book-mode .bb-table { visibility:visible; }
+.bb-v4.book-mode.biggest-rules .bb-table { visibility:collapse; }
+.bb-v4.biggest-rules .bb-book-rules { visibility:collapse; }
+.bb-v4.book-mode.biggest-rules .bb-biggest-rules { visibility:collapse; }
+.bb-v4.book-mode.biggest-rules .bb-book-rules { visibility:visible; }
+.bb-book-label { visibility:collapse; }
+.bb-v4.book-mode .bb-symbol-7 .bb-book-label { visibility:visible; horizontal-align:center; vertical-align:center; font-size:25px; font-weight:bold; color:#754719; }
+.bb-v4.book-mode .bb-symbol-7 { background-image:none; background-color:#fff1bf; border:2px solid #bf8d35; }
+.bb-v4.book-mode .bb-symbol-0 { background-image:url("s2r://panorama/styles/custom_game/anocore/arcade/cherry.vtex"); }
+.bb-v4.book-mode .bb-symbol-1 { background-image:url("s2r://panorama/styles/custom_game/anocore/arcade/lemon.vtex"); }
+.bb-v4.book-mode .bb-symbol-2 { background-image:url("s2r://panorama/styles/custom_game/anocore/arcade/plum.vtex"); }
+.bb-v4.book-mode .bb-symbol-3 { background-image:url("s2r://panorama/styles/custom_game/anocore/arcade/orange.vtex"); }
+.bb-v4.book-mode .bb-symbol-4 { background-image:url("s2r://panorama/styles/custom_game/anocore/arcade/grapes.vtex"); }
+.bb-v4.book-mode .bb-symbol-5 { background-image:url("s2r://panorama/styles/custom_game/anocore/arcade/bell.vtex"); }
+.bb-v4.book-mode .bb-symbol-6 { background-image:url("s2r://panorama/styles/custom_game/anocore/arcade/seven.vtex"); }
+.bb-v4.book-mode .bb-symbol.winning { border:3px solid #ff3030; }
+.bb-v4.book-mode .bb-symbol.active-line { border:4px solid #ff3030; }
