@@ -15,6 +15,51 @@ public sealed class CasinoRoundPresenterTests
     private static readonly PlayerId Player = new(76561198000911901);
 
     [TestMethod]
+    public async Task BiggestBoyWelcomeGridAppearsOnOpenAndIdleRefresh()
+    {
+        using var f = await Fixture.Create();
+        int[] expected = [10, 0, 2, 10, 6, 5, 11, 7, 1, 10, 8, 4, 10, 9, 3];
+        await f.Presenter.OpenAsync(Player, CasinoRoundGame.BiggestBoy);
+        for (var cell = 0; cell < expected.Length; cell++)
+            Assert.IsTrue(f.PanelClass("bb_symbol" + cell, "bb-symbol-" + expected[cell]), $"Opening cell {cell}");
+        await f.Click("refresh");
+        for (var cell = 0; cell < expected.Length; cell++)
+            Assert.IsTrue(f.PanelClass("bb_symbol" + cell, "bb-symbol-" + expected[cell]), $"Refresh cell {cell}");
+        Assert.AreEqual(0, f.Rounds.Calls.Count);
+    }
+
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public async Task WelcomeGridDoesNotReplaceBookedWinOrResumedBonus(bool bonus)
+    {
+        using var f = await Fixture.Create();
+        var spin = ControlledSlotRules.Biggest(100, new Random(518).Next,
+            bonus ? new(0, 100, 0) : new(100, 0, 100));
+        f.Rounds.NextSnapshot = new(Guid.NewGuid(), Player, CasinoRoundGame.BiggestBoy, 100, 1, !bonus,
+            100, spin.Payout, JsonSerializer.Serialize(spin));
+        await f.Presenter.OpenAsync(Player, CasinoRoundGame.BiggestBoy);
+        await f.Click("play");
+        f.FinishAnimation();
+        for (var cell = 0; cell < 15; cell++)
+            Assert.IsTrue(f.PanelClass("bb_symbol" + cell, "bb-symbol-" + (int)spin.Grid[cell]));
+        if (bonus)
+        {
+            await f.Presenter.OpenAsync(Player, CasinoRoundGame.BiggestBoy);
+            await f.Click("refresh");
+            for (var cell = 0; cell < 15; cell++)
+                Assert.IsTrue(f.PanelClass("bb_symbol" + cell, "bb-symbol-" + (int)spin.Grid[cell]));
+        }
+        else
+        {
+            await f.Click("refresh");
+            Assert.IsTrue(f.PanelClass("bb_symbol0", "bb-symbol-10"));
+            Assert.IsTrue(f.PanelClass("bb_symbol14", "bb-symbol-3"));
+        }
+        Assert.AreEqual(1, f.Rounds.Calls.Count);
+    }
+
+    [TestMethod]
     public async Task FruitStakeControlsReachConfiguredHighLimitInPracticalSteps()
     {
         using var f = await Fixture.Create(new() { Book = 100000 });

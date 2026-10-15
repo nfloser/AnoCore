@@ -14,6 +14,15 @@ public sealed class CasinoRoundPresenter : IDisposable
 {
     public static readonly CustomHudId HudId = new("ano.casino.rounds");
     public static readonly CustomHudId ExpandingHudId = new("ano.casino.biggestboy");
+    // Column-major, presentation only: never used to generate or settle a spin.
+    private static readonly ImmutableArray<BiggestBoySymbol> WelcomeGrid =
+    [
+        BiggestBoySymbol.Scatter, BiggestBoySymbol.Kebap, BiggestBoySymbol.Cigarette,
+        BiggestBoySymbol.Scatter, BiggestBoySymbol.G, BiggestBoySymbol.Funnel,
+        BiggestBoySymbol.Book, BiggestBoySymbol.O, BiggestBoySymbol.Beer,
+        BiggestBoySymbol.Scatter, BiggestBoySymbol.A, BiggestBoySymbol.Shot,
+        BiggestBoySymbol.Scatter, BiggestBoySymbol.T, BiggestBoySymbol.Butter
+    ];
     private static readonly PermissionId Permission = new("ano.casino.play");
     private static readonly string[] Buttons = ["play", "minus", "plus", "hit", "stand", "double", "split", "risk", "bank", "free", "bonus1", "bonus2", "bonus3", "bonus4", "bonus5", "bonus6", "bonus7", "bonus8", "bonus9", "retry", "close", "back", "refresh", "rules", "sound"];
     private readonly ICustomHudService _hud;
@@ -437,7 +446,7 @@ public sealed class CasinoRoundPresenter : IDisposable
             for (var row = 0; row < 3; row++)
             {
                 var cell = reel * 3 + row;
-                var actual = spin is null ? BiggestBoyExpandingRules.ReelStrips[reel][row] : spin.Grid[cell];
+                var actual = spin is null ? WelcomeGrid[cell] : spin.Grid[cell];
                 for (var id = 0; id < 12; id++) Class(state, "bb_symbol" + cell, "bb-symbol-" + id, (int)actual == id);
                 Class(state, "bb_symbol" + cell, "winning", !moving && spin is not null && spin.LineWins.Any(w => BiggestBoyExpandingRules.Paylines[w.Payline].Take(w.MatchCount).Contains(cell)));
                 Class(state, "bb_symbol" + cell, "active-line", current is not null && BiggestBoyExpandingRules.Paylines[current.Payline].Take(current.MatchCount).Contains(cell));
