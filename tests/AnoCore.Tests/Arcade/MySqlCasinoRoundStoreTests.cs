@@ -35,6 +35,34 @@ public sealed class MySqlCasinoRoundStoreTests
     public async Task Cleanup() { if (_database is not null) await ClearAsync(); }
 
     [TestMethod]
+    public async Task LargeWalletReservesBeforeDrawingAndSettlesExactlyAtCeiling()
+    {
+        await _database.WithConnectionAsync(async (connection, token) =>
+        {
+            await using var command = connection.CreateCommand();
+            command.CommandText = $"UPDATE ano_ap_accounts SET available={CasinoMoney.AccountLimit - 200}, allocated=100 WHERE player_steam_id={Player.SteamId64}";
+            await command.ExecuteNonQueryAsync(token);
+            return true;
+        });
+        var store = new MySqlCasinoRoundStore(_database);
+        var rejected = new CasinoRoundOperation(Guid.NewGuid(), Guid.NewGuid(), Player, CasinoRoundKind.Risk, 0, "{}");
+        var draws = 0;
+        await Assert.ThrowsExactlyAsync<CasinoRejectedException>(async () => await store.ApplyAsync(rejected,
+            _ => new(0, 101), _ =>
+            {
+                draws++;
+                return new("test", "{}", 0, 101, 0, true, "{}");
+            }));
+        Assert.AreEqual(0, draws);
+        var accepted = rejected with { Id = Guid.NewGuid() };
+        var result = await store.ApplyAsync(accepted, _ => new(0, 100),
+            _ => new("test", "{}", 0, 100, 0, true, "{}"));
+        Assert.AreEqual(CasinoMoney.AccountLimit, result.Balance.Available + result.Balance.Allocated);
+        Assert.AreEqual(result, await store.ApplyAsync(accepted, _ => throw new InvalidOperationException(),
+            _ => throw new InvalidOperationException()));
+    }
+
+    [TestMethod]
     public async Task ConcurrentDuplicateActionsDrawAndSettleExactlyOnceAcrossRestart()
     {
         var store = new MySqlCasinoRoundStore(_database);

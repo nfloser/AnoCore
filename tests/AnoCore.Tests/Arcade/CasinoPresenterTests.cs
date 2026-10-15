@@ -197,7 +197,7 @@ public sealed class CasinoPresenterTests
 
         Assert.AreEqual(CasinoGame.Roulette, f.Wallet.Last!.Game!.Game);
         Assert.AreEqual(0, f.Wallet.Last.Game.Choice);
-        Assert.AreEqual("4.000 €", f.RouletteText("bank"));
+        Assert.AreEqual("4 Tsd. €", f.RouletteText("bank"));
         Assert.IsTrue(f.RouletteClass("wheel", "spinning"));
         Assert.IsTrue(f.RouletteClass("wheel", "target-n0"));
         Assert.IsFalse(f.RouletteClass("wheel", "turn-b"));
