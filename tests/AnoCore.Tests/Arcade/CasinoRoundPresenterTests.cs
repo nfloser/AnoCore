@@ -15,6 +15,19 @@ public sealed class CasinoRoundPresenterTests
     private static readonly PlayerId Player = new(76561198000911901);
 
     [TestMethod]
+    public async Task FruitStakeControlsReachConfiguredHighLimitInPracticalSteps()
+    {
+        using var f = await Fixture.Create(new() { Book = 100000 });
+        await f.Presenter.OpenAsync(Player, CasinoRoundGame.Book);
+        await f.Click("plus");
+        Assert.AreEqual("250 €", f.Text("stake"));
+        for (var i = 0; i < 15; i++) await f.Click("plus");
+        Assert.AreEqual("100.000 €", f.Text("stake"));
+        await f.Click("minus");
+        Assert.AreEqual("50.000 €", f.Text("stake"));
+    }
+
+    [TestMethod]
     public async Task ControlledBiggestBoyScrollsAllSymbolsBeforeLandingOnBookedFullScreen()
     {
         using var f = await Fixture.Create();
@@ -86,7 +99,7 @@ public sealed class CasinoRoundPresenterTests
         await f.Click("free");
         f.FinishAnimation();
         await f.Click("plus");
-        Assert.AreEqual(game == CasinoRoundGame.BiggestBoy ? "250 €" : "150 €", f.Text("stake"));
+        Assert.AreEqual("250 €", f.Text("stake"));
     }
 
     [TestMethod]

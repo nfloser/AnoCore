@@ -9,7 +9,19 @@ public sealed record CasinoStakeLimits
     public int Roulette { get; init; } = 500;
     public int Blackjack { get; init; } = 500;
     public int Risk { get; init; } = 500;
-    public int Book { get; init; } = 500;
+    public int Book { get; init; } = 10_000;
+
+    private static readonly int[] BookSteps = [50, 100, 250, 500, 1_000, 2_500, 5_000, 10_000, 25_000, 50_000, 100_000, 250_000, 500_000, 1_000_000];
+
+    /// <summary>Convenient fruit-slot stakes, including an administrator's nonstandard ceiling.</summary>
+    public int StepBookStake(int current, int direction)
+    {
+        Validate();
+        var steps = BookSteps.Where(value => value < Book).Append(Book).ToArray();
+        return direction > 0 ? steps.FirstOrDefault(value => value > current, Book)
+            : direction < 0 ? steps.LastOrDefault(value => value < current, 50)
+            : Math.Clamp(current, 50, Book);
+    }
 
     public CasinoStakeLimits Validate()
     {
