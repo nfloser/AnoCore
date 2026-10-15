@@ -18,7 +18,7 @@ public sealed class CasinoRoundPresenterTests
     public async Task BiggestBoyWelcomeGridAppearsOnOpenAndIdleRefresh()
     {
         using var f = await Fixture.Create();
-        int[] expected = [11, 0, 2, 11, 6, 5, 11, 7, 1, 11, 8, 4, 11, 9, 3];
+        int[] expected = [10, 0, 2, 10, 6, 5, 11, 7, 1, 10, 8, 4, 10, 9, 3];
         await f.Presenter.OpenAsync(Player, CasinoRoundGame.BiggestBoy);
         for (var cell = 0; cell < expected.Length; cell++)
             Assert.IsTrue(f.PanelClass("bb_symbol" + cell, "bb-symbol-" + expected[cell]), $"Opening cell {cell}");
@@ -53,7 +53,7 @@ public sealed class CasinoRoundPresenterTests
         else
         {
             await f.Click("refresh");
-            Assert.IsTrue(f.PanelClass("bb_symbol0", "bb-symbol-11"));
+            Assert.IsTrue(f.PanelClass("bb_symbol0", "bb-symbol-10"));
             Assert.IsTrue(f.PanelClass("bb_symbol14", "bb-symbol-3"));
         }
         Assert.AreEqual(1, f.Rounds.Calls.Count);

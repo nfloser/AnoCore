@@ -304,8 +304,8 @@ required; source tests cannot establish actual Panorama rendering.
 
 ## Biggest Boy opening grid (#518)
 
-With no booked spin, opening or refreshing Biggest Boy shows five Biggest Boy
-wild sashes across the top, Kebap/G/O/A/T in the middle, and
+With no booked spin, opening or refreshing Biggest Boy shows Face/Face/Biggest Boy wild sash/Face/Face
+across the top, Kebap/G/O/A/T in the middle, and
 Cigarette/Funnel/Beer/Shot/Butter across the bottom. This is presentation only;
 accepted paid results and resumed free spins continue to show their stored grid.
 No odds, symbol roles, balances, stakes or sound settings change. Install the

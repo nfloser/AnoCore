@@ -17,11 +17,11 @@ public sealed class CasinoRoundPresenter : IDisposable
     // Column-major, presentation only: never used to generate or settle a spin.
     private static readonly ImmutableArray<BiggestBoySymbol> WelcomeGrid =
     [
-        BiggestBoySymbol.Book, BiggestBoySymbol.Kebap, BiggestBoySymbol.Cigarette,
-        BiggestBoySymbol.Book, BiggestBoySymbol.G, BiggestBoySymbol.Funnel,
+        BiggestBoySymbol.Scatter, BiggestBoySymbol.Kebap, BiggestBoySymbol.Cigarette,
+        BiggestBoySymbol.Scatter, BiggestBoySymbol.G, BiggestBoySymbol.Funnel,
         BiggestBoySymbol.Book, BiggestBoySymbol.O, BiggestBoySymbol.Beer,
-        BiggestBoySymbol.Book, BiggestBoySymbol.A, BiggestBoySymbol.Shot,
-        BiggestBoySymbol.Book, BiggestBoySymbol.T, BiggestBoySymbol.Butter
+        BiggestBoySymbol.Scatter, BiggestBoySymbol.A, BiggestBoySymbol.Shot,
+        BiggestBoySymbol.Scatter, BiggestBoySymbol.T, BiggestBoySymbol.Butter
     ];
     private static readonly PermissionId Permission = new("ano.casino.play");
     private static readonly string[] Buttons = ["play", "minus", "plus", "hit", "stand", "double", "split", "risk", "bank", "free", "bonus1", "bonus2", "bonus3", "bonus4", "bonus5", "bonus6", "bonus7", "bonus8", "bonus9", "retry", "close", "back", "refresh", "rules", "sound"];
