@@ -42,8 +42,12 @@ public static class BiggestBoyCollectorRules
         var (grid, stops) = Draw(random);
         var result = EvaluateGrid(stake, grid);
         var free = BiggestBoyRules.FreeSpinsForScatters(result.ScatterCount);
-        return result with { Stops = stops, ChargedStake = stake,
-            State = new(stake, free, free, 1, result.Payout, Version, null) };
+        return result with
+        {
+            Stops = stops,
+            ChargedStake = stake,
+            State = new(stake, free, free, 1, result.Payout, Version, null)
+        };
     }
 
     public static BiggestBoySpinResult PlayFreeSpin(BiggestBoyRoundState state, Func<int, int> random)
@@ -66,13 +70,17 @@ public static class BiggestBoyCollectorRules
         var atLimit = state.TotalPayout + payout == MaximumRoundExposure(state.LockedStake);
         return result with
         {
-            Stops = stops, MoneyValues = values.ToImmutable(), CollectionPayout = collection, WinLimitReached = atLimit,
+            Stops = stops,
+            MoneyValues = values.ToImmutable(),
+            CollectionPayout = collection,
+            WinLimitReached = atLimit,
             CollectionMultiplier = multiplier,
             State = state with
             {
                 FreeSpinsRemaining = atLimit ? 0 : state.FreeSpinsRemaining - 1 + retriggers * 10,
                 FreeSpinsAwarded = state.FreeSpinsAwarded + retriggers * 10,
-                SpinsPlayed = state.SpinsPlayed + 1, Collectors = collected,
+                SpinsPlayed = state.SpinsPlayed + 1,
+                Collectors = collected,
                 TotalPayout = checked(state.TotalPayout + payout),
             },
             Payout = payout,

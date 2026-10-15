@@ -18,9 +18,9 @@ public sealed class CasinoRoundServiceTests
         var receipt = await service.ApplyAsync(op);
         Assert.AreEqual(CasinoRoundGame.BiggestBoy, receipt.Round.Game);
         Assert.AreEqual(CasinoRoundKind.BiggestBoy, store.Current!.Kind);
-        Assert.AreEqual(BiggestBoyRules.Version, store.Current.RulesVersion);
+        Assert.AreEqual(BiggestBoyCollectorRules.Version, store.Current.RulesVersion);
         Assert.AreEqual(1000L, receipt.Round.TotalStake);
-        Assert.AreEqual(BiggestBoyRules.MaximumRoundExposure(1000), store.LastPlan!.MaximumPayoutExposure);
+        Assert.AreEqual(BiggestBoyCollectorRules.MaximumRoundExposure(1000), store.LastPlan!.MaximumPayoutExposure);
         Assert.AreEqual(1000, System.Text.Json.JsonSerializer.Deserialize<BiggestBoySpinResult>(receipt.Round.StateJson)!.State.LockedStake);
         var before = store.Transitions;
         await Assert.ThrowsExactlyAsync<CasinoRejectedException>(async () => await service.ApplyAsync(op with
@@ -28,6 +28,46 @@ public sealed class CasinoRoundServiceTests
         await Assert.ThrowsExactlyAsync<CasinoRejectedException>(async () => await service.ApplyAsync(op with
         { Id = Guid.NewGuid(), SessionId = Guid.NewGuid(), Game = CasinoRoundGame.Book }));
         Assert.AreEqual(before, store.Transitions);
+    }
+
+    [TestMethod]
+    public async Task ExistingBiggestBoyV2KeepsVersionAndSelectionWithoutNewDebit()
+    {
+        var spin = BiggestBoyRules.StartRound(100, _ => 0);
+        var store = new MemoryStore();
+        store.Seed(new(Guid.NewGuid(), Player, CasinoRoundKind.BiggestBoy, BiggestBoyRules.Version,
+            System.Text.Json.JsonSerializer.Serialize(spin), CasinoRoundStatus.Active, 1, BiggestBoyRules.MaximumRoundExposure(100)));
+        var service = new CasinoRoundService(store);
+        var op = new DurableCasinoRoundOperation(Guid.NewGuid(), Player, store.Current!.RoundId,
+            CasinoRoundGame.BiggestBoy, CasinoRoundAction.SelectSymbol, 100, 1, (int)BiggestBoySymbol.Beer);
+        var receipt = await service.ApplyAsync(op);
+        Assert.AreEqual(BiggestBoyRules.Version, store.Current!.RulesVersion);
+        Assert.AreEqual(0L, store.LastPlan!.AdditionalDebit);
+        Assert.AreEqual(1000L, receipt.Balance.Allocated);
+        var resumed = await service.ApplyAsync(op with { Id = Guid.NewGuid(), Action = CasinoRoundAction.FreeSpin, ExpectedRevision = 2 });
+        Assert.AreEqual(25, System.Text.Json.JsonSerializer.Deserialize<BiggestBoySpinResult>(resumed.Round.StateJson)!.Grid.Length);
+        Assert.AreEqual(BiggestBoyRules.Version, store.Current.RulesVersion);
+    }
+
+    [TestMethod]
+    public async Task CollectorRoundResumesWithoutSelectionAndRetainsExposure()
+    {
+        var spin = BiggestBoyCollectorRules.StartRound(100, _ => 0);
+        var store = new MemoryStore();
+        store.Seed(new(Guid.NewGuid(), Player, CasinoRoundKind.BiggestBoy, BiggestBoyCollectorRules.Version,
+            System.Text.Json.JsonSerializer.Serialize(spin), CasinoRoundStatus.Active, 1, BiggestBoyCollectorRules.MaximumRoundExposure(100)));
+        var service = new CasinoRoundService(store);
+        var op = new DurableCasinoRoundOperation(Guid.NewGuid(), Player, store.Current!.RoundId,
+            CasinoRoundGame.BiggestBoy, CasinoRoundAction.SelectSymbol, 100, 1, (int)BiggestBoySymbol.Beer);
+        await Assert.ThrowsExactlyAsync<CasinoRejectedException>(async () => await service.ApplyAsync(op));
+        var receipt = await service.ApplyAsync(op with { Id = Guid.NewGuid(), Action = CasinoRoundAction.FreeSpin });
+        Assert.AreEqual(BiggestBoyCollectorRules.Version, store.Current!.RulesVersion);
+        Assert.AreEqual(0L, store.LastPlan!.AdditionalDebit);
+        Assert.AreEqual(BiggestBoyCollectorRules.MaximumRoundExposure(100), store.LastPlan.MaximumPayoutExposure);
+        Assert.AreEqual(1000L, receipt.Balance.Allocated);
+        var played = System.Text.Json.JsonSerializer.Deserialize<BiggestBoySpinResult>(receipt.Round.StateJson)!;
+        Assert.AreEqual(15, played.Grid.Length);
+        Assert.AreEqual(1, played.State.FreeSpinsAwarded - played.State.FreeSpinsRemaining);
     }
 
     [TestMethod]
@@ -93,6 +133,7 @@ public sealed class CasinoRoundServiceTests
     private sealed class MemoryStore : ICasinoRoundStore
     {
         public CasinoRoundSnapshot? Current { get; private set; }
+        public void Seed(CasinoRoundSnapshot snapshot) => Current = snapshot;
         public long Allocated { get; private set; } = 1000;
         public int Transitions { get; private set; }
         public CasinoRoundPlan? LastPlan { get; private set; }

@@ -205,7 +205,8 @@ public sealed class CasinoRoundPresenter : IDisposable
     private void Render(State state)
     {
         foreach (var game in Enum.GetValues<CasinoRoundGame>()) Class(state, "root", "view-" + game.ToString().ToLowerInvariant(), state.Game == game);
-        Class(state, "root", "biggest-rules", state.Game == CasinoRoundGame.BiggestBoy && state.BiggestRules);
+        Class(state, "root", "biggest-rules", state.Game == CasinoRoundGame.BiggestBoy && state.BiggestRules
+            && (state.Round is null || Read<BiggestBoySpinResult>(state.Round).State.RulesVersion == BiggestBoyCollectorRules.Version));
         var active = state.Round is { IsComplete: false };
         var moving = state.AnimatingUntil is not null;
         Class(state, "root", "complete", state.Round is { IsComplete: true });
@@ -213,7 +214,7 @@ public sealed class CasinoRoundPresenter : IDisposable
         Class(state, "root", "uncertain", state.Unconfirmed is not null);
         Class(state, "root", "motion-a", moving && state.Animation % 2 == 1);
         Class(state, "root", "motion-b", moving && state.Animation % 2 == 0);
-        Text(state, "title", state.Game switch { CasinoRoundGame.Blackjack => "BLACKJACK", CasinoRoundGame.Book => "BOOK · FREISPIELE", CasinoRoundGame.BiggestBoy => "BIGGEST BOY BÜCHER · 5×5", _ => "RISK · DOUBLE OR BANK" });
+        Text(state, "title", state.Game switch { CasinoRoundGame.Blackjack => "BLACKJACK", CasinoRoundGame.Book => "BOOK · FREISPIELE", CasinoRoundGame.BiggestBoy => "BIGGEST BOY · 5×3", _ => "RISK · DOUBLE OR BANK" });
         Text(state, "account", Points(state.Balance.Available)); Text(state, "bankroll", Points(state.Balance.Allocated));
         Text(state, "stake", Points(active ? state.Round!.Stake : state.Stake)); Text(state, "status", state.Status);
         Text(state, "payout", state.Round is { IsComplete: true } round && !moving ? Points(round.Payout) : "0 €");
@@ -279,32 +280,44 @@ public sealed class CasinoRoundPresenter : IDisposable
 
     private void RenderBiggestBoy(State state, BiggestBoySpinResult? spin, bool moving)
     {
-        var needsBonusSymbol = spin is { State.FreeSpinsRemaining: > 0, State.ExpandingSymbol: null };
+        var collector = spin is null || spin.State.RulesVersion == BiggestBoyCollectorRules.Version;
+        Class(state, "root", "collector-mode", collector);
+        var rows = collector ? 3 : 5;
+        var lines = collector ? BiggestBoyCollectorRules.Paylines : BiggestBoyRules.Paylines;
+        var needsBonusSymbol = !collector && spin is { State.FreeSpinsRemaining: > 0, State.ExpandingSymbol: null };
         Class(state, "root", "needs-bonus-symbol", needsBonusSymbol);
         Text(state, "biggest_win", moving ? "WALZEN LAUFEN …" : spin is null ? "BEREIT ZUM SPIELEN" : spin.Payout > 0 ? "GEWINN DIESES SPINS: " + Points(spin.Payout) : "KEIN GEWINN");
         Text(state, "biggest_spin_win", moving ? "SPIN LÄUFT" : spin is null ? "SPINGEWINN: –" : "SPINGEWINN: " + Points(spin.Payout));
         Text(state, "biggest_total_win", spin is null ? "BONUS / GESAMT: 0 €" : "BONUS / GESAMT: " + Points(spin.State.TotalPayout));
-        Text(state, "biggest_bonus", spin is null ? "3/4/5 Gesichter: 10/15/20 Freispiele · Kebap ist Wild" :
+        Text(state, "biggest_bonus", collector && spin is not null
+            ? $"{spin.State.FreeSpinsRemaining} Freispiele · gesammelt {Points(spin.State.TotalPayout)} · Wilds {spin.State.Collectors}/12 · ×{BiggestBoyCollectorRules.MultiplierForCollectors(spin.State.Collectors)} · nächster Bonus: {(spin.State.Collectors >= 12 ? "MAX" : (4 - spin.State.Collectors % 4).ToString(System.Globalization.CultureInfo.InvariantCulture) + " Wilds")} "
+            : spin is null ? "3/4/5 Gesichter: 10/15/20 Freispiele · Kebap ist Wild" :
             needsBonusSymbol ? $"{spin.State.FreeSpinsRemaining} Freispiele · BONUSSYMBOL WÄHLEN" :
             $"{spin.State.FreeSpinsRemaining} Freispiele · gesammelt {Points(spin.State.TotalPayout)} · {spin.ScatterCount} Scatter · Symbol: {(spin.State.ExpandingSymbol is { } expanding ? BiggestName(expanding) : "–")}");
         Text(state, "detail", moving ? "" : spin is null ? Rules(state.Game) :
+            (spin.WinLimitReached ? "HÖCHSTGEWINN 5.000× erreicht · Runde beendet · " : "") +
+            (collector ? $"Spingewinn: {Points(spin.Payout)} · Sammlung: {Points(spin.CollectionPayout)} (×{spin.CollectionMultiplier}) · " : "") +
             string.Join(" · ", spin.LineWins.Select(win => $"Linie {win.Payline + 1}: {win.MatchCount}× {BiggestName(win.Symbol)} = {Points(win.Payout)}")));
         for (var reel = 0; reel < 5; reel++)
         {
             var stop = spin is null ? 0 : spin.Stops[reel];
             for (var bit = 0; bit < 7; bit++) Class(state, "biggest_shift" + reel + "_" + bit, "shifted", (stop & (1 << bit)) != 0);
-            for (var row = 0; row < 5; row++)
+            for (var row = 0; row < rows; row++)
             {
-                var cell = reel * 5 + row;
+                var cell = reel * rows + row;
+                var display = reel * 5 + row;
                 var symbol = spin is null ? BiggestBoyRules.ReelStrips[reel][row] : spin.Grid[cell];
+                var money = spin is not null && !spin.MoneyValues.IsDefaultOrEmpty && cell < spin.MoneyValues.Length && spin.MoneyValues[cell] > 0 ? Points(spin.MoneyValues[cell]) : "";
+                Text(state, "biggest_symbol_money" + display, money);
+                Text(state, "biggest_repeat_money" + display, money);
                 for (var index = 0; index < 11; index++)
                 {
-                    Class(state, "biggest_symbol" + cell, "biggest-symbol-" + index, (int)symbol == index);
-                    Class(state, "biggest_repeat" + cell, "biggest-symbol-" + index, (int)symbol == index);
+                    Class(state, "biggest_symbol" + display, "biggest-symbol-" + index, (int)symbol == index);
+                    Class(state, "biggest_repeat" + display, "biggest-symbol-" + index, (int)symbol == index);
                 }
-                Class(state, "biggest_symbol" + cell, "winning", !moving && spin is not null &&
-                    spin.LineWins.Any(win => BiggestBoyRules.Paylines[win.Payline].Take(win.MatchCount).Contains(cell)));
-                Class(state, "biggest_symbol" + cell, "expanded", !moving && spin is not null && spin.ExpandedReels.Contains(reel));
+                Class(state, "biggest_symbol" + display, "winning", !moving && spin is not null &&
+                    spin.LineWins.Any(win => lines[win.Payline].Take(win.MatchCount).Contains(cell)));
+                Class(state, "biggest_symbol" + display, "expanded", !moving && spin is not null && spin.ExpandedReels.Contains(reel));
             }
         }
     }
@@ -378,7 +391,7 @@ public sealed class CasinoRoundPresenter : IDisposable
     private static string Rules(CasinoRoundGame game) => game switch
     {
         CasinoRoundGame.Blackjack => "Blackjack 3:2 · Dealer steht auf Soft 17 · max. 2 Hände · Split-Asse erhalten eine Karte · Double/Split kosten einen zusätzlichen Handeinsatz.",
-        CasinoRoundGame.BiggestBoy => "5×5 · 25 Linien von links · Einsatz/25 · Kebap ist Wild, nie Scatter. 3/4/5 Gesichter: 10/15/20 Freispiele. Vor dem Bonus ein Symbol wählen; erscheint es auf einer Walze, expandiert genau dieses Symbol dort. Retrigger: +5, max. 30 Freispiele. Keine Scatter-Auszahlung. Auszahlung am Bonusende.",
+        CasinoRoundGame.BiggestBoy => "5×3 · 10 Linien · Einsatz/10. Kebap-Wild sammelt im Bonus Bierwerte. 3/4/5 Gesichter: 10/15/20 Freispiele. Je vier Wilds +10 Freispiele und ×2/×3/×10 ab nächstem Spin. Max. drei Verlängerungen. Rundengewinn max. 5.000× Einsatz, danach Bonusende. Auszahlung am Rundenende.",
         CasinoRoundGame.Book => "5 Walzen · 10 Linien · BUCH ist Wild/Scatter · 3+ Bücher: 10 Freispiele · erneute Scatter: +5, max. 30 Freispiele · Einsatz bleibt fix. Auszahlung am Bonusende.",
         _ => "50 % Chance: Zwischenstand verdoppeln oder verlieren · BANK bucht den Zwischenstand zurück · nach 5 Erfolgen BANK wählen.",
     };

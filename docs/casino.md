@@ -232,18 +232,53 @@ Alle Casino-Guthaben, Einsätze und Gewinne erscheinen mit `€`. Die Zahlen
 bleiben unveränderte virtuelle Kontoeinheiten; dies ist keine Umrechnung in
 Echtgeld. Bestehende `anoap`-Befehle und Datenbanknamen bleiben kompatibel.
 
-## Biggest Boy: gemeinsame Freispiele-Oberfläche
+## Biggest Boy: 5×3 und Sammel-Wilds (v3)
 
-Biggest Boy verwendet dieselbe Fensterhülle, Tabellenumrandung, Walzengestaltung,
-Kontenanzeige und Bedienleiste wie die Freispiele-Slot. Beide Walzenflächen füllen
-die verfügbare Tabellenbreite. Biggest Boy zeigt fünf statt drei Reihen mit den elf
-vorhandenen Symbolbildern. Separate Biggest-Boy-Gewinnkästen sind ausgeblendet;
-Auszahlung und Bonusstand erscheinen an den gewohnten Stellen. Spielregeln und
-Kontobuchungen bleiben unverändert. Die fünf Ergebniswalzen bremsen wie bei Book
-je 0,45 Sekunden ab und stoppen im Abstand von 0,2 Sekunden. Der Ergebnisstreifen
-enthält zwei identische Fenster, sodass beim Abbremsen keine Leerfläche entsteht.
+Neue Runden verwenden das versionierte Profil `anocore-biggest-boy-5x3-collector-v3`.
+Fenster, Kontenanzeige, volle Walzenbreite, drei sichtbare Reihen und Bedienleiste
+entsprechen der Freispiele-Slot. Die eigenen elf Bilder bleiben erhalten. Ein
+kurzer doppelt belegter Symbolstreifen läuft kontinuierlich nach unten; die
+Ergebniswalzen bremsen wie Book je 0,45 Sekunden ab und stoppen im Abstand von
+0,2 Sekunden. Die Echtgeld-Optik ist ausschließlich eine Darstellung virtueller
+Beträge; es gibt keine Ein- oder Auszahlung echten Geldes.
 
-Native Abnahme: beide Spiele öffnen, volle Breite und sichtbare Bedienleiste prüfen;
-Biggest Boy mehrfach drehen, fünf Reihen, gestaffelte Stopps, Symbolwahl,
-Freispiel-Fortsetzung und unveränderten Kontostand beim Schließen kontrollieren.
-Valve-Kompilierung und CS2-Abnahme sind weiterhin vor Veröffentlichung erforderlich.
+Zehn feste Linien zahlen von links nach rechts bei mindestens drei gleichen
+Symbolen. Pro Linie zählt der höchste Gewinn, verschiedene Linien addieren sich.
+Linieneinsatz ist Gesamteinsatz / 10. Der Gewinnplan im Spiel zeigt die komplette
+Paytable und alle zehn Linien. Kebap ersetzt Gewinnsymbole, nie das Gesicht.
+
+3/4/5 Gesichter im bezahlten Spin starten 10/15/20 Freispiele. Im Bonus erhält
+jedes Bier einen gespeicherten Geldwert von 1×/2×/5× Einsatz mit Wahrscheinlichkeit
+80/18/2 Prozent. Jeder sichtbare Kebap sammelt alle sichtbaren Bierwerte mit dem
+aktuellen Sammlermultiplikator; mehrere Kebaps sammeln jeweils dieselbe Summe.
+Ohne Kebap zahlen Bierwerte keine Sammlung. Normale Liniengewinne kommen hinzu.
+
+Auch Kebaps ohne Bier zählen für den Bonusfortschritt. Je vier gesammelte Kebaps
+geben zehn zusätzliche Freispiele und erhöhen die Stufe von ×1 auf ×2, ×3 und
+schließlich ×10. Die neue Stufe gilt ab dem nächsten Spin. Mehrere in einem Spin
+überschrittene Schwellen vergeben ihre Verlängerungen jeweils. Nach der dritten
+Verlängerung gibt es keine weitere, also höchstens 50 Freispiele. Scatter im
+Bonus verlängern nicht. Es gibt weder eine Symbolauswahl noch expandierende Walzen.
+
+Der veröffentlichte Höchstgewinn pro Runde beträgt **5.000× Gesamteinsatz**.
+Erreicht die Auszahlung diese Grenze, wird der verbleibende Betrag bis zum
+Höchstgewinn ausgezahlt und die Runde endet sofort, auch bei restlichen Freispielen.
+Der Presenter meldet dies ausdrücklich. Die Reservierung deckt diesen Betrag ab;
+Einsatz und Gesamtauszahlung werden wie bisher atomar und dauerhaft verbucht.
+
+Das eigene Modell übernimmt keine unveröffentlichten Originalquoten von Big Bass.
+`python tools/audit_biggest_boy_collector.py` berechnet aus den festen Walzen,
+Linien, Wild-/Bier-Korrelationen und Bonusstufen die exakte Erwartung **vor** der
+Höchstgewinnregel: 93,815683 % als obere Grenze der tatsächlichen RTP. Die
+Bonuswahrscheinlichkeit ist 0,19702656 % pro bezahltem Spin. Die Höchstgewinnregel
+senkt die tatsächliche RTP; die obere Grenze ist keine zertifizierte RTP-Angabe.
+
+Bestehende 5×5-v2-Runden behalten ihre Regeln, Symbolauswahl, gespeicherten Raster
+und fünf Reihen bis zum Abschluss. Nur neue Runden beginnen mit v3. Die alte
+Engine und ihre Regressionen bleiben erhalten. Kein Zurücksetzen aktiver Runden.
+
+Native Abnahme: beide Spiele öffnen, volle Breite, fünf Walzen mit drei Reihen
+und sichtbare Bedienleiste prüfen; Biggest Boy mehrfach drehen und gestaffelte
+Stopps prüfen. Bonus: Bierwerte, mehrere Kebaps, Wildzähler, Stufenwechsel und
+Fortsetzung nach Schließen kontrollieren. Eine bestehende v2-Runde bis zum Ende
+fortsetzen. Valve-Kompilierung und CS2-Abnahme sind vor Veröffentlichung erforderlich.

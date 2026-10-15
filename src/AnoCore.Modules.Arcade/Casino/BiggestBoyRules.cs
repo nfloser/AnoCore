@@ -10,7 +10,10 @@ public sealed record BiggestBoySpinResult(ImmutableArray<BiggestBoySymbol> Grid,
     int ScatterCount, ImmutableArray<int> ExpandedReels, ImmutableArray<BiggestBoyLineWin> LineWins,
     long Payout, int ChargedStake, BiggestBoyRoundState State,
     ImmutableArray<BiggestBoySymbol> RawGrid, ImmutableArray<long> MoneyValues = default,
-    long CollectionPayout = 0, int CollectionMultiplier = 1, bool WinLimitReached = false);
+    long CollectionPayout = 0, int CollectionMultiplier = 1, bool WinLimitReached = false)
+{
+    public ImmutableArray<long> MoneyValues { get; init; } = MoneyValues.IsDefault ? [] : MoneyValues;
+}
 
 /// <summary>Original 5x5 virtual-currency slot. One uniform stop per fixed circular reel.</summary>
 public static class BiggestBoyRules

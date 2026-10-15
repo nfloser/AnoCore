@@ -56,6 +56,32 @@ public sealed class CasinoRoundPresenterTests
     }
 
     [TestMethod]
+    public async Task CollectorProjectsThreeRowsAndMoneyAndNeedsNoSymbolPicker()
+    {
+        using var f = await Fixture.Create();
+        var trigger = BiggestBoyCollectorRules.StartRound(100, _ => 0);
+        var spin = BiggestBoyCollectorRules.PlayFreeSpin(trigger.State, _ => 5);
+        f.Rounds.NextSnapshot = new(Guid.NewGuid(), Player, CasinoRoundGame.BiggestBoy, 100, 1, false,
+            100, spin.State.TotalPayout, JsonSerializer.Serialize(spin));
+        await f.Presenter.OpenAsync(Player, CasinoRoundGame.BiggestBoy);
+        await f.Click("play");
+        Assert.IsTrue(f.Class("collector-mode"));
+        Assert.IsFalse(f.Class("needs-bonus-symbol"));
+        for (var reel = 0; reel < 5; reel++)
+            for (var row = 0; row < 3; row++)
+            {
+                var cell = reel * 3 + row;
+                var display = reel * 5 + row;
+                Assert.IsTrue(f.PanelClass("biggest_symbol" + display, "biggest-symbol-" + (int)spin.Grid[cell]));
+                Assert.IsTrue(f.PanelClass("biggest_repeat" + display, "biggest-symbol-" + (int)spin.Grid[cell]));
+                Assert.AreEqual(spin.MoneyValues[cell] > 0 ? CasinoMoney.Format(spin.MoneyValues[cell]) : "", f.Text("biggest_symbol_money" + display));
+            }
+        f.FinishAnimation();
+        Assert.IsTrue(f.Text("biggest_bonus")!.Contains("×2", StringComparison.Ordinal));
+        Assert.IsTrue(f.Text("detail")!.Contains("Spingewinn:", StringComparison.Ordinal));
+    }
+
+    [TestMethod]
     public async Task BiggestBoyBonusPickerBooksExactlyOnePersistentSymbolChoice()
     {
         using var f = await Fixture.Create();
