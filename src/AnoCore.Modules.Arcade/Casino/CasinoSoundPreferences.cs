@@ -35,7 +35,7 @@ public sealed class CasinoSoundPreferences : IDisposable
             _registrations.Add(catalog.Register(Owner, new PlayerToggleSetting(
                 Key, "Casino-Walzensound", "Leiser Klick beim Stoppen jeder Walze (an/aus).")));
             _registrations.Add(commands.Register(Owner,
-                new CommandDescriptor("casinosound", "Switch your quiet casino reel click on or off."),
+                new CommandDescriptor("anocasinosound", "Switch your quiet casino reel click on or off."),
                 ToggleAsync));
             _registrations.Add(events.Subscribe<PlayerDisconnectedEvent>((e, _) =>
             {
