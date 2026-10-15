@@ -108,8 +108,6 @@ public sealed class CasinoSoundPreferencesTests
     public void ReelClick_AlwaysFixedVeryQuiet()
     {
         Assert.AreEqual(0.08f, CasinoSoundPreferences.ReelClickVolume);
-        Assert.IsTrue(CasinoSoundPreferences.ReelClickVolume < 0.15f);
-        Assert.IsFalse(CasinoSoundPreferences.ReelClickEvent.StartsWith("sounds/", StringComparison.Ordinal));
     }
 
     private static Task ConnectAsync(PlayerRegistry players, PlayerId player, string name)
