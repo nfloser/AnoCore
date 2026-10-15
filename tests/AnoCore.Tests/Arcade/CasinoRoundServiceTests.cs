@@ -60,12 +60,15 @@ public sealed class CasinoRoundServiceTests
             var exposure = game == CasinoRoundGame.BiggestBoy ? BiggestBoyExpandingRules.MaximumRoundExposure(100) : BonusSlotRules.MaximumRoundExposure(100);
             store.Seed(store.Current! with
             {
-                RulesVersion = version, ReservedPayout = exposure,
+                RulesVersion = version,
+                ReservedPayout = exposure,
                 StateJson = store.Current!.StateJson.Replace(currentVersion, version, StringComparison.Ordinal)
             });
             var receipt = await service.ApplyAsync(op with
             {
-                Id = Guid.NewGuid(), Action = CasinoRoundAction.FreeSpin, ExpectedRevision = 1
+                Id = Guid.NewGuid(),
+                Action = CasinoRoundAction.FreeSpin,
+                ExpectedRevision = 1
             });
             Assert.AreEqual(version, store.Current!.RulesVersion);
             Assert.AreEqual(exposure, store.LastPlan!.MaximumPayoutExposure);
