@@ -48,7 +48,7 @@ public sealed class BiggestBoyProfileTests
     public void LuckyPercentageControlsTheSpecialDrawWithoutASecondClientRoll()
     {
         Assert.AreEqual(3, BiggestBoyExpandingRules.StartRound(100, _ => 0, "lucky:1").ScatterCount);
-        Assert.AreEqual(3, BiggestBoyExpandingRules.StartRound(100, _ => 49, "lucky:50").ScatterCount);
+        Assert.AreEqual(3, BiggestBoyExpandingRules.StartRound(100, bound => Math.Min(bound - 1, 49), "lucky:50").ScatterCount);
         Assert.AreEqual("lucky:50", BiggestBoyExpandingRules.StartRound(100, bound => bound - 1, "lucky:50").State.Profile);
     }
 
