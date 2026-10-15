@@ -4,13 +4,16 @@ using AnoCore.Modules.Arcade.Casino;
 var count = args.Length > 0 ? int.Parse(args[0], System.Globalization.CultureInfo.InvariantCulture) : 2_000_000;
 var seed = args.Length > 1 ? int.Parse(args[1], System.Globalization.CultureInfo.InvariantCulture) : 20261015;
 if (count is < 1000 or > 100_000_000) throw new ArgumentOutOfRangeException(nameof(count));
+var profile = BiggestBoyProfiles.Validate(args.Length > 2 ? args[2] : "standard");
 var random = new Random(seed);
 double mean = 0, m2 = 0;
+long hits = 0;
 long bonusCount = 0, freeCount = 0, paidTotal = 0, returned = 0;
 var expansionCounts = new long[10];
 for (var i = 1; i <= count; i++)
 {
-    var spin = BiggestBoyExpandingRules.StartRound(100, random.Next);
+    var spin = BiggestBoyExpandingRules.StartRound(100, random.Next, profile);
+    if (spin.Payout > 0) hits++;
     paidTotal += spin.ChargedStake;
     if (spin.State.FreeSpinsRemaining > 0) { bonusCount++; expansionCounts[(int)spin.State.ExpandingSymbol!.Value]++; }
     var actualFreeSpins = 0;
@@ -28,6 +31,8 @@ for (var i = 1; i <= count; i++)
 var se = Math.Sqrt(m2 / (count - 1) / count);
 Console.WriteLine(JsonSerializer.Serialize(new
 {
+    profile,
+    paid_hit_frequency = hits / (double)count,
     version = BiggestBoyExpandingRules.Version,
     seed,
     paid_spins = count,
@@ -40,6 +45,4 @@ Console.WriteLine(JsonSerializer.Serialize(new
     bonus_count = bonusCount,
     free_spins_played = freeCount,
     expanding_selections = expansionCounts,
-    exact_rtp = .941800002051252,
-    within_six_standard_errors = Math.Abs(mean - .941800002051252) <= 6 * se,
 }, new JsonSerializerOptions { WriteIndented = true }));

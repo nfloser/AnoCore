@@ -19,8 +19,11 @@ public interface ICasinoRounds
 }
 
 /// <summary>Adapts versioned native rules to account-serialized durable rounds.</summary>
-public sealed class CasinoRoundService(ICasinoRoundStore store, int biggestBoyMaximumStake = BiggestBoyRules.MaximumStake) : ICasinoRounds
+public sealed class CasinoRoundService(ICasinoRoundStore store, int biggestBoyMaximumStake = BiggestBoyRules.MaximumStake,
+    string biggestBoyProfile = BiggestBoyProfiles.Standard) : ICasinoRounds
 {
+    private readonly string _biggestBoyProfile = BiggestBoyProfiles.Validate(biggestBoyProfile);
+
     public async ValueTask<DurableCasinoRoundSnapshot?> ReadAsync(PlayerId player, CancellationToken token = default)
     {
         var round = await store.ReadActiveAsync(player, token).ConfigureAwait(false);
@@ -112,7 +115,7 @@ public sealed class CasinoRoundService(ICasinoRoundStore store, int biggestBoyMa
         return new(debit, Exposure(op.Game, op.Stake, current.RulesVersion));
     }
 
-    private static CasinoRoundMutation Transition(DurableCasinoRoundOperation op, CasinoRoundSnapshot? current)
+    private CasinoRoundMutation Transition(DurableCasinoRoundOperation op, CasinoRoundSnapshot? current)
     {
         object state;
         bool complete;
@@ -141,7 +144,7 @@ public sealed class CasinoRoundService(ICasinoRoundStore store, int biggestBoyMa
                 break;
             case CasinoRoundGame.BiggestBoy:
                 var previousBiggest = current is null ? null : Read<BiggestBoySpinResult>(current);
-                var biggest = previousBiggest is null ? BiggestBoyExpandingRules.StartRound(op.Stake, RandomNumberGenerator.GetInt32)
+                var biggest = previousBiggest is null ? BiggestBoyExpandingRules.StartRound(op.Stake, RandomNumberGenerator.GetInt32, _biggestBoyProfile)
                     : previousBiggest.State.RulesVersion == BiggestBoyExpandingRules.Version
                         ? BiggestBoyExpandingRules.PlayFreeSpin(previousBiggest.State, RandomNumberGenerator.GetInt32)
                     : previousBiggest.State.RulesVersion == BiggestBoyCollectorRules.Version

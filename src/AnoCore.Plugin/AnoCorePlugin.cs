@@ -104,6 +104,7 @@ public sealed class AnoCorePlugin : BasePlugin
     private CounterStrikeSharp.API.Modules.Timers.Timer? _casinoTimer;
     private bool _casinoEnabled;
     private int _biggestBoyMaximumStake = 10_000;
+    private string _biggestBoyProfile = BiggestBoyProfiles.Standard;
     private CounterStrikeSharp.API.Modules.Timers.Timer? _arcadeProbeTimer;
     private bool _tournamentDashboardEnabled;
     private TournamentMatchRuntime? _tournamentMatch;
@@ -473,6 +474,7 @@ public sealed class AnoCorePlugin : BasePlugin
             if (settings.BiggestBoyMaximumStake is < 50 or > 10_000 || settings.BiggestBoyMaximumStake % 50 != 0)
                 throw new InvalidOperationException("BiggestBoyMaximumStake must be 50..10000 in steps of 50.");
             _biggestBoyMaximumStake = settings.BiggestBoyMaximumStake;
+            _biggestBoyProfile = BiggestBoyProfiles.Validate(settings.BiggestBoyProfile);
             if (_casinoEnabled && !settings.PanoramaMenusEnabled) throw new InvalidOperationException("CasinoEnabled requires PanoramaMenusEnabled.");
             if (_arcadeProbeEnabled && !_panoramaMenusEnabled)
                 throw new InvalidOperationException("ArcadeAnimationProbeEnabled requires PanoramaMenusEnabled in core.json.");
@@ -1244,11 +1246,11 @@ public sealed class AnoCorePlugin : BasePlugin
                         openRound: (playerId, game, token) => casinoRounds!.OpenAsync(playerId, game, token),
                         reportError: exception => Logger.LogError(exception, "Casino persistence command failed."));
                     casinoRounds = new CasinoRoundPresenter(_customHud, runtime.Players, runtime.Authorization,
-                        wallet, new CasinoRoundService(new MySqlCasinoRoundStore(casinoDatabase), _biggestBoyMaximumStake), _eventBus!,
+                        wallet, new CasinoRoundService(new MySqlCasinoRoundStore(casinoDatabase), _biggestBoyMaximumStake, _biggestBoyProfile), _eventBus!,
                         playerId => casino.CloseForPlayer(playerId), async (playerId, token) =>
                         {
                             await runtime.Commands.ExecuteAsync("!anocasino", playerId, token).ConfigureAwait(false);
-                        }, biggestBoyMaximumStake: _biggestBoyMaximumStake);
+                        }, biggestBoyMaximumStake: _biggestBoyMaximumStake, biggestBoyProfile: _biggestBoyProfile);
                     var activeCasino = casino;
                     var activeRounds = casinoRounds;
                     casinoTimer = AddTimer(0.05f, () => { activeCasino.Tick(); activeRounds.Tick(); }, TimerFlags.REPEAT);
@@ -1973,6 +1975,7 @@ public sealed class AnoCorePlugin : BasePlugin
 
         public bool CasinoEnabled { get; set; }
         public int BiggestBoyMaximumStake { get; set; } = 10_000;
+        public string BiggestBoyProfile { get; set; } = BiggestBoyProfiles.Standard;
 
         // Requires the compiled ano_tournament.xml in the mounted Workshop addon.
         // Keep disabled until the one-time native client acceptance has passed.
