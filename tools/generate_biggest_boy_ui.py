@@ -44,12 +44,10 @@ def generate():
     for reel in range(5):
         if reel: panel(reels,'bb-divider')
         r = ET.SubElement(reels,'Panel',{'id':f'casino_round_bb_reel{reel}','class':f'book-reel bb-reel bb-reel-{reel}','hittest':'false'})
-        offset = ET.SubElement(r,'Panel',{'class':'bb-offset-base','hittest':'false'})
-        for bit in range(7):
-            offset = ET.SubElement(offset,'Panel',{'id':f'casino_round_bb_offset{reel}_{bit}','class':f'bb-offset bb-bit-{bit}','hittest':'false'})
-        motion = ET.SubElement(offset,'Panel',{'class':'bb-motion','hittest':'false'})
-        for index in range(303):
-            ET.SubElement(motion,'Panel',{'class':f'bb-symbol bb-symbol-{strips[reel][index%100]} bb-row-{index}','hittest':'false'})
+        # Four bounded panels, updated from the frozen physical strip during the animation.
+        motion = ET.SubElement(r,'Panel',{'class':'bb-motion','hittest':'false'})
+        for row in range(4):
+            ET.SubElement(motion,'Panel',{'id':f'casino_round_bb_motion{reel}_{row}','class':'bb-symbol','hittest':'false'})
         final = ET.SubElement(r,'Panel',{'class':'bb-final','hittest':'false'})
         for row in range(3):
             ET.SubElement(final,'Panel',{'id':f'casino_round_bb_symbol{reel*3+row}','class':'bb-symbol','hittest':'false'})
@@ -71,7 +69,8 @@ def generate():
     stake=panel(controls,'bb-stake')
     label(stake,'EINSATZ');stakebuttons=panel(stake,'bb-stake-buttons stake-controls')
     button(stakebuttons,'minus','−');label(stakebuttons,'{s:text}','stake');button(stakebuttons,'plus','+')
-    payout=panel(controls,'bb-payout');label(payout,'GEWINN');label(payout,'{s:text}','payout')
+    payout=panel(controls,'bb-payout');label(payout,'RUNDENGEWINN');label(payout,'{s:text}','payout')
+    bank=panel(controls,'bb-bottom-bank');label(bank,'AUTOMATENGUTHABEN');label(bank,'{s:text}','bankroll_footer')
     actions=panel(controls,'bb-actions')
     button(actions,'play','↻ DREHEN','button primary bb-spin')
     free=panel(actions,'book-actions');button(free,'free','↻ FREISPIEL','button primary bb-spin')
@@ -82,7 +81,7 @@ def generate():
     label(window,'Virtuelles Guthaben · keine Echtgeld-Auszahlung',cls='note')
     ET.indent(tree,space='  ')
     tree.write(UI / 'layout/custom_game/anocore/ano_casino_biggest.xml',encoding='unicode')
-    css='''/* V4 only: the Book stylesheet/layout remain unchanged. */
+    css = '''/* V4 only: the Book stylesheet/layout remain unchanged. */
 .bb-v4 .bb-table { visibility:visible; }
 .bb-v4 .bb-reel { height:480px; min-height:480px; }
 .bb-v4 .book-reels { width:100%; }
@@ -90,10 +89,15 @@ def generate():
 .bb-v4 .round-detail { font-size:18px; max-height:44px; white-space:normal; }
 .bb-symbol { width:100%; height:160px; min-height:160px; background-size:contain; background-position:center; background-repeat:no-repeat; }
 .bb-final { width:100%; height:480px; flow-children:down; }
-.bb-offset-base, .bb-offset, .bb-motion { width:100%; height:48480px; min-height:48480px; overflow:noclip; }
-.bb-offset-base { visibility:collapse; transform:translateY(-32000px); }
-.bb-motion { flow-children:none; animation-name:none; animation-timing-function:linear; animation-iteration-count:1; animation-fill-mode:forwards; }
-.bb-v4.reels-armed .bb-offset-base, .bb-v4.motion-a .bb-offset-base, .bb-v4.motion-b .bb-offset-base { visibility:visible; }
+.bb-v4 .bb-reel { overflow:clip; }
+.bb-motion { width:100%; height:640px; min-height:640px; flow-children:down; visibility:collapse; }
+.bb-v4.reels-armed .bb-motion, .bb-v4.motion-a .bb-motion, .bb-v4.motion-b .bb-motion { visibility:visible; }
+.bb-reel.bb-step-a .bb-motion { animation-name:'bb-step-a'; animation-duration:0.04s; animation-timing-function:ease-out; }
+.bb-reel.bb-step-b .bb-motion { animation-name:'bb-step-b'; animation-duration:0.04s; animation-timing-function:ease-out; }
+@keyframes 'bb-step-a' { 0% { transform:translateY(-160px); } 100% { transform:translateY(0px); } }
+@keyframes 'bb-step-b' { 0% { transform:translateY(-160px); } 100% { transform:translateY(0px); } }
+.bb-v4.reels-armed .bb-reel.stopped .bb-motion, .bb-v4.motion-a .bb-reel.stopped .bb-motion, .bb-v4.motion-b .bb-reel.stopped .bb-motion { visibility:collapse; }
+.bb-v4.reels-armed .bb-reel.stopped .bb-final, .bb-v4.motion-a .bb-reel.stopped .bb-final, .bb-v4.motion-b .bb-reel.stopped .bb-final { visibility:visible; }
 .bb-v4.reels-armed .bb-final, .bb-v4.motion-a .bb-final, .bb-v4.motion-b .bb-final { visibility:collapse; }
 .bb-win { width:100%; horizontal-align:center; text-align:center; font-size:23px; font-weight:bold; color:#90ffaf; }
 .bb-bonus { width:100%; text-align:center; white-space:normal; }
@@ -104,19 +108,18 @@ def generate():
 .bb-v4.biggest-rules .bb-table { visibility:collapse; }
 .bb-v4 #casino_round_payout { font-size:28px; font-weight:bold; color:#90ffaf; }
 .bb-v4 .round-cover { background-image:url("s2r://panorama/styles/custom_game/anocore/casino/book.vtex"); }
-.bb-symbol.winning { border:2px solid #39e38c; animation-name:'bb-win-pulse'; animation-duration:0.8s; animation-iteration-count:infinite; }
-.bb-symbol.active-line { border:3px solid #ffde78; }
+.bb-symbol.winning { border:3px solid #ff3030; animation-name:'bb-win-pulse'; animation-duration:0.8s; animation-iteration-count:infinite; }
+.bb-symbol.active-line { border:4px solid #ff3030; }
 .bb-symbol.expanded { box-shadow:inset #54ff9a 0px 0px 3px 1px; }
 @keyframes 'bb-win-pulse' { 0% { brightness:1; } 50% { brightness:1.6; } 100% { brightness:1; } }
-'''
-    css += """
+
 .bb-v4 .round-window { width:100%; height:100%; padding:20px 28px; border:1px solid #235937; border-radius:0px; background-color:#060d09; }
 .bb-header { width:100%; height:58px; flow-children:right; border-bottom:1px solid #235937; }
-.bb-brand { color:#91ed72; font-size:22px; width:25%; vertical-align:center; }
+.bb-brand { color:#91ed72; font-size:20px; width:25%; vertical-align:center; text-align:center; }
 .bb-title { width:fill-parent-flow(1); font-size:34px; font-weight:bold; color:#b1ef71; text-align:center; vertical-align:center; }
-.bb-accounts { width:100%; height:54px; flow-children:right; horizontal-align:center; }
-.bb-account { width:50%; flow-children:right; horizontal-align:center; }
-.bb-account Label { vertical-align:center; font-size:19px; }
+.bb-accounts { width:100%; height:76px; flow-children:right; horizontal-align:center; margin:10px 0px; }
+.bb-account { width:49%; height:64px; flow-children:down; horizontal-align:center; background-color:#101e15; border:2px solid #366942; border-radius:7px; margin:0px 6px; padding:5px; }
+.bb-account Label { horizontal-align:center; vertical-align:center; text-align:center; font-size:18px; }
 .bb-account #casino_round_account, .bb-account #casino_round_bankroll { font-weight:bold; }
 .bb-v4 .bb-table { padding:0px; border:1px solid #235937; background-color:#07190e; }
 .bb-v4 .book-reels { margin:0px; height:480px; }
@@ -127,11 +130,13 @@ def generate():
 .bb-bonus-item Label { horizontal-align:center; font-size:17px; }
 .bb-bonus-item #casino_round_bb_remaining, .bb-bonus-item #casino_round_bb_expanding, .bb-bonus-item #casino_round_bb_free_win, .bb-bonus-item #casino_round_bb_series { color:#a6f47a; font-size:23px; font-weight:bold; }
 .bb-controls { width:100%; height:112px; flow-children:right; margin-top:10px; }
-.bb-stake, .bb-payout, .bb-actions { width:33.33%; height:100%; flow-children:down; }
-.bb-stake > Label, .bb-payout > Label { horizontal-align:center; }
+.bb-stake, .bb-payout, .bb-bottom-bank { width:24%; height:100%; flow-children:down; background-color:#101e15; border:2px solid #366942; border-radius:7px; padding:9px; margin-right:1%; }
+.bb-actions { width:24%; height:100%; flow-children:down; }
+.bb-stake > Label, .bb-payout > Label, .bb-bottom-bank > Label { horizontal-align:center; text-align:center; font-size:17px; }
+.bb-bottom-bank #casino_round_bankroll_footer { horizontal-align:center; text-align:center; font-size:30px; font-weight:bold; color:#a6f47a; }
 .bb-stake-buttons { horizontal-align:center; flow-children:right; }
 .bb-stake-buttons Label { vertical-align:center; font-size:25px; }
-.bb-v4 #casino_round_payout { font-size:42px; color:#a6f47a; }
+.bb-v4 #casino_round_payout { horizontal-align:center; text-align:center; font-size:38px; font-weight:bold; color:#a6f47a; }
 .bb-v4 .bb-actions .book-actions { width:100%; }
 .bb-v4 .bb-spin { width:100%; height:92px; margin:0px; background-color:#469d29; border:1px solid #b0ee86; border-radius:12px; }
 .bb-spin Label { horizontal-align:center; vertical-align:center; font-size:30px; font-weight:bold; color:#061107; }
@@ -140,17 +145,13 @@ def generate():
 .bb-navigation { flow-children:right; horizontal-align:center; margin-top:8px; }
 .bb-v4 .note { horizontal-align:center; font-size:13px; }
 .bb-v4 .bb-rules { height:550px; }
-"""
-    for i in range(7):css+=f'.bb-bit-{i}.shifted {{ transform:translateY({-160*(1<<i)}px); }}\n'
-    for i in range(303):css+=f'.bb-row-{i} {{ position:0px {i*160}px 0px; }}\n'
-    for i,name in enumerate(NAMES):css+=f'.bb-symbol-{i} {{ background-image:url("s2r://panorama/styles/custom_game/anocore/casino/biggest_{name}.vtex"); }}\n'
-    for reel in range(5):css+=f'.bb-reel-{reel} .bb-motion {{ animation-duration:{5.2+.2*reel:.1f}s; }}\n'
-    for n in range(30,130):
-        css+=f".bb-v4.motion-a .bb-distance-{n} .bb-motion, .bb-v4.motion-b .bb-distance-{n} .bb-motion {{ animation-name:'bb-travel-{n}'; }}\n"
-        frames=['0% { transform:translateY(0px); }']
-        for step in range(1,n+1):
-            frames += [f'{(step-.2)*100/n:.5f}% {{ transform:translateY({step*160}px); }}',f'{step*100/n:.5f}% {{ transform:translateY({step*160}px); }}']
-        css+=f"@keyframes 'bb-travel-{n}' {{ "+' '.join(frames)+' }\n'
+.bb-v4 .status { color:#ffaaaa; text-align:center; horizontal-align:center; }
+.bb-v4 .bb-stake-buttons { width:100%; horizontal-align:center; }
+.bb-v4 #casino_round_stake { horizontal-align:center; text-align:center; }
+
+'''
+    for i,name in enumerate(NAMES):
+        css += f'.bb-symbol-{i} {{ background-image:url("s2r://panorama/styles/custom_game/anocore/casino/biggest_{name}.vtex"); }}\n'
     (STYLE / 'ano_casino_biggest.css').write_text(css)
     descriptor=(STYLE / 'casino/biggest_kebap.vtex').read_text().replace('biggest_kebap.png','biggest_book.png')
     (STYLE / 'casino/biggest_book.vtex').write_text(descriptor)

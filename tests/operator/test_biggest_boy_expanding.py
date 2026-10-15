@@ -19,30 +19,27 @@ class BiggestBoyExpandingUiTests(unittest.TestCase):
         for path, expected in json.loads((ROOT / 'docs/biggest-boy-v4-source-lock.json').read_text()).items():
             self.assertEqual(expected, hashlib.sha256((ROOT / path).read_bytes()).hexdigest(), path)
 
-    def test_three_rows_and_every_motion_cell_follows_the_authoritative_strip(self):
+    def test_three_rows_and_bounded_motion_panels_use_only_original_symbols(self):
         ui = ROOT / 'ui/AnoCore'
         tree = ET.parse(ui / 'layout/custom_game/anocore/ano_casino_biggest.xml')
-        strips = profile()[2]
-        final = [n for n in tree.iter('Panel') if n.attrib.get('id','').startswith('casino_round_bb_symbol')]
+        final = [n for n in tree.iter('Panel') if n.attrib.get('id', '').startswith('casino_round_bb_symbol')]
         self.assertEqual(15, len(final))
         for reel in range(5):
             panel = tree.find(f'.//*[@id="casino_round_bb_reel{reel}"]')
             motion = panel.find('.//*[@class="bb-motion"]')
-            self.assertEqual(303, len(motion))
-            for i, p in enumerate(motion):
-                self.assertIn(f'bb-symbol-{strips[reel][i % 100]}', p.attrib['class'].split())
+            self.assertEqual(4, len(motion))
+            self.assertEqual([f'casino_round_bb_motion{reel}_{row}' for row in range(4)],
+                             [child.attrib['id'] for child in motion])
+            self.assertIsNone(panel.find('.//*[@class="bb-offset-base"]'))
         css = (ui / 'styles/custom_game/anocore/ano_casino_biggest.css').read_text()
         self.assertIn('height:480px', css)
         self.assertIn('width:fill-parent-flow(1)', css)
-        self.assertIn('animation-fill-mode:forwards', css)
-        for n in range(30,130):
-            chunk = css.split(f"@keyframes 'bb-travel-{n}' {{",1)[1].split('@keyframes',1)[0]
-            frames = [(float(t),int(y)) for t,y in re.findall(r'([\d.]+)%\s*\{\s*transform:translateY\((\d+)px\)',chunk)]
-            self.assertEqual(2*n+1,len(frames))
-            self.assertEqual((0.0,0),frames[0]); self.assertEqual((100.0,n*160),frames[-1])
-            for step in range(n):
-                a,b,c=frames[2*step:2*step+3]
-                self.assertEqual(160,b[1]-a[1]); self.assertEqual(b[1],c[1]); self.assertLess(b[0],c[0])
+        self.assertIn('overflow:clip', css)
+        self.assertIn("animation-name:'bb-step-a'", css)
+        self.assertNotIn('48480px', css)
+        self.assertNotIn('bb-distance-', css)
+        self.assertNotIn('bb-offset-base', css)
+        self.assertIn('.bb-symbol.winning { border:3px solid #ff3030', css)
 
     def test_same_book_buttons_and_short_style_holds_are_native(self):
         ui=ROOT/'ui/AnoCore'; tree=ET.parse(ui/'layout/custom_game/anocore/ano_casino_biggest.xml')
@@ -72,7 +69,9 @@ class BiggestBoyExpandingUiTests(unittest.TestCase):
         self.assertEqual(4,len(tree.findall('.//*[@class="bb-divider"]')))
         self.assertEqual(4,len(tree.findall('.//*[@class="bb-bonus-item"]')))
         controls=tree.find('.//*[@class="bb-controls"]')
-        self.assertEqual(['bb-stake','bb-payout','bb-actions'],[p.attrib['class'] for p in controls])
+        self.assertEqual(['bb-stake','bb-payout','bb-bottom-bank','bb-actions'],[p.attrib['class'] for p in controls])
+        self.assertEqual(2, len(tree.findall('.//*[@class="bb-account"]')))
+        self.assertIn('casino_round_bankroll_footer', [p.attrib.get('id') for p in tree.iter()])
         self.assertFalse(any(p.attrib.get('text') == 'Echtgeld' for p in tree.iter('Label')))
         self.assertFalse(missing_assets())
         self.assertIn('width:100%; height:100%',(ui/'styles/custom_game/anocore/ano_casino_biggest.css').read_text())
@@ -82,6 +81,37 @@ class BiggestBoyExpandingUiTests(unittest.TestCase):
         for name,rtp in expected.items(): self.assertAlmostEqual(rtp,audit(name)['total_rtp'],places=12)
         for name,item in json.loads((ROOT/'docs/biggest-boy-original-assets.json').read_text()).items():
             self.assertEqual(item['sha256'],hashlib.sha256((ROOT/'ui/AnoCore/styles/custom_game/anocore/casino'/name).read_bytes()).hexdigest())
+
+
+    def test_all_twelve_approved_uploads_are_byte_identical(self):
+        """Lock the actual twelve user-uploaded originals, not lookalike replacements."""
+        approved = {
+            'biggest_kebap.png': ('döner.png', 'fb8d1d99752322846bdc44f03e5df5066be168b1a327a4421aae38af45bf49e4'),
+            'biggest_beer.png': ('beer.png', '93f8c9a24769cf2220464ee594b42f43a76c449180dc2b92f74462dd4dacc590'),
+            'biggest_cigarette.png': ('zigarette.png', '235bb5ef31ad799c996b1bbfda8be3f4a3c433d2d0250ba7f3d435808224418d'),
+            'biggest_butter.png': ('budder.png', 'd6b46c4045011e5dae97801ef2f3011ef5f42894bc74a351f1b3b2fc163822e2'),
+            'biggest_shot.png': ('shot.png', '26a0d93f44fcd536246c28b4fc6849165a6468cc24e3798d2961c45d6b0b7845'),
+            'biggest_funnel.png': ('trichter.png', '49bc95e4f0e0cfc68a957c3b779dd672bfa1a9a2401ffc2dc76d6ece1eab993f'),
+            'biggest_g.png': ('G.png', '2771ffa56e59fbd2eff873f78a59b2527f1cad1b88fa882670a42a1d185d56e9'),
+            'biggest_o.png': ('O.png', 'ef551c54d65d3fde92b00317e3f9f4b9e25de2097ebc31a6aae6fbd1ccad841d'),
+            'biggest_a.png': ('A.png', 'afb7c606176a69673cb230d7f0753a3477b8144ae362f541904ebc7c29756eb9'),
+            'biggest_t.png': ('T.png', 'b01689a778cad1490038308b178bfb22dc804d3c04ea5c92928e34a666389b3c'),
+            'biggest_scatter.png': ('süßilix.png', '8477eeb32c6270e5fe05b1fd7b29bc5f51adc2d6950b6e4f4d8a70299d73d8d9'),
+            'biggest_book.png': ('biggest boy.png', 'cc58271464dfaeffbde2b361433dd7f021db9440c8f1da6d21ff450a250597de'),
+        }
+        self.assertEqual(12, len(approved))
+        documented = json.loads((ROOT / 'docs/biggest-boy-original-assets.json').read_text())
+        self.assertEqual(set(approved), set(documented))
+        images = ROOT / 'ui/AnoCore/styles/custom_game/anocore/casino'
+        for name, (source_name, sha256) in approved.items():
+            self.assertEqual(source_name, documented[name]['original_filename'], name)
+            self.assertEqual(sha256, documented[name]['sha256'], name)
+            self.assertEqual(sha256, hashlib.sha256((images / name).read_bytes()).hexdigest(), name)
+            descriptor = (images / name.replace('.png', '.vtex')).read_text()
+            self.assertIn(name, descriptor)
+        css = (ROOT / 'ui/AnoCore/styles/custom_game/anocore/ano_casino_biggest.css').read_text()
+        for name in approved:
+            self.assertIn(name.replace('.png', '.vtex'), css)
 
     def test_missing_original_asset_is_reported_instead_of_substituted(self):
         missing=missing_assets()
