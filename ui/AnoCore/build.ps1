@@ -219,6 +219,22 @@ New-Item -ItemType Directory -Force -Path $casinoTextureDir | Out-Null
 $casinoTextures = @("slots", "coinflip", "coin_heads", "coin_tails", "roulette", "blackjack", "book", "risk", "wheel", "biggest_kebap", "biggest_beer", "biggest_cigarette", "biggest_butter", "biggest_shot", "biggest_funnel", "biggest_g", "biggest_o", "biggest_a", "biggest_t", "biggest_scatter")
 if ($buildBiggestBoy) { $casinoTextures += "biggest_book" }
 if ($coconutAvailable) { $casinoTextures += "book_coconut" }
+# Dedicated Alles Spitze skins are user-supplied, so do not pretend absent artwork
+# is already packaged. Keep the text-only HUD usable when a source image is missing.
+$spitzeNames = @("ggspray", "safarimesh", "neonrevolution", "gold", "knife")
+$spitzeMissing = @()
+foreach ($name in $spitzeNames) {
+    $texture = "spitze_$name"
+    if (Test-Path -LiteralPath (Join-Path $src "styles\\custom_game\\anocore\\casino\\$texture.png") -PathType Leaf) {
+        $casinoTextures += $texture
+    } else {
+        $spitzeMissing += $texture
+    }
+}
+if ($spitzeMissing.Count -gt 0) {
+    Write-Warning "Alles Spitze images absent: $($spitzeMissing -join ', '). Copy/convert all five skins before publishing the addon."
+}
+
 foreach ($texture in $casinoTextures) {
     foreach ($extension in @(".png", ".vtex")) {
         Copy-Item (Join-Path $src "styles\custom_game\anocore\casino\$texture$extension") (Join-Path $casinoTextureDir "$texture$extension") -Force
