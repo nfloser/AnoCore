@@ -123,6 +123,50 @@ class CasinoResourcesTests(unittest.TestCase):
         for build in ['build.ps1', 'build-casino.ps1']:
             self.assertIn('"ano_casino_spitze"', (UI/build).read_text())
 
+    def test_spitze_skin_slots_and_texture_build_contract(self):
+        names = ['ggspray', 'safarimesh', 'neonrevolution', 'gold', 'knife']
+        xml = (UI/'layout/custom_game/anocore/ano_casino_spitze.xml').read_text()
+        css = (UI/'styles/custom_game/anocore/ano_casino_spitze.css').read_text()
+        for name in names:
+            texture = f'spitze_{name}'
+            self.assertIn(texture + '.vtex', css)
+            descriptor = UI/f'styles/custom_game/anocore/casino/{texture}.vtex'
+            self.assertTrue(descriptor.is_file())
+            self.assertIn(texture + '.png', descriptor.read_text())
+            self.assertIn('spitze-' + name, xml)
+            for build in ['build.ps1', 'build-casino.ps1']:
+                self.assertIn('"'+name+'"', (UI/build).read_text())
+        for result in ['loss','safarimesh','neonrevolution','gold','knife']:
+            self.assertIn('.outcome-' + result, css)
+        self.assertIn('spitze_knife.vtex', css)
+
+    def test_spitze_asset_preparer_exports_five_square_rgba_pngs(self):
+        import subprocess
+        import sys
+        import tempfile
+        with tempfile.TemporaryDirectory() as temp:
+            root = pathlib.Path(temp)
+            source = root / 'originals'
+            output = root / 'converted'
+            source.mkdir()
+            expected = ['ggspray.png','safarimesh.webp','neonrevolution.webp',
+                        'gold.webp','bluegem.png']
+            for original in expected:
+                Image.new('RGBA',(120,80),(100,180,60,160)).save(source/original)
+            script = UI/'prepare-spitze-assets.py'
+            result = subprocess.run(
+                [sys.executable,str(script),'--source',str(source),
+                 '--destination',str(output)],
+                capture_output=True,text=True,check=False)
+            self.assertEqual(result.returncode,0,result.stderr+result.stdout)
+            for name in ['ggspray','safarimesh','neonrevolution','gold','knife']:
+                png = output/f'spitze_{name}.png'
+                self.assertTrue(png.is_file(),png)
+                with Image.open(png) as im:
+                    self.assertEqual(im.size,(320,320))
+                    self.assertEqual(im.mode,'RGBA')
+                    self.assertEqual(im.getpixel((0,0))[3],0)
+
     def test_round_games_have_all_server_buttons_and_bounded_book_grid(self):
         root = ET.parse(UI/'layout/custom_game/anocore/ano_casino_rounds.xml').getroot()
         ids = [p.attrib['id'] for p in root.iter() if 'id' in p.attrib]
