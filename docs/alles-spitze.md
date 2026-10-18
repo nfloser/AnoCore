@@ -41,7 +41,9 @@ Das erste vollständige Füllen aller drei Türme startet sieben kostenlose Acti
 
 ## UI und Installation
 
-Die Lobby verwendet aus Kompatibilitätsgründen weiterhin die Button-ID casino_lobby_risk, öffnet damit jedoch Alles Spitze. Das neue Panorama-Layout und die CSS-Walzenanimation liegen in ui/AnoCore/layout/custom_game/anocore/ano_casino_rounds.xml und ui/AnoCore/styles/custom_game/anocore/ano_casino_rounds.css. Momentan zeigen die Symbolfelder gestaltete **Skin-Namen**, da die in einem früheren Chat generierten PNG-Dateien nicht im GitHub-Repository vorliegen. Sie sind keine angeblich bereits integrierten Skin-Bilder.
+Die Lobby verwendet aus Kompatibilitätsgründen weiterhin die Button-ID casino_lobby_risk, öffnet damit jedoch Alles Spitze. Das neue Panorama-Layout und die CSS-Walzenanimation liegen isoliert in ui/AnoCore/layout/custom_game/anocore/ano_casino_spitze.xml und ui/AnoCore/styles/custom_game/anocore/ano_casino_spitze.css. Die bestehenden Book- und Risk-Ressourcen bleiben wegen ihrer vorhandenen SHA256-Quell-Sperren bytegenau unverändert. Momentan zeigen die Symbolfelder gestaltete **Skin-Namen**, da die in einem früheren Chat generierten PNG-Dateien nicht im GitHub-Repository vorliegen. Sie sind keine angeblich bereits integrierten Skin-Bilder.
+
+Ein reproduzierbarer Seed-/Strategie-Test prüft die modellierte Brutto-Auszahlungsquote für das feste Szenario «bis zu 100 bezahlte Spins, vorher nur bei Action Games stoppen». In einer 12.000-Runden-Stichprobe ergaben sich etwa 90 % Bruttorücklauf. Das ist eine Simulation der unabhängigen AnoCasino-v1-Regeln, **kein zertifizierter RTP-Wert** und keine Garantie für andere Einsammelstrategien.
 
 Zum lokalen Test sind ein passendes AnoCore-Serverplugin und die aus denselben Quellen neu kompilierte anomeme_ui-Workshop-UI erforderlich; der alte risk.vtex bleibt ausschließlich für gespeicherte Legacy-Runden erhalten. Keine Änderung direkt am Live-Server ohne Abnahme.
 
