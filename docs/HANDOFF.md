@@ -1156,3 +1156,23 @@ styles and exact stakes. No merge/release or native-ready claim.
 Automatic approval review rejected the push to public nfloser/AnoCore, stating
 public publication/destination authorization was insufficient. Do not bypass;
 obtain explicit owner confirmation before publishing this branch/PR.
+
+## 2026-10-18 — Full classic Blackjack scope and dedicated table (#526)
+
+Owner explicitly approved public branch/PR publication and requested a complete,
+elegant, legible casino experience. This supersedes the earlier publication block.
+New v2 rounds add insurance/decline, Even Money, late surrender and re-split to
+four hands; v1 actions/version/two-hand limits and 8x exposure remain preserved.
+The shared wallet counts insurance separately and reserves a conservative 17x
+for v2. Split order fix is retained. See blackjack.md for complete rules.
+
+Dedicated Blackjack HUD/layout/style with 2x2 hands, centered card rows and bounded
+long fans, explicit net/gross results, exact stake shortcuts and a full rules sheet.
+Original Book XML/CSS and source-lock tests are restored unchanged from #525.
+Both native build paths compile the new resources. Matching addon upload required.
+
+Release build: zero warnings/errors. Last broad run: 1,279 passed, 204 skipped,
+ManagementPipeBridgeTests excluded for local Unix-socket restrictions. New MariaDB
+concurrent insurance regression is included for CI. Semantic format still requires
+permitted named pipes; whitespace formatting applied to changed C# files.
+Native Valve/CS2/two-client acceptance remains open. Keep PR draft, no merge/release.
