@@ -64,6 +64,8 @@ public sealed class MySqlCasinoRoundServiceTests
         for (var i = 0; i < 4; i++)
             seeded = SpitzeRules.Spin(seeded, seeded.Revision, SpitzeSymbol.Knife);
         Assert.AreEqual(7, seeded.ActionGamesRemaining);
+        // Fixture insertion itself creates database revision 1; align the pinned rules revision.
+        seeded = seeded with { Revision = 1 };
 
         var store = new MySqlCasinoRoundStore(_database);
         var saved = await store.ApplyAsync(new(Guid.NewGuid(), Guid.NewGuid(), Player,
