@@ -71,3 +71,5 @@ Label { color:#f0efe4; font-family:Arial; font-size:17px; margin:3px; }
 .busy.view-spitze .spitze-actions { opacity:0.25; }
 .view-spitze .round-detail { font-size:15px; text-align:center; margin-top:5px; margin-bottom:5px; max-height:60px; }
 .view-spitze .round-window { border-color:#b59c58; }
+
+.spitze-legacy-bindings { visibility:collapse; height:0px; }
