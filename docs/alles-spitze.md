@@ -43,29 +43,33 @@ Das erste vollständige Füllen aller drei Türme startet sieben kostenlose Acti
 
 Die Lobby verwendet aus Kompatibilitätsgründen weiterhin die Button-ID casino_lobby_risk, öffnet damit jedoch Alles Spitze. Das neue Panorama-Layout und die CSS-Walzenanimation liegen isoliert in ui/AnoCore/layout/custom_game/anocore/ano_casino_spitze.xml und ui/AnoCore/styles/custom_game/anocore/ano_casino_spitze.css. Die bestehenden Book- und Risk-Ressourcen bleiben wegen ihrer vorhandenen SHA256-Quell-Sperren bytegenau unverändert. Die eigentlichen fünf Bildtexturen sind nach dem Texturfix **im Layout verdrahtet**, aber nicht im GitHub-Repository enthalten. Ohne vorbereitete Bilder bleiben die Skin-Namen als Fallback sichtbar; die Quelldateien lassen sich nicht durch bloßes CSS oder einen Workshop-Upload herbeizaubern.
 
-### Die fünf eigenen CS-Skin-Bilder einbauen (Windows)
+### Skin-Bilder wie bei Biggest Boy fest ins Workshop-Addon integrieren
 
-Lade diese fünf Originaldateien aus deinem früheren Chat/Projekt herunter und lege sie in **denselben** Ordner auf deinem PC, zum Beispiel `C:\\AnoCore-Skins`:
+Die Originalbilder liegen direkt neben den anderen AnoCasino-Symbolen in `ui/AnoCore/styles/custom_game/anocore/casino/`. Eine zweite Bildablage ist nicht notwendig. Bei einem entpackten Arbeitsverzeichnis `C:\AnoCore-Neu` entspricht das:
 
-- `ggspray.png` – Verlustsymbol (GG Spray)
-- `safarimesh.webp` – kleine Leiter (Safari Mesh)
-- `neonrevolution.webp` – mittlere Leiter (Neon Revolution)
-- `gold.webp` – große Leiter (Gold)
-- `bluegem.png` – Joker-Messer
+`C:\AnoCore-Neu\ui\AnoCore\styles\custom_game\anocore\casino\`
 
-Die Dateien **nicht** bloß in den Workshop-Ordner kopieren! Das Spiel braucht kompilierte Valve-Texturen `.vtex_c`. Der Converter erzeugt die fünf PNG-Texturen mit exakt den Namen, die das CS2-HUD lädt. Er ist absichtlich außerhalb des Spiels und beeinflusst weder Ziehung noch Auszahlung.
+Dorthin gehören:
+
+- `ggspray.png` – Verlustsymbol
+- `safarimesh.webp` – niedriger Gewinn
+- `neonrevolution.webp` – mittlerer Gewinn
+- `gold.webp` – hoher Gewinn
+- `bluegem.png` – Messer / Joker
+
+Der normale `build.ps1` und `build-casino.ps1` rufen `ensure-spitze-assets.ps1` automatisch auf. Sind alle fünf Quelldateien vorhanden, werden sie in genau demselben Ordner in `spitze_ggspray.png`, `spitze_safarimesh.png`, `spitze_neonrevolution.png`, `spitze_gold.png`, `spitze_knife.png` umgewandelt. Sind die bereits vorbereiteten `spitze_*.png`-Dateien vorhanden und keine Originaldateien, wird Python nicht benötigt. Liegen nur einzelne Originalbilder vor, gibt es einen klaren Fehler statt unvollständiger Symbolbilder.
+
+Der gemeinsame CS2-Workshop-Build erstellt danach zu den fünf Versionierten `.vtex`-Deskriptoren die tatsächlichen Valve-Texturen `.vtex_c`. Das fertige Workshop-Addon liefert diese kompilierten Bilder **an alle Spieler aus**; niemand muss sie selbst herunterladen.
 
 ```powershell
-cd "C:\\AnoCore-Test"
+cd "C:\AnoCore-Neu"
 py -m pip install pillow
-powershell -NoProfile -ExecutionPolicy Bypass -File .\\ui\\AnoCore\\build-spitze.ps1 -Source "C:\\AnoCore-Skins"
+powershell -NoProfile -ExecutionPolicy Bypass -File .\ui\AnoCore\build.ps1 -Addon anomeme_ui -RequireSpitzeSkins -InstallLocalClient
 ```
 
-Bei erfolgreicher Konvertierung müssen im Quellordner `ui/AnoCore/styles/custom_game/anocore/casino/` die fünf Dateien `spitze_ggspray.png`, `spitze_safarimesh.png`, `spitze_neonrevolution.png`, `spitze_gold.png` und `spitze_knife.png` stehen. Zu jeder ist eine `.vtex`-Beschreibung versioniert. Der Build erstellt dazu `.vtex_c`-Dateien. Fehlt eines der fünf Bilder, stoppt die neue strikt prüfende Ein-Befehl-Variante mit einer Fehlermeldung. Der allgemeine Build ohne `-RequireSpitzeSkins` warnt nur und fällt auf Text zurück. Die alten Book-/BiggestBoy-Texturen bleiben unangetastet.
+Der Schalter `-RequireSpitzeSkins` verhindert, dass ein fehlendes Symbol unbemerkt im Workshop landet. CS2 muss danach vollständig neu gestartet werden. Das bisherige Workshop-Addon wird nicht allein durch `-InstallLocalClient` geändert; nach lokaler Abnahme die bestehende `anomeme_ui` mit den kompilierten Ressourcen im Workshop aktualisieren. Bei einem Testserver darf keine andere, veraltete gemountete UI die lokalen Assets überlagern.
 
-Das finale Ergebnis wird nun genauso wie bei Biggest Boy als natives **Panorama-Bild-Panel** dargestellt. Acht weitere Bild-Panels übernehmen die drehende Walze. Die Textbeschriftungen liegen getrennt von den Bildern; ausgezahlte Ergebnisse kommen weiterhin nur vom Server. Beim Test kann die im Server gemountete alte Workshop-UI lokale Ressourcen überlagern. Bei weiterhin fehlenden Bildern die fünf neu erzeugten `spitze_*.vtex_c`-Dateien und die tatsächlich auf dem Testserver geladene Workshop-Version prüfen.
-
-Erst nach lokalem CS2-Test die Workshop-UI `anomeme_ui` **re-uploaden**, falls alle Spieler die Bilder sehen sollen; für den Test genügt `-InstallLocalClient`. Die Version des Serverplugins muss für das neue Spiel weiterhin zur UI passen.
+Um sie dauerhaft in jedem GitHub-Entwicklungsbuild verfügbar zu machen, müssen einmal alle fünf vorbereiteten `spitze_*.png`-Quelldateien ins Repository eingecheckt werden. Noch liegen diese fünf Originalbytes nicht im GitHub-Branch; der normale CI-Build kann ohne sie nur das Layout und die Bild-Deskriptoren paketieren. Die Spiel- und Zahlungsverarbeitung bleibt unabhängig von diesen Bildern.
 
 Ein reproduzierbarer Seed-/Strategie-Test prüft die modellierte Brutto-Auszahlungsquote für das feste Szenario «bis zu 100 bezahlte Spins, vorher nur bei Action Games stoppen». In einer 12.000-Runden-Stichprobe ergaben sich etwa 90 % Bruttorücklauf. Das ist eine Simulation der unabhängigen AnoCasino-v1-Regeln, **kein zertifizierter RTP-Wert** und keine Garantie für andere Einsammelstrategien.
 
