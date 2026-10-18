@@ -4,6 +4,7 @@ param(
     [string]$BiggestBoyWildPng = "",
     [string]$BookCoconutPng = "",
     [switch]$RequireBookCoconut,
+    [switch]$RequireSpitzeSkins,
     [switch]$IncludeBiggestBoy,
     [ValidatePattern('^[a-z][a-z0-9_]*$')]
     [string]$Addon = "anocasino_ui"
@@ -91,7 +92,9 @@ foreach ($name in $spitzeNames) {
     }
 }
 if ($spitzeMissing.Count -gt 0) {
-    Write-Warning "Alles Spitze images absent: $($spitzeMissing -join ', '). Copy/convert all five skins before publishing the addon."
+    $missingMessage = "Alles Spitze images absent: $($spitzeMissing -join ', '). Prepare all five original skins first using prepare-spitze-assets.py."
+    if ($RequireSpitzeSkins) { throw $missingMessage }
+    Write-Warning $missingMessage
 }
 
 foreach ($texture in $casinoTextures) {
