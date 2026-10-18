@@ -58,11 +58,12 @@ Die Dateien **nicht** bloß in den Workshop-Ordner kopieren! Das Spiel braucht k
 ```powershell
 cd "C:\\AnoCore-Test"
 py -m pip install pillow
-py .\\ui\\AnoCore\\prepare-spitze-assets.py --source "C:\\AnoCore-Skins"
-powershell -NoProfile -ExecutionPolicy Bypass -File .\\ui\\AnoCore\\build.ps1 -Addon anomeme_ui -InstallLocalClient
+powershell -NoProfile -ExecutionPolicy Bypass -File .\\ui\\AnoCore\\build-spitze.ps1 -Source "C:\\AnoCore-Skins"
 ```
 
-Bei erfolgreicher Konvertierung müssen im Quellordner `ui/AnoCore/styles/custom_game/anocore/casino/` die fünf Dateien `spitze_ggspray.png`, `spitze_safarimesh.png`, `spitze_neonrevolution.png`, `spitze_gold.png` und `spitze_knife.png` stehen. Zu jeder ist eine `.vtex`-Beschreibung versioniert. Der Build erstellt dazu `.vtex_c`-Dateien. Fehlen Eingabebilder, warnt das Buildskript und verwendet als Fallback die Skin-Namen. Die alten Book-/BiggestBoy-Texturen bleiben unangetastet.
+Bei erfolgreicher Konvertierung müssen im Quellordner `ui/AnoCore/styles/custom_game/anocore/casino/` die fünf Dateien `spitze_ggspray.png`, `spitze_safarimesh.png`, `spitze_neonrevolution.png`, `spitze_gold.png` und `spitze_knife.png` stehen. Zu jeder ist eine `.vtex`-Beschreibung versioniert. Der Build erstellt dazu `.vtex_c`-Dateien. Fehlt eines der fünf Bilder, stoppt die neue strikt prüfende Ein-Befehl-Variante mit einer Fehlermeldung. Der allgemeine Build ohne `-RequireSpitzeSkins` warnt nur und fällt auf Text zurück. Die alten Book-/BiggestBoy-Texturen bleiben unangetastet.
+
+Das finale Ergebnis wird nun genauso wie bei Biggest Boy als natives **Panorama-Bild-Panel** dargestellt. Acht weitere Bild-Panels übernehmen die drehende Walze. Die Textbeschriftungen liegen getrennt von den Bildern; ausgezahlte Ergebnisse kommen weiterhin nur vom Server. Beim Test kann die im Server gemountete alte Workshop-UI lokale Ressourcen überlagern. Bei weiterhin fehlenden Bildern die fünf neu erzeugten `spitze_*.vtex_c`-Dateien und die tatsächlich auf dem Testserver geladene Workshop-Version prüfen.
 
 Erst nach lokalem CS2-Test die Workshop-UI `anomeme_ui` **re-uploaden**, falls alle Spieler die Bilder sehen sollen; für den Test genügt `-InstallLocalClient`. Die Version des Serverplugins muss für das neue Spiel weiterhin zur UI passen.
 
