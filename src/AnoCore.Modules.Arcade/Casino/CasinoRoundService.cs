@@ -5,7 +5,7 @@ using AnoCore.Abstractions.Players;
 namespace AnoCore.Modules.Arcade.Casino;
 
 public enum CasinoRoundGame { Blackjack, Risk, Book, BiggestBoy }
-public enum CasinoRoundAction { Start, Hit, Stand, Double, Split, Risk, Bank, FreeSpin, SelectSymbol }
+public enum CasinoRoundAction { Start, Hit, Stand, Double, Split, Risk, Bank, FreeSpin, SelectSymbol, Insurance, DeclineInsurance, Surrender, EvenMoney }
 public sealed record DurableCasinoRoundOperation(Guid Id, PlayerId Player, Guid SessionId,
     CasinoRoundGame Game, CasinoRoundAction Action, int Stake, long ExpectedRevision, int Choice = -1);
 public sealed record DurableCasinoRoundSnapshot(Guid Id, PlayerId Player, CasinoRoundGame Game,
@@ -74,6 +74,7 @@ public sealed class CasinoRoundService(ICasinoRoundStore store, int biggestBoyMa
         var view = View(current);
         if (view.Game != op.Game || view.Stake != op.Stake || (current.RulesVersion != Version(op.Game)
                 && !ControlledSlotRules.IsControlledBiggest(current.RulesVersion) && !ControlledSlotRules.IsControlledBook(current.RulesVersion)
+                && !(op.Game == CasinoRoundGame.Blackjack && BlackjackRules.Supports(current.RulesVersion))
                 && !(op.Game == CasinoRoundGame.BiggestBoy && current.RulesVersion is BiggestBoyRules.Version or BiggestBoyCollectorRules.Version)))
             throw new CasinoRejectedException("Einsatz oder gespeicherte Spielregeln stimmen nicht überein.");
         long debit = 0;
@@ -81,11 +82,14 @@ public sealed class CasinoRoundService(ICasinoRoundStore store, int biggestBoyMa
         {
             case CasinoRoundGame.Blackjack:
                 var blackjack = Read<BlackjackState>(current);
+                if (blackjack.RulesVersion != current.RulesVersion)
+                    throw new CasinoRejectedException("Gespeicherte Blackjack-Regeln sind widersprüchlich.");
                 var action = BlackjackActionFor(op.Action);
                 if (!BlackjackRules.LegalActions(blackjack).Contains(action))
                     throw new CasinoRejectedException("Diese Blackjack-Aktion ist nicht möglich.");
                 if (action is BlackjackAction.Double or BlackjackAction.Split)
                     debit = blackjack.PlayerHands[blackjack.ActiveHandIndex].Stake;
+                if (action == BlackjackAction.Insurance) debit = blackjack.InitialStake / 2;
                 break;
             case CasinoRoundGame.Risk:
                 var risk = Read<RiskRoundState>(current);
@@ -140,7 +144,7 @@ public sealed class CasinoRoundService(ICasinoRoundStore store, int biggestBoyMa
                 state = blackjack;
                 complete = blackjack.Status == BlackjackRoundStatus.Settled;
                 payout = blackjack.TotalPayout;
-                debit = blackjack.PlayerHands.Sum(hand => hand.Stake) - (before?.PlayerHands.Sum(hand => hand.Stake) ?? 0);
+                debit = BlackjackRules.TotalStake(blackjack) - (before is null ? 0 : BlackjackRules.TotalStake(before));
                 break;
             case CasinoRoundGame.Risk:
                 var previous = current is null ? null : Read<RiskRoundState>(current);
@@ -186,7 +190,7 @@ public sealed class CasinoRoundService(ICasinoRoundStore store, int biggestBoyMa
                 break;
         }
         var json = JsonSerializer.Serialize(state, state.GetType());
-        var rulesVersion = state is BiggestBoySpinResult biggestState ? biggestState.State.RulesVersion : state is BonusSlotSpinResult bookState ? bookState.State.RulesVersion : Version(op.Game);
+        var rulesVersion = state is BiggestBoySpinResult biggestState ? biggestState.State.RulesVersion : state is BonusSlotSpinResult bookState ? bookState.State.RulesVersion : state is BlackjackState blackjackState ? blackjackState.RulesVersion : Version(op.Game);
         return new(rulesVersion, json, debit, complete ? payout : 0,
             complete ? 0 : Exposure(op.Game, op.Stake, rulesVersion), complete, "{}");
     }
@@ -203,7 +207,7 @@ public sealed class CasinoRoundService(ICasinoRoundStore store, int biggestBoyMa
                 var blackjack = Read<BlackjackState>(round);
                 game = CasinoRoundGame.Blackjack;
                 stake = checked((int)blackjack.InitialStake);
-                totalStake = blackjack.PlayerHands.Sum(hand => hand.Stake);
+                totalStake = BlackjackRules.TotalStake(blackjack);
                 payout = blackjack.TotalPayout;
                 break;
             case CasinoRoundKind.Risk:
@@ -243,7 +247,7 @@ public sealed class CasinoRoundService(ICasinoRoundStore store, int biggestBoyMa
     };
     private static long Exposure(CasinoRoundGame game, int stake, string? version = null) => game switch
     {
-        CasinoRoundGame.Blackjack => stake * 8L,
+        CasinoRoundGame.Blackjack => stake * (version == BlackjackRules.LegacyVersion ? 8L : 17L),
         CasinoRoundGame.Risk => Math.Min(RiskRules.MaximumHeldExposure, stake * (1L << RiskRules.MaximumGambles)),
         CasinoRoundGame.BiggestBoy => version switch
         {
@@ -260,6 +264,10 @@ public sealed class CasinoRoundService(ICasinoRoundStore store, int biggestBoyMa
         CasinoRoundAction.Stand => BlackjackAction.Stand,
         CasinoRoundAction.Double => BlackjackAction.Double,
         CasinoRoundAction.Split => BlackjackAction.Split,
+        CasinoRoundAction.Insurance => BlackjackAction.Insurance,
+        CasinoRoundAction.DeclineInsurance => BlackjackAction.DeclineInsurance,
+        CasinoRoundAction.Surrender => BlackjackAction.Surrender,
+        CasinoRoundAction.EvenMoney => BlackjackAction.EvenMoney,
         _ => throw new CasinoRejectedException("Ungültige Blackjack-Aktion."),
     };
     private static BlackjackCard[] Shuffle()

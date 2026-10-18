@@ -181,7 +181,8 @@ public sealed class BlackjackRulesTests
             C(BlackjackSuit.Spades, BlackjackRank.Seven),
             C(BlackjackSuit.Diamonds, BlackjackRank.Six),
             C(BlackjackSuit.Clubs, BlackjackRank.King)));
-        state = BlackjackRules.Apply(state, 0, BlackjackAction.Stand);
+        state = BlackjackRules.Apply(state, state.Revision, BlackjackAction.DeclineInsurance);
+        state = BlackjackRules.Apply(state, state.Revision, BlackjackAction.Stand);
 
         Assert.AreEqual(2, state.DealerCards.Length);
         Assert.AreEqual(100L, state.TotalPayout);
@@ -197,7 +198,8 @@ public sealed class BlackjackRulesTests
             C(BlackjackSuit.Spades, BlackjackRank.Six),
             C(BlackjackSuit.Diamonds, BlackjackRank.Five),
             C(BlackjackSuit.Clubs, BlackjackRank.Two)));
-        state = BlackjackRules.Apply(state, 0, BlackjackAction.Stand);
+        state = BlackjackRules.Apply(state, state.Revision, BlackjackAction.DeclineInsurance);
+        state = BlackjackRules.Apply(state, state.Revision, BlackjackAction.Stand);
 
         Assert.AreEqual(3, state.DealerCards.Length);
         Assert.AreEqual(18, new BlackjackHand(state.DealerCards, 100, false, false, false).BestTotal);
