@@ -235,7 +235,7 @@ foreach ($texture in $casinoTextures) {
     }
 }
 
-$casinoViews = @("ano_veto_cards", "ano_veto", "ano_veto_create", "menu", "ano_tournament", "ano_arcade", "ano_casino", "ano_casino_native_v2", "ano_casino_lobby", "ano_casino_slots", "ano_casino_coinflip", "ano_casino_roulette", "ano_casino_rounds")
+$casinoViews = @("ano_veto_cards", "ano_veto", "ano_veto_create", "menu", "ano_tournament", "ano_arcade", "ano_casino", "ano_casino_native_v2", "ano_casino_lobby", "ano_casino_slots", "ano_casino_coinflip", "ano_casino_roulette", "ano_casino_rounds", "ano_casino_blackjack")
 if ($buildBiggestBoy) { $casinoViews += "ano_casino_biggest" }
 foreach ($name in $casinoViews) {
     $layoutTarget = Join-Path $layoutDir "$name.xml"

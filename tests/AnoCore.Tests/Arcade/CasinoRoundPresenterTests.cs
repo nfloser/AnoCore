@@ -15,6 +15,77 @@ public sealed class CasinoRoundPresenterTests
     private static readonly PlayerId Player = new(76561198000911901);
 
     [TestMethod]
+    public async Task FourHandsRenderAndClearWithoutLeavingStaleCards()
+    {
+        using var f = await Fixture.Create();
+        var deck = BlackjackExtendedRulesTests.Deck();
+        var hands = Enumerable.Range(0, 4).Select(i => new BlackjackHand(
+            [deck[2 * i], deck[2 * i + 1]], 100, i != 3, false, true)).ToImmutableArray();
+        var state = new BlackjackState(BlackjackRules.RulesVersion, 4, 100, hands,
+            [deck[8], deck[9]], deck.Skip(10).ToImmutableArray(), 3, BlackjackRoundStatus.PlayerTurn, 0);
+        f.Rounds.Current = new(Guid.NewGuid(), Player, CasinoRoundGame.Blackjack, 100, 5, false, 400, 0, JsonSerializer.Serialize(state));
+        await f.Presenter.OpenAsync(Player, CasinoRoundGame.Blackjack);
+        Assert.IsTrue(f.Class("more-hands"));
+        for (var hand = 0; hand < 4; hand++)
+        {
+            Assert.IsTrue(f.PanelClass("hand" + hand, "present"));
+            Assert.IsTrue(f.PanelClass("hand" + hand + "_card0", "present"));
+            Assert.AreEqual(hand == 3, f.PanelClass("hand" + hand, "active-hand"));
+        }
+        Assert.IsTrue(f.Text("detail")!.Contains("Hand 4 von 4"));
+        f.Rounds.Current = null;
+        await f.Click("refresh");
+        Assert.IsFalse(f.Class("more-hands"));
+        for (var hand = 0; hand < 4; hand++)
+        {
+            Assert.IsFalse(f.PanelClass("hand" + hand, "present"));
+            Assert.AreEqual("", f.Text("hand" + hand + "_card0"));
+        }
+    }
+
+    [TestMethod]
+    public async Task BlackjackQuickStakesStayExactAndNeverBookFunds()
+    {
+        using var f = await Fixture.Create(new() { Blackjack = 10000 });
+        f.Wallet.Balance = new(2000, 3750, 0);
+        await f.Presenter.OpenAsync(Player, CasinoRoundGame.Blackjack);
+        await f.Click("betmax");
+        Assert.AreEqual("3.750 €", f.Text("stake"));
+        await f.Click("bethalf");
+        Assert.AreEqual("1.850 €", f.Text("stake"));
+        await f.Click("betdouble");
+        Assert.AreEqual("3.700 €", f.Text("stake"));
+        await f.Click("betmin");
+        Assert.AreEqual("50 €", f.Text("stake"));
+        Assert.AreEqual(0, f.Rounds.Calls.Count);
+    }
+
+    [TestMethod]
+    public async Task InsuranceUsesDedicatedViewExactCostAndSafeDeclineWhenUnfunded()
+    {
+        using var f = await Fixture.Create();
+        var state = BlackjackExtendedRulesTests.InsuranceRound(true);
+        f.Rounds.Current = new(Guid.NewGuid(), Player, CasinoRoundGame.Blackjack, 100, 1, false, 100, 0, JsonSerializer.Serialize(state));
+        await f.Presenter.OpenAsync(Player, CasinoRoundGame.Blackjack);
+        Assert.AreEqual(CasinoRoundPresenter.BlackjackHudId, f.ActiveHud);
+        Assert.IsTrue(f.Class("insurance-offer"));
+        Assert.IsTrue(f.Class("can-insure"));
+        Assert.IsFalse(f.Class("can-hit"));
+        Assert.AreEqual("VERSICHERN · 50 €", f.Text("insurance_label"));
+        Assert.AreEqual("?", f.Text("dealer_card1"));
+        f.Wallet.Balance = f.Wallet.Balance with { Allocated = 0 };
+        await f.Click("refresh");
+        Assert.IsTrue(f.Class("insurance-offer"));
+        Assert.IsFalse(f.Class("can-insure"));
+        await f.Click("rules");
+        Assert.IsTrue(f.Class("blackjack-rules"));
+        Assert.AreEqual("Spielregeln geöffnet · SPIELREGELN schließt die Ansicht", f.Text("status"));
+        await f.Click("rules");
+        Assert.IsFalse(f.Class("blackjack-rules"));
+        Assert.AreEqual(0, f.Rounds.Calls.Count);
+    }
+
+    [TestMethod]
     [DataRow(CasinoRoundGame.BiggestBoy)]
     [DataRow(CasinoRoundGame.Book)]
     [DataRow(CasinoRoundGame.Blackjack)]
@@ -396,6 +467,9 @@ public sealed class CasinoRoundPresenterTests
         Assert.IsTrue(f.PanelClass("hand1", "active-hand"));
         Assert.IsFalse(f.PanelClass("hand0", "active-hand"));
         Assert.IsTrue(f.Text("hand1_summary")!.Contains("16"));
+        Assert.IsTrue(f.Text("hand1_summary")!.Contains("DU BIST DRAN"));
+        Assert.IsTrue(f.Text("detail")!.Contains("Hand 2"));
+        Assert.IsFalse(f.Text("dealer")!.Contains("15"), "Hidden dealer total must not leak.");
 
         state = state with
         {
@@ -407,6 +481,8 @@ public sealed class CasinoRoundPresenterTests
         f.Rounds.Current = f.Rounds.Current with { StateJson = JsonSerializer.Serialize(state) };
         await f.Click("refresh");
         Assert.AreEqual("K\n♥", f.Text("dealer_card1"));
+        Assert.IsTrue(f.Text("hand0_summary")!.Contains("GEWONNEN"));
+        Assert.IsFalse(f.Text("hand0_summary")!.Contains("DU BIST DRAN"));
         Assert.IsFalse(f.PanelClass("dealer_card1", "face-down"));
         Assert.IsFalse(f.PanelClass("hand1", "present"));
         Assert.IsFalse(f.PanelClass("hand1_card0", "present"));
@@ -762,7 +838,7 @@ public sealed class CasinoRoundPresenterTests
             return f;
         }
 
-        public AnoCore.Abstractions.Hud.CustomHudId ActiveHud => Hud.VisiblePlayers(CasinoRoundPresenter.ExpandingHudId).Contains(Player) ? CasinoRoundPresenter.ExpandingHudId : CasinoRoundPresenter.HudId;
+        public AnoCore.Abstractions.Hud.CustomHudId ActiveHud => Hud.VisiblePlayers(CasinoRoundPresenter.BlackjackHudId).Contains(Player) ? CasinoRoundPresenter.BlackjackHudId : Hud.VisiblePlayers(CasinoRoundPresenter.ExpandingHudId).Contains(Player) ? CasinoRoundPresenter.ExpandingHudId : CasinoRoundPresenter.HudId;
         public ValueTask Click(string action) => Hud.ClickAsync(Player, ActiveHud, "casino_round_" + action);
         public string? Text(string panel) => Hud.Text(Player, ActiveHud, "casino_round_" + panel);
         public bool Class(string name) => Hud.Class(Player, ActiveHud, "casino_round_root", name);

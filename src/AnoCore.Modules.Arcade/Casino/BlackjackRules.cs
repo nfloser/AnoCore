@@ -4,8 +4,8 @@ namespace AnoCore.Modules.Arcade.Casino;
 
 public enum BlackjackSuit { Clubs, Diamonds, Hearts, Spades }
 public enum BlackjackRank { Two = 2, Three, Four, Five, Six, Seven, Eight, Nine, Ten, Jack, Queen, King, Ace }
-public enum BlackjackAction { Hit, Stand, Double, Split }
-public enum BlackjackRoundStatus { PlayerTurn, Settled }
+public enum BlackjackAction { Hit, Stand, Double, Split, Insurance, DeclineInsurance, Surrender, EvenMoney }
+public enum BlackjackRoundStatus { PlayerTurn, Settled, InsuranceOffer }
 
 public readonly record struct BlackjackCard(BlackjackSuit Suit, BlackjackRank Rank)
 {
@@ -22,7 +22,8 @@ public sealed record BlackjackHand(
     long Stake,
     bool IsStanding,
     bool IsSplitAces,
-    bool IsSplit)
+    bool IsSplit,
+    bool IsSurrendered = false)
 {
     public int BestTotal
     {
@@ -57,7 +58,10 @@ public sealed record BlackjackState(
     ImmutableArray<BlackjackCard> RemainingDeck,
     int ActiveHandIndex,
     BlackjackRoundStatus Status,
-    long TotalPayout);
+    long TotalPayout,
+    long InsuranceStake = 0,
+    long InsurancePayout = 0,
+    bool EvenMoneyTaken = false);
 
 /// <summary>
 /// Pure deterministic Blackjack rules. The caller supplies a cryptographically shuffled deck
@@ -67,12 +71,16 @@ public static class BlackjackRules
 {
     public const long MinimumStake = 50;
     public const long MaximumStake = CasinoStakeLimits.TechnicalMaximum;
-    public const int MaximumHands = 2;
-    public const string RulesVersion = "anoblackjack-v1";
+    public const int MaximumHands = 4;
+    public const string LegacyVersion = "anoblackjack-v1";
+    public const string RulesVersion = "anoblackjack-v2";
+    public static bool Supports(string version) => version is LegacyVersion or RulesVersion;
+    public static long TotalStake(BlackjackState state) => checked(state.PlayerHands.Sum(hand => hand.Stake) + state.InsuranceStake);
 
-    public static BlackjackState Start(long stake, IEnumerable<BlackjackCard> shuffledDeck)
+    public static BlackjackState Start(long stake, IEnumerable<BlackjackCard> shuffledDeck, string rulesVersion = RulesVersion)
     {
         ValidateStake(stake);
+        if (!Supports(rulesVersion)) throw new ArgumentException("Unknown Blackjack rules.", nameof(rulesVersion));
         ArgumentNullException.ThrowIfNull(shuffledDeck);
         var deck = shuffledDeck.ToImmutableArray();
         ValidateDeck(deck);
@@ -91,8 +99,11 @@ public static class BlackjackRules
         dealer.Add(dealerHole);
 
         var hand = new BlackjackHand(player.MoveToImmutable(), stake, false, false, false);
-        var state = new BlackjackState(RulesVersion, 0, stake, [hand], dealer.MoveToImmutable(), remaining, 0,
+        var state = new BlackjackState(rulesVersion, 0, stake, [hand], dealer.MoveToImmutable(), remaining, 0,
             BlackjackRoundStatus.PlayerTurn, 0);
+
+        if (rulesVersion == RulesVersion && state.DealerCards[0].Rank == BlackjackRank.Ace)
+            return state with { Status = BlackjackRoundStatus.InsuranceOffer };
 
         var playerNatural = IsNatural(hand);
         var dealerNatural = IsNatural(new BlackjackHand(state.DealerCards, stake, false, false, false));
@@ -105,6 +116,10 @@ public static class BlackjackRules
     public static IReadOnlyList<BlackjackAction> LegalActions(BlackjackState state)
     {
         ValidateState(state);
+        if (state.Status == BlackjackRoundStatus.InsuranceOffer)
+            return IsNatural(state.PlayerHands[0])
+                ? [BlackjackAction.Insurance, BlackjackAction.DeclineInsurance, BlackjackAction.EvenMoney]
+                : [BlackjackAction.Insurance, BlackjackAction.DeclineInsurance];
         if (state.Status != BlackjackRoundStatus.PlayerTurn) return Array.Empty<BlackjackAction>();
 
         var hand = state.PlayerHands[state.ActiveHandIndex];
@@ -115,9 +130,11 @@ public static class BlackjackRules
         actions.Add(BlackjackAction.Stand);
         if (hand.Cards.Length == 2 && hand.Stake <= MaximumStake && state.RemainingDeck.Length >= 1)
             actions.Add(BlackjackAction.Double);
-        if (state.PlayerHands.Length < MaximumHands && hand.Cards.Length == 2
+        if (state.PlayerHands.Length < (state.RulesVersion == LegacyVersion ? 2 : MaximumHands) && hand.Cards.Length == 2
             && hand.Cards[0].Rank == hand.Cards[1].Rank && state.RemainingDeck.Length >= 2)
             actions.Add(BlackjackAction.Split);
+        if (state.RulesVersion == RulesVersion && state.PlayerHands.Length == 1 && !hand.IsSplit && hand.Cards.Length == 2)
+            actions.Add(BlackjackAction.Surrender);
         return actions;
     }
 
@@ -140,6 +157,22 @@ public static class BlackjackRules
 
         switch (action)
         {
+            case BlackjackAction.EvenMoney:
+                return state with { Status = BlackjackRoundStatus.Settled, TotalPayout = checked(state.InitialStake * 2), EvenMoneyTaken = true };
+            case BlackjackAction.Insurance:
+            case BlackjackAction.DeclineInsurance:
+                var insurance = action == BlackjackAction.Insurance ? state.InitialStake / 2 : 0;
+                var dealerNatural = IsNatural(new(state.DealerCards, 0, true, false, false));
+                var insured = state with
+                {
+                    InsuranceStake = insurance,
+                    InsurancePayout = dealerNatural ? checked(insurance * 3) : 0,
+                    Status = BlackjackRoundStatus.PlayerTurn,
+                };
+                return dealerNatural || IsNatural(hand) ? Settle(insured, dealerAlreadyFinal: true) : insured;
+            case BlackjackAction.Surrender:
+                hands = hands.SetItem(state.ActiveHandIndex, hand with { IsStanding = true, IsSurrendered = true });
+                return Settle(state with { PlayerHands = hands }, dealerAlreadyFinal: true);
             case BlackjackAction.Hit:
                 {
                     (var card, deck) = Draw(deck);
@@ -202,9 +235,9 @@ public static class BlackjackRules
         return Settle(state);
     }
 
-    private static BlackjackState AdvanceToActionableHand(BlackjackState state, int afterIndex)
+    private static BlackjackState AdvanceToActionableHand(BlackjackState state, int currentIndex)
     {
-        for (var i = afterIndex + 1; i < state.PlayerHands.Length; i++)
+        for (var i = currentIndex; i < state.PlayerHands.Length; i++)
             if (!state.PlayerHands[i].IsStanding && !state.PlayerHands[i].IsBust)
                 return state with { ActiveHandIndex = i };
         for (var i = 0; i < state.PlayerHands.Length; i++)
@@ -228,20 +261,10 @@ public static class BlackjackRules
             }
         }
 
-        long payout = 0;
+        long payout = state.InsurancePayout;
         foreach (var hand in state.PlayerHands)
         {
-            if (hand.IsBust) continue;
-            var total = hand.BestTotal;
-            var dealerTotal = dealerHand.BestTotal;
-            if (IsNatural(hand) && !IsNatural(dealerHand))
-                payout = checked(payout + checked(hand.Stake * 5 / 2));
-            else if (IsNatural(dealerHand) && !IsNatural(hand))
-                continue;
-            else if (total > dealerTotal || dealerHand.IsBust)
-                payout = checked(payout + checked(hand.Stake * 2));
-            else if (total == dealerTotal)
-                payout = checked(payout + hand.Stake);
+            payout = checked(payout + HandPayout(hand, dealerHand));
         }
 
         return state with
@@ -252,6 +275,17 @@ public static class BlackjackRules
             TotalPayout = payout,
             ActiveHandIndex = Math.Min(state.ActiveHandIndex, state.PlayerHands.Length - 1),
         };
+    }
+
+    /// <summary>Gross return including the stake, using the same rules as round settlement.</summary>
+    public static long HandPayout(BlackjackHand hand, BlackjackHand dealer)
+    {
+        if (hand.IsSurrendered) return hand.Stake / 2;
+        if (hand.IsBust) return 0;
+        if (IsNatural(hand) && !IsNatural(dealer)) return checked(hand.Stake * 5 / 2);
+        if (IsNatural(dealer) && !IsNatural(hand)) return 0;
+        if (dealer.IsBust || hand.BestTotal > dealer.BestTotal) return checked(hand.Stake * 2);
+        return hand.BestTotal == dealer.BestTotal ? hand.Stake : 0;
     }
 
     private static bool AllHandsDone(ImmutableArray<BlackjackHand> hands) =>
@@ -287,12 +321,17 @@ public static class BlackjackRules
     {
         ArgumentNullException.ThrowIfNull(state);
         ValidateStake(state.InitialStake);
-        if (state.RulesVersion != RulesVersion || state.Revision < 0
-            || state.PlayerHands.IsDefaultOrEmpty || state.PlayerHands.Length > MaximumHands
+        if (!Supports(state.RulesVersion) || state.Revision < 0
+            || state.PlayerHands.IsDefaultOrEmpty || state.PlayerHands.Length > (state.RulesVersion == LegacyVersion ? 2 : MaximumHands)
             || state.DealerCards.IsDefault || state.DealerCards.Length < 2
             || state.RemainingDeck.IsDefault || state.ActiveHandIndex < 0
             || state.ActiveHandIndex >= state.PlayerHands.Length || state.TotalPayout < 0
-            || !Enum.IsDefined(state.Status))
+            || !Enum.IsDefined(state.Status) || state.InsuranceStake < 0
+            || state.InsuranceStake != 0 && state.InsuranceStake != state.InitialStake / 2
+            || state.InsurancePayout != 0 && state.InsurancePayout != state.InsuranceStake * 3
+            || state.RulesVersion == LegacyVersion && (state.Status == BlackjackRoundStatus.InsuranceOffer || state.InsuranceStake != 0 || state.InsurancePayout != 0 || state.EvenMoneyTaken || state.PlayerHands.Any(hand => hand.IsSurrendered))
+            || state.EvenMoneyTaken && (state.Status != BlackjackRoundStatus.Settled || !IsNatural(state.PlayerHands[0]) || state.DealerCards[0].Rank != BlackjackRank.Ace || state.InsuranceStake != 0 || state.TotalPayout != state.InitialStake * 2)
+            || state.Status == BlackjackRoundStatus.InsuranceOffer && (state.PlayerHands.Length != 1 || state.PlayerHands[0].Cards.Length != 2 || state.DealerCards[0].Rank != BlackjackRank.Ace || state.InsuranceStake != 0))
             throw new ArgumentException("Blackjack state is invalid.", nameof(state));
         if (state.PlayerHands.Any(hand => hand.Cards.IsDefaultOrEmpty || hand.Cards.Length > 21
             || hand.Stake < state.InitialStake || hand.Stake > state.InitialStake * 2

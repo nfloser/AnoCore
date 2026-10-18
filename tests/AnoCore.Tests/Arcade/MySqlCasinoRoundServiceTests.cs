@@ -203,12 +203,33 @@ public sealed class MySqlCasinoRoundServiceTests
         {
             Assert.IsTrue(actions++ < BlackjackRules.MaximumHands);
             Assert.AreEqual(receipt.Round, await Service().ReadAsync(Player));
-            last = Next(receipt.Round, CasinoRoundAction.Stand);
+            var state = JsonSerializer.Deserialize<BlackjackState>(receipt.Round.StateJson)!;
+            last = Next(receipt.Round, state.Status == BlackjackRoundStatus.InsuranceOffer
+                ? CasinoRoundAction.DeclineInsurance : CasinoRoundAction.Stand);
             receipt = await Service().ApplyAsync(last);
         }
         if (last is not null) Assert.AreEqual(receipt, await Service().ApplyAsync(last));
         Assert.AreEqual(1900L + receipt.Round.Payout, (await _wallet.ReadAsync(Player)).Allocated);
         Assert.AreEqual(100L, receipt.Round.TotalStake);
+        Assert.IsNull(await Service().ReadAsync(Player));
+    }
+
+    [TestMethod]
+    public async Task InsuranceRestoresAndConcurrentReplayDebitsAndPaysExactlyOnce()
+    {
+        var state = BlackjackExtendedRulesTests.InsuranceRound(true);
+        var store = new MySqlCasinoRoundStore(_database);
+        var first = await store.ApplyAsync(new(Guid.NewGuid(), Guid.NewGuid(), Player, CasinoRoundKind.Blackjack, 0, "insurance-fixture"),
+            _ => new(100, 1700), _ => new(state.RulesVersion, JsonSerializer.Serialize(state), 100, 0, 1700, false, "{}"));
+        var restored = (await Service().ReadAsync(Player))!;
+        Assert.AreEqual(first.Round.StateJson, restored.StateJson);
+        var action = Next(restored, CasinoRoundAction.Insurance);
+        var receipts = await Task.WhenAll(Enumerable.Range(0, 8).Select(_ => Service().ApplyAsync(action).AsTask()));
+        Assert.IsTrue(receipts.All(receipt => receipt == receipts[0]));
+        Assert.AreEqual(150L, receipts[0].Round.TotalStake);
+        Assert.AreEqual(150L, receipts[0].Round.Payout);
+        Assert.AreEqual(2000L, (await _wallet.ReadAsync(Player)).Allocated);
+        Assert.AreEqual(receipts[0], await Service().ApplyAsync(action));
         Assert.IsNull(await Service().ReadAsync(Player));
     }
 

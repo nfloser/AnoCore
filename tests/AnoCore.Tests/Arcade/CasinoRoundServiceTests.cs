@@ -310,8 +310,55 @@ public sealed class CasinoRoundServiceTests
             .Concat(state.RemainingDeck).ToArray();
         Assert.AreEqual(52, cards.Length);
         Assert.AreEqual(52, cards.Distinct().Count());
-        Assert.AreEqual(800L, store.LastPlan!.MaximumPayoutExposure);
+        Assert.AreEqual(1700L, store.LastPlan!.MaximumPayoutExposure);
         Assert.AreEqual(100L, receipt.Round.TotalStake);
+    }
+
+    [TestMethod]
+    [DataRow(true)]
+    [DataRow(false)]
+    public async Task InsuranceCoordinatesExactDebitAndPreservesStateOnInsufficientFunds(bool funded)
+    {
+        var store = new MemoryStore(funded ? 1000 : 25);
+        var state = BlackjackExtendedRulesTests.InsuranceRound(true);
+        var id = Guid.NewGuid();
+        store.Seed(new(id, Player, CasinoRoundKind.Blackjack, state.RulesVersion,
+            System.Text.Json.JsonSerializer.Serialize(state), CasinoRoundStatus.Active, 1, 1700));
+        var service = new CasinoRoundService(store);
+        var action = new DurableCasinoRoundOperation(Guid.NewGuid(), Player, id, CasinoRoundGame.Blackjack, CasinoRoundAction.Insurance, 100, 1);
+        if (!funded)
+        {
+            var original = store.Current;
+            await Assert.ThrowsExactlyAsync<CasinoRejectedException>(async () => await service.ApplyAsync(action));
+            Assert.AreEqual(original, store.Current);
+            Assert.AreEqual(25L, store.Allocated);
+            return;
+        }
+        var receipt = await service.ApplyAsync(action);
+        Assert.AreEqual(50L, store.LastPlan!.AdditionalDebit);
+        Assert.AreEqual(150L, receipt.Round.TotalStake);
+        Assert.AreEqual(150L, receipt.Round.Payout);
+        Assert.AreEqual(1100L, receipt.Balance.Allocated);
+        Assert.IsTrue(receipt.Round.IsComplete);
+    }
+
+    [TestMethod]
+    public async Task ResumedV1KeepsVersionAndOriginalReservation()
+    {
+        var store = new MemoryStore();
+        var deck = BlackjackExtendedRulesTests.Deck(
+            new(BlackjackSuit.Clubs, BlackjackRank.Ten), new(BlackjackSuit.Hearts, BlackjackRank.Six),
+            new(BlackjackSuit.Spades, BlackjackRank.Seven), new(BlackjackSuit.Diamonds, BlackjackRank.Ten));
+        var state = BlackjackRules.Start(100, deck, BlackjackRules.LegacyVersion);
+        var id = Guid.NewGuid();
+        store.Seed(new(id, Player, CasinoRoundKind.Blackjack, state.RulesVersion,
+            System.Text.Json.JsonSerializer.Serialize(state), CasinoRoundStatus.Active, 1, 800));
+        var receipt = await new CasinoRoundService(store).ApplyAsync(new(Guid.NewGuid(), Player, id,
+            CasinoRoundGame.Blackjack, CasinoRoundAction.Stand, 100, 1));
+        Assert.AreEqual(800L, store.LastPlan!.MaximumPayoutExposure);
+        Assert.AreEqual(BlackjackRules.LegacyVersion, store.Current!.RulesVersion);
+        Assert.AreEqual(BlackjackRules.LegacyVersion,
+            System.Text.Json.JsonSerializer.Deserialize<BlackjackState>(receipt.Round.StateJson)!.RulesVersion);
     }
 
     private sealed class MemoryStore(long initialAllocated = 1000) : ICasinoRoundStore

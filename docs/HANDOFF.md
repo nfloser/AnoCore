@@ -1132,3 +1132,72 @@ cancelled. MariaDB was not configured. No native CS2 acceptance or deployment.
 The owner explicitly approved publication and requested a deployment download.
 The shell git transport has no credentials; publish using the authenticated GitHub
 connector. CI and native acceptance status must be updated before delivery.
+
+
+## 2026-10-18 — Blackjack audit and table polish (#526)
+
+Local branch `feat/blackjack-polish`, based on #525 head 2cd1850.
+Fixed split turn order: previously Split selected the right hand first, and Hit
+could alternate unfinished hands. Selection now stays on the current actionable
+hand before advancing. Added deterministic regression covering Split → Hit →
+Stand → Stand and per-hand payout boundaries. Shared payout helper drives both
+settlement and result labels. Native green felt table, larger cards, active hand
+and explicit gross/net result ribbon; see `blackjack.md`.
+
+Python operator suite: 97 tests, 18 skipped, no failures. Book source prefix and
+original assets remain locked; only `.view-blackjack` selectors were appended.
+Release solution build passed: zero warnings/errors. Regular Arcade MSTest:
+176 passed, 19 DB skips. Broader suite: 1,265 passed, 203 environment skips,
+ManagementPipeBridgeTests excluded for local Unix-socket restrictions.
+Formatting failed at Roslyn named-pipe workspace startup (SocketException 13);
+whitespace checks passed. MariaDB, CI and native acceptance remain pending.
+Reviewed rule settlement parity, hidden dealer data, active-hand order, scoped
+styles and exact stakes. No merge/release or native-ready claim.
+Automatic approval review rejected the push to public nfloser/AnoCore, stating
+public publication/destination authorization was insufficient. Do not bypass;
+obtain explicit owner confirmation before publishing this branch/PR.
+
+## 2026-10-18 — Full classic Blackjack scope and dedicated table (#526)
+
+Owner explicitly approved public branch/PR publication and requested a complete,
+elegant, legible casino experience. This supersedes the earlier publication block.
+New v2 rounds add insurance/decline, Even Money, late surrender and re-split to
+four hands; v1 actions/version/two-hand limits and 8x exposure remain preserved.
+The shared wallet counts insurance separately and reserves a conservative 17x
+for v2. Split order fix is retained. See blackjack.md for complete rules.
+
+Dedicated Blackjack HUD/layout/style with 2x2 hands, centered card rows and bounded
+long fans, explicit net/gross results, exact stake shortcuts and a full rules sheet.
+Original Book XML/CSS and source-lock tests are restored unchanged from #525.
+Both native build paths compile the new resources. Matching addon upload required.
+
+Release build: zero warnings/errors. Last broad run: 1,281 passed, 204 skipped,
+ManagementPipeBridgeTests excluded for local Unix-socket restrictions. New MariaDB
+concurrent insurance regression is included for CI. Semantic format still requires
+permitted named pipes; whitespace formatting applied to changed C# files.
+Native Valve/CS2/two-client acceptance remains open. Keep PR draft, no merge/release.
+
+Review follow-up: verified legacy service transitions retain v1 metadata/reservation;
+four-hand rendering and refresh clear all cards. Long fan spacing leaves room for
+both digits of a ten. First PR CI passed build, full tests (including MariaDB),
+operator/PowerShell and UI build-script syntax, then found whitespace differences
+from the folder formatter. Restored original lock/catch/Tick indentation according
+to the project formatter; no behavior changes in that region. Exact-head CI rerun
+required after review commit. Native acceptance remains open.
+
+## 2026-10-18 — Native blank-card feedback (#526 / PR #527)
+
+Native screenshot shows the table and dealt card rectangles but no card faces or
+hand summaries. The dedicated layout used static empty `text=""` attributes for
+105 card labels, four summaries and the insurance result. CounterStrikeCustomHudService
+updates the `text` dialog variable, so labels must reference `{s:text}`. Added a
+regression asserting the binding on every server-updated label (120 total), which
+failed on dealer_card0 before the correction. Bound all 110 empty labels. No C#,
+wallet/rule, image or stylesheet changes; server plugin does not need replacing.
+
+For a local retest replace only ui/AnoCore/layout/custom_game/anocore/ano_casino_blackjack.xml
+in the extracted package, close CS2 and run the existing build.ps1 with
+-Addon anomeme_ui -InstallLocalClient. Then restart CS2 and reopen Blackjack.
+Workshop upload is only required when delivering the corrected UI to other clients.
+Check rank/suit, red/black faces, concealed question mark, all split summaries and
+insurance result in CS2; source tests do not replace that native retest.
