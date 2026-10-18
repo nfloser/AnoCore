@@ -16,6 +16,8 @@ param(
 
 $ErrorActionPreference = "Stop"
 $src = Split-Path -Parent $MyInvocation.MyCommand.Path
+# Convert the five original CS skins automatically when they are next to the other casino artwork.
+& (Join-Path $src "ensure-spitze-assets.ps1")
 $wildTarget = Join-Path $src "styles\custom_game\anocore\casino\biggest_book.png"
 $buildBiggestBoy = $IncludeBiggestBoy -or $BiggestBoyWildPng -or (Test-Path -LiteralPath $wildTarget -PathType Leaf)
 if ($buildBiggestBoy) {
