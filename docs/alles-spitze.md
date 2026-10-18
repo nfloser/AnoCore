@@ -41,7 +41,30 @@ Das erste vollständige Füllen aller drei Türme startet sieben kostenlose Acti
 
 ## UI und Installation
 
-Die Lobby verwendet aus Kompatibilitätsgründen weiterhin die Button-ID casino_lobby_risk, öffnet damit jedoch Alles Spitze. Das neue Panorama-Layout und die CSS-Walzenanimation liegen isoliert in ui/AnoCore/layout/custom_game/anocore/ano_casino_spitze.xml und ui/AnoCore/styles/custom_game/anocore/ano_casino_spitze.css. Die bestehenden Book- und Risk-Ressourcen bleiben wegen ihrer vorhandenen SHA256-Quell-Sperren bytegenau unverändert. Momentan zeigen die Symbolfelder gestaltete **Skin-Namen**, da die in einem früheren Chat generierten PNG-Dateien nicht im GitHub-Repository vorliegen. Sie sind keine angeblich bereits integrierten Skin-Bilder.
+Die Lobby verwendet aus Kompatibilitätsgründen weiterhin die Button-ID casino_lobby_risk, öffnet damit jedoch Alles Spitze. Das neue Panorama-Layout und die CSS-Walzenanimation liegen isoliert in ui/AnoCore/layout/custom_game/anocore/ano_casino_spitze.xml und ui/AnoCore/styles/custom_game/anocore/ano_casino_spitze.css. Die bestehenden Book- und Risk-Ressourcen bleiben wegen ihrer vorhandenen SHA256-Quell-Sperren bytegenau unverändert. Die eigentlichen fünf Bildtexturen sind nach dem Texturfix **im Layout verdrahtet**, aber nicht im GitHub-Repository enthalten. Ohne vorbereitete Bilder bleiben die Skin-Namen als Fallback sichtbar; die Quelldateien lassen sich nicht durch bloßes CSS oder einen Workshop-Upload herbeizaubern.
+
+### Die fünf eigenen CS-Skin-Bilder einbauen (Windows)
+
+Lade diese fünf Originaldateien aus deinem früheren Chat/Projekt herunter und lege sie in **denselben** Ordner auf deinem PC, zum Beispiel `C:\\AnoCore-Skins`:
+
+- `ggspray.png` – Verlustsymbol (GG Spray)
+- `safarimesh.webp` – kleine Leiter (Safari Mesh)
+- `neonrevolution.webp` – mittlere Leiter (Neon Revolution)
+- `gold.webp` – große Leiter (Gold)
+- `bluegem.png` – Joker-Messer
+
+Die Dateien **nicht** bloß in den Workshop-Ordner kopieren! Das Spiel braucht kompilierte Valve-Texturen `.vtex_c`. Der Converter erzeugt die fünf PNG-Texturen mit exakt den Namen, die das CS2-HUD lädt. Er ist absichtlich außerhalb des Spiels und beeinflusst weder Ziehung noch Auszahlung.
+
+```powershell
+cd "C:\\AnoCore-Test"
+py -m pip install pillow
+py .\\ui\\AnoCore\\prepare-spitze-assets.py --source "C:\\AnoCore-Skins"
+powershell -NoProfile -ExecutionPolicy Bypass -File .\\ui\\AnoCore\\build.ps1 -Addon anomeme_ui -InstallLocalClient
+```
+
+Bei erfolgreicher Konvertierung müssen im Quellordner `ui/AnoCore/styles/custom_game/anocore/casino/` die fünf Dateien `spitze_ggspray.png`, `spitze_safarimesh.png`, `spitze_neonrevolution.png`, `spitze_gold.png` und `spitze_knife.png` stehen. Zu jeder ist eine `.vtex`-Beschreibung versioniert. Der Build erstellt dazu `.vtex_c`-Dateien. Fehlen Eingabebilder, warnt das Buildskript und verwendet als Fallback die Skin-Namen. Die alten Book-/BiggestBoy-Texturen bleiben unangetastet.
+
+Erst nach lokalem CS2-Test die Workshop-UI `anomeme_ui` **re-uploaden**, falls alle Spieler die Bilder sehen sollen; für den Test genügt `-InstallLocalClient`. Die Version des Serverplugins muss für das neue Spiel weiterhin zur UI passen.
 
 Ein reproduzierbarer Seed-/Strategie-Test prüft die modellierte Brutto-Auszahlungsquote für das feste Szenario «bis zu 100 bezahlte Spins, vorher nur bei Action Games stoppen». In einer 12.000-Runden-Stichprobe ergaben sich etwa 90 % Bruttorücklauf. Das ist eine Simulation der unabhängigen AnoCasino-v1-Regeln, **kein zertifizierter RTP-Wert** und keine Garantie für andere Einsammelstrategien.
 
