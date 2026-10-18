@@ -22,26 +22,25 @@ class CasinoMotionAssetsTests(unittest.TestCase):
         for game in ['blackjack','book','risk']:
             self.assertIn('casino/'+game+'.vtex', (STYLE/'ano_casino_rounds.css').read_text())
 
-    def test_wheel_uses_fixed_result_orientation_and_small_unidirectional_steps(self):
+    def test_stationary_wheel_has_all_bounded_ball_positions_and_exact_pockets(self):
+        import math
         css = (STYLE/'ano_casino_roulette.css').read_text()
-        self.assertEqual(set(ORDER),set(range(37)))
-        for i,n in enumerate(ORDER):
-            pattern = r'\.target-n'+str(n)+r' \.casino-wheel-offset \{ transform: rotateZ\((-?[\d.]+)deg\);'
-            self.assertAlmostEqual(float(re.search(pattern,css)[1]),-i*360/37,places=5)
-        for name,end in [('roulette-laps-a',1800),('roulette-laps-b',1800),('roulette-ball-laps',-2160)]:
-            body = re.search(r"@keyframes '"+name+r"' \{(.*?)\n\}",css,re.S)[1]
-            frames = [(float(t),float(angle)) for t,angle in re.findall(r'([\d.]+)% \{ transform: rotateZ\((-?[\d.]+)deg\);',body)]
-            self.assertEqual(frames[0],(0,0))
-            self.assertEqual(frames[-1],(100,end))
-            speeds = []
-            for (t0,a0),(t1,a1) in zip(frames,frames[1:]):
-                self.assertGreater(t1,t0)
-                self.assertGreater((a1-a0)*end,0)
-                self.assertLessEqual(abs(a1-a0),30)
-                speeds.append(abs(a1-a0)/(t1-t0))
-            self.assertTrue(all(a >= b for a,b in zip(speeds,speeds[1:])))
-        self.assertIn('.spinning .casino-wheel-result { opacity: 0; }',css)
-        self.assertNotIn('.land-n0 .casino-wheel-rotor',css)
+        self.assertNotIn('rotateZ(', css)
+        self.assertNotIn('@keyframes', css)
+        self.assertEqual(set(ORDER), set(range(37)))
+        frames = re.findall(r'\.ball-frame-(\d+) \{ transform:translateX\(([-\d.]+)px\) translateY\(([-\d.]+)px\);', css)
+        self.assertEqual(888, len(frames))
+        for frame, x, y in frames:
+            ring, angle = divmod(int(frame), 148)
+            self.assertAlmostEqual(math.hypot(float(x)-242, float(y)-242), 228-16*ring, delta=.001)
+            self.assertGreaterEqual(float(x), 14)
+            self.assertLessEqual(float(x)+16, 486)
+        positions = {int(frame): (float(x), float(y)) for frame, x, y in frames}
+        for pocket, number in enumerate(ORDER):
+            x, y = positions[740 + 4*pocket]
+            self.assertAlmostEqual(x, 242 + 148*math.sin(2*math.pi*pocket/37), delta=.001)
+            self.assertAlmostEqual(y, 242 - 148*math.cos(2*math.pi*pocket/37), delta=.001)
+        self.assertIn('transition-duration:0.05s', css)
 
     def test_reel_loop_matches_repeated_strip_and_symbols_cannot_squish(self):
         css = (STYLE/'ano_casino_slots.css').read_text()
