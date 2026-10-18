@@ -100,7 +100,7 @@ class CasinoResourcesTests(unittest.TestCase):
         self.assertIn(".casino-ball", roulette_css)
 
     def test_spitze_has_three_ladders_real_motion_and_collect_controls(self):
-        root = ET.parse(UI/'layout/custom_game/anocore/ano_casino_rounds.xml').getroot()
+        root = ET.parse(UI/'layout/custom_game/anocore/ano_casino_spitze.xml').getroot()
         ids = {node.attrib['id'] for node in root.iter() if 'id' in node.attrib}
         for ladder in ['low', 'middle', 'high']:
             for level in range(1, 6):
@@ -108,7 +108,7 @@ class CasinoResourcesTests(unittest.TestCase):
         for element in ['spitze_symbol', 'spitze_pot', 'spitze_direct',
                         'spitze_games', 'spitze_progress', 'spin', 'ag', 'collect']:
             self.assertIn('casino_round_' + element, ids)
-        content = (UI/'styles/custom_game/anocore/ano_casino_rounds.css').read_text()
+        content = (UI/'styles/custom_game/anocore/ano_casino_spitze.css').read_text()
         for name in ['spitze-roll-a', 'spitze-roll-b']:
             self.assertIn("@keyframes '" + name + "'", content)
             self.assertIn("animation-name:'" + name + "'", content)
@@ -118,6 +118,10 @@ class CasinoResourcesTests(unittest.TestCase):
         self.assertIn('ALLES SPITZE', ' '.join(node.attrib.get('text', '') for node in card.iter()))
         presenter = (ROOT/'src/AnoCore.Modules.Arcade/Casino/CasinoPresenter.cs').read_text()
         self.assertIn('roundGame = CasinoRoundGame.Spitze;', presenter)
+        rounds = (ROOT/'src/AnoCore.Modules.Arcade/Casino/CasinoRoundPresenter.cs').read_text()
+        self.assertIn('ano_casino_spitze.xml', rounds)
+        for build in ['build.ps1', 'build-casino.ps1']:
+            self.assertIn('"ano_casino_spitze"', (UI/build).read_text())
 
     def test_round_games_have_all_server_buttons_and_bounded_book_grid(self):
         root = ET.parse(UI/'layout/custom_game/anocore/ano_casino_rounds.xml').getroot()
