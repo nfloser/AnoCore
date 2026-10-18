@@ -28,7 +28,7 @@ public sealed class CasinoLobbyRoundRoutingTests
         Assert.IsTrue((await commands.ExecuteAsync("!anocasino", Player)).Success);
         foreach (var card in new[] { "blackjack", "risk", "book", "biggestboy" })
             await hud.ClickAsync(Player, CasinoPresenter.LobbyHudId, "casino_lobby_" + card);
-        CollectionAssert.AreEqual(new[] { CasinoRoundGame.Blackjack, CasinoRoundGame.Risk, CasinoRoundGame.Book, CasinoRoundGame.BiggestBoy }, selected.Select(x => x.Game).ToArray());
+        CollectionAssert.AreEqual(new[] { CasinoRoundGame.Blackjack, CasinoRoundGame.Spitze, CasinoRoundGame.Book, CasinoRoundGame.BiggestBoy }, selected.Select(x => x.Game).ToArray());
         Assert.IsTrue(selected.All(x => x.Player == Player));
         permission.Allowed = false;
         await hud.ClickAsync(Player, CasinoPresenter.LobbyHudId, "casino_lobby_blackjack");
