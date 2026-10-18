@@ -1184,3 +1184,20 @@ operator/PowerShell and UI build-script syntax, then found whitespace difference
 from the folder formatter. Restored original lock/catch/Tick indentation according
 to the project formatter; no behavior changes in that region. Exact-head CI rerun
 required after review commit. Native acceptance remains open.
+
+## 2026-10-18 — Native blank-card feedback (#526 / PR #527)
+
+Native screenshot shows the table and dealt card rectangles but no card faces or
+hand summaries. The dedicated layout used static empty `text=""` attributes for
+105 card labels, four summaries and the insurance result. CounterStrikeCustomHudService
+updates the `text` dialog variable, so labels must reference `{s:text}`. Added a
+regression asserting the binding on every server-updated label (120 total), which
+failed on dealer_card0 before the correction. Bound all 110 empty labels. No C#,
+wallet/rule, image or stylesheet changes; server plugin does not need replacing.
+
+For a local retest replace only ui/AnoCore/layout/custom_game/anocore/ano_casino_blackjack.xml
+in the extracted package, close CS2 and run the existing build.ps1 with
+-Addon anomeme_ui -InstallLocalClient. Then restart CS2 and reopen Blackjack.
+Workshop upload is only required when delivering the corrected UI to other clients.
+Check rank/suit, red/black faces, concealed question mark, all split summaries and
+insurance result in CS2; source tests do not replace that native retest.

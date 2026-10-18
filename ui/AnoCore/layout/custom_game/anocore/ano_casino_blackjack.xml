@@ -56,134 +56,134 @@
           <Label class="table-heading" text="BLACKJACK 3:2  ·  DEALER STEHT AUF SOFT 17" hittest="false"/>
           <Label id="casino_round_dealer" class="dealer-summary" text="{s:text}" hittest="false"/>
           <Panel id="casino_round_dealer_row" class="card-row" hittest="false">
-            <Label id="casino_round_dealer_card0" class="playing-card card-index-0" text="" hittest="false"/>
-            <Label id="casino_round_dealer_card1" class="playing-card card-index-1" text="" hittest="false"/>
-            <Label id="casino_round_dealer_card2" class="playing-card card-index-2" text="" hittest="false"/>
-            <Label id="casino_round_dealer_card3" class="playing-card card-index-3" text="" hittest="false"/>
-            <Label id="casino_round_dealer_card4" class="playing-card card-index-4" text="" hittest="false"/>
-            <Label id="casino_round_dealer_card5" class="playing-card card-index-5" text="" hittest="false"/>
-            <Label id="casino_round_dealer_card6" class="playing-card card-index-6" text="" hittest="false"/>
-            <Label id="casino_round_dealer_card7" class="playing-card card-index-7" text="" hittest="false"/>
-            <Label id="casino_round_dealer_card8" class="playing-card card-index-8" text="" hittest="false"/>
-            <Label id="casino_round_dealer_card9" class="playing-card card-index-9" text="" hittest="false"/>
-            <Label id="casino_round_dealer_card10" class="playing-card card-index-10" text="" hittest="false"/>
-            <Label id="casino_round_dealer_card11" class="playing-card card-index-11" text="" hittest="false"/>
-            <Label id="casino_round_dealer_card12" class="playing-card card-index-12" text="" hittest="false"/>
-            <Label id="casino_round_dealer_card13" class="playing-card card-index-13" text="" hittest="false"/>
-            <Label id="casino_round_dealer_card14" class="playing-card card-index-14" text="" hittest="false"/>
-            <Label id="casino_round_dealer_card15" class="playing-card card-index-15" text="" hittest="false"/>
-            <Label id="casino_round_dealer_card16" class="playing-card card-index-16" text="" hittest="false"/>
-            <Label id="casino_round_dealer_card17" class="playing-card card-index-17" text="" hittest="false"/>
-            <Label id="casino_round_dealer_card18" class="playing-card card-index-18" text="" hittest="false"/>
-            <Label id="casino_round_dealer_card19" class="playing-card card-index-19" text="" hittest="false"/>
-            <Label id="casino_round_dealer_card20" class="playing-card card-index-20" text="" hittest="false"/>
+            <Label id="casino_round_dealer_card0" class="playing-card card-index-0" text="{s:text}" hittest="false"/>
+            <Label id="casino_round_dealer_card1" class="playing-card card-index-1" text="{s:text}" hittest="false"/>
+            <Label id="casino_round_dealer_card2" class="playing-card card-index-2" text="{s:text}" hittest="false"/>
+            <Label id="casino_round_dealer_card3" class="playing-card card-index-3" text="{s:text}" hittest="false"/>
+            <Label id="casino_round_dealer_card4" class="playing-card card-index-4" text="{s:text}" hittest="false"/>
+            <Label id="casino_round_dealer_card5" class="playing-card card-index-5" text="{s:text}" hittest="false"/>
+            <Label id="casino_round_dealer_card6" class="playing-card card-index-6" text="{s:text}" hittest="false"/>
+            <Label id="casino_round_dealer_card7" class="playing-card card-index-7" text="{s:text}" hittest="false"/>
+            <Label id="casino_round_dealer_card8" class="playing-card card-index-8" text="{s:text}" hittest="false"/>
+            <Label id="casino_round_dealer_card9" class="playing-card card-index-9" text="{s:text}" hittest="false"/>
+            <Label id="casino_round_dealer_card10" class="playing-card card-index-10" text="{s:text}" hittest="false"/>
+            <Label id="casino_round_dealer_card11" class="playing-card card-index-11" text="{s:text}" hittest="false"/>
+            <Label id="casino_round_dealer_card12" class="playing-card card-index-12" text="{s:text}" hittest="false"/>
+            <Label id="casino_round_dealer_card13" class="playing-card card-index-13" text="{s:text}" hittest="false"/>
+            <Label id="casino_round_dealer_card14" class="playing-card card-index-14" text="{s:text}" hittest="false"/>
+            <Label id="casino_round_dealer_card15" class="playing-card card-index-15" text="{s:text}" hittest="false"/>
+            <Label id="casino_round_dealer_card16" class="playing-card card-index-16" text="{s:text}" hittest="false"/>
+            <Label id="casino_round_dealer_card17" class="playing-card card-index-17" text="{s:text}" hittest="false"/>
+            <Label id="casino_round_dealer_card18" class="playing-card card-index-18" text="{s:text}" hittest="false"/>
+            <Label id="casino_round_dealer_card19" class="playing-card card-index-19" text="{s:text}" hittest="false"/>
+            <Label id="casino_round_dealer_card20" class="playing-card card-index-20" text="{s:text}" hittest="false"/>
           </Panel>
           <Panel class="hand-grid" hittest="false">
             <Panel class="hand-pair" hittest="false">
               <Panel id="casino_round_hand0" class="player-hand" hittest="false">
-                <Label id="casino_round_hand0_summary" class="hand-summary" text="" hittest="false"/>
+                <Label id="casino_round_hand0_summary" class="hand-summary" text="{s:text}" hittest="false"/>
                 <Panel id="casino_round_hand0_row" class="card-row" hittest="false">
-                  <Label id="casino_round_hand0_card0" class="playing-card card-index-0" text="" hittest="false"/>
-                  <Label id="casino_round_hand0_card1" class="playing-card card-index-1" text="" hittest="false"/>
-                  <Label id="casino_round_hand0_card2" class="playing-card card-index-2" text="" hittest="false"/>
-                  <Label id="casino_round_hand0_card3" class="playing-card card-index-3" text="" hittest="false"/>
-                  <Label id="casino_round_hand0_card4" class="playing-card card-index-4" text="" hittest="false"/>
-                  <Label id="casino_round_hand0_card5" class="playing-card card-index-5" text="" hittest="false"/>
-                  <Label id="casino_round_hand0_card6" class="playing-card card-index-6" text="" hittest="false"/>
-                  <Label id="casino_round_hand0_card7" class="playing-card card-index-7" text="" hittest="false"/>
-                  <Label id="casino_round_hand0_card8" class="playing-card card-index-8" text="" hittest="false"/>
-                  <Label id="casino_round_hand0_card9" class="playing-card card-index-9" text="" hittest="false"/>
-                  <Label id="casino_round_hand0_card10" class="playing-card card-index-10" text="" hittest="false"/>
-                  <Label id="casino_round_hand0_card11" class="playing-card card-index-11" text="" hittest="false"/>
-                  <Label id="casino_round_hand0_card12" class="playing-card card-index-12" text="" hittest="false"/>
-                  <Label id="casino_round_hand0_card13" class="playing-card card-index-13" text="" hittest="false"/>
-                  <Label id="casino_round_hand0_card14" class="playing-card card-index-14" text="" hittest="false"/>
-                  <Label id="casino_round_hand0_card15" class="playing-card card-index-15" text="" hittest="false"/>
-                  <Label id="casino_round_hand0_card16" class="playing-card card-index-16" text="" hittest="false"/>
-                  <Label id="casino_round_hand0_card17" class="playing-card card-index-17" text="" hittest="false"/>
-                  <Label id="casino_round_hand0_card18" class="playing-card card-index-18" text="" hittest="false"/>
-                  <Label id="casino_round_hand0_card19" class="playing-card card-index-19" text="" hittest="false"/>
-                  <Label id="casino_round_hand0_card20" class="playing-card card-index-20" text="" hittest="false"/>
+                  <Label id="casino_round_hand0_card0" class="playing-card card-index-0" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand0_card1" class="playing-card card-index-1" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand0_card2" class="playing-card card-index-2" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand0_card3" class="playing-card card-index-3" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand0_card4" class="playing-card card-index-4" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand0_card5" class="playing-card card-index-5" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand0_card6" class="playing-card card-index-6" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand0_card7" class="playing-card card-index-7" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand0_card8" class="playing-card card-index-8" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand0_card9" class="playing-card card-index-9" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand0_card10" class="playing-card card-index-10" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand0_card11" class="playing-card card-index-11" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand0_card12" class="playing-card card-index-12" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand0_card13" class="playing-card card-index-13" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand0_card14" class="playing-card card-index-14" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand0_card15" class="playing-card card-index-15" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand0_card16" class="playing-card card-index-16" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand0_card17" class="playing-card card-index-17" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand0_card18" class="playing-card card-index-18" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand0_card19" class="playing-card card-index-19" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand0_card20" class="playing-card card-index-20" text="{s:text}" hittest="false"/>
                 </Panel>
               </Panel>
               <Panel id="casino_round_hand1" class="player-hand" hittest="false">
-                <Label id="casino_round_hand1_summary" class="hand-summary" text="" hittest="false"/>
+                <Label id="casino_round_hand1_summary" class="hand-summary" text="{s:text}" hittest="false"/>
                 <Panel id="casino_round_hand1_row" class="card-row" hittest="false">
-                  <Label id="casino_round_hand1_card0" class="playing-card card-index-0" text="" hittest="false"/>
-                  <Label id="casino_round_hand1_card1" class="playing-card card-index-1" text="" hittest="false"/>
-                  <Label id="casino_round_hand1_card2" class="playing-card card-index-2" text="" hittest="false"/>
-                  <Label id="casino_round_hand1_card3" class="playing-card card-index-3" text="" hittest="false"/>
-                  <Label id="casino_round_hand1_card4" class="playing-card card-index-4" text="" hittest="false"/>
-                  <Label id="casino_round_hand1_card5" class="playing-card card-index-5" text="" hittest="false"/>
-                  <Label id="casino_round_hand1_card6" class="playing-card card-index-6" text="" hittest="false"/>
-                  <Label id="casino_round_hand1_card7" class="playing-card card-index-7" text="" hittest="false"/>
-                  <Label id="casino_round_hand1_card8" class="playing-card card-index-8" text="" hittest="false"/>
-                  <Label id="casino_round_hand1_card9" class="playing-card card-index-9" text="" hittest="false"/>
-                  <Label id="casino_round_hand1_card10" class="playing-card card-index-10" text="" hittest="false"/>
-                  <Label id="casino_round_hand1_card11" class="playing-card card-index-11" text="" hittest="false"/>
-                  <Label id="casino_round_hand1_card12" class="playing-card card-index-12" text="" hittest="false"/>
-                  <Label id="casino_round_hand1_card13" class="playing-card card-index-13" text="" hittest="false"/>
-                  <Label id="casino_round_hand1_card14" class="playing-card card-index-14" text="" hittest="false"/>
-                  <Label id="casino_round_hand1_card15" class="playing-card card-index-15" text="" hittest="false"/>
-                  <Label id="casino_round_hand1_card16" class="playing-card card-index-16" text="" hittest="false"/>
-                  <Label id="casino_round_hand1_card17" class="playing-card card-index-17" text="" hittest="false"/>
-                  <Label id="casino_round_hand1_card18" class="playing-card card-index-18" text="" hittest="false"/>
-                  <Label id="casino_round_hand1_card19" class="playing-card card-index-19" text="" hittest="false"/>
-                  <Label id="casino_round_hand1_card20" class="playing-card card-index-20" text="" hittest="false"/>
+                  <Label id="casino_round_hand1_card0" class="playing-card card-index-0" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand1_card1" class="playing-card card-index-1" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand1_card2" class="playing-card card-index-2" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand1_card3" class="playing-card card-index-3" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand1_card4" class="playing-card card-index-4" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand1_card5" class="playing-card card-index-5" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand1_card6" class="playing-card card-index-6" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand1_card7" class="playing-card card-index-7" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand1_card8" class="playing-card card-index-8" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand1_card9" class="playing-card card-index-9" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand1_card10" class="playing-card card-index-10" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand1_card11" class="playing-card card-index-11" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand1_card12" class="playing-card card-index-12" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand1_card13" class="playing-card card-index-13" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand1_card14" class="playing-card card-index-14" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand1_card15" class="playing-card card-index-15" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand1_card16" class="playing-card card-index-16" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand1_card17" class="playing-card card-index-17" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand1_card18" class="playing-card card-index-18" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand1_card19" class="playing-card card-index-19" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand1_card20" class="playing-card card-index-20" text="{s:text}" hittest="false"/>
                 </Panel>
               </Panel>
             </Panel>
             <Panel class="hand-pair extra-hands" hittest="false">
               <Panel id="casino_round_hand2" class="player-hand" hittest="false">
-                <Label id="casino_round_hand2_summary" class="hand-summary" text="" hittest="false"/>
+                <Label id="casino_round_hand2_summary" class="hand-summary" text="{s:text}" hittest="false"/>
                 <Panel id="casino_round_hand2_row" class="card-row" hittest="false">
-                  <Label id="casino_round_hand2_card0" class="playing-card card-index-0" text="" hittest="false"/>
-                  <Label id="casino_round_hand2_card1" class="playing-card card-index-1" text="" hittest="false"/>
-                  <Label id="casino_round_hand2_card2" class="playing-card card-index-2" text="" hittest="false"/>
-                  <Label id="casino_round_hand2_card3" class="playing-card card-index-3" text="" hittest="false"/>
-                  <Label id="casino_round_hand2_card4" class="playing-card card-index-4" text="" hittest="false"/>
-                  <Label id="casino_round_hand2_card5" class="playing-card card-index-5" text="" hittest="false"/>
-                  <Label id="casino_round_hand2_card6" class="playing-card card-index-6" text="" hittest="false"/>
-                  <Label id="casino_round_hand2_card7" class="playing-card card-index-7" text="" hittest="false"/>
-                  <Label id="casino_round_hand2_card8" class="playing-card card-index-8" text="" hittest="false"/>
-                  <Label id="casino_round_hand2_card9" class="playing-card card-index-9" text="" hittest="false"/>
-                  <Label id="casino_round_hand2_card10" class="playing-card card-index-10" text="" hittest="false"/>
-                  <Label id="casino_round_hand2_card11" class="playing-card card-index-11" text="" hittest="false"/>
-                  <Label id="casino_round_hand2_card12" class="playing-card card-index-12" text="" hittest="false"/>
-                  <Label id="casino_round_hand2_card13" class="playing-card card-index-13" text="" hittest="false"/>
-                  <Label id="casino_round_hand2_card14" class="playing-card card-index-14" text="" hittest="false"/>
-                  <Label id="casino_round_hand2_card15" class="playing-card card-index-15" text="" hittest="false"/>
-                  <Label id="casino_round_hand2_card16" class="playing-card card-index-16" text="" hittest="false"/>
-                  <Label id="casino_round_hand2_card17" class="playing-card card-index-17" text="" hittest="false"/>
-                  <Label id="casino_round_hand2_card18" class="playing-card card-index-18" text="" hittest="false"/>
-                  <Label id="casino_round_hand2_card19" class="playing-card card-index-19" text="" hittest="false"/>
-                  <Label id="casino_round_hand2_card20" class="playing-card card-index-20" text="" hittest="false"/>
+                  <Label id="casino_round_hand2_card0" class="playing-card card-index-0" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand2_card1" class="playing-card card-index-1" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand2_card2" class="playing-card card-index-2" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand2_card3" class="playing-card card-index-3" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand2_card4" class="playing-card card-index-4" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand2_card5" class="playing-card card-index-5" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand2_card6" class="playing-card card-index-6" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand2_card7" class="playing-card card-index-7" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand2_card8" class="playing-card card-index-8" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand2_card9" class="playing-card card-index-9" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand2_card10" class="playing-card card-index-10" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand2_card11" class="playing-card card-index-11" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand2_card12" class="playing-card card-index-12" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand2_card13" class="playing-card card-index-13" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand2_card14" class="playing-card card-index-14" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand2_card15" class="playing-card card-index-15" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand2_card16" class="playing-card card-index-16" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand2_card17" class="playing-card card-index-17" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand2_card18" class="playing-card card-index-18" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand2_card19" class="playing-card card-index-19" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand2_card20" class="playing-card card-index-20" text="{s:text}" hittest="false"/>
                 </Panel>
               </Panel>
               <Panel id="casino_round_hand3" class="player-hand" hittest="false">
-                <Label id="casino_round_hand3_summary" class="hand-summary" text="" hittest="false"/>
+                <Label id="casino_round_hand3_summary" class="hand-summary" text="{s:text}" hittest="false"/>
                 <Panel id="casino_round_hand3_row" class="card-row" hittest="false">
-                  <Label id="casino_round_hand3_card0" class="playing-card card-index-0" text="" hittest="false"/>
-                  <Label id="casino_round_hand3_card1" class="playing-card card-index-1" text="" hittest="false"/>
-                  <Label id="casino_round_hand3_card2" class="playing-card card-index-2" text="" hittest="false"/>
-                  <Label id="casino_round_hand3_card3" class="playing-card card-index-3" text="" hittest="false"/>
-                  <Label id="casino_round_hand3_card4" class="playing-card card-index-4" text="" hittest="false"/>
-                  <Label id="casino_round_hand3_card5" class="playing-card card-index-5" text="" hittest="false"/>
-                  <Label id="casino_round_hand3_card6" class="playing-card card-index-6" text="" hittest="false"/>
-                  <Label id="casino_round_hand3_card7" class="playing-card card-index-7" text="" hittest="false"/>
-                  <Label id="casino_round_hand3_card8" class="playing-card card-index-8" text="" hittest="false"/>
-                  <Label id="casino_round_hand3_card9" class="playing-card card-index-9" text="" hittest="false"/>
-                  <Label id="casino_round_hand3_card10" class="playing-card card-index-10" text="" hittest="false"/>
-                  <Label id="casino_round_hand3_card11" class="playing-card card-index-11" text="" hittest="false"/>
-                  <Label id="casino_round_hand3_card12" class="playing-card card-index-12" text="" hittest="false"/>
-                  <Label id="casino_round_hand3_card13" class="playing-card card-index-13" text="" hittest="false"/>
-                  <Label id="casino_round_hand3_card14" class="playing-card card-index-14" text="" hittest="false"/>
-                  <Label id="casino_round_hand3_card15" class="playing-card card-index-15" text="" hittest="false"/>
-                  <Label id="casino_round_hand3_card16" class="playing-card card-index-16" text="" hittest="false"/>
-                  <Label id="casino_round_hand3_card17" class="playing-card card-index-17" text="" hittest="false"/>
-                  <Label id="casino_round_hand3_card18" class="playing-card card-index-18" text="" hittest="false"/>
-                  <Label id="casino_round_hand3_card19" class="playing-card card-index-19" text="" hittest="false"/>
-                  <Label id="casino_round_hand3_card20" class="playing-card card-index-20" text="" hittest="false"/>
+                  <Label id="casino_round_hand3_card0" class="playing-card card-index-0" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand3_card1" class="playing-card card-index-1" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand3_card2" class="playing-card card-index-2" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand3_card3" class="playing-card card-index-3" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand3_card4" class="playing-card card-index-4" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand3_card5" class="playing-card card-index-5" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand3_card6" class="playing-card card-index-6" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand3_card7" class="playing-card card-index-7" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand3_card8" class="playing-card card-index-8" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand3_card9" class="playing-card card-index-9" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand3_card10" class="playing-card card-index-10" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand3_card11" class="playing-card card-index-11" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand3_card12" class="playing-card card-index-12" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand3_card13" class="playing-card card-index-13" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand3_card14" class="playing-card card-index-14" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand3_card15" class="playing-card card-index-15" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand3_card16" class="playing-card card-index-16" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand3_card17" class="playing-card card-index-17" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand3_card18" class="playing-card card-index-18" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand3_card19" class="playing-card card-index-19" text="{s:text}" hittest="false"/>
+                  <Label id="casino_round_hand3_card20" class="playing-card card-index-20" text="{s:text}" hittest="false"/>
                 </Panel>
               </Panel>
             </Panel>
@@ -249,7 +249,7 @@
             <Label text="EVEN MONEY · SICHER 1:1" hittest="false"/>
           </Button>
         </Panel>
-        <Label id="casino_round_insurance_result" class="insurance-result" text="" hittest="false"/>
+        <Label id="casino_round_insurance_result" class="insurance-result" text="{s:text}" hittest="false"/>
         <Label id="casino_round_status" class="status" text="{s:text}" hittest="false"/>
         <Panel class="navigation">
           <Button id="casino_round_back" class="button ">

@@ -29,6 +29,14 @@ class BlackjackTableTests(unittest.TestCase):
         self.assertEqual('true', rules.attrib['hittest'])
         self.assertEqual(11, len(rules.findall('./Label[@class="rules-line"]')))
 
+    def test_every_server_updated_label_binds_the_native_text_variable(self):
+        tree = ET.parse(UI / 'layout/custom_game/anocore/ano_casino_blackjack.xml')
+        dynamic = [label for label in tree.iter('Label')
+                   if label.attrib.get('id', '').startswith('casino_round_')]
+        self.assertEqual(120, len(dynamic))
+        for label in dynamic:
+            self.assertEqual('{s:text}', label.attrib.get('text'), label.attrib['id'])
+
     def test_card_fans_fit_each_split_hand_and_keep_short_hands_centered(self):
         css = (UI / 'styles/custom_game/anocore/ano_casino_blackjack.css').read_text()
         for count in range(1, 9):
