@@ -14,6 +14,114 @@ public sealed class CasinoPresenterTests
     private static readonly PlayerId Player = new(76561198000911901);
 
     [TestMethod]
+    public async Task RouletteResetClearsTheLastPoseBeforeReconstructingNativeState()
+    {
+        using var f = await Fixture.Create();
+        await f.ClickLobby("load");
+        await f.ClickLobby("roulette");
+        f.Wallet.RouletteNumber = 32;
+        await f.ClickRoulette("play");
+        f.Clock.AdvanceMilliseconds(4000); f.Presenter.Tick();
+        var frame = "ball-frame-" + RouletteBallMotion.LandingFrame(32);
+        Assert.IsTrue(f.RouletteClass("ball", frame));
+        var operations = f.Wallet.Operations.Count;
+        f.Presenter.Reset();
+        Assert.IsFalse(f.RouletteClass("ball", frame));
+        Assert.IsTrue((await f.Commands.ExecuteAsync("!anocasino", Player)).Success);
+        await f.ClickLobby("roulette");
+        Assert.IsTrue(f.RouletteClass("ball", frame));
+        Assert.AreEqual(operations, f.Wallet.Operations.Count);
+    }
+
+    [TestMethod]
+    public async Task HistoricalRouletteResultRestoresBallWithoutInventingAnUnknownNetStake()
+    {
+        using var f = await Fixture.Create();
+        var id = Guid.NewGuid();
+        f.Wallet.Balance = new(1000, 3600000, 1);
+        f.Wallet.Operations[id] = new(id, f.Wallet.Balance,
+            CasinoRules.EvaluateNumber(new(CasinoGame.Roulette, 100000, 32), 32));
+        Assert.IsTrue((await f.Commands.ExecuteAsync("!anocasino", Player)).Success);
+        await f.ClickLobby("roulette");
+        Assert.AreEqual("32", f.RouletteText("wheelresult"));
+        Assert.IsTrue(f.RouletteClass("ball", "ball-frame-" + RouletteBallMotion.LandingFrame(32)));
+        Assert.IsTrue(f.RouletteClass("wheel", "land-red"));
+        Assert.IsFalse(f.RouletteText("result")!.Contains("Netto"));
+        Assert.AreEqual(1, f.Wallet.Operations.Count);
+    }
+
+    [TestMethod]
+    public async Task ClosingDuringRouletteAndRefreshingDoesNotReplayOrChargeAgain()
+    {
+        using var f = await Fixture.Create();
+        await f.ClickLobby("load");
+        await f.ClickLobby("roulette");
+        await f.ClickRoulette("r0");
+        await f.ClickRoulette("play");
+        var operations = f.Wallet.Operations.Count;
+        var balance = f.Wallet.Balance;
+        await f.ClickRoulette("close");
+        f.Clock.AdvanceMilliseconds(4000); f.Presenter.Tick();
+        Assert.IsTrue((await f.Commands.ExecuteAsync("!anocasino", Player)).Success);
+        await f.ClickLobby("roulette");
+        await f.ClickRoulette("refresh");
+        Assert.AreEqual(operations, f.Wallet.Operations.Count);
+        Assert.AreEqual(balance, f.Wallet.Balance);
+        Assert.AreEqual("0", f.RouletteText("wheelresult"));
+        Assert.IsTrue(f.RouletteClass("ball", "ball-frame-" + RouletteBallMotion.LandingFrame(0)));
+        Assert.IsTrue(f.RouletteText("result")!.Contains("Netto +3,5 Tsd. €"));
+    }
+
+    [TestMethod]
+    public async Task RouletteMovesAndLandsOnAllNumbersWithoutRebookingAndRetainsOriginalNetStake()
+    {
+        using var f = await Fixture.Create();
+        f.Wallet.Balance = new(1000, 100000, 0);
+        await f.ClickLobby("refresh");
+        await f.ClickLobby("roulette");
+        for (var number = 0; number <= 36; number++)
+        {
+            f.Wallet.RouletteNumber = number;
+            await f.ClickRoulette("r" + number);
+            Assert.IsTrue(f.RouletteClass("r" + number, "selected"));
+            await f.ClickRoulette("play");
+            var operations = f.Wallet.Operations.Count;
+            Assert.AreEqual("…", f.RouletteText("wheelresult"));
+            for (var step = 0; step < 72; step++)
+            {
+                f.Clock.AdvanceMilliseconds(50);
+                f.Presenter.Tick();
+            }
+            Assert.IsTrue(f.RouletteClass("ball", "ball-frame-" + RouletteBallMotion.LandingFrame(number)));
+            Assert.AreEqual(number.ToString(), f.RouletteText("wheelresult"));
+            f.Clock.AdvanceMilliseconds(400); f.Presenter.Tick();
+            Assert.AreEqual(operations, f.Wallet.Operations.Count);
+        }
+        var net = f.RouletteText("result");
+        await f.ClickRoulette("plus");
+        Assert.AreEqual(net, f.RouletteText("result"));
+        Assert.IsFalse(f.RouletteText("status")!.Contains("AP"));
+    }
+
+    [TestMethod]
+    public async Task RouletteQuickStakesRespectConfiguredMaximumAndAvailableFunds()
+    {
+        using var f = await Fixture.Create(new() { Roulette = 100000 });
+        f.Wallet.Balance = new(1000, 125000, 0);
+        await f.ClickLobby("refresh");
+        await f.ClickLobby("roulette");
+        await f.ClickRoulette("betmax");
+        Assert.AreEqual("100.000 €", f.RouletteText("stake"));
+        await f.ClickRoulette("bethalf");
+        Assert.AreEqual("50.000 €", f.RouletteText("stake"));
+        await f.ClickRoulette("betdouble");
+        Assert.AreEqual("100.000 €", f.RouletteText("stake"));
+        await f.ClickRoulette("betmin");
+        Assert.AreEqual("50 €", f.RouletteText("stake"));
+        Assert.AreEqual(0, f.Wallet.Operations.Count);
+    }
+
+    [TestMethod]
     [DataRow(0)]
     [DataRow(1)]
     public async Task CoinFacesHoldBetweenSwapsAndDoNotRevealBookedResultEarly(int number)
@@ -197,24 +305,31 @@ public sealed class CasinoPresenterTests
 
         Assert.AreEqual(CasinoGame.Roulette, f.Wallet.Last!.Game!.Game);
         Assert.AreEqual(0, f.Wallet.Last.Game.Choice);
-        Assert.AreEqual("4 Tsd. €", f.RouletteText("bank"));
+        Assert.AreEqual("400 €", f.RouletteText("bank"), "Do not reveal a booked payout before the ball lands.");
         Assert.IsTrue(f.RouletteClass("wheel", "spinning"));
-        Assert.IsTrue(f.RouletteClass("wheel", "target-n0"));
-        Assert.IsFalse(f.RouletteClass("wheel", "turn-b"));
-        for (var number = 1; number <= 36; number++)
-            Assert.IsFalse(f.RouletteClass("wheel", "target-n" + number));
+        Assert.AreEqual("…", f.RouletteText("wheelresult"));
+        Assert.IsTrue(f.RouletteClass("ball", "ball-frame-0"));
+        var bookedOperations = f.Wallet.Operations.Count;
+        f.Clock.AdvanceMilliseconds(1000);
+        f.Presenter.Tick();
+        Assert.IsTrue(f.RouletteClass("ball", "ball-frame-" + RouletteBallMotion.FrameAt(0, TimeSpan.FromMilliseconds(1000))));
+        Assert.AreEqual(bookedOperations, f.Wallet.Operations.Count);
 
-        f.Clock.AdvanceMilliseconds(3600);
+        f.Clock.AdvanceMilliseconds(2600);
         f.Presenter.Tick();
 
         Assert.IsFalse(f.RouletteClass("wheel", "spinning"));
         Assert.IsTrue(f.RouletteClass("wheel", "land-green"));
         Assert.IsTrue(f.RouletteClass("wheel", "land-n0"));
+        Assert.IsTrue(f.RouletteClass("ball", "ball-frame-" + RouletteBallMotion.LandingFrame(0)));
+        Assert.AreEqual("0", f.RouletteText("wheelresult"));
         f.Clock.AdvanceMilliseconds(400);
         f.Presenter.Tick();
         await f.ClickRoulette("play");
         Assert.IsTrue(f.RouletteClass("wheel", "spinning"));
-        Assert.IsTrue(f.RouletteClass("wheel", "turn-b"), "Consecutive spins must restart the native keyframes.");
+        Assert.IsTrue(f.RouletteClass("ball", "ball-frame-0"));
+        Assert.IsFalse(f.RouletteClass("ball", "ball-frame-" + RouletteBallMotion.LandingFrame(0)));
+        Assert.AreEqual("…", f.RouletteText("wheelresult"));
     }
 
     [TestMethod]
@@ -307,6 +422,7 @@ public sealed class CasinoPresenterTests
     private sealed class Wallet : ICasinoWallet
     {
         public int CoinNumber;
+        public int RouletteNumber;
         public CasinoBalance Balance = new(1000, 0, 0);
         public bool FailRead;
         public Exception? RejectOnce;
@@ -360,7 +476,7 @@ public sealed class CasinoPresenterTests
                     available += operation.Amount;
                     break;
                 case CasinoAction.Play:
-                    result = CasinoRules.Draw(operation.Game!, max => max == 2 ? CoinNumber : 0);
+                    result = CasinoRules.Draw(operation.Game!, max => max == 2 ? CoinNumber : max == 37 ? RouletteNumber : 0);
                     allocated = allocated - operation.Game!.Stake + result.Payout;
                     break;
             }

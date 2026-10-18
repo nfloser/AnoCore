@@ -54,6 +54,7 @@ public sealed class CasinoPresenter : IDisposable
         "casino_roulette_close", "casino_roulette_back", "casino_roulette_minus", "casino_roulette_plus",
         "casino_roulette_numberminus", "casino_roulette_numberplus", "casino_roulette_number",
         "casino_roulette_play", "casino_roulette_refresh", "casino_roulette_rules", "casino_roulette_retry",
+        "casino_roulette_betmin", "casino_roulette_betmax", "casino_roulette_betdouble", "casino_roulette_bethalf",
         .. Enumerable.Range(37, 12).Select(n => "casino_roulette_bet" + n),
         .. Enumerable.Range(0, 37).Select(n => "casino_roulette_r" + n)
     ];
@@ -230,6 +231,7 @@ public sealed class CasinoPresenter : IDisposable
                 state.Visible = true;
                 if (history.FirstOrDefault(x => x.Outcome is not null) is { } last)
                 {
+                    if (last.Id != state.RouletteOperationId) state.RouletteStake = null;
                     state.Outcome = last.Outcome;
                     state.Win = last.Outcome!.Payout;
                     state.Status = "Letztes gebuchtes Spiel: " + last.Outcome.Summary;
@@ -354,6 +356,18 @@ public sealed class CasinoPresenter : IDisposable
                         break;
                     case "plus":
                         state.Stake = Math.Min(_stakeLimits.For(state.Game ?? CasinoGame.Slots), state.Stake + 50);
+                        break;
+                    case "betmin" when state.Game == CasinoGame.Roulette:
+                        state.Stake = 50;
+                        break;
+                    case "betmax" when state.Game == CasinoGame.Roulette:
+                        state.Stake = (int)Math.Clamp(Math.Min(state.Balance.Allocated / 50 * 50, _stakeLimits.Roulette), 50, _stakeLimits.Roulette);
+                        break;
+                    case "betdouble" when state.Game == CasinoGame.Roulette:
+                        state.Stake = Math.Min(state.Stake * 2, _stakeLimits.Roulette);
+                        break;
+                    case "bethalf" when state.Game == CasinoGame.Roulette:
+                        state.Stake = Math.Max(50, state.Stake / 2 / 50 * 50);
                         break;
                     case "loadminus":
                         state.Load = Math.Max(50, state.Load - 50);
@@ -489,7 +503,7 @@ public sealed class CasinoPresenter : IDisposable
                     state.Win = 0;
                     state.Started = _clock.GetUtcNow();
                     state.Spin++;
-                    state.Status = "Ergebnis gebucht · Animation läuft";
+                    state.Status = outcome.Game == CasinoGame.Roulette ? "Kugel ist im Umlauf · Bitte warten" : "Ergebnis gebucht · Animation läuft";
                     SetOutcome(state, outcome);
 
                     if (outcome.Game == CasinoGame.Slots)
@@ -510,11 +524,11 @@ public sealed class CasinoPresenter : IDisposable
                     }
                     else if (outcome.Game == CasinoGame.Roulette)
                     {
-                        RouletteClass(state, "wheel", "turn-b", state.Spin % 2 == 0);
-                        for (var number = 0; number <= 36; number++)
-                            RouletteClass(state, "wheel", "target-n" + number, outcome.Number == number);
+                        state.RouletteStake = operation?.Game?.Stake ?? state.Stake;
+                        state.RouletteOperationId = receipt.Id;
+                        state.RouletteStartAngle = Math.Max(0, state.RouletteFrame) % RouletteBallMotion.Angles;
+                        SetRouletteBall(state, RouletteBallMotion.FrameAt(outcome.Number, TimeSpan.Zero, state.RouletteStartAngle));
                         RouletteClass(state, "wheel", "spinning", true);
-                        RouletteClass(state, "pointer", "spinning", true);
                     }
                 }
                 else
@@ -604,6 +618,9 @@ public sealed class CasinoPresenter : IDisposable
                         elapsed.TotalMilliseconds >= 200 && motionMilliseconds % 400 >= 320);
                 }
 
+                if (state.Outcome is { Game: CasinoGame.Roulette } roulette)
+                    SetRouletteBall(state, RouletteBallMotion.FrameAt(roulette.Number, elapsed, state.RouletteStartAngle));
+
                 if (!state.LandingApplied
                     && elapsed >= TimeSpan.FromMilliseconds(3600)
                     && state.Outcome is { } settled)
@@ -621,14 +638,7 @@ public sealed class CasinoPresenter : IDisposable
                     else if (settled.Game == CasinoGame.Roulette)
                     {
                         RouletteClass(state, "wheel", "spinning", false);
-                        RouletteClass(state, "pointer", "spinning", false);
-                        var color = settled.Number == 0
-                            ? "land-green"
-                            : RouletteReds.Contains(settled.Number) ? "land-red" : "land-black";
-                        RouletteClass(state, "wheel", color, true);
-                        RouletteClass(state, "pointer", color, true);
-                        for (var number = 0; number <= 36; number++)
-                            RouletteClass(state, "wheel", "land-n" + number, settled.Number == number);
+                        SetRouletteLanding(state, settled.Number);
                     }
                 }
 
@@ -650,7 +660,9 @@ public sealed class CasinoPresenter : IDisposable
 
                 state.Started = null;
                 state.Win = state.Outcome!.Payout;
-                state.Status = state.Outcome.Summary;
+                state.Status = state.Outcome.Game == CasinoGame.Roulette
+                    ? $"{state.Outcome.Number} · {(state.Outcome.Number == 0 ? "Grün" : RouletteReds.Contains(state.Outcome.Number) ? "Rot" : "Schwarz")} · Rückzahlung {Points(state.Win)}"
+                    : state.Outcome.Summary;
                 if (state.Visible)
                     RenderActive(state);
             }
@@ -729,13 +741,30 @@ public sealed class CasinoPresenter : IDisposable
     private void RenderRoulette(State state)
     {
         RouletteText(state, "account", Points(state.Balance.Available));
-        RouletteText(state, "bank", Points(state.Balance.Allocated));
+        var displayedBank = state.Started is not null && state.Outcome is { Game: CasinoGame.Roulette } pending
+            ? state.Balance.Allocated - pending.Payout : state.Balance.Allocated;
+        RouletteText(state, "bank", Points(displayedBank));
         RouletteText(state, "stake", CasinoMoney.FormatExact(state.Stake));
         RouletteText(state, "win", Points(state.Win));
         RouletteText(state, "numbervalue", state.Number.ToString(CultureInfo.InvariantCulture));
         RouletteText(state, "choice", "Wette: " + BetLabel(state.Bet));
         RouletteText(state, "status", state.Status);
+        RouletteText(state, "wheelresult", state.Outcome is { Game: CasinoGame.Roulette } booked
+            && (state.Started is null || state.LandingApplied) ? booked.Number.ToString(CultureInfo.InvariantCulture)
+            : state.Started is not null ? "…" : "–");
         RouletteClass(state, "root", "busy", state.Pending || state.Started is not null);
+        RouletteClass(state, "root", "uncertain", state.Unconfirmed is not null);
+        if (state.RouletteFrame < 0) SetRouletteBall(state, 0);
+        for (var bet = 0; bet <= 48; bet++)
+            RouletteClass(state, bet <= 36 ? "r" + bet : "bet" + bet, "selected", state.Bet == bet);
+        var net = state.Outcome is { Game: CasinoGame.Roulette } last && state.RouletteStake is { } originalStake
+            ? $" · Netto {(last.Payout - originalStake > 0 ? "+" : "")}{Points(last.Payout - originalStake)}" : "";
+        RouletteText(state, "result", state.Started is not null ? "Kugel läuft · Einsätze geschlossen"
+            : state.Outcome is { Game: CasinoGame.Roulette } result
+                ? $"GEFALLEN: {result.Number} · Rückzahlung {Points(result.Payout)}{net}"
+                : "Wähle eine Zahl oder eine Außenwette · eine Wette pro Runde");
+        if (state.Outcome is { Game: CasinoGame.Roulette } landed && (state.Started is null || state.LandingApplied))
+            SetRouletteLanding(state, landed.Number);
     }
 
     private void SetOutcome(State state, CasinoOutcome outcome)
@@ -760,7 +789,7 @@ public sealed class CasinoPresenter : IDisposable
         }
         else if (outcome.Game == CasinoGame.Roulette)
         {
-            RouletteText(state, "wheelresult", outcome.Number.ToString(CultureInfo.InvariantCulture));
+            RouletteText(state, "wheelresult", state.Started is null ? outcome.Number.ToString(CultureInfo.InvariantCulture) : "…");
         }
     }
 
@@ -871,6 +900,25 @@ public sealed class CasinoPresenter : IDisposable
     private void SlotsClass(State s, string id, string name, bool value)
         => _hud.SetClass(s.Player.Id, SlotsHudId, "casino_slots_" + id, name, value);
 
+    private void SetRouletteLanding(State state, int number)
+    {
+        RouletteText(state, "wheelresult", number.ToString(CultureInfo.InvariantCulture));
+        RouletteClass(state, "wheel", "land-green", number == 0);
+        RouletteClass(state, "wheel", "land-red", RouletteReds.Contains(number));
+        RouletteClass(state, "wheel", "land-black", number != 0 && !RouletteReds.Contains(number));
+        for (var pocket = 0; pocket <= 36; pocket++)
+            RouletteClass(state, "wheel", "land-n" + pocket, number == pocket);
+        SetRouletteBall(state, RouletteBallMotion.LandingFrame(number));
+    }
+
+    private void SetRouletteBall(State state, int frame)
+    {
+        if (state.RouletteFrame == frame) return;
+        if (state.RouletteFrame >= 0) RouletteClass(state, "ball", "ball-frame-" + state.RouletteFrame, false);
+        RouletteClass(state, "ball", "ball-frame-" + frame, true);
+        state.RouletteFrame = frame;
+    }
+
     private void SetCoinFace(State state, int face, bool turning)
     {
         if (state.CoinFrame != face)
@@ -911,6 +959,7 @@ public sealed class CasinoPresenter : IDisposable
             if (_states.TryGetValue(player.Id, out var state)
                 && state.Player.SessionId == player.SessionId)
             {
+                if (state.RouletteFrame >= 0) RouletteClass(state, "ball", "ball-frame-" + state.RouletteFrame, false);
                 _states.Remove(player.Id);
                 HideAllViews(player.Id);
             }
@@ -931,8 +980,11 @@ public sealed class CasinoPresenter : IDisposable
     {
         lock (_gate)
         {
-            foreach (var player in _states.Keys.ToArray())
-                HideAllViews(player);
+            foreach (var state in _states.Values)
+            {
+                if (state.RouletteFrame >= 0) RouletteClass(state, "ball", "ball-frame-" + state.RouletteFrame, false);
+                HideAllViews(state.Player.Id);
+            }
             _states.Clear();
         }
     }
@@ -959,6 +1011,10 @@ public sealed class CasinoPresenter : IDisposable
         public bool Pending { get; set; }
         public int Stake { get; set; } = 100;
         public int Load { get; set; } = 500;
+        public int RouletteFrame { get; set; } = -1;
+        public int RouletteStartAngle { get; set; }
+        public int? RouletteStake { get; set; }
+        public Guid? RouletteOperationId { get; set; }
         public int CoinFrame { get; set; } = -1;
         public bool CoinTurning { get; set; }
         public bool CoinArmed { get; set; }
