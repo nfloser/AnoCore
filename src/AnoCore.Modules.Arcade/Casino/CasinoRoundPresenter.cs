@@ -761,7 +761,7 @@ public sealed class CasinoRoundPresenter : IDisposable
     {
         CasinoRoundGame.Blackjack => "Blackjack 3:2 · Dealer steht auf Soft 17 · bis 4 Hände (alte Runden: 2) · Split-Asse: eine Karte · Double auch nach Split · Versicherung 2:1 gegen Ass · Even Money: sicher 1:1 · späte Aufgabe: halber Einsatz zurück · kein erneutes Teilen von Assen.",
         CasinoRoundGame.BiggestBoy => "5×3 · 10 Linien · Einsatz/10. Kebap-Wild sammelt im Bonus Bierwerte. 3/4/5 Gesichter: 10/15/20 Freispiele. Je vier Wilds +10 Freispiele und ×2/×3/×10 ab nächstem Spin. Max. drei Verlängerungen. Rundengewinn max. 5.000× Einsatz, danach Bonusende. Auszahlung am Rundenende.",
-        CasinoRoundGame.Spitze => "Eine Walze · GG Spray löscht die drei Türme · Safari Mesh 1/2/4/7/10× · Neon Revolution 3/8/16/29/50× · Gold 10/40/100/200/350× · Messer erhöht alle Leitern · Cashpot einsammeln · 7 Action Games bei drei vollen Türmen · maximal 100 bezahlte Spins pro Runde. Eigene virtuelle AnoCasino-Quoten.",
+        CasinoRoundGame.Spitze => "Eine Walze · GG Spray löscht die drei Türme · Safari Mesh 0,2/0,4/0,8/2/6× · Neon Revolution 0,6/1,2/3/8/30× · Gold 2/6/24/100/300× · Messer erhöht alle Leitern · Cashpot einsammeln · 7 Action Games bei drei vollen Türmen · maximal 100 bezahlte Spins pro Runde. Eigene virtuelle AnoCasino-Quoten.",
         CasinoRoundGame.Book => "5 Walzen · 10 Linien · BUCH ist Wild/Scatter · 3+ Bücher: 10 Freispiele · erneute Scatter: +5, max. 30 Freispiele · Einsatz bleibt fix. Auszahlung am Bonusende.",
         _ => "50 % Chance: Zwischenstand verdoppeln oder verlieren · BANK bucht den Zwischenstand zurück · nach 5 Erfolgen BANK wählen.",
     };
