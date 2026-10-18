@@ -97,6 +97,17 @@
             <Button id="casino_round_betmax" class="button"><Label text="MAX" hittest="false" /></Button>
           </Panel>
         </Panel>
+        <Panel class="spitze-legacy-bindings" hittest="false">
+          <Label id="casino_round_held" text="" hittest="false" />
+          <Label id="casino_round_next" text="" hittest="false" />
+          <Label id="casino_round_bonus" text="" hittest="false" />
+          <Label id="casino_round_dealer" text="" hittest="false" />
+          <Label id="casino_round_step0" text="" hittest="false" />
+          <Label id="casino_round_step1" text="" hittest="false" />
+          <Label id="casino_round_step2" text="" hittest="false" />
+          <Label id="casino_round_step3" text="" hittest="false" />
+          <Label id="casino_round_step4" text="" hittest="false" />
+        </Panel>
         <Label id="casino_round_detail" class="round-detail" text="{s:text}" />
         <Panel class="row stake-controls">
           <Label class="stake-label" text="EINSATZ" />
