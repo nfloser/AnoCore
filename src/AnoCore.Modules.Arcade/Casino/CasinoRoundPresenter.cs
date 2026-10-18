@@ -15,6 +15,7 @@ public sealed class CasinoRoundPresenter : IDisposable
     public static readonly CustomHudId HudId = new("ano.casino.rounds");
     public static readonly CustomHudId ExpandingHudId = new("ano.casino.biggestboy");
     public static readonly CustomHudId BlackjackHudId = new("ano.casino.blackjack");
+    public static readonly CustomHudId SpitzeHudId = new("ano.casino.spitze");
     // Column-major, presentation only: never used to generate or settle a spin.
     private static readonly ImmutableArray<BiggestBoySymbol> WelcomeGrid =
     [
@@ -66,6 +67,10 @@ public sealed class CasinoRoundPresenter : IDisposable
             _owned.Add(hud.Register(new("ano.casino"), new(BlackjackHudId,
                 "panorama/layout/custom_game/anocore/ano_casino_blackjack.xml", "casino_round_root",
                 new[] { "play", "minus", "plus", "hit", "stand", "double", "split", "insurance", "decline", "surrender", "evenmoney", "retry", "close", "back", "refresh", "rules", "betmin", "betmax", "betdouble", "bethalf" }
+                    .Select(x => "casino_round_" + x).ToArray(), captureInput: true), ClickAsync));
+            _owned.Add(hud.Register(new("ano.casino"), new(SpitzeHudId,
+                "panorama/layout/custom_game/anocore/ano_casino_spitze.xml", "casino_round_root",
+                new[] { "play", "minus", "plus", "spin", "collect", "ag", "retry", "close", "back", "refresh", "rules", "betmin", "betmax", "betdouble", "bethalf" }
                     .Select(x => "casino_round_" + x).ToArray(), captureInput: true), ClickAsync));
             _owned.Add(events.Subscribe<PlayerDisconnectedEvent>((e, _) => { Forget(e.Player); return ValueTask.CompletedTask; }));
             _owned.Add(events.Subscribe<PlayerReconnectedEvent>((e, _) => { Forget(e.Previous); return ValueTask.CompletedTask; }));
@@ -308,7 +313,7 @@ public sealed class CasinoRoundPresenter : IDisposable
     {
         var expanding = state.Game == CasinoRoundGame.Book || state.Game == CasinoRoundGame.BiggestBoy && (state.Round is null
             || ControlledSlotRules.IsBiggest(Read<BiggestBoySpinResult>(state.Round).State.RulesVersion));
-        var desired = expanding ? ExpandingHudId : state.Game == CasinoRoundGame.Blackjack ? BlackjackHudId : HudId;
+        var desired = expanding ? ExpandingHudId : state.Game == CasinoRoundGame.Blackjack ? BlackjackHudId : state.Game == CasinoRoundGame.Spitze ? SpitzeHudId : HudId;
         var changed = state.Hud != desired;
         if (changed) { _hud.Hide(state.Player.Id, state.Hud); state.Classes.Clear(); state.Hud = desired; }
         if (expanding) RenderExpanding(state); else RenderLegacy(state);
@@ -343,7 +348,7 @@ public sealed class CasinoRoundPresenter : IDisposable
         Class(state, "root", "can-double", false); Class(state, "root", "can-split", false);
         if (state.Round is not { } snapshot)
         {
-            ClearCards(state);
+            if (state.Game == CasinoRoundGame.Blackjack) ClearCards(state);
             if (state.Game != CasinoRoundGame.Blackjack)
             {
                 Text(state, "held", "0 €"); Text(state, "next", "Einsatz wählen und Runde starten");
@@ -776,9 +781,9 @@ public sealed class CasinoRoundPresenter : IDisposable
     }
     private bool Current(State s) => !_disposed && _states.TryGetValue(s.Player.Id, out var state) && ReferenceEquals(state, s)
         && _players.TryGet(s.Player.Id, out var player) && player is { IsConnected: true } && player.SessionId == s.Player.SessionId;
-    private void Forget(PlayerSnapshot player) { lock (_gate) if (_states.TryGetValue(player.Id, out var state) && state.Player.SessionId == player.SessionId) { _states.Remove(player.Id); _hud.Hide(player.Id, HudId); _hud.Hide(player.Id, ExpandingHudId); _hud.Hide(player.Id, BlackjackHudId); } }
-    public void Close(PlayerId player) { lock (_gate) { if (_states.TryGetValue(player, out var state)) state.Visible = false; _hud.Hide(player, HudId); _hud.Hide(player, ExpandingHudId); _hud.Hide(player, BlackjackHudId); } }
-    public void Reset() { lock (_gate) { _states.Clear(); _hud.HideAll(HudId); _hud.HideAll(ExpandingHudId); _hud.HideAll(BlackjackHudId); } }
+    private void Forget(PlayerSnapshot player) { lock (_gate) if (_states.TryGetValue(player.Id, out var state) && state.Player.SessionId == player.SessionId) { _states.Remove(player.Id); _hud.Hide(player.Id, HudId); _hud.Hide(player.Id, ExpandingHudId); _hud.Hide(player.Id, BlackjackHudId); _hud.Hide(player.Id, SpitzeHudId); } }
+    public void Close(PlayerId player) { lock (_gate) { if (_states.TryGetValue(player, out var state)) state.Visible = false; _hud.Hide(player, HudId); _hud.Hide(player, ExpandingHudId); _hud.Hide(player, BlackjackHudId); _hud.Hide(player, SpitzeHudId); } }
+    public void Reset() { lock (_gate) { _states.Clear(); _hud.HideAll(HudId); _hud.HideAll(ExpandingHudId); _hud.HideAll(BlackjackHudId); _hud.HideAll(SpitzeHudId); } }
     public void Dispose() { lock (_gate) { if (_disposed) return; Reset(); _disposed = true; foreach (var owned in _owned) owned.Dispose(); } }
     private sealed class State(PlayerSnapshot player, CasinoRoundGame game)
     {
