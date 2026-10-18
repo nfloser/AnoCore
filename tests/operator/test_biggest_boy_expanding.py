@@ -14,17 +14,10 @@ from audit_biggest_boy_expanding import audit, profile
 from check_biggest_boy_assets import missing_assets
 
 
-def locked_source(path):
-    data = (ROOT / path).read_bytes()
-    if path.endswith('ano_casino_rounds.css'):
-        data = data.split(b'\n/* Blackjack table:', 1)[0]
-    return data
-
-
 class BiggestBoyExpandingUiTests(unittest.TestCase):
     def test_book_resources_and_rules_are_unchanged(self):
         for path, expected in json.loads((ROOT / 'docs/biggest-boy-v4-source-lock.json').read_text()).items():
-            self.assertEqual(expected, hashlib.sha256(locked_source(path)).hexdigest(), path)
+            self.assertEqual(expected, hashlib.sha256((ROOT / path).read_bytes()).hexdigest(), path)
 
     def test_three_rows_and_bounded_motion_panels_use_only_original_symbols(self):
         ui = ROOT / 'ui/AnoCore'

@@ -1,0 +1,112 @@
+
+.rules-sheet { visibility:collapse; width:100%; height:440px; padding:16px 22px; border:2px solid #aa9462; border-radius:12px; flow-children:down; overflow:scroll; background-color:#10291f; }
+.rules-title { font-size:25px; color:#e3d2a2; margin-bottom:10px; }
+.rules-line { width:100%; font-size:20px; white-space:normal; margin-bottom:12px; }
+.blackjack-rules .rules-sheet { visibility:visible; }
+.blackjack-rules .table { visibility:collapse; }
+/* Dedicated native Blackjack table. Fixed bounds are in Panorama's 1080p design space. */
+.round-host, .round-overlay { width:100%; height:100%; }
+.round-overlay { visibility:collapse; }
+.round-overlay.shown { visibility:visible; }
+.round-dim { width:4000px; height:2400px; horizontal-align:center; vertical-align:center; background-color:#030907ed; }
+.round-window { width:1400px; height:1000px; horizontal-align:center; vertical-align:center; flow-children:down; padding:18px 24px; background-color:gradient(linear, 0% 0%, 0% 100%, from(#111c18), to(#070d0b)); border:2px solid #aa9462; border-radius:16px; }
+Label { font-family:Arial; color:#f0f4ef; font-size:20px; margin:0px; }
+.header { width:100%; height:54px; flow-children:right; }
+.brand { width:fill-parent-flow(1); vertical-align:center; font-size:28px; font-weight:bold; letter-spacing:3px; color:#e3d2a2; }
+.button { height:44px; min-width:132px; padding:8px 14px; margin-right:8px; border:1px solid #587360; border-radius:5px; background-color:#172b22; }
+.button Label { horizontal-align:center; vertical-align:center; font-size:18px; }
+.button:hover { border-color:#e3d2a2; background-color:#294838; }
+.primary { background-color:#236443; border-color:#79c79a; }
+.accounts { width:100%; height:74px; flow-children:right; margin-bottom:12px; }
+.counter { width:fill-parent-flow(1); height:74px; flow-children:down; margin-right:8px; padding:9px 16px; border:1px solid #425b4b; border-radius:6px; background-color:#101c16; }
+.caption { color:#b5c8bb; font-size:15px; letter-spacing:1px; }
+.amount { font-size:28px; color:#f0e1b7; margin-top:5px; }
+.table { width:100%; flow-children:down; padding:12px 18px; border:3px solid #9c8453; border-radius:28px; background-color:gradient(radial, 50% 30%, 0% 0%, 75% 80%, from(#1b6149), to(#092f24)); }
+.table-heading { horizontal-align:center; color:#d9c794; font-size:16px; letter-spacing:2px; }
+.dealer-summary { horizontal-align:center; font-size:19px; color:#e5f1e8; margin-top:4px; }
+.card-row { width:600px; height:82px; min-height:82px; horizontal-align:center; flow-children:none; margin-top:6px; }
+.playing-card { visibility:collapse; position:0px 0px 0px; width:62px; height:80px; padding:6px 0px; border:1px solid #c4c6b7; border-radius:6px; background-color:#fff9e9; color:#18281f; font-size:26px; font-weight:bold; text-align:center; white-space:normal; }
+.playing-card.present { visibility:visible; }
+.playing-card.red { color:#b0213d; }
+.playing-card.face-down { background-color:#173b31; border:2px solid #d3bd7f; color:#e6d499; }
+.playing-card.deal-a { animation-name:'blackjack-deal-a'; animation-duration:0.3s; animation-timing-function:ease-out; }
+.playing-card.deal-b { animation-name:'blackjack-deal-b'; animation-duration:0.3s; animation-timing-function:ease-out; }
+@keyframes 'blackjack-deal-a' { 0% { opacity:0; transform:translateY(-24px); } 100% { opacity:1; transform:translateY(0px); } }
+@keyframes 'blackjack-deal-b' { 0% { opacity:0; transform:translateY(-24px); } 100% { opacity:1; transform:translateY(0px); } }
+.hand-grid { width:100%; flow-children:down; }
+.hand-pair { width:100%; flow-children:right; }
+.player-hand { visibility:collapse; width:fill-parent-flow(1); height:140px; flow-children:down; padding:5px; margin:4px; border:1px solid #547663; border-radius:10px; background-color:#092b23cc; }
+.player-hand.present { visibility:visible; }
+.player-hand.active-hand { border:2px solid #8be5b1; background-color:#21523c; }
+.hand-summary { width:100%; font-size:18px; text-align:center; color:#e9efdf; white-space:normal; height:40px; }
+.active-hand .hand-summary { color:#acffd0; }
+.extra-hands { visibility:collapse; }
+.more-hands .extra-hands { visibility:visible; }
+.result { width:100%; min-height:44px; max-height:62px; margin:8px 0px; padding:8px 12px; border:1px solid #4c6c54; background-color:#12271d; border-radius:6px; font-size:19px; white-space:normal; }
+.stake-controls { height:50px; horizontal-align:center; flow-children:right; }
+.stake-controls .stake-quick { min-width:62px; padding:8px 12px; }
+.stake-controls .caption { vertical-align:center; margin-right:18px; }
+.stake-amount { width:180px; vertical-align:center; text-align:center; font-size:25px; color:#f0e1b7; }
+.active .stake-controls { visibility:collapse; }
+.actions, .insurance-actions { height:52px; horizontal-align:center; flow-children:right; }
+.actions, .insurance-actions, .hit-action, .stand-action, .double-action, .split-action, .surrender-action, .insure-action, .evenmoney-action, .retry { visibility:collapse; }
+.active .actions { visibility:visible; }
+.insurance-offer .actions { visibility:collapse; }
+.insurance-offer .insurance-actions { visibility:visible; }
+.can-hit .hit-action, .can-stand .stand-action, .can-double .double-action, .can-split .split-action, .can-surrender .surrender-action, .can-insure .insure-action, .can-evenmoney .evenmoney-action, .uncertain .retry { visibility:visible; }
+.busy .actions, .busy .insurance-actions, .busy .stake-controls { opacity:0.4; }
+.insurance-result { width:100%; font-size:16px; color:#d5c293; }
+.status { width:100%; height:54px; font-size:18px; white-space:normal; color:#b7dfc5; margin-top:4px; }
+.navigation { height:50px; horizontal-align:center; flow-children:right; }
+.note { horizontal-align:center; font-size:14px; color:#a6b7ac; margin-top:4px; }
+.card-index-0 { position:0px 0px 0px; }
+.compact .card-index-0 { position:0px 0px 0px; }
+.card-index-1 { position:72px 0px 0px; }
+.compact .card-index-1 { position:24px 0px 0px; }
+.card-index-2 { position:144px 0px 0px; }
+.compact .card-index-2 { position:48px 0px 0px; }
+.card-index-3 { position:216px 0px 0px; }
+.compact .card-index-3 { position:72px 0px 0px; }
+.card-index-4 { position:288px 0px 0px; }
+.compact .card-index-4 { position:96px 0px 0px; }
+.card-index-5 { position:360px 0px 0px; }
+.compact .card-index-5 { position:120px 0px 0px; }
+.card-index-6 { position:432px 0px 0px; }
+.compact .card-index-6 { position:144px 0px 0px; }
+.card-index-7 { position:504px 0px 0px; }
+.compact .card-index-7 { position:168px 0px 0px; }
+.card-index-8 { position:576px 0px 0px; }
+.compact .card-index-8 { position:192px 0px 0px; }
+.card-index-9 { position:648px 0px 0px; }
+.compact .card-index-9 { position:216px 0px 0px; }
+.card-index-10 { position:720px 0px 0px; }
+.compact .card-index-10 { position:240px 0px 0px; }
+.card-index-11 { position:792px 0px 0px; }
+.compact .card-index-11 { position:264px 0px 0px; }
+.card-index-12 { position:864px 0px 0px; }
+.compact .card-index-12 { position:288px 0px 0px; }
+.card-index-13 { position:936px 0px 0px; }
+.compact .card-index-13 { position:312px 0px 0px; }
+.card-index-14 { position:1008px 0px 0px; }
+.compact .card-index-14 { position:336px 0px 0px; }
+.card-index-15 { position:1080px 0px 0px; }
+.compact .card-index-15 { position:360px 0px 0px; }
+.card-index-16 { position:1152px 0px 0px; }
+.compact .card-index-16 { position:384px 0px 0px; }
+.card-index-17 { position:1224px 0px 0px; }
+.compact .card-index-17 { position:408px 0px 0px; }
+.card-index-18 { position:1296px 0px 0px; }
+.compact .card-index-18 { position:432px 0px 0px; }
+.card-index-19 { position:1368px 0px 0px; }
+.compact .card-index-19 { position:456px 0px 0px; }
+.card-index-20 { position:1440px 0px 0px; }
+.compact .card-index-20 { position:480px 0px 0px; }
+.card-row.cards-1 { width:62px; }
+.card-row.cards-2 { width:134px; }
+.card-row.cards-3 { width:206px; }
+.card-row.cards-4 { width:278px; }
+.card-row.cards-5 { width:350px; }
+.card-row.cards-6 { width:422px; }
+.card-row.cards-7 { width:494px; }
+.card-row.cards-8 { width:566px; }
+.compact .playing-card { text-align:left; padding-left:3px; font-size:22px; }

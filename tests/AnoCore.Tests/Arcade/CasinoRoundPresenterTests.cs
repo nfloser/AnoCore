@@ -15,6 +15,47 @@ public sealed class CasinoRoundPresenterTests
     private static readonly PlayerId Player = new(76561198000911901);
 
     [TestMethod]
+    public async Task BlackjackQuickStakesStayExactAndNeverBookFunds()
+    {
+        using var f = await Fixture.Create(new() { Blackjack = 10000 });
+        f.Wallet.Balance = new(2000, 3750, 0);
+        await f.Presenter.OpenAsync(Player, CasinoRoundGame.Blackjack);
+        await f.Click("betmax");
+        Assert.AreEqual("3.750 €", f.Text("stake"));
+        await f.Click("bethalf");
+        Assert.AreEqual("1.850 €", f.Text("stake"));
+        await f.Click("betdouble");
+        Assert.AreEqual("3.700 €", f.Text("stake"));
+        await f.Click("betmin");
+        Assert.AreEqual("50 €", f.Text("stake"));
+        Assert.AreEqual(0, f.Rounds.Calls.Count);
+    }
+
+    [TestMethod]
+    public async Task InsuranceUsesDedicatedViewExactCostAndSafeDeclineWhenUnfunded()
+    {
+        using var f = await Fixture.Create();
+        var state = BlackjackExtendedRulesTests.InsuranceRound(true);
+        f.Rounds.Current = new(Guid.NewGuid(), Player, CasinoRoundGame.Blackjack, 100, 1, false, 100, 0, JsonSerializer.Serialize(state));
+        await f.Presenter.OpenAsync(Player, CasinoRoundGame.Blackjack);
+        Assert.AreEqual(CasinoRoundPresenter.BlackjackHudId, f.ActiveHud);
+        Assert.IsTrue(f.Class("insurance-offer"));
+        Assert.IsTrue(f.Class("can-insure"));
+        Assert.IsFalse(f.Class("can-hit"));
+        Assert.AreEqual("VERSICHERN · 50 €", f.Text("insurance_label"));
+        Assert.AreEqual("?", f.Text("dealer_card1"));
+        f.Wallet.Balance = f.Wallet.Balance with { Allocated = 0 };
+        await f.Click("refresh");
+        Assert.IsTrue(f.Class("insurance-offer"));
+        Assert.IsFalse(f.Class("can-insure"));
+        await f.Click("rules");
+        Assert.IsTrue(f.Class("blackjack-rules"));
+        await f.Click("rules");
+        Assert.IsFalse(f.Class("blackjack-rules"));
+        Assert.AreEqual(0, f.Rounds.Calls.Count);
+    }
+
+    [TestMethod]
     [DataRow(CasinoRoundGame.BiggestBoy)]
     [DataRow(CasinoRoundGame.Book)]
     [DataRow(CasinoRoundGame.Blackjack)]
@@ -767,7 +808,7 @@ public sealed class CasinoRoundPresenterTests
             return f;
         }
 
-        public AnoCore.Abstractions.Hud.CustomHudId ActiveHud => Hud.VisiblePlayers(CasinoRoundPresenter.ExpandingHudId).Contains(Player) ? CasinoRoundPresenter.ExpandingHudId : CasinoRoundPresenter.HudId;
+        public AnoCore.Abstractions.Hud.CustomHudId ActiveHud => Hud.VisiblePlayers(CasinoRoundPresenter.BlackjackHudId).Contains(Player) ? CasinoRoundPresenter.BlackjackHudId : Hud.VisiblePlayers(CasinoRoundPresenter.ExpandingHudId).Contains(Player) ? CasinoRoundPresenter.ExpandingHudId : CasinoRoundPresenter.HudId;
         public ValueTask Click(string action) => Hud.ClickAsync(Player, ActiveHud, "casino_round_" + action);
         public string? Text(string panel) => Hud.Text(Player, ActiveHud, "casino_round_" + panel);
         public bool Class(string name) => Hud.Class(Player, ActiveHud, "casino_round_root", name);

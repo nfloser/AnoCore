@@ -5,13 +5,6 @@ import xml.etree.ElementTree as ET
 ROOT=Path(__file__).resolve().parents[2]
 UI=ROOT/'ui/AnoCore'
 
-def locked_source(path):
-    data = (ROOT / path).read_bytes()
-    if path.endswith('ano_casino_rounds.css'):
-        data = data.split(b'\n/* Blackjack table:', 1)[0]
-    return data
-
-
 class CoinflipFacesTests(unittest.TestCase):
     def test_originals_and_both_build_paths(self):
         for name,item in json.loads((ROOT/'docs/coinflip-original-assets.json').read_text()).items():
@@ -34,6 +27,6 @@ class CoinflipFacesTests(unittest.TestCase):
         self.assertIn('animation-duration:0.48s',css)
         self.assertIn('.land-tails .coin-tails { opacity:1; }',css)
         for path,expected in json.loads((ROOT/'docs/biggest-boy-v4-source-lock.json').read_text()).items():
-            self.assertEqual(expected,hashlib.sha256(locked_source(path)).hexdigest())
+            self.assertEqual(expected,hashlib.sha256((ROOT/path).read_bytes()).hexdigest())
 
 if __name__=='__main__':unittest.main()
