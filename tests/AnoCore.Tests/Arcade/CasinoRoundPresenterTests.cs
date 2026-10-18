@@ -15,6 +15,35 @@ public sealed class CasinoRoundPresenterTests
     private static readonly PlayerId Player = new(76561198000911901);
 
     [TestMethod]
+    public async Task FourHandsRenderAndClearWithoutLeavingStaleCards()
+    {
+        using var f = await Fixture.Create();
+        var deck = BlackjackExtendedRulesTests.Deck();
+        var hands = Enumerable.Range(0, 4).Select(i => new BlackjackHand(
+            [deck[2 * i], deck[2 * i + 1]], 100, i != 3, false, true)).ToImmutableArray();
+        var state = new BlackjackState(BlackjackRules.RulesVersion, 4, 100, hands,
+            [deck[8], deck[9]], deck.Skip(10).ToImmutableArray(), 3, BlackjackRoundStatus.PlayerTurn, 0);
+        f.Rounds.Current = new(Guid.NewGuid(), Player, CasinoRoundGame.Blackjack, 100, 5, false, 400, 0, JsonSerializer.Serialize(state));
+        await f.Presenter.OpenAsync(Player, CasinoRoundGame.Blackjack);
+        Assert.IsTrue(f.Class("more-hands"));
+        for (var hand = 0; hand < 4; hand++)
+        {
+            Assert.IsTrue(f.PanelClass("hand" + hand, "present"));
+            Assert.IsTrue(f.PanelClass("hand" + hand + "_card0", "present"));
+            Assert.AreEqual(hand == 3, f.PanelClass("hand" + hand, "active-hand"));
+        }
+        Assert.IsTrue(f.Text("detail")!.Contains("Hand 4 von 4"));
+        f.Rounds.Current = null;
+        await f.Click("refresh");
+        Assert.IsFalse(f.Class("more-hands"));
+        for (var hand = 0; hand < 4; hand++)
+        {
+            Assert.IsFalse(f.PanelClass("hand" + hand, "present"));
+            Assert.AreEqual("", f.Text("hand" + hand + "_card0"));
+        }
+    }
+
+    [TestMethod]
     public async Task BlackjackQuickStakesStayExactAndNeverBookFunds()
     {
         using var f = await Fixture.Create(new() { Blackjack = 10000 });

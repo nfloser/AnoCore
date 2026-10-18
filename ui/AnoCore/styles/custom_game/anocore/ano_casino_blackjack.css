@@ -62,45 +62,45 @@ Label { font-family:Arial; color:#f0f4ef; font-size:20px; margin:0px; }
 .card-index-0 { position:0px 0px 0px; }
 .compact .card-index-0 { position:0px 0px 0px; }
 .card-index-1 { position:72px 0px 0px; }
-.compact .card-index-1 { position:24px 0px 0px; }
+.compact .card-index-1 { position:26px 0px 0px; }
 .card-index-2 { position:144px 0px 0px; }
-.compact .card-index-2 { position:48px 0px 0px; }
+.compact .card-index-2 { position:52px 0px 0px; }
 .card-index-3 { position:216px 0px 0px; }
-.compact .card-index-3 { position:72px 0px 0px; }
+.compact .card-index-3 { position:78px 0px 0px; }
 .card-index-4 { position:288px 0px 0px; }
-.compact .card-index-4 { position:96px 0px 0px; }
+.compact .card-index-4 { position:104px 0px 0px; }
 .card-index-5 { position:360px 0px 0px; }
-.compact .card-index-5 { position:120px 0px 0px; }
+.compact .card-index-5 { position:130px 0px 0px; }
 .card-index-6 { position:432px 0px 0px; }
-.compact .card-index-6 { position:144px 0px 0px; }
+.compact .card-index-6 { position:156px 0px 0px; }
 .card-index-7 { position:504px 0px 0px; }
-.compact .card-index-7 { position:168px 0px 0px; }
+.compact .card-index-7 { position:182px 0px 0px; }
 .card-index-8 { position:576px 0px 0px; }
-.compact .card-index-8 { position:192px 0px 0px; }
+.compact .card-index-8 { position:208px 0px 0px; }
 .card-index-9 { position:648px 0px 0px; }
-.compact .card-index-9 { position:216px 0px 0px; }
+.compact .card-index-9 { position:234px 0px 0px; }
 .card-index-10 { position:720px 0px 0px; }
-.compact .card-index-10 { position:240px 0px 0px; }
+.compact .card-index-10 { position:260px 0px 0px; }
 .card-index-11 { position:792px 0px 0px; }
-.compact .card-index-11 { position:264px 0px 0px; }
+.compact .card-index-11 { position:286px 0px 0px; }
 .card-index-12 { position:864px 0px 0px; }
-.compact .card-index-12 { position:288px 0px 0px; }
+.compact .card-index-12 { position:312px 0px 0px; }
 .card-index-13 { position:936px 0px 0px; }
-.compact .card-index-13 { position:312px 0px 0px; }
+.compact .card-index-13 { position:338px 0px 0px; }
 .card-index-14 { position:1008px 0px 0px; }
-.compact .card-index-14 { position:336px 0px 0px; }
+.compact .card-index-14 { position:364px 0px 0px; }
 .card-index-15 { position:1080px 0px 0px; }
-.compact .card-index-15 { position:360px 0px 0px; }
+.compact .card-index-15 { position:390px 0px 0px; }
 .card-index-16 { position:1152px 0px 0px; }
-.compact .card-index-16 { position:384px 0px 0px; }
+.compact .card-index-16 { position:416px 0px 0px; }
 .card-index-17 { position:1224px 0px 0px; }
-.compact .card-index-17 { position:408px 0px 0px; }
+.compact .card-index-17 { position:442px 0px 0px; }
 .card-index-18 { position:1296px 0px 0px; }
-.compact .card-index-18 { position:432px 0px 0px; }
+.compact .card-index-18 { position:468px 0px 0px; }
 .card-index-19 { position:1368px 0px 0px; }
-.compact .card-index-19 { position:456px 0px 0px; }
+.compact .card-index-19 { position:494px 0px 0px; }
 .card-index-20 { position:1440px 0px 0px; }
-.compact .card-index-20 { position:480px 0px 0px; }
+.compact .card-index-20 { position:520px 0px 0px; }
 .card-row.cards-1 { width:62px; }
 .card-row.cards-2 { width:134px; }
 .card-row.cards-3 { width:206px; }
@@ -109,4 +109,4 @@ Label { font-family:Arial; color:#f0f4ef; font-size:20px; margin:0px; }
 .card-row.cards-6 { width:422px; }
 .card-row.cards-7 { width:494px; }
 .card-row.cards-8 { width:566px; }
-.compact .playing-card { text-align:left; padding-left:3px; font-size:22px; }
+.compact .playing-card { text-align:left; padding-left:1px; font-size:22px; }

@@ -1171,8 +1171,16 @@ long fans, explicit net/gross results, exact stake shortcuts and a full rules sh
 Original Book XML/CSS and source-lock tests are restored unchanged from #525.
 Both native build paths compile the new resources. Matching addon upload required.
 
-Release build: zero warnings/errors. Last broad run: 1,279 passed, 204 skipped,
+Release build: zero warnings/errors. Last broad run: 1,281 passed, 204 skipped,
 ManagementPipeBridgeTests excluded for local Unix-socket restrictions. New MariaDB
 concurrent insurance regression is included for CI. Semantic format still requires
 permitted named pipes; whitespace formatting applied to changed C# files.
 Native Valve/CS2/two-client acceptance remains open. Keep PR draft, no merge/release.
+
+Review follow-up: verified legacy service transitions retain v1 metadata/reservation;
+four-hand rendering and refresh clear all cards. Long fan spacing leaves room for
+both digits of a ten. First PR CI passed build, full tests (including MariaDB),
+operator/PowerShell and UI build-script syntax, then found whitespace differences
+from the folder formatter. Restored original lock/catch/Tick indentation according
+to the project formatter; no behavior changes in that region. Exact-head CI rerun
+required after review commit. Native acceptance remains open.

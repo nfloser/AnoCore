@@ -25,14 +25,17 @@ class BlackjackTableTests(unittest.TestCase):
                     self.assertEqual('false', child.attrib.get('hittest'))
         self.assertFalse(any('style' in p.attrib for p in tree.iter()))
         self.assertFalse(list(tree.iter('scripts')))
+        rules = tree.find('.//*[@class="rules-sheet"]')
+        self.assertEqual('true', rules.attrib['hittest'])
+        self.assertEqual(11, len(rules.findall('./Label[@class="rules-line"]')))
 
     def test_card_fans_fit_each_split_hand_and_keep_short_hands_centered(self):
         css = (UI / 'styles/custom_game/anocore/ano_casino_blackjack.css').read_text()
         for count in range(1, 9):
             self.assertIn(f'.card-row.cards-{count} {{ width:{(count-1)*72+62}px;', css)
         for index in range(21):
-            self.assertIn(f'.compact .card-index-{index} {{ position:{index*24}px', css)
-        self.assertLessEqual(20 * 24 + 62, 600)
+            self.assertIn(f'.compact .card-index-{index} {{ position:{index*26}px', css)
+        self.assertLessEqual(20 * 26 + 62, 600)
         self.assertLessEqual(7 * 72 + 62, 600)
         self.assertIn('.compact .playing-card { text-align:left;', css)
         self.assertIn("@keyframes 'blackjack-deal-a'", css)
