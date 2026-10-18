@@ -104,6 +104,42 @@ public sealed class SpitzeRulesTests
     }
 
     [TestMethod]
+    public void FirstSpinCollectionHasPinnedHouseEdge()
+    {
+        long allOutcomes = 0;
+        for (var roll = 0; roll < 100; roll++)
+        {
+            var state = SpitzeRules.Start(100, SpitzeRules.FromRoll(roll));
+            allOutcomes += SpitzeRules.Collect(state, state.Revision).FinalPayout!.Value;
+        }
+        Assert.AreEqual(4_200L, allOutcomes);
+        Assert.IsTrue(allOutcomes < 100 * 100);
+    }
+
+    [TestMethod]
+    public void SeededFullRoundsStayWithinReasonableSimulatedReturnBounds()
+    {
+        // This is a regression probe for a fixed play policy, not certified RTP.
+        var random = new Random(531);
+        long paid = 0;
+        long settled = 0;
+        for (var i = 0; i < 10_000; i++)
+        {
+            var state = SpitzeRules.Start(100, SpitzeRules.FromRoll(random.Next(100)));
+            while (state.Status == SpitzeRoundStatus.Active)
+            {
+                state = state.ActionGamesRemaining > 0
+                    ? SpitzeRules.FreeSpin(state, state.Revision, SpitzeRules.FromRoll(random.Next(100)))
+                    : SpitzeRules.Spin(state, state.Revision, SpitzeRules.FromRoll(random.Next(100)));
+            }
+            paid += (long)state.PaidSpins * state.Stake;
+            settled += state.FinalPayout!.Value;
+        }
+        var ratio = (double)settled / paid;
+        Assert.IsTrue(ratio is > 0.7 and < 1.05, $"Simulated return out of bounds: {ratio:P2}");
+    }
+
+    [TestMethod]
     public void OneHundredPaidSpinsSettleWithoutAnExtraDebit()
     {
         var round = SpitzeRules.Start(50, SpitzeSymbol.Blank);
