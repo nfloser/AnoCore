@@ -8,22 +8,22 @@ Eine Walze zeigt fünf CS-inspirierte Skin-Symbole und Leerfelder. Der serversei
 
 | Symbol | Effekt | AnoCasino-Häufigkeit |
 | --- | --- | ---: |
-| GG Spray | Alle drei Türme und den Cashpot zurücksetzen | 16 % |
-| Safari Mesh | Niedrigen Turm erhöhen | 27 % |
-| Neon Revolution | Mittleren Turm erhöhen | 21 % |
-| Gold | Hohen Turm erhöhen | 10 % |
-| Messer | Joker: alle drei Türme erhöhen | 10 % |
-| Leerfeld | Kein Fortschritt | 16 % |
+| GG Spray | Alle drei Türme und den Cashpot zurücksetzen | 25 % |
+| Safari Mesh | Niedrigen Turm erhöhen | 28 % |
+| Neon Revolution | Mittleren Turm erhöhen | 22 % |
+| Gold | Hohen Turm erhöhen | 6 % |
+| Messer | Joker: alle drei Türme erhöhen | 4 % |
+| Leerfeld | Kein Fortschritt | 15 % |
 
 Die drei fünfstufigen Gewinnleitern geben folgende Einsatzmultiplikatoren vor:
 
 | Stufe | Safari Mesh | Neon Revolution | Gold |
 | --- | ---: | ---: | ---: |
-| 1 | 1× | 3× | 10× |
-| 2 | 2× | 8× | 40× |
-| 3 | 4× | 16× | 100× |
-| 4 | 7× | 29× | 200× |
-| 5 | 10× | 50× | 350× |
+| 1 | 0,2× | 0,6× | 2× |
+| 2 | 0,4× | 1,2× | 6× |
+| 3 | 0,8× | 3× | 24× |
+| 4 | 2× | 8× | 100× |
+| 5 | 6× | 30× | 300× |
 
 Der Cashpot ist die Summe der drei aktuell höchsten beleuchteten Turmstufen mal festem Rundeinsatz. Erreichen oder wiederholtes Treffen einer vollen Stufe 5 gewährt zusätzlich einen **Direkterfolg** in Höhe ihres Höchstwerts. Direkterfolge bleiben auch beim Verlustsymbol erhalten und werden erst bei endgültiger Auszahlung einmalig gutgeschrieben.
 
@@ -35,7 +35,7 @@ Das erste vollständige Füllen aller drei Türme startet sieben kostenlose Acti
 
 - Neuer Einsatzstandard CasinoMaximumStakes.Spitze = 100000 virtuelle €; erlaubt sind 50 bis 1000000, in 50er-Schritten. Der Wert gilt nur für neue Runden.
 - Jeder akzeptierte bezahlte Spin bucht einmal den Rundeneinsatz. Action Games und Einsammeln kosten nichts; während der Runde bleibt die Einsatzhöhe gesperrt.
-- Konservative maximal reservierte Rundenauszahlung: (100 + 7 + 1) × 410 × Einsatz; bei 100000 sind das 4428000000 virtuelle €.
+- Konservative maximal reservierte Rundenauszahlung: (100 + 7 + 1) × 336 × Einsatz; bei 100000 sind das 3628800000 virtuelle €.
 - Die bestehende Kontoobergrenze und mögliche Reservierungen werden vor der Zufallsziehung geprüft. Die Datenbank schützt Wiederholungsanfragen mit Operations-ID und Revision.
 - Historische Risk-Runden und die dazugehörigen Regeln, Dateien und IDs dürfen nicht entfernt werden.
 
