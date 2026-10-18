@@ -93,7 +93,7 @@ Compile-Resource "$layout\ano_casino.xml" "$layout\ano_casino.vxml_c"
 Compile-Resource "$style\ano_casino_native_v2.css" "$style\ano_casino_native_v2.vcss_c"
 Compile-Resource "$layout\ano_casino_native_v2.xml" "$layout\ano_casino_native_v2.vxml_c"
 
-$casinoViews = @("ano_casino_lobby", "ano_casino_slots", "ano_casino_coinflip", "ano_casino_roulette", "ano_casino_rounds", "ano_casino_blackjack")
+$casinoViews = @("ano_casino_lobby", "ano_casino_slots", "ano_casino_coinflip", "ano_casino_roulette", "ano_casino_rounds", "ano_casino_spitze", "ano_casino_blackjack")
 if ($buildBiggestBoy) { $casinoViews += "ano_casino_biggest" }
 foreach ($view in $casinoViews) {
     Compile-Resource "$style\$view.css" "$style\$view.vcss_c"
