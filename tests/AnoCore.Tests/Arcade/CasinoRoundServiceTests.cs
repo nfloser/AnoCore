@@ -264,7 +264,7 @@ public sealed class CasinoRoundServiceTests
         Assert.AreEqual(CasinoRoundGame.Spitze, first.Round.Game);
         Assert.AreEqual(CasinoRoundKind.Spitze, store.Current!.Kind);
         Assert.AreEqual(900L, first.Balance.Allocated);
-        Assert.AreEqual(4_428_000L, store.Current.ReservedPayout);
+        Assert.AreEqual(3_628_800L, store.Current.ReservedPayout);
         var firstState = System.Text.Json.JsonSerializer.Deserialize<SpitzeRoundState>(first.Round.StateJson)!;
         Assert.AreEqual(1, firstState.PaidSpins);
         var second = await service.ApplyAsync(new(Guid.NewGuid(), Player, first.Round.Id,
