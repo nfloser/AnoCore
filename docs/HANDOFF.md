@@ -1146,10 +1146,13 @@ and explicit gross/net result ribbon; see `blackjack.md`.
 
 Python operator suite: 97 tests, 18 skipped, no failures. Book source prefix and
 original assets remain locked; only `.view-blackjack` selectors were appended.
-Production rule code compiled with .NET 10.0.100 and all 18 repository rule test
-invocations passed via a temporary assertion harness (not the MSTest runner).
-Full restore/build/presenter/MariaDB tests/format and native CS2 acceptance remain
-pending. No merge/release.
+Release solution build passed: zero warnings/errors. Regular Arcade MSTest:
+176 passed, 19 DB skips. Broader suite: 1,265 passed, 203 environment skips,
+ManagementPipeBridgeTests excluded for local Unix-socket restrictions.
+Formatting failed at Roslyn named-pipe workspace startup (SocketException 13);
+whitespace checks passed. MariaDB, CI and native acceptance remain pending.
+Reviewed rule settlement parity, hidden dealer data, active-hand order, scoped
+styles and exact stakes. No merge/release or native-ready claim.
 Automatic approval review rejected the push to public nfloser/AnoCore, stating
 public publication/destination authorization was insufficient. Do not bypass;
 obtain explicit owner confirmation before publishing this branch/PR.

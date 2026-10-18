@@ -39,11 +39,13 @@ bytes before the extension remain hash locked; XML, art and slot rules are uncha
 Automated regressions cover split turn order, natural versus split 21, both
 naturals, bust priority, dealer soft 17, exact stakes, concealed cards and refresh.
 The full Python operator suite passes: 97 tests, 18 environment skips.
-A temporary .NET 10.0.100 SDK compiled production BlackjackRules.cs with the
-repository rule tests: all 18 invocations passed using a minimal assertion harness
-(no NuGet/MSTest runner; only the existing stake-limit constant was stubbed).
-Full solution build, presenter/MariaDB tests and formatting remain unverified;
-NuGet restore did not complete in this environment.
+Release solution build passed with zero warnings/errors. Regular MSTest Arcade
+run: 176 passed, 19 database-dependent skipped. Broader solution run: 1,265 passed,
+203 environment-dependent skipped, excluding ManagementPipeBridgeTests because
+local Unix sockets are restricted. Python operator run: 97 total, 18 skipped,
+no failures. Formatting was attempted but the Roslyn workspace failed with a
+named-pipe SocketException (permission denied); whitespace checks passed.
+MariaDB integration and exact-head CI remain pending.
 No native acceptance or production-ready claim is made.
 
 Both the server plugin and matching compiled Workshop UI need updating for the

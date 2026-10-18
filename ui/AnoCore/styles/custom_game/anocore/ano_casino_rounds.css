@@ -506,7 +506,8 @@ Label { color:#e9efed; font-family:Arial; font-size:17px; margin:4px; }
 .reels-armed .round-detail, .reels-armed .bonus-summary { opacity:0; }
 
 /* Blackjack table: bounded 21-card rows remain readable after a split. */
-.view-blackjack .round-window { border-color:#39e38c; }
+.view-blackjack .round-window { height:1000px; padding:16px; border-color:#39e38c; }
+.view-blackjack.active .stake-controls { visibility:collapse; }
 .view-blackjack .round-cover { visibility:collapse; }
 .view-blackjack .title { horizontal-align:center; color:#e4d7a9; font-size:30px; margin-bottom:10px; }
 .view-blackjack .counter { border:1px solid #245b42; border-radius:6px; }

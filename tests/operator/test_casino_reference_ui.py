@@ -28,7 +28,7 @@ class CasinoReferenceUiTests(unittest.TestCase):
         selectors = re.findall(r'([^{}]+)\{[^{}]*\}', extension)
         self.assertTrue(selectors)
         for selector in selectors:
-            self.assertTrue(selector.strip().startswith('.view-blackjack '), selector)
+            self.assertTrue(selector.strip().startswith(('.view-blackjack ', '.view-blackjack.active ')), selector)
         self.assertIn('height:82px; min-height:82px', extension)
         self.assertIn('.view-blackjack .round-detail { visibility:visible;', extension)
 
