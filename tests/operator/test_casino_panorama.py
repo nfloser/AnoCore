@@ -173,6 +173,20 @@ class CasinoResourcesTests(unittest.TestCase):
                        '-InstallLocalClient','styles\\custom_game']:
             self.assertIn(marker, one_click)
 
+    def test_spitze_original_images_autoload_from_shared_casino_folder(self):
+        source = (UI/'ensure-spitze-assets.ps1').read_text()
+        for original in ['ggspray.png', 'safarimesh.webp', 'neonrevolution.webp',
+                         'gold.webp', 'bluegem.png']:
+            self.assertIn(original, source)
+        self.assertIn('--source $SourceDirectory --destination $SourceDirectory', source)
+        self.assertIn('if ($found.Count -eq 0) { return }', source)
+        for build in ['build.ps1', 'build-casino.ps1']:
+            script = (UI/build).read_text()
+            self.assertIn('ensure-spitze-assets.ps1', script)
+            self.assertIn('spitze_$name', script)
+        ci = (ROOT/'.github/workflows/ci.yml').read_text()
+        self.assertIn('ensure-spitze-assets.ps1', ci)
+
     def test_spitze_asset_preparer_exports_five_square_rgba_pngs(self):
         import subprocess
         import sys
