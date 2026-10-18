@@ -21,34 +21,34 @@ public static class SpitzeRules
     public const int BonusSpins = 7;
     public const int MaximumStake = CasinoStakeLimits.TechnicalMaximum;
 
-    private static readonly int[] LowValues = [1, 2, 4, 7, 10];
-    private static readonly int[] MiddleValues = [3, 8, 16, 29, 50];
-    private static readonly int[] HighValues = [10, 40, 100, 200, 350];
+    private static readonly int[] LowValues = [2, 4, 8, 20, 60]; // tenths of stake
+    private static readonly int[] MiddleValues = [6, 12, 30, 80, 300];
+    private static readonly int[] HighValues = [20, 60, 240, 1000, 3000];
 
     /// <summary>Pinned server-side distribution, with genuine empty stops.</summary>
     public static SpitzeSymbol FromRoll(int roll) => roll switch
     {
         < 0 or >= 100 => throw new ArgumentOutOfRangeException(nameof(roll)),
-        < 16 => SpitzeSymbol.Loss,
-        < 43 => SpitzeSymbol.SafariMesh,
-        < 64 => SpitzeSymbol.NeonRevolution,
-        < 74 => SpitzeSymbol.Gold,
-        < 84 => SpitzeSymbol.Knife,
+        < 25 => SpitzeSymbol.Loss,
+        < 53 => SpitzeSymbol.SafariMesh,
+        < 75 => SpitzeSymbol.NeonRevolution,
+        < 81 => SpitzeSymbol.Gold,
+        < 85 => SpitzeSymbol.Knife,
         _ => SpitzeSymbol.Blank,
     };
 
     public static long MaximumExposure(int stake)
     {
         ValidateStake(stake);
-        // One potential 410x peak win per spin, plus one full cashpot.
+        // One potential (6 + 30 + 300)x peak win per spin, plus a full cashpot.
         // Conservative upper bound for every payable outcome of one round.
-        return checked((long)(MaximumPaidSpins + BonusSpins + 1) * 410 * stake);
+        return checked((long)(MaximumPaidSpins + BonusSpins + 1) * 336 * stake);
     }
 
     public static long Cashpot(SpitzeRoundState state)
     {
         ArgumentNullException.ThrowIfNull(state);
-        return checked((long)state.Stake * (Value(LowValues, state.Low)
+        return checked((long)(state.Stake / 10) * (Value(LowValues, state.Low)
             + Value(MiddleValues, state.Middle) + Value(HighValues, state.High)));
     }
 
@@ -135,7 +135,7 @@ public static class SpitzeRules
     {
         if (level < values.Length) level++;
         if (level == values.Length)
-            direct = checked(direct + (long)values[^1] * stake);
+            direct = checked(direct + (long)values[^1] * (stake / 10));
     }
 
     private static int Value(int[] values, int level) => level > 0 && level <= values.Length ? values[level - 1] : 0;
