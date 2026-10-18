@@ -80,6 +80,20 @@ New-Item -ItemType Directory -Force -Path (Join-Path $content "$style\casino") |
 $casinoTextures = @("slots", "coinflip", "coin_heads", "coin_tails", "roulette", "blackjack", "book", "risk", "wheel", "biggest_kebap", "biggest_beer", "biggest_cigarette", "biggest_butter", "biggest_shot", "biggest_funnel", "biggest_g", "biggest_o", "biggest_a", "biggest_t", "biggest_scatter")
 if ($buildBiggestBoy) { $casinoTextures += "biggest_book" }
 if ($coconutAvailable) { $casinoTextures += "book_coconut" }
+$spitzeNames = @("ggspray", "safarimesh", "neonrevolution", "gold", "knife")
+$spitzeMissing = @()
+foreach ($name in $spitzeNames) {
+    $texture = "spitze_$name"
+    if (Test-Path -LiteralPath (Join-Path $src "$style\\casino\\$texture.png") -PathType Leaf) {
+        $casinoTextures += $texture
+    } else {
+        $spitzeMissing += $texture
+    }
+}
+if ($spitzeMissing.Count -gt 0) {
+    Write-Warning "Alles Spitze images absent: $($spitzeMissing -join ', '). Copy/convert all five skins before publishing the addon."
+}
+
 foreach ($texture in $casinoTextures) {
     Copy-Item (Join-Path $src "$style\casino\$texture.png") (Join-Path $content "$style\casino\$texture.png") -Force
     Compile-Resource "$style\casino\$texture.vtex" "$style\casino\$texture.vtex_c"
