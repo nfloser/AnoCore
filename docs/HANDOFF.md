@@ -1201,3 +1201,25 @@ in the extracted package, close CS2 and run the existing build.ps1 with
 Workshop upload is only required when delivering the corrected UI to other clients.
 Check rank/suit, red/black faces, concealed question mark, all split summaries and
 insurance result in CS2; source tests do not replace that native retest.
+
+## 2026-10-18 — Roulette luxury table and stationary-wheel ball (#528)
+
+Branch feat/528-roulette-table is stacked on Blackjack #527 head 2d1deccc,
+retaining the native card text fix. Owner reports wheel/board rotation instead
+of a visible working ball. Replaced rotation keyframes/target wheel transforms
+with an independent bounded ball trajectory on the fixed wheel. Existing 50ms
+tick advances deterministic pose classes for the already booked number; exact
+landing at 3.6s, controls at 4s. No RNG, odds, wallet or schema change.
+
+Native green/gold shell, classic 3x12 number board plus zero and all outside bets,
+selected wager border, larger labels/counters, exact quick stake controls and
+net/gross result ribbon. Historical receipts restore the ball; unknown historic
+stakes do not produce invented net values. Reset/disconnect clears the last pose.
+See roulette.md. Both plugin and matching compiled UI need updating.
+
+Local Release build: zero warnings/errors. Arcade tests: 200 passed, 20 DB skips.
+Final broad run: 1,289 passed, 204 environment
+skips, ManagementPipeBridgeTests excluded for local Unix sockets. Operator suite:
+103 total, 18 environment skips, no failures. Exact-head CI checks pending.
+Native Valve compilation and CS2/two-client acceptance remain open. Keep draft;
+no production merge/release or native-ready claim.
