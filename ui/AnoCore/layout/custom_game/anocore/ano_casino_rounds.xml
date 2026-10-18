@@ -1628,27 +1628,27 @@
           <Panel class="spitze-machine">
             <Panel class="spitze-tower spitze-low" hittest="false">
               <Label class="spitze-tower-title" text="SAFARI MESH" hittest="false" />
-              <Label id="casino_round_spitze_low5" class="spitze-step" text="×10" hittest="false" />
-              <Label id="casino_round_spitze_low4" class="spitze-step" text="×7" hittest="false" />
-              <Label id="casino_round_spitze_low3" class="spitze-step" text="×4" hittest="false" />
-              <Label id="casino_round_spitze_low2" class="spitze-step" text="×2" hittest="false" />
-              <Label id="casino_round_spitze_low1" class="spitze-step" text="×1" hittest="false" />
+              <Label id="casino_round_spitze_low5" class="spitze-step" text="×6" hittest="false" />
+              <Label id="casino_round_spitze_low4" class="spitze-step" text="×2" hittest="false" />
+              <Label id="casino_round_spitze_low3" class="spitze-step" text="×0,8" hittest="false" />
+              <Label id="casino_round_spitze_low2" class="spitze-step" text="×0,4" hittest="false" />
+              <Label id="casino_round_spitze_low1" class="spitze-step" text="×0,2" hittest="false" />
             </Panel>
             <Panel class="spitze-tower spitze-middle" hittest="false">
               <Label class="spitze-tower-title" text="NEON REVOLUTION" hittest="false" />
-              <Label id="casino_round_spitze_middle5" class="spitze-step" text="×50" hittest="false" />
-              <Label id="casino_round_spitze_middle4" class="spitze-step" text="×29" hittest="false" />
-              <Label id="casino_round_spitze_middle3" class="spitze-step" text="×16" hittest="false" />
-              <Label id="casino_round_spitze_middle2" class="spitze-step" text="×8" hittest="false" />
-              <Label id="casino_round_spitze_middle1" class="spitze-step" text="×3" hittest="false" />
+              <Label id="casino_round_spitze_middle5" class="spitze-step" text="×30" hittest="false" />
+              <Label id="casino_round_spitze_middle4" class="spitze-step" text="×8" hittest="false" />
+              <Label id="casino_round_spitze_middle3" class="spitze-step" text="×3" hittest="false" />
+              <Label id="casino_round_spitze_middle2" class="spitze-step" text="×1,2" hittest="false" />
+              <Label id="casino_round_spitze_middle1" class="spitze-step" text="×0,6" hittest="false" />
             </Panel>
             <Panel class="spitze-tower spitze-high" hittest="false">
               <Label class="spitze-tower-title" text="GOLD" hittest="false" />
-              <Label id="casino_round_spitze_high5" class="spitze-step" text="×350" hittest="false" />
-              <Label id="casino_round_spitze_high4" class="spitze-step" text="×200" hittest="false" />
-              <Label id="casino_round_spitze_high3" class="spitze-step" text="×100" hittest="false" />
-              <Label id="casino_round_spitze_high2" class="spitze-step" text="×40" hittest="false" />
-              <Label id="casino_round_spitze_high1" class="spitze-step" text="×10" hittest="false" />
+              <Label id="casino_round_spitze_high5" class="spitze-step" text="×300" hittest="false" />
+              <Label id="casino_round_spitze_high4" class="spitze-step" text="×100" hittest="false" />
+              <Label id="casino_round_spitze_high3" class="spitze-step" text="×24" hittest="false" />
+              <Label id="casino_round_spitze_high2" class="spitze-step" text="×6" hittest="false" />
+              <Label id="casino_round_spitze_high1" class="spitze-step" text="×2" hittest="false" />
             </Panel>
             <Panel class="spitze-reel-machine" hittest="false">
               <Label class="spitze-reel-heading" text="WALZE" hittest="false" />
