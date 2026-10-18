@@ -125,7 +125,7 @@ public sealed class CasinoRoundPresenter : IDisposable
                 if (state.Unconfirmed is not null && action is not ("retry" or "rules"))
                 { state.Status = "Unbestätigte Aktion: BUCHUNG PRÜFEN verwenden."; Render(state); return; }
                 if (action == "rules") { state.BiggestRules = !state.BiggestRules; state.Status = state.Game == CasinoRoundGame.Blackjack ? state.BiggestRules ? "Spielregeln geöffnet · SPIELREGELN schließt die Ansicht" : "Spielregeln geschlossen" : state.Game is CasinoRoundGame.BiggestBoy or CasinoRoundGame.Book ? state.BiggestRules ? "Gewinnplan geöffnet · REGELN schließt die Ansicht" : "Gewinnplan geschlossen" : Rules(state.Game); Render(state); return; }
-                if (state.Game is CasinoRoundGame.Blackjack or CasinoRoundGame.Spitze && action is "betmin" or "betmax" or "betdouble" or "bethalf")
+                if ((state.Game is CasinoRoundGame.Blackjack or CasinoRoundGame.Spitze) && (action is "betmin" or "betmax" or "betdouble" or "bethalf"))
                 {
                     if (state.Round is { IsComplete: false }) return;
                     var ceiling = _stakeLimits.For(state.Game);
