@@ -1132,3 +1132,24 @@ cancelled. MariaDB was not configured. No native CS2 acceptance or deployment.
 The owner explicitly approved publication and requested a deployment download.
 The shell git transport has no credentials; publish using the authenticated GitHub
 connector. CI and native acceptance status must be updated before delivery.
+
+
+## 2026-10-18 — Blackjack audit and table polish (#526)
+
+Local branch `feat/blackjack-polish`, based on #525 head 2cd1850.
+Fixed split turn order: previously Split selected the right hand first, and Hit
+could alternate unfinished hands. Selection now stays on the current actionable
+hand before advancing. Added deterministic regression covering Split → Hit →
+Stand → Stand and per-hand payout boundaries. Shared payout helper drives both
+settlement and result labels. Native green felt table, larger cards, active hand
+and explicit gross/net result ribbon; see `blackjack.md`.
+
+Python operator suite: 97 tests, 18 skipped, no failures. Book source prefix and
+original assets remain locked; only `.view-blackjack` selectors were appended.
+Production rule code compiled with .NET 10.0.100 and all 18 repository rule test
+invocations passed via a temporary assertion harness (not the MSTest runner).
+Full restore/build/presenter/MariaDB tests/format and native CS2 acceptance remain
+pending. No merge/release.
+Automatic approval review rejected the push to public nfloser/AnoCore, stating
+public publication/destination authorization was insufficient. Do not bypass;
+obtain explicit owner confirmation before publishing this branch/PR.

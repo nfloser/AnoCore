@@ -504,3 +504,24 @@ Label { color:#e9efed; font-family:Arial; font-size:17px; margin:4px; }
 .reels-armed .biggest-offset { visibility:visible; }
 .reels-armed.collector-mode .biggest-offset { visibility:collapse; }
 .reels-armed .round-detail, .reels-armed .bonus-summary { opacity:0; }
+
+/* Blackjack table: bounded 21-card rows remain readable after a split. */
+.view-blackjack .round-window { border-color:#39e38c; }
+.view-blackjack .round-cover { visibility:collapse; }
+.view-blackjack .title { horizontal-align:center; color:#e4d7a9; font-size:30px; margin-bottom:10px; }
+.view-blackjack .counter { border:1px solid #245b42; border-radius:6px; }
+.view-blackjack .blackjack-table { background-color:gradient(linear, 0% 0%, 100% 100%, from(#14543e), to(#08291f)); border:2px solid #9d8857; border-radius:24px; padding:14px; }
+.view-blackjack .table-heading { color:#e4d7a9; letter-spacing:2px; font-size:16px; }
+.view-blackjack .dealer-cards { color:#d4e8dc; font-size:17px; margin:3px; }
+.view-blackjack .card-row { height:82px; min-height:82px; horizontal-align:center; margin-bottom:6px; }
+.view-blackjack .playing-card { height:78px; min-height:78px; font-size:23px; padding-top:8px; border-radius:5px; }
+.view-blackjack .playing-card.face-down { background-color:#153d30; border:2px solid #c7b47e; color:#e4d7a9; }
+.view-blackjack .player-hand { padding:7px; border-radius:8px; background-color:#092b21; }
+.view-blackjack .player-hand.active-hand { border:2px solid #67efac; background-color:#174b38; }
+.view-blackjack .hand-summary { font-size:17px; color:#e7f5ec; margin-bottom:5px; }
+.view-blackjack .active-hand .hand-summary { color:#89ffc0; }
+.view-blackjack .round-detail { visibility:visible; background-color:#101f19; border:1px solid #34634c; padding:8px; font-size:17px; max-height:72px; margin:8px 0px; }
+.view-blackjack .blackjack-actions { horizontal-align:center; }
+.view-blackjack .blackjack-actions .button { min-width:180px; padding:10px 14px; }
+.view-blackjack .blackjack-actions Label { horizontal-align:center; font-size:17px; }
+.view-blackjack .status { font-size:16px; max-height:54px; }

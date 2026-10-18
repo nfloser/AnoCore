@@ -22,6 +22,16 @@ class CasinoReferenceUiTests(unittest.TestCase):
                 if child is not button:
                     self.assertEqual('false', child.attrib.get('hittest'))
 
+    def test_blackjack_style_extension_is_scoped_and_preserves_bounded_rows(self):
+        css = (STYLE / 'ano_casino_rounds.css').read_text()
+        extension = css.split('/* Blackjack table:', 1)[1].split('*/', 1)[1]
+        selectors = re.findall(r'([^{}]+)\{[^{}]*\}', extension)
+        self.assertTrue(selectors)
+        for selector in selectors:
+            self.assertTrue(selector.strip().startswith('.view-blackjack '), selector)
+        self.assertIn('height:82px; min-height:82px', extension)
+        self.assertIn('.view-blackjack .round-detail { visibility:visible;', extension)
+
     def test_book_loop_is_a_complete_double_strip_moving_downward(self):
         tree = ET.parse(UI / 'layout/custom_game/anocore/ano_casino_rounds.xml')
         for reel in range(5):

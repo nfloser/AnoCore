@@ -396,6 +396,9 @@ public sealed class CasinoRoundPresenterTests
         Assert.IsTrue(f.PanelClass("hand1", "active-hand"));
         Assert.IsFalse(f.PanelClass("hand0", "active-hand"));
         Assert.IsTrue(f.Text("hand1_summary")!.Contains("16"));
+        Assert.IsTrue(f.Text("hand1_summary")!.Contains("DU BIST DRAN"));
+        Assert.IsTrue(f.Text("detail")!.Contains("Hand 2"));
+        Assert.IsFalse(f.Text("dealer")!.Contains("15"), "Hidden dealer total must not leak.");
 
         state = state with
         {
@@ -407,6 +410,8 @@ public sealed class CasinoRoundPresenterTests
         f.Rounds.Current = f.Rounds.Current with { StateJson = JsonSerializer.Serialize(state) };
         await f.Click("refresh");
         Assert.AreEqual("K\n♥", f.Text("dealer_card1"));
+        Assert.IsTrue(f.Text("hand0_summary")!.Contains("GEWONNEN"));
+        Assert.IsFalse(f.Text("hand0_summary")!.Contains("DU BIST DRAN"));
         Assert.IsFalse(f.PanelClass("dealer_card1", "face-down"));
         Assert.IsFalse(f.PanelClass("hand1", "present"));
         Assert.IsFalse(f.PanelClass("hand1_card0", "present"));
