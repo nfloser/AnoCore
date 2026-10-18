@@ -73,3 +73,27 @@ Label { color:#f0efe4; font-family:Arial; font-size:17px; margin:3px; }
 .view-spitze .round-window { border-color:#b59c58; }
 
 .spitze-legacy-bindings { visibility:collapse; height:0px; }
+
+/* Keep the server-owned outcome label, but draw the supplied skin underneath it.
+   Blank has no image; missing/uncompiled textures still leave legible captions. */
+.spitze-reel-final, .spitze-reel-tile {
+  background-size:contain;
+  background-position:center;
+  background-repeat:no-repeat;
+  font-size:13px;
+  font-weight:bold;
+  text-shadow:1px 1px 2px #040905, -1px -1px 2px #040905;
+  padding-top:82px;
+}
+.spitze-reel-final { padding-top:86px; }
+.spitze-reel-tile.spitze-ggspray,
+.spitze-reel-final.outcome-loss { background-image:url("s2r://panorama/styles/custom_game/anocore/casino/spitze_ggspray.vtex"); }
+.spitze-reel-tile.spitze-safarimesh,
+.spitze-reel-final.outcome-safarimesh { background-image:url("s2r://panorama/styles/custom_game/anocore/casino/spitze_safarimesh.vtex"); }
+.spitze-reel-tile.spitze-neonrevolution,
+.spitze-reel-final.outcome-neonrevolution { background-image:url("s2r://panorama/styles/custom_game/anocore/casino/spitze_neonrevolution.vtex"); }
+.spitze-reel-tile.spitze-gold,
+.spitze-reel-final.outcome-gold { background-image:url("s2r://panorama/styles/custom_game/anocore/casino/spitze_gold.vtex"); }
+.spitze-reel-tile.spitze-knife,
+.spitze-reel-final.outcome-knife { background-image:url("s2r://panorama/styles/custom_game/anocore/casino/spitze_knife.vtex"); }
+.spitze-reel-tile.spitze-blank, .spitze-reel-final.outcome-blank { background-image:none; }
