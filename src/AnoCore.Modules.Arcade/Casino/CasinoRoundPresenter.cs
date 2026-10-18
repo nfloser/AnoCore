@@ -25,7 +25,7 @@ public sealed class CasinoRoundPresenter : IDisposable
         BiggestBoySymbol.Scatter, BiggestBoySymbol.T, BiggestBoySymbol.Butter
     ];
     private static readonly PermissionId Permission = new("ano.casino.play");
-    private static readonly string[] Buttons = ["play", "minus", "plus", "hit", "stand", "double", "split", "risk", "bank", "free", "bonus1", "bonus2", "bonus3", "bonus4", "bonus5", "bonus6", "bonus7", "bonus8", "bonus9", "retry", "close", "back", "refresh", "rules", "sound", "insurance", "decline", "surrender", "evenmoney", "betmin", "betmax", "betdouble", "bethalf"];
+    private static readonly string[] Buttons = ["play", "minus", "plus", "hit", "stand", "double", "split", "risk", "bank", "spin", "collect", "ag", "free", "bonus1", "bonus2", "bonus3", "bonus4", "bonus5", "bonus6", "bonus7", "bonus8", "bonus9", "retry", "close", "back", "refresh", "rules", "sound", "insurance", "decline", "surrender", "evenmoney", "betmin", "betmax", "betdouble", "bethalf"];
     private readonly ICustomHudService _hud;
     private readonly IPlayerRegistry _players;
     private readonly IPermissionEvaluator _permissions;
@@ -125,7 +125,7 @@ public sealed class CasinoRoundPresenter : IDisposable
                 if (state.Unconfirmed is not null && action is not ("retry" or "rules"))
                 { state.Status = "Unbestätigte Aktion: BUCHUNG PRÜFEN verwenden."; Render(state); return; }
                 if (action == "rules") { state.BiggestRules = !state.BiggestRules; state.Status = state.Game == CasinoRoundGame.Blackjack ? state.BiggestRules ? "Spielregeln geöffnet · SPIELREGELN schließt die Ansicht" : "Spielregeln geschlossen" : state.Game is CasinoRoundGame.BiggestBoy or CasinoRoundGame.Book ? state.BiggestRules ? "Gewinnplan geöffnet · REGELN schließt die Ansicht" : "Gewinnplan geschlossen" : Rules(state.Game); Render(state); return; }
-                if (state.Game == CasinoRoundGame.Blackjack && action is "betmin" or "betmax" or "betdouble" or "bethalf")
+                if (state.Game is CasinoRoundGame.Blackjack or CasinoRoundGame.Spitze && action is "betmin" or "betmax" or "betdouble" or "bethalf")
                 {
                     if (state.Round is { IsComplete: false }) return;
                     var ceiling = _stakeLimits.For(state.Game);
@@ -224,7 +224,7 @@ public sealed class CasinoRoundPresenter : IDisposable
                             ? now.AddMilliseconds(200) : null;
                         var v4 = round is { Game: CasinoRoundGame.BiggestBoy } && ControlledSlotRules.IsBiggest(Read<BiggestBoySpinResult>(round).State.RulesVersion);
                         state.AnimatingUntil = (state.AnimationStartsAt ?? now).AddSeconds(v4 || state.Game == CasinoRoundGame.Book
-                            ? BiggestBoyReelMotion.TotalDurationSeconds : state.Game == CasinoRoundGame.BiggestBoy ? 3.2 : state.Game == CasinoRoundGame.Blackjack ? .95 : .65);
+                            ? BiggestBoyReelMotion.TotalDurationSeconds : state.Game == CasinoRoundGame.BiggestBoy ? 3.2 : state.Game == CasinoRoundGame.Spitze ? 1.8 : state.Game == CasinoRoundGame.Blackjack ? .95 : .65);
                         state.Status = "Aktion gebucht · Animation läuft";
                     }
                 }
@@ -331,11 +331,12 @@ public sealed class CasinoRoundPresenter : IDisposable
         Class(state, "root", "reels-armed", moving && !rolling);
         Class(state, "root", "motion-a", rolling && state.Animation % 2 == 1);
         Class(state, "root", "motion-b", rolling && state.Animation % 2 == 0);
-        if (state.Game != CasinoRoundGame.Blackjack) Text(state, "title", state.Game switch { CasinoRoundGame.Blackjack => "BLACKJACK", CasinoRoundGame.Book => "BOOK · FREISPIELE", CasinoRoundGame.BiggestBoy => "BIGGEST BOY · 5×3", _ => "RISK · DOUBLE OR BANK" });
+        if (state.Game != CasinoRoundGame.Blackjack) Text(state, "title", state.Game switch { CasinoRoundGame.Blackjack => "BLACKJACK", CasinoRoundGame.Book => "BOOK · FREISPIELE", CasinoRoundGame.BiggestBoy => "BIGGEST BOY · 5×3", CasinoRoundGame.Spitze => "ALLES SPITZE · CS EDITION", _ => "RISK · DOUBLE OR BANK" });
         Text(state, "account", Points(state.Balance.Available)); Text(state, "bankroll", Points(state.Balance.Allocated));
         Text(state, "stake", CasinoMoney.FormatExact(active ? state.Round!.Stake : state.Stake)); Text(state, "status", state.Status);
         Text(state, "payout", state.Round is { IsComplete: true } round && !moving ? Points(round.Payout) : "0 €");
         Class(state, "root", "can-risk", false);
+        Class(state, "root", "spitze-bonus", false);
         foreach (var option in new[] { "can-hit", "can-stand", "can-surrender", "insurance-offer", "can-insure", "can-evenmoney", "more-hands" })
             Class(state, "root", option, false);
         if (state.Game == CasinoRoundGame.Blackjack) Text(state, "insurance_result", "");
@@ -354,6 +355,8 @@ public sealed class CasinoRoundPresenter : IDisposable
                 : Rules(state.Game));
             Text(state, "dealer", "Dealer wartet auf den Rundenstart");
             if (state.Game == CasinoRoundGame.BiggestBoy) RenderBiggestBoy(state, null, false);
+            if (state.Game == CasinoRoundGame.Spitze)
+                RenderSpitze(state, null);
             if (state.Game == CasinoRoundGame.Book)
                 for (var index = 0; index < 15; index++)
                 {
@@ -366,6 +369,9 @@ public sealed class CasinoRoundPresenter : IDisposable
         }
         switch (snapshot.Game)
         {
+            case CasinoRoundGame.Spitze:
+                RenderSpitze(state, Read<SpitzeRoundState>(snapshot));
+                break;
             case CasinoRoundGame.Risk:
                 var risk = Read<RiskRoundState>(snapshot);
                 Class(state, "root", "can-risk", !snapshot.IsComplete && risk.Gambles < RiskRules.MaximumGambles && risk.HeldPayout <= RiskRules.MaximumHeldExposure / 2);
@@ -418,6 +424,45 @@ public sealed class CasinoRoundPresenter : IDisposable
                 }
                 break;
         }
+    }
+
+    private void RenderSpitze(State state, SpitzeRoundState? round)
+    {
+        var moving = state.AnimatingUntil is not null;
+        var low = round?.Low ?? 0;
+        var middle = round?.Middle ?? 0;
+        var high = round?.High ?? 0;
+        var ladders = new[] { ("low", low), ("middle", middle), ("high", high) };
+        foreach (var (name, level) in ladders)
+            for (var step = 1; step <= 5; step++)
+                Class(state, "spitze_" + name + step, "lit", level >= step);
+        var bonus = round?.ActionGamesRemaining ?? 0;
+        Class(state, "root", "spitze-bonus", bonus > 0);
+        Class(state, "root", "spitze-can-spin", round is { Status: SpitzeRoundStatus.Active, ActionGamesRemaining: 0 }
+            && round.PaidSpins < SpitzeRules.MaximumPaidSpins && state.Balance.Allocated >= round.Stake);
+        Class(state, "root", "spitze-can-collect", round is { Status: SpitzeRoundStatus.Active });
+        Text(state, "spitze_pot", round is null ? "0 €" : Points(SpitzeRules.Cashpot(round)));
+        Text(state, "spitze_direct", Points(round?.DirectWin ?? 0));
+        Text(state, "spitze_games", bonus > 0 ? bonus + " ACTION GAMES" : "ACTION GAMES · 0");
+        Text(state, "spitze_progress", round is null ? "Einsatz wählen und WALZE STARTEN"
+            : round.Status != SpitzeRoundStatus.Active ? "Runde abgeschlossen · Neuer Einsatz bereit"
+            : $"Spin {round.PaidSpins}/{SpitzeRules.MaximumPaidSpins} · {low}/5  |  {middle}/5  |  {high}/5");
+        var symbol = round?.LastSymbol ?? SpitzeSymbol.Blank;
+        Text(state, "spitze_symbol", symbol switch
+        {
+            SpitzeSymbol.Loss => "GG SPRAY",
+            SpitzeSymbol.SafariMesh => "SAFARI MESH",
+            SpitzeSymbol.NeonRevolution => "NEON REVOLUTION",
+            SpitzeSymbol.Gold => "GOLD",
+            SpitzeSymbol.Knife => "MESSER · JOKER",
+            _ => "—",
+        });
+        foreach (var option in Enum.GetValues<SpitzeSymbol>())
+            Class(state, "spitze_symbol", "outcome-" + option.ToString().ToLowerInvariant(), option == symbol);
+        Text(state, "detail", moving ? "Walze läuft · Ergebnis wird nach dem Stopp sichtbar"
+            : round is null ? Rules(CasinoRoundGame.Spitze)
+            : $"Cashpot {Points(SpitzeRules.Cashpot(round))} + Direkterfolge {Points(round.DirectWin)} · " +
+              (round.Status == SpitzeRoundStatus.Active ? "EINSAMMELN oder weiterspielen" : $"Rückzahlung {Points(round.FinalPayout ?? 0)}"));
     }
 
     private void RenderExpanding(State state)
@@ -710,12 +755,13 @@ public sealed class CasinoRoundPresenter : IDisposable
     private static T Read<T>(DurableCasinoRoundSnapshot round) => JsonSerializer.Deserialize<T>(round.StateJson) ?? throw new CasinoRejectedException("Spielstand ungültig.");
     private static string SymbolName(BonusSlotSymbol symbol) => symbol == BonusSlotSymbol.Book ? "BUCH" : symbol.ToString().ToUpperInvariant();
     private static CasinoRoundAction? ParseAction(string action) => action switch
-    { "hit" => CasinoRoundAction.Hit, "stand" => CasinoRoundAction.Stand, "double" => CasinoRoundAction.Double, "split" => CasinoRoundAction.Split, "insurance" => CasinoRoundAction.Insurance, "decline" => CasinoRoundAction.DeclineInsurance, "surrender" => CasinoRoundAction.Surrender, "evenmoney" => CasinoRoundAction.EvenMoney, "risk" => CasinoRoundAction.Risk, "bank" => CasinoRoundAction.Bank, "free" => CasinoRoundAction.FreeSpin, _ => null };
+    { "hit" => CasinoRoundAction.Hit, "stand" => CasinoRoundAction.Stand, "double" => CasinoRoundAction.Double, "split" => CasinoRoundAction.Split, "insurance" => CasinoRoundAction.Insurance, "decline" => CasinoRoundAction.DeclineInsurance, "surrender" => CasinoRoundAction.Surrender, "evenmoney" => CasinoRoundAction.EvenMoney, "risk" => CasinoRoundAction.Risk, "bank" => CasinoRoundAction.Bank, "spin" => CasinoRoundAction.Spin, "collect" => CasinoRoundAction.Collect, "ag" => CasinoRoundAction.ActionGame, "free" => CasinoRoundAction.FreeSpin, _ => null };
     private static string Cards(IEnumerable<BlackjackCard> cards) => string.Join("  ", cards.Select(card => (card.Rank == BlackjackRank.Ace ? "A" : card.Rank == BlackjackRank.King ? "K" : card.Rank == BlackjackRank.Queen ? "Q" : card.Rank == BlackjackRank.Jack ? "J" : ((int)card.Rank).ToString(CultureInfo.InvariantCulture)) + (card.Suit switch { BlackjackSuit.Clubs => "♣", BlackjackSuit.Diamonds => "♦", BlackjackSuit.Hearts => "♥", _ => "♠" })));
     private static string Rules(CasinoRoundGame game) => game switch
     {
         CasinoRoundGame.Blackjack => "Blackjack 3:2 · Dealer steht auf Soft 17 · bis 4 Hände (alte Runden: 2) · Split-Asse: eine Karte · Double auch nach Split · Versicherung 2:1 gegen Ass · Even Money: sicher 1:1 · späte Aufgabe: halber Einsatz zurück · kein erneutes Teilen von Assen.",
         CasinoRoundGame.BiggestBoy => "5×3 · 10 Linien · Einsatz/10. Kebap-Wild sammelt im Bonus Bierwerte. 3/4/5 Gesichter: 10/15/20 Freispiele. Je vier Wilds +10 Freispiele und ×2/×3/×10 ab nächstem Spin. Max. drei Verlängerungen. Rundengewinn max. 5.000× Einsatz, danach Bonusende. Auszahlung am Rundenende.",
+        CasinoRoundGame.Spitze => "Eine Walze · GG Spray löscht die drei Türme · Safari Mesh 1/2/4/7/10× · Neon Revolution 3/8/16/29/50× · Gold 10/40/100/200/350× · Messer erhöht alle Leitern · Cashpot einsammeln · 7 Action Games bei drei vollen Türmen · maximal 100 bezahlte Spins pro Runde. Eigene virtuelle AnoCasino-Quoten.",
         CasinoRoundGame.Book => "5 Walzen · 10 Linien · BUCH ist Wild/Scatter · 3+ Bücher: 10 Freispiele · erneute Scatter: +5, max. 30 Freispiele · Einsatz bleibt fix. Auszahlung am Bonusende.",
         _ => "50 % Chance: Zwischenstand verdoppeln oder verlieren · BANK bucht den Zwischenstand zurück · nach 5 Erfolgen BANK wählen.",
     };
