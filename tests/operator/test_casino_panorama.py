@@ -140,6 +140,39 @@ class CasinoResourcesTests(unittest.TestCase):
             self.assertIn('.outcome-' + result, css)
         self.assertIn('spitze_knife.vtex', css)
 
+    def test_spitze_reel_uses_biggest_boy_image_panel_pattern(self):
+        root = ET.parse(UI/'layout/custom_game/anocore/ano_casino_spitze.xml').getroot()
+        final = next((node for node in root.iter()
+                      if node.attrib.get('id') == 'casino_round_spitze_symbol'), None)
+        self.assertIsNotNone(final)
+        self.assertEqual(final.tag, 'Panel')
+        self.assertEqual(len(final), 1)
+        self.assertEqual(final[0].tag, 'Label')
+        self.assertEqual(final[0].attrib.get('id'), 'casino_round_spitze_symbol_caption')
+        tiles = [node for node in root.iter('Panel')
+                 if 'spitze-reel-tile' in node.attrib.get('class', '')]
+        self.assertEqual(len(tiles), 8)
+        for node in tiles:
+            self.assertEqual(len(node), 1)
+            self.assertEqual(node[0].tag, 'Label')
+        presenter = (ROOT/'src/AnoCore.Modules.Arcade/Casino/CasinoRoundPresenter.cs').read_text()
+        self.assertIn('Text(state, "spitze_symbol_caption", symbol switch', presenter)
+        self.assertIn('Class(state, "spitze_symbol", "outcome-"', presenter)
+        css = (UI/'styles/custom_game/anocore/ano_casino_spitze.css').read_text()
+        self.assertIn('.spitze-reel-tile { width:', css)
+        self.assertIn('background-size:contain;', css)
+        self.assertIn('spitze-reel-final.outcome-knife', css)
+
+    def test_spitze_workshop_build_can_refuse_missing_images(self):
+        for build in ['build.ps1', 'build-casino.ps1']:
+            source = (UI/build).read_text()
+            self.assertIn('[switch]$RequireSpitzeSkins', source)
+            self.assertIn('if ($RequireSpitzeSkins) { throw $missingMessage }', source)
+        one_click = (UI/'build-spitze.ps1').read_text()
+        for marker in ['prepare-spitze-assets.py','-RequireSpitzeSkins',
+                       '-InstallLocalClient','styles\\custom_game']:
+            self.assertIn(marker, one_click)
+
     def test_spitze_asset_preparer_exports_five_square_rgba_pngs(self):
         import subprocess
         import sys
