@@ -453,7 +453,7 @@ public sealed class CasinoRoundPresenter : IDisposable
             : round.Status != SpitzeRoundStatus.Active ? "Runde abgeschlossen · Neuer Einsatz bereit"
             : $"Spin {round.PaidSpins}/{SpitzeRules.MaximumPaidSpins} · {low}/5  |  {middle}/5  |  {high}/5");
         var symbol = round?.LastSymbol ?? SpitzeSymbol.Blank;
-        Text(state, "spitze_symbol", symbol switch
+        Text(state, "spitze_symbol_caption", symbol switch
         {
             SpitzeSymbol.Loss => "GG SPRAY",
             SpitzeSymbol.SafariMesh => "SAFARI MESH",
