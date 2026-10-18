@@ -40,6 +40,7 @@ class BlackjackTableTests(unittest.TestCase):
         self.assertIn('.compact .playing-card { text-align:left;', css)
         self.assertIn("@keyframes 'blackjack-deal-a'", css)
         self.assertIn('height:1000px;', css)
+        self.assertIn('.table { width:100%; height:456px; min-height:456px;', css)
 
     def test_both_native_build_paths_compile_dedicated_view(self):
         for build in ['build.ps1', 'build-casino.ps1']:

@@ -79,6 +79,7 @@ public sealed class CasinoRoundPresenterTests
         Assert.IsFalse(f.Class("can-insure"));
         await f.Click("rules");
         Assert.IsTrue(f.Class("blackjack-rules"));
+        Assert.AreEqual("Spielregeln geöffnet · SPIELREGELN schließt die Ansicht", f.Text("status"));
         await f.Click("rules");
         Assert.IsFalse(f.Class("blackjack-rules"));
         Assert.AreEqual(0, f.Rounds.Calls.Count);
