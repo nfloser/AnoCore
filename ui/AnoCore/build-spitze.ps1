@@ -32,9 +32,9 @@ foreach ($name in $names) {
 }
 
 Write-Output "Compiling skin textures and Panorama panels with the existing combined ANOMEME addon..."
-$args = @("-Addon", $Addon, "-RequireSpitzeSkins", "-InstallLocalClient")
-if ($Cs2) { $args += @("-Cs2", $Cs2) }
-& $build @args
+$buildArgs = @("-Addon", $Addon, "-RequireSpitzeSkins", "-InstallLocalClient")
+if ($Cs2) { $buildArgs += @("-Cs2", $Cs2) }
+& $build @buildArgs
 if (-not $?) { throw "Valve Panorama compilation failed. Check the build output." }
 Write-Output "Compiled Alles Spitze textures are now in the local addon and CS2 test client."
 Write-Output "Important: fully restart CS2. The server-mounted Steam Workshop addon may supersede local client files."
