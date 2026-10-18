@@ -17,6 +17,52 @@ public sealed class BlackjackRulesTests
     }
 
     [TestMethod]
+    public void SplitPlaysLeftHandUntilStandingThenAdvancesToRight()
+    {
+        var state = BlackjackRules.Start(100, Deck(
+            C(BlackjackSuit.Clubs, BlackjackRank.Eight), C(BlackjackSuit.Hearts, BlackjackRank.Ten),
+            C(BlackjackSuit.Spades, BlackjackRank.Eight), C(BlackjackSuit.Diamonds, BlackjackRank.Seven),
+            C(BlackjackSuit.Clubs, BlackjackRank.Two), C(BlackjackSuit.Hearts, BlackjackRank.Three),
+            C(BlackjackSuit.Clubs, BlackjackRank.Four)));
+        state = BlackjackRules.Apply(state, 0, BlackjackAction.Split);
+        Assert.AreEqual(0, state.ActiveHandIndex, "Play the left split hand first.");
+        state = BlackjackRules.Apply(state, 1, BlackjackAction.Hit);
+        Assert.AreEqual(0, state.ActiveHandIndex, "Hit must not switch an unfinished hand.");
+        Assert.AreEqual(14, state.PlayerHands[0].BestTotal);
+        Assert.AreEqual(11, state.PlayerHands[1].BestTotal);
+        state = BlackjackRules.Apply(state, 2, BlackjackAction.Stand);
+        Assert.AreEqual(1, state.ActiveHandIndex);
+        state = BlackjackRules.Apply(state, 3, BlackjackAction.Stand);
+        Assert.AreEqual(BlackjackRoundStatus.Settled, state.Status);
+        Assert.AreEqual(0L, state.TotalPayout);
+    }
+
+    [TestMethod]
+    [DataRow(BlackjackRank.King, BlackjackRank.Ace, false, 250L)]
+    [DataRow(BlackjackRank.King, BlackjackRank.Ace, true, 200L)]
+    [DataRow(BlackjackRank.Ten, BlackjackRank.Eight, false, 200L)]
+    [DataRow(BlackjackRank.Ten, BlackjackRank.Seven, false, 100L)]
+    [DataRow(BlackjackRank.Ten, BlackjackRank.Six, false, 0L)]
+    public void PerHandPayoutMatchesSettlementAndSplitTwentyOneIsNotNatural(
+        BlackjackRank first, BlackjackRank second, bool split, long expected)
+    {
+        var hand = new BlackjackHand([C(BlackjackSuit.Clubs, first), C(BlackjackSuit.Spades, second)], 100, true, false, split);
+        var dealer = new BlackjackHand([C(BlackjackSuit.Hearts, BlackjackRank.Ten), C(BlackjackSuit.Diamonds, BlackjackRank.Seven)], 100, true, false, false);
+        Assert.AreEqual(expected, BlackjackRules.HandPayout(hand, dealer));
+    }
+
+    [TestMethod]
+    public void BothNaturalsPushAndDealerNaturalBeatsSplitTwentyOne()
+    {
+        var player = new BlackjackHand([C(BlackjackSuit.Clubs, BlackjackRank.Ace), C(BlackjackSuit.Spades, BlackjackRank.King)], 100, true, false, false);
+        var dealer = new BlackjackHand([C(BlackjackSuit.Hearts, BlackjackRank.Ace), C(BlackjackSuit.Diamonds, BlackjackRank.Queen)], 100, true, false, false);
+        Assert.AreEqual(100L, BlackjackRules.HandPayout(player, dealer));
+        Assert.AreEqual(0L, BlackjackRules.HandPayout(player with { IsSplit = true }, dealer));
+        var bust = player with { Cards = [.. player.Cards, C(BlackjackSuit.Clubs, BlackjackRank.Queen), C(BlackjackSuit.Clubs, BlackjackRank.Two)] };
+        Assert.AreEqual(0L, BlackjackRules.HandPayout(bust, dealer with { Cards = bust.Cards }));
+    }
+
+    [TestMethod]
     public void HigherStartingStakeKeepsDoubleAndSettlementAccounting()
     {
         var deck = Deck(C(BlackjackSuit.Clubs, BlackjackRank.Ten), C(BlackjackSuit.Hearts, BlackjackRank.Six),

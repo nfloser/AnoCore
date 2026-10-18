@@ -202,9 +202,9 @@ public static class BlackjackRules
         return Settle(state);
     }
 
-    private static BlackjackState AdvanceToActionableHand(BlackjackState state, int afterIndex)
+    private static BlackjackState AdvanceToActionableHand(BlackjackState state, int currentIndex)
     {
-        for (var i = afterIndex + 1; i < state.PlayerHands.Length; i++)
+        for (var i = currentIndex; i < state.PlayerHands.Length; i++)
             if (!state.PlayerHands[i].IsStanding && !state.PlayerHands[i].IsBust)
                 return state with { ActiveHandIndex = i };
         for (var i = 0; i < state.PlayerHands.Length; i++)
@@ -231,17 +231,7 @@ public static class BlackjackRules
         long payout = 0;
         foreach (var hand in state.PlayerHands)
         {
-            if (hand.IsBust) continue;
-            var total = hand.BestTotal;
-            var dealerTotal = dealerHand.BestTotal;
-            if (IsNatural(hand) && !IsNatural(dealerHand))
-                payout = checked(payout + checked(hand.Stake * 5 / 2));
-            else if (IsNatural(dealerHand) && !IsNatural(hand))
-                continue;
-            else if (total > dealerTotal || dealerHand.IsBust)
-                payout = checked(payout + checked(hand.Stake * 2));
-            else if (total == dealerTotal)
-                payout = checked(payout + hand.Stake);
+            payout = checked(payout + HandPayout(hand, dealerHand));
         }
 
         return state with
@@ -252,6 +242,16 @@ public static class BlackjackRules
             TotalPayout = payout,
             ActiveHandIndex = Math.Min(state.ActiveHandIndex, state.PlayerHands.Length - 1),
         };
+    }
+
+    /// <summary>Gross return including the stake, using the same rules as round settlement.</summary>
+    public static long HandPayout(BlackjackHand hand, BlackjackHand dealer)
+    {
+        if (hand.IsBust) return 0;
+        if (IsNatural(hand) && !IsNatural(dealer)) return checked(hand.Stake * 5 / 2);
+        if (IsNatural(dealer) && !IsNatural(hand)) return 0;
+        if (dealer.IsBust || hand.BestTotal > dealer.BestTotal) return checked(hand.Stake * 2);
+        return hand.BestTotal == dealer.BestTotal ? hand.Stake : 0;
     }
 
     private static bool AllHandsDone(ImmutableArray<BlackjackHand> hands) =>
