@@ -89,13 +89,13 @@
           </Button>
 
           <Button id="casino_lobby_risk" class="casino-game-card compact">
-            <Panel class="casino-preview casino-preview-risk" hittest="false">
-              <Label class="casino-symbol-art" text="×2" hittest="false" />
+            <Panel class="casino-preview casino-preview-spitze" hittest="false">
+              <Label class="casino-symbol-art" text="×6  ×30  ×300" hittest="false" />
             </Panel>
             <Panel class="casino-card-footer" hittest="false">
               <Panel class="casino-card-copy" hittest="false">
-                <Label class="casino-card-title" text="RISK" hittest="false" />
-                <Label class="casino-card-caption" text="Double or Bank" hittest="false" />
+                <Label class="casino-card-title" text="ALLES SPITZE" hittest="false" />
+                <Label class="casino-card-caption" text="3 Türme · Cashpot · Action Games" hittest="false" />
               </Panel>
               <Label class="casino-card-arrow" text="›" hittest="false" />
             </Panel>

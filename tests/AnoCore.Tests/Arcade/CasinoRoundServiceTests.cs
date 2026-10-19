@@ -255,6 +255,50 @@ public sealed class CasinoRoundServiceTests
     }
 
     [TestMethod]
+    public async Task SpitzeRoundChargesEveryPaidSpinAndCollectsExactlyOnce()
+    {
+        var store = new MemoryStore(initialAllocated: 1_000);
+        var service = new CasinoRoundService(store, stakeLimits: new() { Spitze = 100_000 });
+        var first = await service.ApplyAsync(new(Guid.NewGuid(), Player, Guid.NewGuid(),
+            CasinoRoundGame.Spitze, CasinoRoundAction.Start, 100, 0));
+        Assert.AreEqual(CasinoRoundGame.Spitze, first.Round.Game);
+        Assert.AreEqual(CasinoRoundKind.Spitze, store.Current!.Kind);
+        Assert.AreEqual(900L, first.Balance.Allocated);
+        Assert.AreEqual(3_628_800L, store.Current.ReservedPayout);
+        var firstState = System.Text.Json.JsonSerializer.Deserialize<SpitzeRoundState>(first.Round.StateJson)!;
+        Assert.AreEqual(1, firstState.PaidSpins);
+        var second = await service.ApplyAsync(new(Guid.NewGuid(), Player, first.Round.Id,
+            CasinoRoundGame.Spitze, CasinoRoundAction.Spin, 100, first.Round.Revision));
+        Assert.AreEqual(800L, second.Balance.Allocated);
+        Assert.AreEqual(200L, second.Round.TotalStake);
+        var secondState = System.Text.Json.JsonSerializer.Deserialize<SpitzeRoundState>(second.Round.StateJson)!;
+        var expectedPayout = secondState.DirectWin + SpitzeRules.Cashpot(secondState);
+        var collected = await service.ApplyAsync(new(Guid.NewGuid(), Player, first.Round.Id,
+            CasinoRoundGame.Spitze, CasinoRoundAction.Collect, 100, second.Round.Revision));
+        Assert.IsTrue(collected.Round.IsComplete);
+        Assert.AreEqual(expectedPayout, collected.Round.Payout);
+        Assert.AreEqual(800L + expectedPayout, collected.Balance.Allocated);
+        Assert.AreEqual(0L, store.Current!.ReservedPayout);
+        Assert.IsNull(await service.ReadAsync(Player));
+    }
+
+    [TestMethod]
+    public async Task SpitzeRejectsFreeGamesAndAlteredStakeBeforeDrawing()
+    {
+        var store = new MemoryStore();
+        var service = new CasinoRoundService(store);
+        var round = await service.ApplyAsync(new(Guid.NewGuid(), Player, Guid.NewGuid(),
+            CasinoRoundGame.Spitze, CasinoRoundAction.Start, 100, 0));
+        await Assert.ThrowsExactlyAsync<CasinoRejectedException>(async () =>
+            await service.ApplyAsync(new(Guid.NewGuid(), Player, round.Round.Id,
+                CasinoRoundGame.Spitze, CasinoRoundAction.ActionGame, 100, round.Round.Revision)));
+        await Assert.ThrowsExactlyAsync<CasinoRejectedException>(async () =>
+            await service.ApplyAsync(new(Guid.NewGuid(), Player, round.Round.Id,
+                CasinoRoundGame.Spitze, CasinoRoundAction.Collect, 150, round.Round.Revision)));
+        Assert.AreEqual(1, store.Transitions);
+    }
+
+    [TestMethod]
     public async Task RiskDebitsOnceAndBankCreditsExactlyHeldStake()
     {
         var store = new MemoryStore();

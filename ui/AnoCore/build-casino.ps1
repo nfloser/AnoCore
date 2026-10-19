@@ -4,6 +4,7 @@ param(
     [string]$BiggestBoyWildPng = "",
     [string]$BookCoconutPng = "",
     [switch]$RequireBookCoconut,
+    [switch]$RequireSpitzeSkins,
     [switch]$IncludeBiggestBoy,
     [ValidatePattern('^[a-z][a-z0-9_]*$')]
     [string]$Addon = "anocasino_ui"
@@ -11,6 +12,8 @@ param(
 
 $ErrorActionPreference = "Stop"
 $src = Split-Path -Parent $MyInvocation.MyCommand.Path
+# Convert the five original CS skins automatically when they are next to the other casino artwork.
+& (Join-Path $src "ensure-spitze-assets.ps1")
 $wildTarget = Join-Path $src "styles\custom_game\anocore\casino\biggest_book.png"
 $buildBiggestBoy = $IncludeBiggestBoy -or $BiggestBoyWildPng -or (Test-Path -LiteralPath $wildTarget -PathType Leaf)
 if ($buildBiggestBoy) {
@@ -80,6 +83,22 @@ New-Item -ItemType Directory -Force -Path (Join-Path $content "$style\casino") |
 $casinoTextures = @("slots", "coinflip", "coin_heads", "coin_tails", "roulette", "blackjack", "book", "risk", "wheel", "biggest_kebap", "biggest_beer", "biggest_cigarette", "biggest_butter", "biggest_shot", "biggest_funnel", "biggest_g", "biggest_o", "biggest_a", "biggest_t", "biggest_scatter")
 if ($buildBiggestBoy) { $casinoTextures += "biggest_book" }
 if ($coconutAvailable) { $casinoTextures += "book_coconut" }
+$spitzeNames = @("ggspray", "safarimesh", "neonrevolution", "gold", "knife")
+$spitzeMissing = @()
+foreach ($name in $spitzeNames) {
+    $texture = "spitze_$name"
+    if (Test-Path -LiteralPath (Join-Path $src "$style\\casino\\$texture.png") -PathType Leaf) {
+        $casinoTextures += $texture
+    } else {
+        $spitzeMissing += $texture
+    }
+}
+if ($spitzeMissing.Count -gt 0) {
+    $missingMessage = "Alles Spitze images absent: $($spitzeMissing -join ', '). Prepare all five original skins first using prepare-spitze-assets.py."
+    if ($RequireSpitzeSkins) { throw $missingMessage }
+    Write-Warning $missingMessage
+}
+
 foreach ($texture in $casinoTextures) {
     Copy-Item (Join-Path $src "$style\casino\$texture.png") (Join-Path $content "$style\casino\$texture.png") -Force
     Compile-Resource "$style\casino\$texture.vtex" "$style\casino\$texture.vtex_c"
@@ -93,7 +112,7 @@ Compile-Resource "$layout\ano_casino.xml" "$layout\ano_casino.vxml_c"
 Compile-Resource "$style\ano_casino_native_v2.css" "$style\ano_casino_native_v2.vcss_c"
 Compile-Resource "$layout\ano_casino_native_v2.xml" "$layout\ano_casino_native_v2.vxml_c"
 
-$casinoViews = @("ano_casino_lobby", "ano_casino_slots", "ano_casino_coinflip", "ano_casino_roulette", "ano_casino_rounds", "ano_casino_blackjack")
+$casinoViews = @("ano_casino_lobby", "ano_casino_slots", "ano_casino_coinflip", "ano_casino_roulette", "ano_casino_rounds", "ano_casino_spitze", "ano_casino_blackjack")
 if ($buildBiggestBoy) { $casinoViews += "ano_casino_biggest" }
 foreach ($view in $casinoViews) {
     Compile-Resource "$style\$view.css" "$style\$view.vcss_c"

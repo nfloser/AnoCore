@@ -99,6 +99,121 @@ class CasinoResourcesTests(unittest.TestCase):
         self.assertNotIn("rotateZ(", roulette_css)
         self.assertIn(".casino-ball", roulette_css)
 
+    def test_spitze_has_three_ladders_real_motion_and_collect_controls(self):
+        root = ET.parse(UI/'layout/custom_game/anocore/ano_casino_spitze.xml').getroot()
+        ids = {node.attrib['id'] for node in root.iter() if 'id' in node.attrib}
+        for ladder in ['low', 'middle', 'high']:
+            for level in range(1, 6):
+                self.assertIn(f'casino_round_spitze_{ladder}{level}', ids)
+        for element in ['spitze_symbol', 'spitze_pot', 'spitze_direct',
+                        'spitze_games', 'spitze_progress', 'spin', 'ag', 'collect']:
+            self.assertIn('casino_round_' + element, ids)
+        content = (UI/'styles/custom_game/anocore/ano_casino_spitze.css').read_text()
+        for name in ['spitze-roll-a', 'spitze-roll-b']:
+            self.assertIn("@keyframes '" + name + "'", content)
+            self.assertIn("animation-name:'" + name + "'", content)
+        lobby = ET.parse(UI/'layout/custom_game/anocore/ano_casino_lobby.xml').getroot()
+        card = next(node for node in lobby.iter('Button')
+                    if node.attrib.get('id') == 'casino_lobby_risk')
+        self.assertIn('ALLES SPITZE', ' '.join(node.attrib.get('text', '') for node in card.iter()))
+        presenter = (ROOT/'src/AnoCore.Modules.Arcade/Casino/CasinoPresenter.cs').read_text()
+        self.assertIn('roundGame = CasinoRoundGame.Spitze;', presenter)
+        rounds = (ROOT/'src/AnoCore.Modules.Arcade/Casino/CasinoRoundPresenter.cs').read_text()
+        self.assertIn('ano_casino_spitze.xml', rounds)
+        for build in ['build.ps1', 'build-casino.ps1']:
+            self.assertIn('"ano_casino_spitze"', (UI/build).read_text())
+
+    def test_spitze_skin_slots_and_texture_build_contract(self):
+        names = ['ggspray', 'safarimesh', 'neonrevolution', 'gold', 'knife']
+        xml = (UI/'layout/custom_game/anocore/ano_casino_spitze.xml').read_text()
+        css = (UI/'styles/custom_game/anocore/ano_casino_spitze.css').read_text()
+        for name in names:
+            texture = f'spitze_{name}'
+            self.assertIn(texture + '.vtex', css)
+            descriptor = UI/f'styles/custom_game/anocore/casino/{texture}.vtex'
+            self.assertTrue(descriptor.is_file())
+            self.assertIn(texture + '.png', descriptor.read_text())
+            self.assertIn('spitze-' + name, xml)
+            for build in ['build.ps1', 'build-casino.ps1']:
+                self.assertIn('"'+name+'"', (UI/build).read_text())
+        for result in ['loss','safarimesh','neonrevolution','gold','knife']:
+            self.assertIn('.outcome-' + result, css)
+        self.assertIn('spitze_knife.vtex', css)
+
+    def test_spitze_reel_uses_biggest_boy_image_panel_pattern(self):
+        root = ET.parse(UI/'layout/custom_game/anocore/ano_casino_spitze.xml').getroot()
+        final = next((node for node in root.iter()
+                      if node.attrib.get('id') == 'casino_round_spitze_symbol'), None)
+        self.assertIsNotNone(final)
+        self.assertEqual(final.tag, 'Panel')
+        self.assertEqual(len(final), 1)
+        self.assertEqual(final[0].tag, 'Label')
+        self.assertEqual(final[0].attrib.get('id'), 'casino_round_spitze_symbol_caption')
+        tiles = [node for node in root.iter('Panel')
+                 if 'spitze-reel-tile' in node.attrib.get('class', '')]
+        self.assertEqual(len(tiles), 8)
+        for node in tiles:
+            self.assertEqual(len(node), 1)
+            self.assertEqual(node[0].tag, 'Label')
+        presenter = (ROOT/'src/AnoCore.Modules.Arcade/Casino/CasinoRoundPresenter.cs').read_text()
+        self.assertIn('Text(state, "spitze_symbol_caption", symbol switch', presenter)
+        self.assertIn('Class(state, "spitze_symbol", "outcome-"', presenter)
+        css = (UI/'styles/custom_game/anocore/ano_casino_spitze.css').read_text()
+        self.assertIn('.spitze-reel-tile { width:', css)
+        self.assertIn('background-size:contain;', css)
+        self.assertIn('spitze-reel-final.outcome-knife', css)
+
+    def test_spitze_workshop_build_can_refuse_missing_images(self):
+        for build in ['build.ps1', 'build-casino.ps1']:
+            source = (UI/build).read_text()
+            self.assertIn('[switch]$RequireSpitzeSkins', source)
+            self.assertIn('if ($RequireSpitzeSkins) { throw $missingMessage }', source)
+        one_click = (UI/'build-spitze.ps1').read_text()
+        for marker in ['prepare-spitze-assets.py','-RequireSpitzeSkins',
+                       '-InstallLocalClient','styles\\custom_game']:
+            self.assertIn(marker, one_click)
+
+    def test_spitze_original_images_autoload_from_shared_casino_folder(self):
+        source = (UI/'ensure-spitze-assets.ps1').read_text()
+        for original in ['ggspray.png', 'safarimesh.webp', 'neonrevolution.webp',
+                         'gold.webp', 'bluegem.png']:
+            self.assertIn(original, source)
+        self.assertIn('--source $SourceDirectory --destination $SourceDirectory', source)
+        self.assertIn('if ($found.Count -eq 0) { return }', source)
+        for build in ['build.ps1', 'build-casino.ps1']:
+            script = (UI/build).read_text()
+            self.assertIn('ensure-spitze-assets.ps1', script)
+            self.assertIn('spitze_$name', script)
+        ci = (ROOT/'.github/workflows/ci.yml').read_text()
+        self.assertIn('ensure-spitze-assets.ps1', ci)
+
+    def test_spitze_asset_preparer_exports_five_square_rgba_pngs(self):
+        import subprocess
+        import sys
+        import tempfile
+        with tempfile.TemporaryDirectory() as temp:
+            root = pathlib.Path(temp)
+            source = root / 'originals'
+            output = root / 'converted'
+            source.mkdir()
+            expected = ['ggspray.png','safarimesh.webp','neonrevolution.webp',
+                        'gold.webp','bluegem.png']
+            for original in expected:
+                Image.new('RGBA',(120,80),(100,180,60,160)).save(source/original)
+            script = UI/'prepare-spitze-assets.py'
+            result = subprocess.run(
+                [sys.executable,str(script),'--source',str(source),
+                 '--destination',str(output)],
+                capture_output=True,text=True,check=False)
+            self.assertEqual(result.returncode,0,result.stderr+result.stdout)
+            for name in ['ggspray','safarimesh','neonrevolution','gold','knife']:
+                png = output/f'spitze_{name}.png'
+                self.assertTrue(png.is_file(),png)
+                with Image.open(png) as im:
+                    self.assertEqual(im.size,(320,320))
+                    self.assertEqual(im.mode,'RGBA')
+                    self.assertEqual(im.getpixel((0,0))[3],0)
+
     def test_round_games_have_all_server_buttons_and_bounded_book_grid(self):
         root = ET.parse(UI/'layout/custom_game/anocore/ano_casino_rounds.xml').getroot()
         ids = [p.attrib['id'] for p in root.iter() if 'id' in p.attrib]

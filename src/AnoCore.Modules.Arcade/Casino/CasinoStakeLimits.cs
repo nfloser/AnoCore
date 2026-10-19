@@ -8,7 +8,8 @@ public sealed record CasinoStakeLimits
     public int Coinflip { get; init; } = 500;
     public int Roulette { get; init; } = 500;
     public int Blackjack { get; init; } = 500;
-    public int Risk { get; init; } = 500;
+    public int Risk { get; init; } = 500; // Retained for already-started Risk rounds.
+    public int Spitze { get; init; } = 100_000;
     public int Book { get; init; } = 10_000;
 
     private static readonly int[] BookSteps = [50, 100, 250, 500, 1_000, 2_500, 5_000, 10_000, 25_000, 50_000, 100_000, 250_000, 500_000, 1_000_000];
@@ -25,7 +26,7 @@ public sealed record CasinoStakeLimits
 
     public CasinoStakeLimits Validate()
     {
-        foreach (var value in new[] { Slots, Coinflip, Roulette, Blackjack, Risk, Book })
+        foreach (var value in new[] { Slots, Coinflip, Roulette, Blackjack, Risk, Spitze, Book })
             if (value is < 50 or > TechnicalMaximum || value % 50 != 0)
                 throw new ArgumentException("CasinoMaximumStakes values must be 50..1000000 in steps of 50.");
         return this;
@@ -41,6 +42,7 @@ public sealed record CasinoStakeLimits
     {
         CasinoRoundGame.Blackjack => Blackjack,
         CasinoRoundGame.Risk => Risk,
+        CasinoRoundGame.Spitze => Spitze,
         CasinoRoundGame.Book => Book,
         _ => throw new ArgumentOutOfRangeException(nameof(game)),
     };

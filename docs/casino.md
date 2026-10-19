@@ -1,5 +1,10 @@
 # AnoCasino – spielbare Version und Bildertausch
 
+**Neues Spiel:** Risk wird in der Lobby durch Alles Spitze ersetzt. Die fünf CS-Symbole,
+Cashpot, drei Leitern, Direkterfolge, Action Games, Regeln und native Abnahme stehen
+in [alles-spitze.md](alles-spitze.md). Historische Risk-Runden bleiben kompatibel.
+
+
 > Erweiterungsstatus: Blackjack, Risk und der Book-artige Bonus-Slot werden in
 > separaten Regel- und Persistenzpaketen entwickelt. Sie sind erst nach nativer
 > Presenter-/Plugin-Integration spielbar. Kistenöffnung und simuliertes Inventar

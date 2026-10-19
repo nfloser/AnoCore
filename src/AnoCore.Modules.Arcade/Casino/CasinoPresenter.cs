@@ -343,7 +343,8 @@ public sealed class CasinoPresenter : IDisposable
                         roundGame = CasinoRoundGame.Blackjack;
                         break;
                     case "risk":
-                        roundGame = CasinoRoundGame.Risk;
+                        // Keep the stable Panorama button ID; Risk is no longer offered to new players.
+                        roundGame = CasinoRoundGame.Spitze;
                         break;
                     case "biggestboy":
                         roundGame = CasinoRoundGame.BiggestBoy;

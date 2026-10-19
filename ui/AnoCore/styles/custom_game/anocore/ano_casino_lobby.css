@@ -455,3 +455,8 @@
 
 .casino-game-grid { overflow:scroll; }
 .casino-preview-biggestboy { background-image:url("s2r://panorama/styles/custom_game/anocore/casino/biggest_scatter.vtex"); background-size:contain; background-position:center; background-repeat:no-repeat; }
+
+/* The historic Risk thumbnail stays in the package for completed round recovery,
+   but the new game advertises its own three-tower identity. */
+.casino-preview-spitze { background-color:#15251e; border:2px solid #af904a; background-image:none; }
+.casino-preview-spitze .casino-symbol-art { visibility:visible; font-size:28px; font-weight:bold; color:#f6d07c; text-align:center; horizontal-align:center; vertical-align:center; }

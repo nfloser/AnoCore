@@ -1,0 +1,148 @@
+<root>
+  <styles>
+    <include src="s2r://panorama/styles/custom_game/anocore/ano_casino_spitze.vcss_c" />
+  </styles>
+  <Panel class="round-host" hittest="false">
+    <Panel id="casino_round_root" class="round-overlay" hittest="true">
+      <Panel class="round-dim" hittest="false" />
+      <Panel class="round-window" hittest="true">
+        <Panel class="round-header">
+          <Label class="brand" text="ANOMEME  /  CASINO" />
+          <Button id="casino_round_close" class="button"><Label text="SCHLIESSEN" hittest="false" /></Button>
+        </Panel>
+        <Label id="casino_round_title" class="title" text="{s:text}" hittest="false" />
+        <Panel class="row balance-row">
+          <Panel class="counter"><Label text="PROFILKONTO" /><Label id="casino_round_account" text="{s:text}" /></Panel>
+          <Panel class="counter"><Label text="AUTOMATENGUTHABEN" /><Label id="casino_round_bankroll" text="{s:text}" /></Panel>
+          <Panel class="counter"><Label text="RUNDENAUSZAHLUNG" /><Label id="casino_round_payout" text="{s:text}" /></Panel>
+        </Panel>
+        <!-- Everything in this view is cosmetic. Results/payouts come only from the durable round service. -->
+        <Panel class="spitze-table">
+          <Panel class="spitze-head" hittest="false">
+            <Label class="spitze-brand" text="ALLES SPITZE" hittest="false" />
+            <Label class="spitze-kicker" text="COUNTER-STRIKE EDITION  /  1 WALZE · 3 CASH­POT-LEITERN" hittest="false" />
+          </Panel>
+          <Panel class="spitze-machine">
+            <Panel class="spitze-tower spitze-low" hittest="false">
+              <Label class="spitze-tower-title" text="SAFARI MESH" hittest="false" />
+              <Label id="casino_round_spitze_low5" class="spitze-step" text="×6" hittest="false" />
+              <Label id="casino_round_spitze_low4" class="spitze-step" text="×2" hittest="false" />
+              <Label id="casino_round_spitze_low3" class="spitze-step" text="×0,8" hittest="false" />
+              <Label id="casino_round_spitze_low2" class="spitze-step" text="×0,4" hittest="false" />
+              <Label id="casino_round_spitze_low1" class="spitze-step" text="×0,2" hittest="false" />
+            </Panel>
+            <Panel class="spitze-tower spitze-middle" hittest="false">
+              <Label class="spitze-tower-title" text="NEON REVOLUTION" hittest="false" />
+              <Label id="casino_round_spitze_middle5" class="spitze-step" text="×30" hittest="false" />
+              <Label id="casino_round_spitze_middle4" class="spitze-step" text="×8" hittest="false" />
+              <Label id="casino_round_spitze_middle3" class="spitze-step" text="×3" hittest="false" />
+              <Label id="casino_round_spitze_middle2" class="spitze-step" text="×1,2" hittest="false" />
+              <Label id="casino_round_spitze_middle1" class="spitze-step" text="×0,6" hittest="false" />
+            </Panel>
+            <Panel class="spitze-tower spitze-high" hittest="false">
+              <Label class="spitze-tower-title" text="GOLD" hittest="false" />
+              <Label id="casino_round_spitze_high5" class="spitze-step" text="×300" hittest="false" />
+              <Label id="casino_round_spitze_high4" class="spitze-step" text="×100" hittest="false" />
+              <Label id="casino_round_spitze_high3" class="spitze-step" text="×24" hittest="false" />
+              <Label id="casino_round_spitze_high2" class="spitze-step" text="×6" hittest="false" />
+              <Label id="casino_round_spitze_high1" class="spitze-step" text="×2" hittest="false" />
+            </Panel>
+            <Panel class="spitze-reel-machine" hittest="false">
+              <Label class="spitze-reel-heading" text="WALZE" hittest="false" />
+              <Panel class="spitze-reel-frame" hittest="false">
+                <Panel class="spitze-reel-motion" hittest="false">
+                  <Panel class="spitze-reel-tile spitze-safarimesh" hittest="false">
+                    <Label class="spitze-tile-name" text="SAFARI" hittest="false" />
+                  </Panel>
+                  <Panel class="spitze-reel-tile spitze-neonrevolution" hittest="false">
+                    <Label class="spitze-tile-name" text="NEON" hittest="false" />
+                  </Panel>
+                  <Panel class="spitze-reel-tile spitze-gold" hittest="false">
+                    <Label class="spitze-tile-name" text="GOLD" hittest="false" />
+                  </Panel>
+                  <Panel class="spitze-reel-tile spitze-knife" hittest="false">
+                    <Label class="spitze-tile-name" text="MESSER" hittest="false" />
+                  </Panel>
+                  <Panel class="spitze-reel-tile spitze-ggspray" hittest="false">
+                    <Label class="spitze-tile-name" text="GG SPRAY" hittest="false" />
+                  </Panel>
+                  <Panel class="spitze-reel-tile spitze-blank" hittest="false">
+                    <Label class="spitze-tile-name" text="—" hittest="false" />
+                  </Panel>
+                  <Panel class="spitze-reel-tile spitze-safarimesh" hittest="false">
+                    <Label class="spitze-tile-name" text="SAFARI" hittest="false" />
+                  </Panel>
+                  <Panel class="spitze-reel-tile spitze-neonrevolution" hittest="false">
+                    <Label class="spitze-tile-name" text="NEON" hittest="false" />
+                  </Panel>
+                </Panel>
+                <Panel id="casino_round_spitze_symbol" class="spitze-reel-final" hittest="false">
+                  <Label id="casino_round_spitze_symbol_caption" class="spitze-tile-name" text="{s:text}" hittest="false" />
+                </Panel>
+              </Panel>
+              <Label id="casino_round_spitze_progress" class="spitze-progress" text="{s:text}" hittest="false" />
+            </Panel>
+          </Panel>
+          <Panel class="spitze-meters" hittest="false">
+            <Panel class="spitze-meter">
+              <Label text="CASHPOT" hittest="false" />
+              <Label id="casino_round_spitze_pot" class="spitze-total" text="{s:text}" hittest="false" />
+            </Panel>
+            <Panel class="spitze-meter">
+              <Label text="DIREKTERFOLGE" hittest="false" />
+              <Label id="casino_round_spitze_direct" class="spitze-total" text="{s:text}" hittest="false" />
+            </Panel>
+            <Panel class="spitze-meter">
+              <Label text="BONUS" hittest="false" />
+              <Label id="casino_round_spitze_games" class="spitze-total" text="{s:text}" hittest="false" />
+            </Panel>
+          </Panel>
+          <Panel class="spitze-actions">
+            <Button id="casino_round_spin" class="button primary spitze-spin">
+              <Label text="WALZE DREHEN" hittest="false" />
+            </Button>
+            <Button id="casino_round_ag" class="button primary spitze-ag">
+              <Label text="ACTION GAME SPIELEN" hittest="false" />
+            </Button>
+            <Button id="casino_round_collect" class="button spitze-collect">
+              <Label text="CASHPOT EINSAMMELN" hittest="false" />
+            </Button>
+          </Panel>
+          <Panel class="spitze-quick">
+            <Button id="casino_round_betmin" class="button"><Label text="MIN" hittest="false" /></Button>
+            <Button id="casino_round_bethalf" class="button"><Label text="½" hittest="false" /></Button>
+            <Button id="casino_round_betdouble" class="button"><Label text="×2" hittest="false" /></Button>
+            <Button id="casino_round_betmax" class="button"><Label text="MAX" hittest="false" /></Button>
+          </Panel>
+        </Panel>
+        <Panel class="spitze-legacy-bindings" hittest="false">
+          <Label id="casino_round_held" text="" hittest="false" />
+          <Label id="casino_round_next" text="" hittest="false" />
+          <Label id="casino_round_bonus" text="" hittest="false" />
+          <Label id="casino_round_dealer" text="" hittest="false" />
+          <Label id="casino_round_step0" text="" hittest="false" />
+          <Label id="casino_round_step1" text="" hittest="false" />
+          <Label id="casino_round_step2" text="" hittest="false" />
+          <Label id="casino_round_step3" text="" hittest="false" />
+          <Label id="casino_round_step4" text="" hittest="false" />
+        </Panel>
+        <Label id="casino_round_detail" class="round-detail" text="{s:text}" />
+        <Panel class="row stake-controls">
+          <Label class="stake-label" text="EINSATZ" />
+          <Button id="casino_round_minus" class="button"><Label text="−" hittest="false" /></Button>
+          <Label id="casino_round_stake" class="stake-value" text="{s:text}" />
+          <Button id="casino_round_plus" class="button"><Label text="+" hittest="false" /></Button>
+          <Button id="casino_round_play" class="button primary"><Label text="NEUE RUNDE / WALZE STARTEN" hittest="false" /></Button>
+        </Panel>
+        <Label id="casino_round_status" class="status" text="{s:text}" />
+        <Panel class="row navigation">
+          <Button id="casino_round_back" class="button"><Label text="SPIELAUSWAHL" hittest="false" /></Button>
+          <Button id="casino_round_refresh" class="button"><Label text="AKTUALISIEREN" hittest="false" /></Button>
+          <Button id="casino_round_rules" class="button"><Label text="SPIELREGELN" hittest="false" /></Button>
+        </Panel>
+        <Button id="casino_round_retry" class="button retry"><Label text="BUCHUNG PRÜFEN" hittest="false" /></Button>
+        <Label class="note" text="Nur virtuelle € · keine Echtgeld-Auszahlung · serverseitig gespeicherte Runde" />
+      </Panel>
+    </Panel>
+  </Panel>
+</root>

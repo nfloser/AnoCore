@@ -4,8 +4,8 @@ using AnoCore.Abstractions.Players;
 
 namespace AnoCore.Modules.Arcade.Casino;
 
-public enum CasinoRoundGame { Blackjack, Risk, Book, BiggestBoy }
-public enum CasinoRoundAction { Start, Hit, Stand, Double, Split, Risk, Bank, FreeSpin, SelectSymbol, Insurance, DeclineInsurance, Surrender, EvenMoney }
+public enum CasinoRoundGame { Blackjack, Risk, Book, BiggestBoy, Spitze }
+public enum CasinoRoundAction { Start, Hit, Stand, Double, Split, Risk, Bank, FreeSpin, SelectSymbol, Insurance, DeclineInsurance, Surrender, EvenMoney, Spin, Collect, ActionGame }
 public sealed record DurableCasinoRoundOperation(Guid Id, PlayerId Player, Guid SessionId,
     CasinoRoundGame Game, CasinoRoundAction Action, int Stake, long ExpectedRevision, int Choice = -1);
 public sealed record DurableCasinoRoundSnapshot(Guid Id, PlayerId Player, CasinoRoundGame Game,
@@ -49,6 +49,7 @@ public sealed class CasinoRoundService(ICasinoRoundStore store, int biggestBoyMa
         {
             CasinoRoundGame.Blackjack => CasinoRoundKind.Blackjack,
             CasinoRoundGame.Risk => CasinoRoundKind.Risk,
+            CasinoRoundGame.Spitze => CasinoRoundKind.Spitze,
             CasinoRoundGame.BiggestBoy => CasinoRoundKind.BiggestBoy,
             _ => CasinoRoundKind.BonusSlot,
         };
@@ -63,6 +64,8 @@ public sealed class CasinoRoundService(ICasinoRoundStore store, int biggestBoyMa
     {
         if (current is null)
         {
+            if (op.Game == CasinoRoundGame.Spitze && op.Action != CasinoRoundAction.Start)
+                throw new CasinoRejectedException("Alles Spitze muss mit START beginnen.");
             var maximum = op.Game == CasinoRoundGame.BiggestBoy ? Math.Clamp(biggestBoyMaximumStake, 50, _biggestBoyOutcomes is null ? BiggestBoyRules.MaximumStake : BiggestBoyStakeLimits.Maximum) : _stakeLimits.For(op.Game);
             if (op.Game == CasinoRoundGame.BiggestBoy && _biggestBoyOutcomes is null && !BiggestBoyRules.IsValidStake(op.Stake))
                 throw new CasinoRejectedException("Ungültiger Einsatz für historische Spielregeln.");
@@ -98,6 +101,20 @@ public sealed class CasinoRoundService(ICasinoRoundStore store, int biggestBoyMa
                     || op.Action == CasinoRoundAction.Risk && (risk.Gambles >= RiskRules.MaximumGambles
                         || risk.HeldPayout > RiskRules.MaximumHeldExposure / 2))
                     throw new CasinoRejectedException("Diese Risk-Aktion ist nicht möglich.");
+                break;
+            case CasinoRoundGame.Spitze:
+                var spitze = Read<SpitzeRoundState>(current);
+                if (spitze.RulesVersion != current.RulesVersion || spitze.Stake != op.Stake
+                    || spitze.Status != SpitzeRoundStatus.Active)
+                    throw new CasinoRejectedException("Alles-Spitze-Spielstand ist ungültig.");
+                if (op.Action == CasinoRoundAction.Spin
+                    && spitze.ActionGamesRemaining == 0 && spitze.PaidSpins < SpitzeRules.MaximumPaidSpins)
+                    debit = op.Stake;
+                else if (op.Action == CasinoRoundAction.ActionGame && spitze.ActionGamesRemaining > 0
+                    || op.Action == CasinoRoundAction.Collect)
+                    debit = 0;
+                else
+                    throw new CasinoRejectedException("Diese Alles-Spitze-Aktion ist nicht möglich.");
                 break;
             case CasinoRoundGame.BiggestBoy:
                 var biggest = Read<BiggestBoySpinResult>(current);
@@ -155,6 +172,24 @@ public sealed class CasinoRoundService(ICasinoRoundStore store, int biggestBoyMa
                 complete = risk.Status != RiskRoundStatus.Active;
                 payout = risk.FinalPayout ?? 0;
                 debit = previous is null ? op.Stake : 0;
+                break;
+            case CasinoRoundGame.Spitze:
+                var previousSpitze = current is null ? null : Read<SpitzeRoundState>(current);
+                var spitze = previousSpitze is null
+                    ? SpitzeRules.Start(op.Stake, SpitzeRules.FromRoll(RandomNumberGenerator.GetInt32(100)))
+                    : op.Action switch
+                    {
+                        CasinoRoundAction.Spin => SpitzeRules.Spin(previousSpitze, previousSpitze.Revision,
+                            SpitzeRules.FromRoll(RandomNumberGenerator.GetInt32(100))),
+                        CasinoRoundAction.ActionGame => SpitzeRules.FreeSpin(previousSpitze, previousSpitze.Revision,
+                            SpitzeRules.FromRoll(RandomNumberGenerator.GetInt32(100))),
+                        CasinoRoundAction.Collect => SpitzeRules.Collect(previousSpitze, previousSpitze.Revision),
+                        _ => throw new CasinoRejectedException("Diese Alles-Spitze-Aktion ist nicht möglich."),
+                    };
+                state = spitze;
+                complete = spitze.Status != SpitzeRoundStatus.Active;
+                payout = spitze.FinalPayout ?? 0;
+                debit = previousSpitze is null || op.Action == CasinoRoundAction.Spin ? op.Stake : 0;
                 break;
             case CasinoRoundGame.BiggestBoy:
                 var previousBiggest = current is null ? null : Read<BiggestBoySpinResult>(current);
@@ -217,6 +252,13 @@ public sealed class CasinoRoundService(ICasinoRoundStore store, int biggestBoyMa
                 totalStake = stake;
                 payout = risk.FinalPayout ?? 0;
                 break;
+            case CasinoRoundKind.Spitze:
+                var spitze = Read<SpitzeRoundState>(round);
+                game = CasinoRoundGame.Spitze;
+                stake = spitze.Stake;
+                totalStake = checked((long)spitze.Stake * spitze.PaidSpins);
+                payout = spitze.FinalPayout ?? 0;
+                break;
             case CasinoRoundKind.BiggestBoy:
                 var biggest = Read<BiggestBoySpinResult>(round);
                 game = CasinoRoundGame.BiggestBoy;
@@ -242,6 +284,7 @@ public sealed class CasinoRoundService(ICasinoRoundStore store, int biggestBoyMa
     {
         CasinoRoundGame.Blackjack => BlackjackRules.RulesVersion,
         CasinoRoundGame.Risk => RiskRules.Version,
+        CasinoRoundGame.Spitze => SpitzeRules.Version,
         CasinoRoundGame.BiggestBoy => BiggestBoyExpandingRules.Version,
         _ => BonusSlotRules.Version,
     };
@@ -249,6 +292,7 @@ public sealed class CasinoRoundService(ICasinoRoundStore store, int biggestBoyMa
     {
         CasinoRoundGame.Blackjack => stake * (version == BlackjackRules.LegacyVersion ? 8L : 17L),
         CasinoRoundGame.Risk => Math.Min(RiskRules.MaximumHeldExposure, stake * (1L << RiskRules.MaximumGambles)),
+        CasinoRoundGame.Spitze => SpitzeRules.MaximumExposure(stake),
         CasinoRoundGame.BiggestBoy => version switch
         {
             ControlledSlotRules.BiggestVersion => BiggestBoyBalancedRules.MaximumRoundExposure(stake),

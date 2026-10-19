@@ -838,7 +838,7 @@ public sealed class CasinoRoundPresenterTests
             return f;
         }
 
-        public AnoCore.Abstractions.Hud.CustomHudId ActiveHud => Hud.VisiblePlayers(CasinoRoundPresenter.BlackjackHudId).Contains(Player) ? CasinoRoundPresenter.BlackjackHudId : Hud.VisiblePlayers(CasinoRoundPresenter.ExpandingHudId).Contains(Player) ? CasinoRoundPresenter.ExpandingHudId : CasinoRoundPresenter.HudId;
+        public AnoCore.Abstractions.Hud.CustomHudId ActiveHud => Hud.VisiblePlayers(CasinoRoundPresenter.BlackjackHudId).Contains(Player) ? CasinoRoundPresenter.BlackjackHudId : Hud.VisiblePlayers(CasinoRoundPresenter.ExpandingHudId).Contains(Player) ? CasinoRoundPresenter.ExpandingHudId : Hud.VisiblePlayers(CasinoRoundPresenter.SpitzeHudId).Contains(Player) ? CasinoRoundPresenter.SpitzeHudId : CasinoRoundPresenter.HudId;
         public ValueTask Click(string action) => Hud.ClickAsync(Player, ActiveHud, "casino_round_" + action);
         public string? Text(string panel) => Hud.Text(Player, ActiveHud, "casino_round_" + panel);
         public bool Class(string name) => Hud.Class(Player, ActiveHud, "casino_round_root", name);

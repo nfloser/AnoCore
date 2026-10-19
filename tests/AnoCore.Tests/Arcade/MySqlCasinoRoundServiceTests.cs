@@ -36,6 +36,67 @@ public sealed class MySqlCasinoRoundServiceTests
     public async Task Cleanup() { if (_database is not null) await Clear(); }
 
     [TestMethod]
+    public async Task SpitzePaidSpinsAndConcurrentCollectSettleOnceAcrossServiceRecreation()
+    {
+        var start = Start(CasinoRoundGame.Spitze);
+        var first = await Service().ApplyAsync(start);
+        Assert.AreEqual(1900L, first.Balance.Allocated);
+        Assert.AreEqual(first.Round, await Service().ReadAsync(Player));
+        var spin = Next(first.Round, CasinoRoundAction.Spin);
+        var spins = await Task.WhenAll(Enumerable.Range(0, 6).Select(_ => Service().ApplyAsync(spin).AsTask()));
+        Assert.IsTrue(spins.All(x => x == spins[0]));
+        Assert.AreEqual(1800L, spins[0].Balance.Allocated);
+        Assert.AreEqual(200L, spins[0].Round.TotalStake);
+
+        var collect = Next(spins[0].Round, CasinoRoundAction.Collect);
+        var collects = await Task.WhenAll(Enumerable.Range(0, 6).Select(_ => Service().ApplyAsync(collect).AsTask()));
+        Assert.IsTrue(collects.All(x => x == collects[0]));
+        Assert.AreEqual(1800L + collects[0].Round.Payout, collects[0].Balance.Allocated);
+        Assert.AreEqual(collects[0], await Service().ApplyAsync(collect));
+        Assert.IsNull(await Service().ReadAsync(Player));
+        Assert.AreEqual(3L, await CountActions());
+    }
+
+    [TestMethod]
+    public async Task SpitzeSevenPersistedActionGamesRechargeNothingAndFinishOnce()
+    {
+        var seeded = SpitzeRules.Start(100, SpitzeSymbol.Knife);
+        for (var i = 0; i < 4; i++)
+            seeded = SpitzeRules.Spin(seeded, seeded.Revision, SpitzeSymbol.Knife);
+        Assert.AreEqual(7, seeded.ActionGamesRemaining);
+        // Fixture insertion itself creates database revision 1; align the pinned rules revision.
+        seeded = seeded with { Revision = 1 };
+
+        var store = new MySqlCasinoRoundStore(_database);
+        var saved = await store.ApplyAsync(new(Guid.NewGuid(), Guid.NewGuid(), Player,
+            CasinoRoundKind.Spitze, 0, "spitze-action-game-fixture"),
+            _ => new(500, SpitzeRules.MaximumExposure(100)),
+            _ => new(SpitzeRules.Version, JsonSerializer.Serialize(seeded), 500, 0,
+                SpitzeRules.MaximumExposure(100), false, "{}"));
+
+        var restored = await Service().ReadAsync(Player);
+        Assert.IsNotNull(restored);
+        Assert.AreEqual(saved.Round.StateJson, restored.StateJson);
+        Assert.AreEqual(1500L, (await _wallet.ReadAsync(Player)).Allocated);
+
+        var receipt = new DurableCasinoRoundReceipt(saved.OperationId, saved.Balance, restored);
+        for (var i = 0; i < SpitzeRules.BonusSpins; i++)
+        {
+            var action = Next(receipt.Round, CasinoRoundAction.ActionGame);
+            var duplicates = await Task.WhenAll(Enumerable.Range(0, 3).Select(_ => Service().ApplyAsync(action).AsTask()));
+            Assert.IsTrue(duplicates.All(x => x == duplicates[0]));
+            receipt = duplicates[0];
+            Assert.AreEqual(500L, receipt.Round.TotalStake);
+            if (!receipt.Round.IsComplete)
+                Assert.AreEqual(1500L, receipt.Balance.Allocated);
+        }
+        Assert.IsTrue(receipt.Round.IsComplete);
+        Assert.AreEqual(1500L + receipt.Round.Payout, (await _wallet.ReadAsync(Player)).Allocated);
+        Assert.IsNull(await Service().ReadAsync(Player));
+        Assert.AreEqual(8L, await CountActions());
+    }
+
+    [TestMethod]
     public async Task RiskStartRestoreBankAndConcurrentReplaySettleOnce()
     {
         var start = Start(CasinoRoundGame.Risk);
