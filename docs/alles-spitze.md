@@ -77,3 +77,22 @@ Zum lokalen Test sind ein passendes AnoCore-Serverplugin und die aus denselben Q
 Auf einem Testserver mit zwei Clients prüfen: alle sechs Ergebnisarten, sichtbare Walzenbewegung, 15 Stufenlichter, Cashpot, Direkterfolge, Einsammeln, sieben Action Games, 100er-Grenze, 100000-Einsatz, Duplikat/Retry, Reconnect, Legacy Risk, Fehlermeldungen und Client-Panorama-Parsing. Normale .xml/.css-Dateien ersetzen keine Valve-kompilierten UI-Ressourcen. Auch nach grüner CI bleibt die CS2-Abnahme Pflicht.
 
 Referenzen: https://merkur-spielewelt.de/spiele/alle-spiele/alles-spitze.html und https://merkur.com/spiele/beitraege/alles-spitze.html
+
+
+## Ergebnis erst nach dem Walzenstopp (#535)
+
+Alles Spitze verwendet wie Biggest Boy Walze 1 eine Vorbereitungsphase von
+200 ms, anschließend 1,9 Sekunden endlichen Walzenlauf. Vier Bildkacheln
+wandern in derselben Reihenfolge nach unten; die einzelnen Schritte verwenden
+dieselbe 40-ms-Animation. Die letzten drei Schritte bremsen zum gebuchten
+Symbol ab. Danach erscheinen Ergebnis, Cashpot, Action Games und Leiterfarben
+gemeinsam. Bereits sichtbare Leiterstände bleiben während des nächsten Spins
+erhalten. Neue Gutschriften erscheinen erst am Ende der jeweiligen Animation,
+auch bei Slots, Coinflip, Roulette, Book, Biggest Boy und Blackjack.
+
+Die Wallet-Buchung bleibt sofort und atomar. Nur die Anzeige wird verzögert;
+Schließen oder erneutes Öffnen bucht keinen weiteren Einsatz und zeigt kein
+Ergebnis vorzeitig. Beim Testen auch Gewinn, Verlust, aufeinanderfolgende Spins,
+Action Games und erneutes Öffnen während der Animation prüfen. Die native
+Darstellung muss mit passenden Plugin- und Workshop-Ressourcen in CS2 geprüft
+werden.

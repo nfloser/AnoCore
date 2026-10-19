@@ -230,7 +230,9 @@ public sealed class CasinoPresenter : IDisposable
                 state.Pending = false;
                 state.Game = null;
                 state.Visible = true;
-                if (history.FirstOrDefault(x => x.Outcome is not null) is { } last)
+                if (state.Started is not null)
+                    state.Status = "Animation läuft · Ergebnis folgt nach dem Stopp";
+                else if (history.FirstOrDefault(x => x.Outcome is not null) is { } last)
                 {
                     if (last.Id != state.RouletteOperationId) state.RouletteStake = null;
                     state.Outcome = last.Outcome;
@@ -742,16 +744,19 @@ public sealed class CasinoPresenter : IDisposable
     {
         LobbyText(state, "profile", state.Player.Name);
         LobbyText(state, "account", Points(state.Balance.Available));
-        LobbyText(state, "bank", Points(state.Balance.Allocated));
+        LobbyText(state, "bank", Points(DisplayedBank(state)));
         LobbyText(state, "loadamount", Points(state.Load));
         LobbyText(state, "status", state.Status);
         LobbyClass(state, "root", "busy", state.Pending);
     }
 
+    private static long DisplayedBank(State state) => state.Started is not null && state.Outcome is { } booked
+        ? state.Balance.Allocated - booked.Payout : state.Balance.Allocated;
+
     private void RenderSlots(State state)
     {
         SlotsText(state, "account", Points(state.Balance.Available));
-        SlotsText(state, "bank", Points(state.Balance.Allocated));
+        SlotsText(state, "bank", Points(DisplayedBank(state)));
         SlotsText(state, "stake", CasinoMoney.FormatExact(state.Stake));
         SlotsText(state, "win", Points(state.Win));
         SlotsText(state, "status", state.Status);
@@ -761,7 +766,7 @@ public sealed class CasinoPresenter : IDisposable
     private void RenderCoinflip(State state)
     {
         CoinText(state, "account", Points(state.Balance.Available));
-        CoinText(state, "bank", Points(state.Balance.Allocated));
+        CoinText(state, "bank", Points(DisplayedBank(state)));
         CoinText(state, "stake", CasinoMoney.FormatExact(state.Stake));
         CoinText(state, "win", Points(state.Win));
         CoinText(state, "choice", state.Coin == 0 ? "Kopf ausgewählt" : "Zahl ausgewählt");

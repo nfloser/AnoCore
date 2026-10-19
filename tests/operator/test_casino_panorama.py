@@ -109,9 +109,14 @@ class CasinoResourcesTests(unittest.TestCase):
                         'spitze_games', 'spitze_progress', 'spin', 'ag', 'collect']:
             self.assertIn('casino_round_' + element, ids)
         content = (UI/'styles/custom_game/anocore/ano_casino_spitze.css').read_text()
-        for name in ['spitze-roll-a', 'spitze-roll-b']:
+        for name in ['spitze-step-a', 'spitze-step-b']:
             self.assertIn("@keyframes '" + name + "'", content)
             self.assertIn("animation-name:'" + name + "'", content)
+        self.assertNotIn('animation-iteration-count:infinite', content)
+        self.assertIn('animation-duration:0.04s', content)
+        self.assertIn('.reels-armed.view-spitze .spitze-reel-final', content)
+        for row in range(4):
+            self.assertIn('casino_round_spitze_motion' + str(row), ids)
         lobby = ET.parse(UI/'layout/custom_game/anocore/ano_casino_lobby.xml').getroot()
         card = next(node for node in lobby.iter('Button')
                     if node.attrib.get('id') == 'casino_lobby_risk')
@@ -133,7 +138,7 @@ class CasinoResourcesTests(unittest.TestCase):
             descriptor = UI/f'styles/custom_game/anocore/casino/{texture}.vtex'
             self.assertTrue(descriptor.is_file())
             self.assertIn(texture + '.png', descriptor.read_text())
-            self.assertIn('spitze-' + name, xml)
+            self.assertIn('spitze-' + name, css)
             for build in ['build.ps1', 'build-casino.ps1']:
                 self.assertIn('"'+name+'"', (UI/build).read_text())
         for result in ['loss','safarimesh','neonrevolution','gold','knife']:
@@ -151,7 +156,7 @@ class CasinoResourcesTests(unittest.TestCase):
         self.assertEqual(final[0].attrib.get('id'), 'casino_round_spitze_symbol_caption')
         tiles = [node for node in root.iter('Panel')
                  if 'spitze-reel-tile' in node.attrib.get('class', '')]
-        self.assertEqual(len(tiles), 8)
+        self.assertEqual(len(tiles), 4)
         for node in tiles:
             self.assertEqual(len(node), 1)
             self.assertEqual(node[0].tag, 'Label')
