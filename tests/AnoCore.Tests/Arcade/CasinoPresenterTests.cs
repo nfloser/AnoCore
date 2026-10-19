@@ -14,6 +14,52 @@ public sealed class CasinoPresenterTests
     private static readonly PlayerId Player = new(76561198000911901);
 
     [TestMethod]
+    public async Task RouletteBasketCombinesBetsAndKeepsBookedTotalWhileAnimating()
+    {
+        using var f = await Fixture.Create();
+        await f.ClickLobby("load");
+        await f.ClickLobby("roulette");
+        await f.ClickRoulette("r7"); await f.ClickRoulette("addbet");
+        await f.ClickRoulette("bet37"); await f.ClickRoulette("addbet");
+        Assert.AreEqual("GESAMT: 200 €", f.RouletteText("total"));
+        Assert.IsTrue(f.RouletteClass("r7", "placed"));
+        Assert.IsTrue(f.RouletteClass("bet37", "placed"));
+        f.Wallet.RouletteNumber = 7;
+        await f.ClickRoulette("play");
+        Assert.AreEqual(200, f.Wallet.Last!.Game!.Stake);
+        Assert.AreEqual(2, f.Wallet.Last.Game.Bets!.Length);
+        Assert.AreEqual("300 €", f.RouletteText("bank"));
+        var operations = f.Wallet.Operations.Count;
+        await f.ClickRoulette("play"); await f.ClickRoulette("clearbets");
+        Assert.AreEqual(operations, f.Wallet.Operations.Count);
+        Assert.AreEqual("GESAMT: 200 €", f.RouletteText("total"));
+        f.Clock.AdvanceMilliseconds(4000); f.Presenter.Tick();
+        Assert.AreEqual(4100L, f.Wallet.Balance.Allocated);
+        Assert.IsTrue(f.RouletteText("result")!.Contains("Netto +3,6 Tsd. €"));
+        await f.ClickRoulette("betmin");
+        Assert.IsTrue(f.RouletteText("result")!.Contains("Netto +3,6 Tsd. €"));
+    }
+
+    [TestMethod]
+    public async Task RouletteUndoClearAndAggregateLimitDoNotBookMoney()
+    {
+        using var f = await Fixture.Create(new() { Roulette = 200 });
+        await f.ClickLobby("load"); await f.ClickLobby("roulette");
+        var operations = f.Wallet.Operations.Count;
+        await f.ClickRoulette("r7"); await f.ClickRoulette("addbet"); await f.ClickRoulette("addbet");
+        Assert.AreEqual("200 €", f.RouletteText("chip7"));
+        await f.ClickRoulette("r8"); await f.ClickRoulette("addbet");
+        Assert.IsTrue(f.RouletteText("status")!.Contains("Rundenlimit"));
+        Assert.IsFalse(f.RouletteClass("r8", "placed"));
+        await f.ClickRoulette("undobet");
+        Assert.AreEqual("100 €", f.RouletteText("chip7"));
+        await f.ClickRoulette("clearbets");
+        Assert.AreEqual("", f.RouletteText("chip7"));
+        Assert.IsFalse(f.RouletteClass("r7", "placed"));
+        Assert.AreEqual(operations, f.Wallet.Operations.Count);
+    }
+
+    [TestMethod]
     public async Task RouletteResetClearsTheLastPoseBeforeReconstructingNativeState()
     {
         using var f = await Fixture.Create();

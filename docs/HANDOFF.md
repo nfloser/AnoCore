@@ -1223,3 +1223,43 @@ skips, ManagementPipeBridgeTests excluded for local Unix sockets. Operator suite
 103 total, 18 environment skips, no failures. Exact-head CI checks pending.
 Native Valve compilation and CS2/two-client acceptance remain open. Keep draft;
 no production merge/release or native-ready claim.
+
+## 2026-10-19 — supplied skins and Roulette basket (#531, #533)
+
+Fresh checkout of feat/531-alles-spitze at 54de1f5. The five supplied original
+images are normalized with the existing converter and committed as 320x320 RGBA
+PNG textures (ee6f577). Both Workshop build paths already compile these textures.
+No Python is needed on the user's machine when using this prepared package.
+
+New local branch feat/533-roulette-multiple-bets adds an optional basket to
+CasinoRequest. Null is omitted from JSON to preserve legacy request replay.
+One cryptographic number is drawn inside the existing transaction; the total is
+debited once and all wagers settle against that number. Exposure is the maximum
+aggregate payout over all 37 outcomes. Unique choices, legal per-field stakes,
+matching sum and whole-round configured ceiling are enforced. Wallet snapshots
+caller-owned arrays before any async boundary. UI adds explicit SETZEN, undo,
+clear, placed amounts, total and the existing single-bet fallback. Selection is
+local; booked results/receipts remain durable. MAX respects remaining basket
+capacity. Native wheel motion is unchanged from #529.
+
+Local Release solution build: zero warnings/errors. Broad tests: 1309 passed,
+207 environment-dependent skips, ManagementPipeBridgeTests excluded because
+Unix sockets are denied in this environment. Operator suite: 110 checks,
+18 environment skips, no failures. Added DB concurrent basket/replay/change
+regression is included but requires MariaDB/CI. Standard solution formatter
+cannot open its named pipe; standalone folder whitespace formatter succeeds.
+Native Valve compilation and real CS2/two-client acceptance remain unperformed.
+No merge/release/production-ready claim.
+
+Automatic approval review rejected the git push that would publish the five
+images to nfloser/AnoCore: explicit authorization to disclose these supplied
+images at that GitHub destination was considered insufficient, and destination
+ownership/privacy was not verified. Do not retry publication by another route.
+Local build/test packaging is unaffected. No PR/CI run for #533 until authorized.
+
+## 2026-10-19 — publication authorized
+
+Owner explicitly authorized publishing the code and all five supplied images to
+nfloser/AnoCore. Image tree bb96a36 matches the delivered local build. Git CLI
+has no write credential; publication uses the authenticated GitHub connector.
+Roulette remains draft until CI and native CS2 acceptance.

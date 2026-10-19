@@ -41,7 +41,7 @@ Das erste vollständige Füllen aller drei Türme startet sieben kostenlose Acti
 
 ## UI und Installation
 
-Die Lobby verwendet aus Kompatibilitätsgründen weiterhin die Button-ID casino_lobby_risk, öffnet damit jedoch Alles Spitze. Das neue Panorama-Layout und die CSS-Walzenanimation liegen isoliert in ui/AnoCore/layout/custom_game/anocore/ano_casino_spitze.xml und ui/AnoCore/styles/custom_game/anocore/ano_casino_spitze.css. Die bestehenden Book- und Risk-Ressourcen bleiben wegen ihrer vorhandenen SHA256-Quell-Sperren bytegenau unverändert. Die eigentlichen fünf Bildtexturen sind nach dem Texturfix **im Layout verdrahtet**, aber nicht im GitHub-Repository enthalten. Ohne vorbereitete Bilder bleiben die Skin-Namen als Fallback sichtbar; die Quelldateien lassen sich nicht durch bloßes CSS oder einen Workshop-Upload herbeizaubern.
+Die Lobby verwendet aus Kompatibilitätsgründen weiterhin die Button-ID casino_lobby_risk, öffnet damit jedoch Alles Spitze. Das neue Panorama-Layout und die CSS-Walzenanimation liegen isoliert in ui/AnoCore/layout/custom_game/anocore/ano_casino_spitze.xml und ui/AnoCore/styles/custom_game/anocore/ano_casino_spitze.css. Die bestehenden Book- und Risk-Ressourcen bleiben wegen ihrer vorhandenen SHA256-Quell-Sperren bytegenau unverändert. Die fünf am 19.10.2026 bereitgestellten Originalbilder sind im lokalen Testpaket als vorbereitete 320×320-PNG-Texturen enthalten und fest mit der Ergebniswalze verbunden. Der Workshop-Build benötigt dafür weder Python noch ein zusätzliches Bilderverzeichnis.
 
 ### Skin-Bilder wie bei Biggest Boy fest ins Workshop-Addon integrieren
 
@@ -63,13 +63,12 @@ Der gemeinsame CS2-Workshop-Build erstellt danach zu den fünf Versionierten `.v
 
 ```powershell
 cd "C:\AnoCore-Neu"
-py -m pip install pillow
 powershell -NoProfile -ExecutionPolicy Bypass -File .\ui\AnoCore\build.ps1 -Addon anomeme_ui -RequireSpitzeSkins -InstallLocalClient
 ```
 
 Der Schalter `-RequireSpitzeSkins` verhindert, dass ein fehlendes Symbol unbemerkt im Workshop landet. CS2 muss danach vollständig neu gestartet werden. Das bisherige Workshop-Addon wird nicht allein durch `-InstallLocalClient` geändert; nach lokaler Abnahme die bestehende `anomeme_ui` mit den kompilierten Ressourcen im Workshop aktualisieren. Bei einem Testserver darf keine andere, veraltete gemountete UI die lokalen Assets überlagern.
 
-Um sie dauerhaft in jedem GitHub-Entwicklungsbuild verfügbar zu machen, müssen einmal alle fünf vorbereiteten `spitze_*.png`-Quelldateien ins Repository eingecheckt werden. Noch liegen diese fünf Originalbytes nicht im GitHub-Branch; der normale CI-Build kann ohne sie nur das Layout und die Bild-Deskriptoren paketieren. Die Spiel- und Zahlungsverarbeitung bleibt unabhängig von diesen Bildern.
+Die fünf vorbereiteten `spitze_*.png`-Dateien sind lokal eingecheckt und im Testpaket enthalten. Der Eigentümer hat die Veröffentlichung samt Bildern am 19.10.2026 ausdrücklich freigegeben; die vorbereiteten Bilder sind nun im GitHub-Branch enthalten.
 
 Ein reproduzierbarer Seed-/Strategie-Test prüft die modellierte Brutto-Auszahlungsquote für das feste Szenario «bis zu 100 bezahlte Spins, vorher nur bei Action Games stoppen». In einer 12.000-Runden-Stichprobe ergaben sich etwa 90 % Bruttorücklauf. Das ist eine Simulation der unabhängigen AnoCasino-v1-Regeln, **kein zertifizierter RTP-Wert** und keine Garantie für andere Einsammelstrategien.
 

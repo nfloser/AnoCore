@@ -26,7 +26,21 @@ classic three-row number layout, zero and all outside bets, gold selected-bet
 border, result number and color, separate gross return and net change. MIN/MAX,
 half/double and existing +/- controls adjust the next stake within configured
 limits; MAX also respects allocated funds. Stakes remain exact, other amounts
-use compact German currency. Only one selected wager is placed per round.
+use compact German currency. Mehrere Einsätze werden mit SETZEN in einen Einsatzkorb gelegt. ZURÜCK nimmt
+den letzten Hinzufügeschritt zurück, ALLE LÖSCHEN leert den Korb. Ein erneutes
+SETZEN auf dasselbe Feld erhöht dessen Einsatz. Die markierten Felder zeigen
+ihre Einsätze; GESAMT zeigt den exakten Rundenbetrag. KUGEL STARTEN bucht den
+gesamten Korb einmal und wertet alle Felder gegen dieselbe Zahl aus. Ohne Korb
+bleibt die bisherige Einzelwette auf das ausgewählte Feld verfügbar. Der Korb
+bleibt für die nächste Runde erhalten und lässt sich dann bearbeiten. Bei
+Reconnect/Server-Neustart wird nur das gebuchte Ergebnis wiederhergestellt;
+ein ungebuchter Korb ist lokale UI-Auswahl und wird nicht gespeichert.
+
+Das konfigurierte Roulette-Limit gilt für die Summe pro Runde. Guthaben und
+Limit werden serverseitig erneut geprüft. Reserviert wird der höchste gemeinsame
+Auszahlungsbetrag über alle 37 Zahlen, nicht die Summe inkompatibler Gewinne.
+Die optionalen Bets werden bei alten Requests im JSON vollständig ausgelassen,
+sodass historische Request-Hashes und Wiederholungen kompatibel bleiben.
 
 All server-updated labels bind `{s:text}`, including the new result ribbon.
 No result number or payout credit is displayed during the moving phase. The
@@ -40,8 +54,8 @@ number and gross return without inventing a net value.
 Close, back, refresh and reconnect never reroll a receipt or book an additional
 stake. A historical result restores its exact ball position. Reset/disconnect
 clears the previous pose before reconstructing native state. Existing wallet
-receipt IDs, revision/transaction guards, RNG, payout rules and SQL schema are
-unchanged. Book/Biggest Boy/Blackjack assets and resources are retained.
+receipt IDs, revision/transaction guards, single-number RNG, individual payout
+rules and SQL schema are unchanged; the optional basket extends requests. Book/Biggest Boy/Blackjack assets and resources are retained.
 
 Generated native XML/CSS are committed. Reproduce them with:
 

@@ -44,129 +44,169 @@
             <Panel class="number-table">
               <Button id="casino_roulette_r0" class="casino-button zero">
                 <Label text="0" hittest="false"/>
+                <Label id="casino_roulette_chip0" class="chip-amount" text="{s:text}" hittest="false"/>
               </Button>
               <Panel class="number-rows">
                 <Panel class="number-row">
                   <Button id="casino_roulette_r3" class="casino-button casino-number red">
                     <Label text="3" hittest="false"/>
+                    <Label id="casino_roulette_chip3" class="chip-amount" text="{s:text}" hittest="false"/>
                   </Button>
                   <Button id="casino_roulette_r6" class="casino-button casino-number black">
                     <Label text="6" hittest="false"/>
+                    <Label id="casino_roulette_chip6" class="chip-amount" text="{s:text}" hittest="false"/>
                   </Button>
                   <Button id="casino_roulette_r9" class="casino-button casino-number red">
                     <Label text="9" hittest="false"/>
+                    <Label id="casino_roulette_chip9" class="chip-amount" text="{s:text}" hittest="false"/>
                   </Button>
                   <Button id="casino_roulette_r12" class="casino-button casino-number red">
                     <Label text="12" hittest="false"/>
+                    <Label id="casino_roulette_chip12" class="chip-amount" text="{s:text}" hittest="false"/>
                   </Button>
                   <Button id="casino_roulette_r15" class="casino-button casino-number black">
                     <Label text="15" hittest="false"/>
+                    <Label id="casino_roulette_chip15" class="chip-amount" text="{s:text}" hittest="false"/>
                   </Button>
                   <Button id="casino_roulette_r18" class="casino-button casino-number red">
                     <Label text="18" hittest="false"/>
+                    <Label id="casino_roulette_chip18" class="chip-amount" text="{s:text}" hittest="false"/>
                   </Button>
                   <Button id="casino_roulette_r21" class="casino-button casino-number red">
                     <Label text="21" hittest="false"/>
+                    <Label id="casino_roulette_chip21" class="chip-amount" text="{s:text}" hittest="false"/>
                   </Button>
                   <Button id="casino_roulette_r24" class="casino-button casino-number black">
                     <Label text="24" hittest="false"/>
+                    <Label id="casino_roulette_chip24" class="chip-amount" text="{s:text}" hittest="false"/>
                   </Button>
                   <Button id="casino_roulette_r27" class="casino-button casino-number red">
                     <Label text="27" hittest="false"/>
+                    <Label id="casino_roulette_chip27" class="chip-amount" text="{s:text}" hittest="false"/>
                   </Button>
                   <Button id="casino_roulette_r30" class="casino-button casino-number red">
                     <Label text="30" hittest="false"/>
+                    <Label id="casino_roulette_chip30" class="chip-amount" text="{s:text}" hittest="false"/>
                   </Button>
                   <Button id="casino_roulette_r33" class="casino-button casino-number black">
                     <Label text="33" hittest="false"/>
+                    <Label id="casino_roulette_chip33" class="chip-amount" text="{s:text}" hittest="false"/>
                   </Button>
                   <Button id="casino_roulette_r36" class="casino-button casino-number red">
                     <Label text="36" hittest="false"/>
+                    <Label id="casino_roulette_chip36" class="chip-amount" text="{s:text}" hittest="false"/>
                   </Button>
                   <Button id="casino_roulette_bet48" class="casino-button column-bet">
                     <Label text="2:1" hittest="false"/>
+                    <Label id="casino_roulette_chip48" class="chip-amount" text="{s:text}" hittest="false"/>
                   </Button>
                 </Panel>
                 <Panel class="number-row">
                   <Button id="casino_roulette_r2" class="casino-button casino-number black">
                     <Label text="2" hittest="false"/>
+                    <Label id="casino_roulette_chip2" class="chip-amount" text="{s:text}" hittest="false"/>
                   </Button>
                   <Button id="casino_roulette_r5" class="casino-button casino-number red">
                     <Label text="5" hittest="false"/>
+                    <Label id="casino_roulette_chip5" class="chip-amount" text="{s:text}" hittest="false"/>
                   </Button>
                   <Button id="casino_roulette_r8" class="casino-button casino-number black">
                     <Label text="8" hittest="false"/>
+                    <Label id="casino_roulette_chip8" class="chip-amount" text="{s:text}" hittest="false"/>
                   </Button>
                   <Button id="casino_roulette_r11" class="casino-button casino-number black">
                     <Label text="11" hittest="false"/>
+                    <Label id="casino_roulette_chip11" class="chip-amount" text="{s:text}" hittest="false"/>
                   </Button>
                   <Button id="casino_roulette_r14" class="casino-button casino-number red">
                     <Label text="14" hittest="false"/>
+                    <Label id="casino_roulette_chip14" class="chip-amount" text="{s:text}" hittest="false"/>
                   </Button>
                   <Button id="casino_roulette_r17" class="casino-button casino-number black">
                     <Label text="17" hittest="false"/>
+                    <Label id="casino_roulette_chip17" class="chip-amount" text="{s:text}" hittest="false"/>
                   </Button>
                   <Button id="casino_roulette_r20" class="casino-button casino-number black">
                     <Label text="20" hittest="false"/>
+                    <Label id="casino_roulette_chip20" class="chip-amount" text="{s:text}" hittest="false"/>
                   </Button>
                   <Button id="casino_roulette_r23" class="casino-button casino-number red">
                     <Label text="23" hittest="false"/>
+                    <Label id="casino_roulette_chip23" class="chip-amount" text="{s:text}" hittest="false"/>
                   </Button>
                   <Button id="casino_roulette_r26" class="casino-button casino-number black">
                     <Label text="26" hittest="false"/>
+                    <Label id="casino_roulette_chip26" class="chip-amount" text="{s:text}" hittest="false"/>
                   </Button>
                   <Button id="casino_roulette_r29" class="casino-button casino-number black">
                     <Label text="29" hittest="false"/>
+                    <Label id="casino_roulette_chip29" class="chip-amount" text="{s:text}" hittest="false"/>
                   </Button>
                   <Button id="casino_roulette_r32" class="casino-button casino-number red">
                     <Label text="32" hittest="false"/>
+                    <Label id="casino_roulette_chip32" class="chip-amount" text="{s:text}" hittest="false"/>
                   </Button>
                   <Button id="casino_roulette_r35" class="casino-button casino-number black">
                     <Label text="35" hittest="false"/>
+                    <Label id="casino_roulette_chip35" class="chip-amount" text="{s:text}" hittest="false"/>
                   </Button>
                   <Button id="casino_roulette_bet47" class="casino-button column-bet">
                     <Label text="2:1" hittest="false"/>
+                    <Label id="casino_roulette_chip47" class="chip-amount" text="{s:text}" hittest="false"/>
                   </Button>
                 </Panel>
                 <Panel class="number-row">
                   <Button id="casino_roulette_r1" class="casino-button casino-number red">
                     <Label text="1" hittest="false"/>
+                    <Label id="casino_roulette_chip1" class="chip-amount" text="{s:text}" hittest="false"/>
                   </Button>
                   <Button id="casino_roulette_r4" class="casino-button casino-number black">
                     <Label text="4" hittest="false"/>
+                    <Label id="casino_roulette_chip4" class="chip-amount" text="{s:text}" hittest="false"/>
                   </Button>
                   <Button id="casino_roulette_r7" class="casino-button casino-number red">
                     <Label text="7" hittest="false"/>
+                    <Label id="casino_roulette_chip7" class="chip-amount" text="{s:text}" hittest="false"/>
                   </Button>
                   <Button id="casino_roulette_r10" class="casino-button casino-number black">
                     <Label text="10" hittest="false"/>
+                    <Label id="casino_roulette_chip10" class="chip-amount" text="{s:text}" hittest="false"/>
                   </Button>
                   <Button id="casino_roulette_r13" class="casino-button casino-number black">
                     <Label text="13" hittest="false"/>
+                    <Label id="casino_roulette_chip13" class="chip-amount" text="{s:text}" hittest="false"/>
                   </Button>
                   <Button id="casino_roulette_r16" class="casino-button casino-number red">
                     <Label text="16" hittest="false"/>
+                    <Label id="casino_roulette_chip16" class="chip-amount" text="{s:text}" hittest="false"/>
                   </Button>
                   <Button id="casino_roulette_r19" class="casino-button casino-number red">
                     <Label text="19" hittest="false"/>
+                    <Label id="casino_roulette_chip19" class="chip-amount" text="{s:text}" hittest="false"/>
                   </Button>
                   <Button id="casino_roulette_r22" class="casino-button casino-number black">
                     <Label text="22" hittest="false"/>
+                    <Label id="casino_roulette_chip22" class="chip-amount" text="{s:text}" hittest="false"/>
                   </Button>
                   <Button id="casino_roulette_r25" class="casino-button casino-number red">
                     <Label text="25" hittest="false"/>
+                    <Label id="casino_roulette_chip25" class="chip-amount" text="{s:text}" hittest="false"/>
                   </Button>
                   <Button id="casino_roulette_r28" class="casino-button casino-number black">
                     <Label text="28" hittest="false"/>
+                    <Label id="casino_roulette_chip28" class="chip-amount" text="{s:text}" hittest="false"/>
                   </Button>
                   <Button id="casino_roulette_r31" class="casino-button casino-number black">
                     <Label text="31" hittest="false"/>
+                    <Label id="casino_roulette_chip31" class="chip-amount" text="{s:text}" hittest="false"/>
                   </Button>
                   <Button id="casino_roulette_r34" class="casino-button casino-number red">
                     <Label text="34" hittest="false"/>
+                    <Label id="casino_roulette_chip34" class="chip-amount" text="{s:text}" hittest="false"/>
                   </Button>
                   <Button id="casino_roulette_bet46" class="casino-button column-bet">
                     <Label text="2:1" hittest="false"/>
+                    <Label id="casino_roulette_chip46" class="chip-amount" text="{s:text}" hittest="false"/>
                   </Button>
                 </Panel>
               </Panel>
@@ -174,32 +214,41 @@
             <Panel class="dozens">
               <Button id="casino_roulette_bet43" class="casino-button dozen-bet">
                 <Label text="1. DUTZEND" hittest="false"/>
+                <Label id="casino_roulette_chip43" class="chip-amount" text="{s:text}" hittest="false"/>
               </Button>
               <Button id="casino_roulette_bet44" class="casino-button dozen-bet">
                 <Label text="2. DUTZEND" hittest="false"/>
+                <Label id="casino_roulette_chip44" class="chip-amount" text="{s:text}" hittest="false"/>
               </Button>
               <Button id="casino_roulette_bet45" class="casino-button dozen-bet">
                 <Label text="3. DUTZEND" hittest="false"/>
+                <Label id="casino_roulette_chip45" class="chip-amount" text="{s:text}" hittest="false"/>
               </Button>
             </Panel>
             <Panel class="outside-bets">
               <Button id="casino_roulette_bet41" class="casino-button outside-bet ">
                 <Label text="1–18" hittest="false"/>
+                <Label id="casino_roulette_chip41" class="chip-amount" text="{s:text}" hittest="false"/>
               </Button>
               <Button id="casino_roulette_bet39" class="casino-button outside-bet ">
                 <Label text="GERADE" hittest="false"/>
+                <Label id="casino_roulette_chip39" class="chip-amount" text="{s:text}" hittest="false"/>
               </Button>
               <Button id="casino_roulette_bet37" class="casino-button outside-bet red">
                 <Label text="ROT" hittest="false"/>
+                <Label id="casino_roulette_chip37" class="chip-amount" text="{s:text}" hittest="false"/>
               </Button>
               <Button id="casino_roulette_bet38" class="casino-button outside-bet black">
                 <Label text="SCHWARZ" hittest="false"/>
+                <Label id="casino_roulette_chip38" class="chip-amount" text="{s:text}" hittest="false"/>
               </Button>
               <Button id="casino_roulette_bet40" class="casino-button outside-bet ">
                 <Label text="UNGERADE" hittest="false"/>
+                <Label id="casino_roulette_chip40" class="chip-amount" text="{s:text}" hittest="false"/>
               </Button>
               <Button id="casino_roulette_bet42" class="casino-button outside-bet ">
                 <Label text="19–36" hittest="false"/>
+                <Label id="casino_roulette_chip42" class="chip-amount" text="{s:text}" hittest="false"/>
               </Button>
             </Panel>
             <Label id="casino_roulette_choice" class="selected-bet" text="{s:text}" hittest="false"/>
@@ -215,12 +264,25 @@
               <Button id="casino_roulette_number" class="casino-button ">
                 <Label text="AUF ZAHL" hittest="false"/>
               </Button>
+              <Button id="casino_roulette_addbet" class="casino-button casino-primary">
+                <Label text="SETZEN" hittest="false"/>
+              </Button>
             </Panel>
             <Panel class="paytable" hittest="false">
               <Label text="ZAHL 36×   ·   DUTZEND / SPALTE 3×   ·   AUSSENWETTE 2×" hittest="false"/>
               <Label text="Rückzahlung inklusive Einsatz · 0 verliert alle Außenwetten" hittest="false"/>
             </Panel>
           </Panel>
+        </Panel>
+        <Label id="casino_roulette_betsummary" class="bet-summary" text="{s:text}" hittest="false"/>
+        <Panel class="basket-controls">
+          <Label id="casino_roulette_total" class="basket-total" text="{s:text}" hittest="false"/>
+          <Button id="casino_roulette_undobet" class="casino-button ">
+            <Label text="ZURÜCK" hittest="false"/>
+          </Button>
+          <Button id="casino_roulette_clearbets" class="casino-button ">
+            <Label text="ALLE LÖSCHEN" hittest="false"/>
+          </Button>
         </Panel>
         <Label id="casino_roulette_result" class="casino-result" text="{s:text}" hittest="false"/>
         <Panel class="stake-controls">
@@ -263,7 +325,7 @@
             <Label text="BUCHUNG PRÜFEN" hittest="false"/>
           </Button>
         </Panel>
-        <Label class="note" text="Nur virtuelle € · eine Wette pro Runde · keine Echtgeld-Auszahlung" hittest="false"/>
+        <Label class="note" text="Nur virtuelle € · mehrere Einsätze pro Runde · keine Echtgeld-Auszahlung" hittest="false"/>
       </Panel>
     </Panel>
   </Panel>

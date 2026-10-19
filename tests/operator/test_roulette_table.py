@@ -17,13 +17,30 @@ class RouletteTableTests(unittest.TestCase):
         for bet in range(49):
             self.assertIn('casino_roulette_' + ('r' if bet <= 36 else 'bet') + str(bet), ids)
         dynamic = [p for p in tree.iter('Label') if 'id' in p.attrib and p.attrib['id'] != 'casino_roulette_pointer']
-        self.assertEqual(9, len(dynamic))
+        self.assertEqual(60, len(dynamic))
+        for name in ("addbet", "undobet", "clearbets", "total", "betsummary"):
+            self.assertIn("casino_roulette_" + name, ids)
+        for choice in range(49):
+            self.assertIn("casino_roulette_chip" + str(choice), ids)
         for label in dynamic:
             self.assertEqual('{s:text}', label.attrib['text'])
         for button in tree.iter('Button'):
             for child in list(button):
                 self.assertEqual('false', child.attrib['hittest'])
         self.assertFalse(any('style' in p.attrib for p in tree.iter()))
+
+    def test_skin_textures_are_embedded_and_ready_for_the_workshop_build(self):
+        from PIL import Image
+        assets = UI / 'styles/custom_game/anocore/casino'
+        for name in ('ggspray', 'safarimesh', 'neonrevolution', 'gold', 'knife'):
+            path = assets / ('spitze_' + name + '.png')
+            self.assertTrue(path.is_file(), str(path))
+            with Image.open(path) as image:
+                self.assertEqual('PNG', image.format)
+                self.assertEqual((320, 320), image.size)
+                self.assertEqual('RGBA', image.mode)
+                self.assertIsNotNone(image.getbbox())
+            self.assertTrue(path.with_suffix('.vtex').is_file())
 
     def test_generator_reproduces_committed_native_resources(self):
         paths = [UI/'layout/custom_game/anocore/ano_casino_roulette.xml', UI/'styles/custom_game/anocore/ano_casino_roulette.css']
