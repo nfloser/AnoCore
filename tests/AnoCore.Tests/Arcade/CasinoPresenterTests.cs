@@ -14,6 +14,38 @@ public sealed class CasinoPresenterTests
     private static readonly PlayerId Player = new(76561198000911901);
 
     [TestMethod]
+    public async Task ReopeningLobbyDuringCoinAnimationDoesNotRevealHistoryCreditOrSummary()
+    {
+        using var f = await Fixture.Create();
+        await f.ClickLobby("load");
+        await f.ClickLobby("coinflip");
+        await f.ClickCoin("play");
+        Assert.IsTrue((await f.Commands.ExecuteAsync("!anocasino", Player)).Success);
+        Assert.AreEqual("400 €", f.Hud.Text(Player, CasinoPresenter.LobbyHudId, "casino_lobby_bank"));
+        Assert.AreEqual("Animation läuft · Ergebnis folgt nach dem Stopp", f.Hud.Text(Player, CasinoPresenter.LobbyHudId, "casino_lobby_status"));
+        f.Clock.AdvanceMilliseconds(4000); f.Presenter.Tick();
+        Assert.AreEqual("600 €", f.Hud.Text(Player, CasinoPresenter.LobbyHudId, "casino_lobby_bank"));
+    }
+
+    [TestMethod]
+    [DataRow(CasinoGame.Slots)]
+    [DataRow(CasinoGame.Coinflip)]
+    public async Task SingleShotGamesHideBookedCreditUntilAnimationCompletes(CasinoGame game)
+    {
+        using var f = await Fixture.Create();
+        await f.ClickLobby("load");
+        await f.ClickLobby(game == CasinoGame.Slots ? "slots" : "coinflip");
+        if (game == CasinoGame.Slots) await f.ClickSlots("play");
+        else await f.ClickCoin("play");
+        Assert.AreEqual("400 €", game == CasinoGame.Slots ? f.SlotsText("bank") : f.CoinText("bank"));
+        Assert.AreEqual("0 €", game == CasinoGame.Slots ? f.SlotsText("win") : f.CoinText("win"));
+        f.Clock.AdvanceMilliseconds(3999); f.Presenter.Tick();
+        Assert.AreEqual("400 €", game == CasinoGame.Slots ? f.SlotsText("bank") : f.CoinText("bank"));
+        f.Clock.AdvanceMilliseconds(1); f.Presenter.Tick();
+        Assert.AreEqual(CasinoMoney.Format(f.Wallet.Balance.Allocated), game == CasinoGame.Slots ? f.SlotsText("bank") : f.CoinText("bank"));
+    }
+
+    [TestMethod]
     public async Task RouletteBasketCombinesBetsAndKeepsBookedTotalWhileAnimating()
     {
         using var f = await Fixture.Create();
@@ -271,7 +303,8 @@ public sealed class CasinoPresenterTests
         await f.ClickCoin("head");
         await f.ClickCoin("play");
 
-        Assert.AreEqual("600 €", f.CoinText("bank"));
+        Assert.AreEqual("400 €", f.CoinText("bank"));
+        Assert.AreEqual(600L, f.Wallet.Balance.Allocated, "Ledger settles immediately; only the visual credit waits.");
         Assert.AreEqual("0 €", f.CoinText("win"));
 
         await f.ClickCoin("play");
@@ -396,7 +429,8 @@ public sealed class CasinoPresenterTests
         await f.ClickCoin("retry");
         Assert.AreEqual(operation, f.Wallet.Last.Id);
         Assert.AreEqual(count, f.Wallet.Operations.Count);
-        Assert.AreEqual("600 €", f.CoinText("bank"));
+        Assert.AreEqual("400 €", f.CoinText("bank"));
+        Assert.AreEqual(600L, f.Wallet.Balance.Allocated, "Ledger settles immediately; only the visual credit waits.");
     }
 
     [TestMethod]
@@ -573,6 +607,8 @@ public sealed class CasinoPresenterTests
         public ValueTask ClickRoulette(string action)
             => Hud.ClickAsync(Player, CasinoPresenter.RouletteHudId, "casino_roulette_" + action);
 
+        public string? SlotsText(string id)
+            => Hud.Text(Player, CasinoPresenter.SlotsHudId, "casino_slots_" + id);
         public string? CoinText(string id)
             => Hud.Text(Player, CasinoPresenter.CoinflipHudId, "casino_coinflip_" + id);
         public string? RouletteText(string id)

@@ -15,6 +15,93 @@ public sealed class CasinoRoundPresenterTests
     private static readonly PlayerId Player = new(76561198000911901);
 
     [TestMethod]
+    public async Task BiggestBoyFreeGameTotalsAndFooterWaitUntilEveryReelHasStopped()
+    {
+        using var f = await Fixture.Create();
+        await f.Presenter.OpenAsync(Player, CasinoRoundGame.BiggestBoy);
+        var totals = new[] { "biggest_total_win", "biggest_bonus", "bb_series", "bb_remaining", "bb_expanding" };
+        var before = totals.ToDictionary(id => id, id => f.Text(id));
+        var spin = ControlledSlotRules.Biggest(100, new Random(535).Next, new(100, 0, 100));
+        f.Rounds.NextSnapshot = new(Guid.NewGuid(), Player, CasinoRoundGame.BiggestBoy, 100, 1, true,
+            100, spin.Payout, JsonSerializer.Serialize(spin));
+        f.Wallet.Balance = f.Wallet.Balance with { Allocated = 900 + spin.Payout };
+        await f.Click("play");
+        foreach (var id in totals) Assert.AreEqual(before[id], f.Text(id), id);
+        Assert.AreEqual("900 €", f.Text("bankroll_footer"));
+        f.Clock.AdvanceMilliseconds(4099); f.Presenter.Tick();
+        foreach (var id in totals) Assert.AreEqual(before[id], f.Text(id), id);
+        f.Clock.AdvanceMilliseconds(1); f.Presenter.Tick();
+        Assert.AreEqual(CasinoMoney.Format(900 + spin.Payout), f.Text("bankroll_footer"));
+        Assert.AreEqual(CasinoMoney.Format(spin.Payout), f.Text("payout"));
+    }
+
+    [TestMethod]
+    public async Task BlackjackWinSummariesAndInsuranceStayHiddenDuringTheDeal()
+    {
+        using var f = await Fixture.Create();
+        await f.Presenter.OpenAsync(Player, CasinoRoundGame.Blackjack);
+        var result = BlackjackRules.Apply(BlackjackExtendedRulesTests.InsuranceRound(true, true), 0, BlackjackAction.EvenMoney);
+        f.Rounds.NextSnapshot = new(Guid.NewGuid(), Player, CasinoRoundGame.Blackjack, 100, 1, true,
+            100, result.TotalPayout, JsonSerializer.Serialize(result));
+        f.Wallet.Balance = f.Wallet.Balance with { Allocated = 900 + result.TotalPayout };
+        await f.Click("play");
+        Assert.AreEqual("", f.Text("detail"));
+        Assert.AreEqual("", f.Text("hand0_summary"));
+        Assert.AreEqual("", f.Text("insurance_result"));
+        Assert.AreEqual("900 €", f.Text("bankroll"));
+        f.Clock.AdvanceMilliseconds(949); f.Presenter.Tick();
+        Assert.AreEqual("", f.Text("detail"));
+        f.Clock.AdvanceMilliseconds(1); f.Presenter.Tick();
+        Assert.IsTrue(f.Text("detail")!.Contains("RUNDENERGEBNIS"));
+        Assert.AreEqual(CasinoMoney.Format(900 + result.TotalPayout), f.Text("bankroll"));
+    }
+
+    [TestMethod]
+    public async Task SpitzeKeepsTowersAndCashpotUntilReelOneLandingBoundary()
+    {
+        using var f = await Fixture.Create();
+        await f.Presenter.OpenAsync(Player, CasinoRoundGame.Spitze);
+        var first = SpitzeRules.Start(100, SpitzeSymbol.Gold);
+        f.Rounds.NextSnapshot = new(Guid.NewGuid(), Player, CasinoRoundGame.Spitze, 100, 1, false, 100, 0, JsonSerializer.Serialize(first));
+        await f.Click("play");
+        Assert.AreEqual("0 €", f.Text("spitze_pot"));
+        Assert.IsFalse(f.PanelClass("spitze_high1", "lit"));
+        Assert.IsTrue(f.Class("reels-armed"));
+        f.Clock.AdvanceMilliseconds(200); f.Presenter.Tick();
+        Assert.IsFalse(f.Class("reels-armed"));
+        Assert.IsTrue(f.Class("motion-a"));
+        f.Clock.AdvanceMilliseconds(1899); f.Presenter.Tick();
+        Assert.AreEqual("0 €", f.Text("spitze_pot"));
+        Assert.IsFalse(f.PanelClass("spitze_high1", "lit"));
+        Assert.IsTrue(f.Class("busy"));
+        f.Clock.AdvanceMilliseconds(1); f.Presenter.Tick();
+        Assert.AreEqual("200 €", f.Text("spitze_pot"));
+        Assert.IsTrue(f.PanelClass("spitze_high1", "lit"));
+        Assert.IsFalse(f.Class("busy"));
+        var next = SpitzeRules.Spin(first, first.Revision, SpitzeSymbol.Loss);
+        f.Rounds.NextSnapshot = f.Rounds.Current! with { Revision = 2, IsComplete = true, StateJson = JsonSerializer.Serialize(next) };
+        await f.Click("spin");
+        Assert.AreEqual("200 €", f.Text("spitze_pot"));
+        Assert.IsTrue(f.PanelClass("spitze_high1", "lit"));
+        f.Clock.AdvanceMilliseconds(2100); f.Presenter.Tick();
+        Assert.AreEqual("0 €", f.Text("spitze_pot"));
+        Assert.IsFalse(f.PanelClass("spitze_high1", "lit"));
+    }
+
+    [TestMethod]
+    public async Task SettledCreditDoesNotAppearInBankrollUntilTheReveal()
+    {
+        using var f = await Fixture.Create();
+        await f.Presenter.OpenAsync(Player, CasinoRoundGame.Risk);
+        await f.Click("play"); f.FinishAnimation();
+        await f.Click("bank");
+        Assert.AreEqual("900 €", f.Text("bankroll"));
+        Assert.AreEqual("", f.Text("detail"));
+        f.FinishAnimation();
+        Assert.AreEqual("1 Tsd. €", f.Text("bankroll"));
+    }
+
+    [TestMethod]
     public async Task FourHandsRenderAndClearWithoutLeavingStaleCards()
     {
         using var f = await Fixture.Create();

@@ -47,21 +47,23 @@ Label { color:#f0efe4; font-family:Arial; font-size:17px; margin:3px; }
 .spitze-reel-final.outcome-neonrevolution { color:#f598db; background-color:#302040; }
 .spitze-reel-final.outcome-gold { color:#ffdc69; background-color:#4d3e19; }
 .spitze-reel-final.outcome-knife { color:#c9eaf7; background-color:#183c50; }
-.spitze-reel-motion { visibility:collapse; width:198px; height:1280px; flow-children:down; }
+.spitze-reel-motion { visibility:collapse; width:198px; height:640px; flow-children:down; }
 .spitze-reel-tile { width:198px; height:160px; min-height:160px; margin:0px; background-size:contain; background-position:center; background-repeat:no-repeat; background-color:#202e27; border-bottom:2px solid #637662; }
 .spitze-tile-name { width:100%; height:25px; margin:0px; vertical-align:bottom; horizontal-align:center; text-align:center; font-size:12px; font-weight:bold; color:#f6f3e5; background-color:#04140cdd; text-shadow:1px 1px 2px #040905; }
+.reels-armed.view-spitze .spitze-reel-final,
 .motion-a.view-spitze .spitze-reel-final, .motion-b.view-spitze .spitze-reel-final { visibility:collapse; }
+.reels-armed.view-spitze .spitze-reel-motion,
 .motion-a.view-spitze .spitze-reel-motion, .motion-b.view-spitze .spitze-reel-motion { visibility:visible; }
-.motion-a.view-spitze .spitze-reel-motion { animation-name:'spitze-roll-a'; animation-duration:0.84s; animation-timing-function:linear; animation-iteration-count:infinite; }
-.motion-b.view-spitze .spitze-reel-motion { animation-name:'spitze-roll-b'; animation-duration:0.84s; animation-timing-function:linear; animation-iteration-count:infinite; }
-@keyframes 'spitze-roll-a' { 0% { transform:translateY(0px); } 100% { transform:translateY(-960px); } }
-@keyframes 'spitze-roll-b' { 0% { transform:translateY(0px); } 100% { transform:translateY(-960px); } }
+.spitze-step-a .spitze-reel-motion { animation-name:'spitze-step-a'; animation-duration:0.04s; animation-timing-function:ease-out; }
+.spitze-step-b .spitze-reel-motion { animation-name:'spitze-step-b'; animation-duration:0.04s; animation-timing-function:ease-out; }
+@keyframes 'spitze-step-a' { 0% { transform:translateY(-160px); } 100% { transform:translateY(0px); } }
+@keyframes 'spitze-step-b' { 0% { transform:translateY(-160px); } 100% { transform:translateY(0px); } }
 .spitze-progress { width:100%; white-space:normal; margin-top:18px; text-align:center; color:#a7c1ad; font-size:14px; }
 .spitze-meters { width:100%; flow-children:right; horizontal-align:center; margin-top:10px; }
 .spitze-meter { width:31%; height:76px; flow-children:down; padding:8px; margin-right:10px; border:1px solid #657351; border-radius:6px; background-color:#14251c; }
 .spitze-meter Label { width:100%; text-align:center; color:#b9c2ac; font-size:13px; }
 .spitze-meter .spitze-total { color:#ffdc85; font-size:22px; font-weight:bold; }
-.motion-a.view-spitze .spitze-meters, .motion-b.view-spitze .spitze-meters, .motion-a.view-spitze .spitze-tower, .motion-b.view-spitze .spitze-tower { opacity:0.08; }
+/* Cashpot and ladders retain their last revealed state while the reel moves. */
 .spitze-actions { width:100%; flow-children:right; horizontal-align:center; margin-top:8px; }
 .spitze-spin, .spitze-collect, .spitze-ag { visibility:collapse; }
 .active.view-spitze.spitze-can-spin .spitze-spin { visibility:visible; }

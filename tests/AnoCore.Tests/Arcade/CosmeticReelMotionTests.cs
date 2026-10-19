@@ -6,6 +6,7 @@ namespace AnoCore.Tests.Arcade;
 public sealed class CosmeticReelMotionTests
 {
     [TestMethod]
+    [DataRow(6)]
     [DataRow(8)]
     [DataRow(12)]
     public void CosmeticFieldsAreIndependentUntilLandingAndContainEverySymbol(int symbols)

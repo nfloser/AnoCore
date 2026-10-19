@@ -49,31 +49,19 @@
             </Panel>
             <Panel class="spitze-reel-machine" hittest="false">
               <Label class="spitze-reel-heading" text="WALZE" hittest="false" />
-              <Panel class="spitze-reel-frame" hittest="false">
+              <Panel id="casino_round_spitze_reel" class="spitze-reel-frame" hittest="false">
                 <Panel class="spitze-reel-motion" hittest="false">
-                  <Panel class="spitze-reel-tile spitze-safarimesh" hittest="false">
-                    <Label class="spitze-tile-name" text="SAFARI" hittest="false" />
+                  <Panel id="casino_round_spitze_motion0" class="spitze-reel-tile spitze-safarimesh" hittest="false">
+                    <Label id="casino_round_spitze_motion_caption0" class="spitze-tile-name" text="{s:text}" hittest="false" />
                   </Panel>
-                  <Panel class="spitze-reel-tile spitze-neonrevolution" hittest="false">
-                    <Label class="spitze-tile-name" text="NEON" hittest="false" />
+                  <Panel id="casino_round_spitze_motion1" class="spitze-reel-tile spitze-neonrevolution" hittest="false">
+                    <Label id="casino_round_spitze_motion_caption1" class="spitze-tile-name" text="{s:text}" hittest="false" />
                   </Panel>
-                  <Panel class="spitze-reel-tile spitze-gold" hittest="false">
-                    <Label class="spitze-tile-name" text="GOLD" hittest="false" />
+                  <Panel id="casino_round_spitze_motion2" class="spitze-reel-tile spitze-gold" hittest="false">
+                    <Label id="casino_round_spitze_motion_caption2" class="spitze-tile-name" text="{s:text}" hittest="false" />
                   </Panel>
-                  <Panel class="spitze-reel-tile spitze-knife" hittest="false">
-                    <Label class="spitze-tile-name" text="MESSER" hittest="false" />
-                  </Panel>
-                  <Panel class="spitze-reel-tile spitze-ggspray" hittest="false">
-                    <Label class="spitze-tile-name" text="GG SPRAY" hittest="false" />
-                  </Panel>
-                  <Panel class="spitze-reel-tile spitze-blank" hittest="false">
-                    <Label class="spitze-tile-name" text="—" hittest="false" />
-                  </Panel>
-                  <Panel class="spitze-reel-tile spitze-safarimesh" hittest="false">
-                    <Label class="spitze-tile-name" text="SAFARI" hittest="false" />
-                  </Panel>
-                  <Panel class="spitze-reel-tile spitze-neonrevolution" hittest="false">
-                    <Label class="spitze-tile-name" text="NEON" hittest="false" />
+                  <Panel id="casino_round_spitze_motion3" class="spitze-reel-tile spitze-knife" hittest="false">
+                    <Label id="casino_round_spitze_motion_caption3" class="spitze-tile-name" text="{s:text}" hittest="false" />
                   </Panel>
                 </Panel>
                 <Panel id="casino_round_spitze_symbol" class="spitze-reel-final" hittest="false">

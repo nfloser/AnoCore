@@ -97,8 +97,11 @@ public sealed class CasinoRoundPresenter : IDisposable
             lock (_gate)
             {
                 if (!Current(state)) return false;
-                state.Game = round is { IsComplete: false } ? round.Game : game;
-                state.Round = round?.Game == state.Game ? round : null;
+                var selectedGame = round is { IsComplete: false } ? round.Game : game;
+                var continuingAnimation = state.AnimatingUntil is not null && state.Game == selectedGame;
+                if (!continuingAnimation) { state.AnimatingUntil = null; state.AnimationStartsAt = null; }
+                state.Game = selectedGame;
+                if (!continuingAnimation) state.Round = round?.Game == state.Game ? round : null;
                 state.Stake = state.Round?.Stake ?? (state.Game == CasinoRoundGame.BiggestBoy ? BiggestBoyStakeLimits.Clamp(state.Stake, _biggestBoyMaximumStake) : Math.Min(state.Stake, _stakeLimits.For(state.Game)));
                 state.Balance = balance; state.Visible = true; state.Pending = false;
                 state.Status = round is { IsComplete: false } ? "Gespeicherte Runde fortsetzen" : "Einsatz wählen und Runde starten";
@@ -183,6 +186,11 @@ public sealed class CasinoRoundPresenter : IDisposable
                     ? Read<BiggestBoySpinResult>(previousRound) : null;
                 var previousStops = previousSpin?.State.RulesVersion is BiggestBoyExpandingRules.Version or ControlledSlotRules.BiggestVersion or ControlledSlotRules.LegacyBiggestVersion
                     ? previousSpin.Stops : ImmutableArray<int>.Empty;
+                if (receipt is not null && operation?.Action != CasinoRoundAction.SelectSymbol)
+                {
+                    state.RevealTexts = new(state.Texts);
+                    state.RevealClasses = new(state.Classes);
+                }
                 state.Round = round; state.Balance = balance;
                 state.StatusError = false;
                 if (round is not null)
@@ -224,12 +232,20 @@ public sealed class CasinoRoundPresenter : IDisposable
                                 ? CosmeticReelMotion.Create(12, Read<BiggestBoySpinResult>(round).RawGrid.Select(x => (int)x).ToArray(), Random.Shared.Next)
                                 : null;
                         }
+                        if (state.Game == CasinoRoundGame.Spitze && round is not null)
+                        {
+                            var landing = Enumerable.Range(0, 15).Select(_ => Random.Shared.Next(6)).ToArray();
+                            landing[0] = (int)Read<SpitzeRoundState>(round).LastSymbol;
+                            state.SpitzeMotion = CosmeticReelMotion.Create(6, landing, Random.Shared.Next);
+                            state.MotionProgress[0] = -1;
+                            state.MotionFrames[0] = 0;
+                        }
                         var now = _clock.GetUtcNow();
-                        state.AnimationStartsAt = state.Game is CasinoRoundGame.Book or CasinoRoundGame.BiggestBoy
+                        state.AnimationStartsAt = state.Game is CasinoRoundGame.Book or CasinoRoundGame.BiggestBoy or CasinoRoundGame.Spitze
                             ? now.AddMilliseconds(200) : null;
                         var v4 = round is { Game: CasinoRoundGame.BiggestBoy } && ControlledSlotRules.IsBiggest(Read<BiggestBoySpinResult>(round).State.RulesVersion);
                         state.AnimatingUntil = (state.AnimationStartsAt ?? now).AddSeconds(v4 || state.Game == CasinoRoundGame.Book
-                            ? BiggestBoyReelMotion.TotalDurationSeconds : state.Game == CasinoRoundGame.BiggestBoy ? 3.2 : state.Game == CasinoRoundGame.Spitze ? 1.8 : state.Game == CasinoRoundGame.Blackjack ? .95 : .65);
+                            ? BiggestBoyReelMotion.TotalDurationSeconds : state.Game == CasinoRoundGame.BiggestBoy ? 3.2 : state.Game == CasinoRoundGame.Spitze ? BiggestBoyReelMotion.FirstReelDurationSeconds : state.Game == CasinoRoundGame.Blackjack ? .95 : .65);
                         state.Status = "Aktion gebucht · Animation läuft";
                     }
                 }
@@ -293,7 +309,7 @@ public sealed class CasinoRoundPresenter : IDisposable
                 }
             }
             // Four visible symbols per reel advance on a cyclic strip; no huge off-screen panels.
-            if (state.Hud == ExpandingHudId && state.AnimationStartsAt is null
+            if ((state.Hud == ExpandingHudId || state.Game == CasinoRoundGame.Spitze) && state.AnimationStartsAt is null
                 && state.AnimatingUntil is { } movingEnd && _clock.GetUtcNow() < movingEnd && state.Visible)
                 Render(state);
             if (state.Hud == ExpandingHudId && state.AnimatingUntil is null && state.Round is { } won
@@ -305,7 +321,15 @@ public sealed class CasinoRoundPresenter : IDisposable
                 else state.WinCycleAt = null;
             }
             if (state.AnimatingUntil is { } end && _clock.GetUtcNow() >= end)
-            { state.AnimatingUntil = null; state.AnimationStartsAt = null; state.Status = "Gespeichertes Ergebnis"; state.WinCycleAt = _clock.GetUtcNow().AddSeconds(1.2); if (state.Visible) Render(state); }
+            {
+                if (state.Game == CasinoRoundGame.Spitze && state.Visible && state.ReelSoundEnabled)
+                    _reelStopSound?.Invoke(state.Player.Id);
+                state.AnimatingUntil = null;
+                state.AnimationStartsAt = null;
+                state.Status = "Gespeichertes Ergebnis";
+                state.WinCycleAt = _clock.GetUtcNow().AddSeconds(1.2);
+                if (state.Visible) Render(state);
+            }
         }
     }
 
@@ -434,6 +458,24 @@ public sealed class CasinoRoundPresenter : IDisposable
     private void RenderSpitze(State state, SpitzeRoundState? round)
     {
         var moving = state.AnimatingUntil is not null;
+        var rolling = moving && state.AnimationStartsAt is null;
+        var elapsed = moving && state.AnimatingUntil is { } finish
+            ? (_clock.GetUtcNow() - finish.AddSeconds(-BiggestBoyReelMotion.FirstReelDurationSeconds)).TotalSeconds : 0;
+        var travelled = rolling ? CosmeticReelMotion.Travelled(elapsed, 0) : 0;
+        if (state.MotionProgress[0] != travelled)
+        {
+            state.MotionProgress[0] = travelled;
+            if (rolling && travelled > 0) state.MotionFrames[0]++;
+        }
+        Class(state, "spitze_reel", "spitze-step-a", rolling && state.MotionFrames[0] % 2 == 1);
+        Class(state, "spitze_reel", "spitze-step-b", rolling && travelled > 0 && state.MotionFrames[0] % 2 == 0);
+        for (var row = 0; row < 4; row++)
+        {
+            var visible = state.SpitzeMotion is { } ribbon ? (SpitzeSymbol)ribbon.VisibleSymbol(0, travelled, row) : SpitzeSymbol.Blank;
+            foreach (var option in Enum.GetValues<SpitzeSymbol>())
+                Class(state, "spitze_motion" + row, "spitze-" + SpitzeSkin(option), visible == option);
+            Text(state, "spitze_motion_caption" + row, visible == SpitzeSymbol.Blank ? "—" : visible.ToString().ToUpperInvariant());
+        }
         var low = round?.Low ?? 0;
         var middle = round?.Middle ?? 0;
         var high = round?.High ?? 0;
@@ -771,10 +813,40 @@ public sealed class CasinoRoundPresenter : IDisposable
         _ => "50 % Chance: Zwischenstand verdoppeln oder verlieren · BANK bucht den Zwischenstand zurück · nach 5 Erfolgen BANK wählen.",
     };
     private static string Points(long value) => CasinoMoney.Format(value);
-    private void Text(State s, string id, string value) => _hud.SetText(s.Player.Id, s.Hud, "casino_round_" + id, value);
+    private static string SpitzeSkin(SpitzeSymbol symbol) => symbol switch
+    {
+        SpitzeSymbol.Loss => "ggspray", SpitzeSymbol.SafariMesh => "safarimesh", SpitzeSymbol.NeonRevolution => "neonrevolution",
+        SpitzeSymbol.Gold => "gold", SpitzeSymbol.Knife => "knife", _ => "blank",
+    };
+
+    private static readonly HashSet<string> ResultTexts =
+    [
+        "held", "next", "bonus", "biggest_total_win", "biggest_bonus", "bb_series", "bb_remaining", "bb_expanding",
+        "spitze_pot", "spitze_direct", "spitze_games", "spitze_progress", "spitze_symbol_caption", "insurance_result"
+    ];
+
+    private void Text(State s, string id, string value)
+    {
+        if (s.AnimatingUntil is not null)
+        {
+            if (id is "bankroll" or "bankroll_footer")
+                value = Points(s.Balance.Allocated - (s.Round is { IsComplete: true } settled ? settled.Payout : 0));
+            else if (id is "detail" or "dealer") value = "";
+            else if (ResultTexts.Contains(id) || id.EndsWith("_summary", StringComparison.Ordinal)
+                || id.StartsWith("biggest_symbol_money", StringComparison.Ordinal) || id.StartsWith("biggest_repeat_money", StringComparison.Ordinal))
+                value = s.RevealTexts.GetValueOrDefault(id, "");
+        }
+        s.Texts[id] = value;
+        _hud.SetText(s.Player.Id, s.Hud, "casino_round_" + id, value);
+    }
     private void Class(State s, string id, string name, bool value)
     {
         var key = (id, name);
+        if (s.AnimatingUntil is not null && (name is "lit" or "reached"
+            || id == "spitze_symbol" && name.StartsWith("outcome-", StringComparison.Ordinal)
+            || id == "root" && (name is "active" or "complete" or "spitze-bonus" or "needs-bonus-symbol" or "insurance-offer" or "more-hands"
+                || name.StartsWith("can-", StringComparison.Ordinal) || name.StartsWith("spitze-can-", StringComparison.Ordinal))))
+            value = s.RevealClasses.GetValueOrDefault(key);
         if (s.Classes.TryGetValue(key, out var previous) && previous == value) return;
         s.Classes[key] = value;
         _hud.SetClass(s.Player.Id, s.Hud, "casino_round_" + id, name, value);
@@ -790,6 +862,10 @@ public sealed class CasinoRoundPresenter : IDisposable
         public PlayerSnapshot Player { get; } = player;
         public CustomHudId Hud { get; set; } = HudId;
         public CosmeticReelMotion? CosmeticMotion { get; set; }
+        public CosmeticReelMotion? SpitzeMotion { get; set; }
+        public Dictionary<string, string> Texts { get; } = [];
+        public Dictionary<string, string> RevealTexts { get; set; } = [];
+        public Dictionary<(string Id, string Name), bool> RevealClasses { get; set; } = [];
         public int[] PreviousStops { get; set; } = new int[5];
         public int[] MotionProgress { get; } = [-1, -1, -1, -1, -1];
         public int[] MotionFrames { get; } = new int[5];
