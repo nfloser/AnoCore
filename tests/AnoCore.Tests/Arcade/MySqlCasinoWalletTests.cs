@@ -33,6 +33,23 @@ public sealed class MySqlCasinoWalletTests
     });
     private ValueTask<CasinoReceipt> Credit(int amount) => _wallet.ApplyAsync(new(Guid.NewGuid(), Player, CasinoAction.Credit, amount, null));
     [TestMethod]
+    public async Task ConcurrentRouletteBasketRetriesBookOneTotalAndRejectChangedWagers()
+    {
+        await Credit(1000);
+        await _wallet.ApplyAsync(new(Guid.NewGuid(), Player, CasinoAction.Load, 500, null));
+        var op = new CasinoOperation(Guid.NewGuid(), Player, CasinoAction.Play, 0,
+            new(CasinoGame.Roulette, 200, 7, [new(7, 100), new(37, 100)]));
+        var receipts = await Task.WhenAll(Enumerable.Range(0, 12).Select(_ => _wallet.ApplyAsync(op).AsTask()));
+        Assert.IsTrue(receipts.All(receipt => System.Text.Json.JsonSerializer.Serialize(receipt) == System.Text.Json.JsonSerializer.Serialize(receipts[0])));
+        Assert.AreEqual(300L + receipts[0].Outcome!.Payout, (await _wallet.ReadAsync(Player)).Allocated);
+        Assert.AreEqual(3, (await _wallet.HistoryAsync(Player)).Count);
+        var reduced = new MySqlCasinoWallet(_db, new() { Roulette = 50 });
+        Assert.AreEqual(System.Text.Json.JsonSerializer.Serialize(receipts[0]), System.Text.Json.JsonSerializer.Serialize(await reduced.ApplyAsync(op)));
+        var changed = op with { Game = op.Game! with { Bets = [new(8, 100), new(37, 100)] } };
+        await Assert.ThrowsExactlyAsync<CasinoRejectedException>(async () => await _wallet.ApplyAsync(changed));
+    }
+
+    [TestMethod]
     public async Task ConfiguredCoinLimitRejectsNewBetsButReplaysBookedReceiptAfterReduction()
     {
         await Credit(20000);

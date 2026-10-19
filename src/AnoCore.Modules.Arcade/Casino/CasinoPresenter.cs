@@ -54,6 +54,7 @@ public sealed class CasinoPresenter : IDisposable
         "casino_roulette_close", "casino_roulette_back", "casino_roulette_minus", "casino_roulette_plus",
         "casino_roulette_numberminus", "casino_roulette_numberplus", "casino_roulette_number",
         "casino_roulette_play", "casino_roulette_refresh", "casino_roulette_rules", "casino_roulette_retry",
+        "casino_roulette_addbet", "casino_roulette_undobet", "casino_roulette_clearbets",
         "casino_roulette_betmin", "casino_roulette_betmax", "casino_roulette_betdouble", "casino_roulette_bethalf",
         .. Enumerable.Range(37, 12).Select(n => "casino_roulette_bet" + n),
         .. Enumerable.Range(0, 37).Select(n => "casino_roulette_r" + n)
@@ -362,13 +363,40 @@ public sealed class CasinoPresenter : IDisposable
                         state.Stake = 50;
                         break;
                     case "betmax" when state.Game == CasinoGame.Roulette:
-                        state.Stake = (int)Math.Clamp(Math.Min(state.Balance.Allocated / 50 * 50, _stakeLimits.Roulette), 50, _stakeLimits.Roulette);
+                        state.Stake = (int)Math.Clamp(Math.Min(state.Balance.Allocated / 50 * 50, _stakeLimits.Roulette) - state.RouletteBets.Sum(bet => bet.Stake), 50, _stakeLimits.Roulette);
                         break;
                     case "betdouble" when state.Game == CasinoGame.Roulette:
                         state.Stake = Math.Min(state.Stake * 2, _stakeLimits.Roulette);
                         break;
                     case "bethalf" when state.Game == CasinoGame.Roulette:
                         state.Stake = Math.Max(50, state.Stake / 2 / 50 * 50);
+                        break;
+                    case "addbet" when state.Game == CasinoGame.Roulette:
+                        var total = state.RouletteBets.Sum(bet => bet.Stake);
+                        if ((long)total + state.Stake > Math.Min(state.Balance.Allocated, _stakeLimits.Roulette))
+                            state.Status = "Gesamteinsatz überschreitet Guthaben oder Rundenlimit.";
+                        else
+                        {
+                            state.RouletteUndo.Add(state.RouletteBets.ToArray());
+                            var index = state.RouletteBets.FindIndex(bet => bet.Choice == state.Bet);
+                            if (index < 0) state.RouletteBets.Add(new(state.Bet, state.Stake));
+                            else state.RouletteBets[index] = state.RouletteBets[index] with { Stake = state.RouletteBets[index].Stake + state.Stake };
+                            state.Status = "Einsatz hinzugefügt · weitere Felder wählen und SETZEN drücken.";
+                            if (state.RouletteUndo.Count > 100) state.RouletteUndo.RemoveAt(0);
+                        }
+                        break;
+                    case "undobet" when state.Game == CasinoGame.Roulette:
+                        if (state.RouletteUndo.Count > 0)
+                        {
+                            state.RouletteBets.Clear();
+                            state.RouletteBets.AddRange(state.RouletteUndo[^1]);
+                            state.RouletteUndo.RemoveAt(state.RouletteUndo.Count - 1);
+                        }
+                        break;
+                    case "clearbets" when state.Game == CasinoGame.Roulette:
+                        state.RouletteBets.Clear();
+                        state.RouletteUndo.Clear();
+                        state.Status = "Einsätze gelöscht · Feld wählen und SETZEN drücken.";
                         break;
                     case "loadminus":
                         state.Load = Math.Max(50, state.Load - 50);
@@ -401,7 +429,9 @@ public sealed class CasinoPresenter : IDisposable
                         break;
                     case "play" when state.Game is { } game:
                         operation = new(Guid.NewGuid(), context.PlayerId, CasinoAction.Play, 0,
-                            new(game, state.Stake, game == CasinoGame.Coinflip ? state.Coin : state.Bet));
+                            game == CasinoGame.Roulette && state.RouletteBets.Count > 0
+                                ? new(game, state.RouletteBets.Sum(bet => bet.Stake), state.Bet, state.RouletteBets.OrderBy(bet => bet.Choice).ToArray())
+                                : new(game, state.Stake, game == CasinoGame.Coinflip ? state.Coin : state.Bet));
                         break;
                     case "retry":
                         operation = state.Unconfirmed;
@@ -679,7 +709,7 @@ public sealed class CasinoPresenter : IDisposable
         {
             CasinoGame.Slots => "5 Gewinnlinien · Einsatz wählen und spielen",
             CasinoGame.Coinflip => "Kopf oder Zahl wählen",
-            CasinoGame.Roulette => "Zahl oder Außenwette wählen",
+            CasinoGame.Roulette => "Feld wählen → SETZEN · mehrere Einsätze möglich · KUGEL STARTEN",
             _ => ""
         };
         RenderActive(state);
@@ -748,7 +778,12 @@ public sealed class CasinoPresenter : IDisposable
         RouletteText(state, "stake", CasinoMoney.FormatExact(state.Stake));
         RouletteText(state, "win", Points(state.Win));
         RouletteText(state, "numbervalue", state.Number.ToString(CultureInfo.InvariantCulture));
-        RouletteText(state, "choice", "Wette: " + BetLabel(state.Bet));
+        RouletteText(state, "choice", "Auswahl: " + BetLabel(state.Bet));
+        RouletteText(state, "total", "GESAMT: " + CasinoMoney.FormatExact(state.RouletteBets.Count == 0
+            ? state.Stake : state.RouletteBets.Sum(bet => bet.Stake)));
+        RouletteText(state, "betsummary", state.RouletteBets.Count == 0
+            ? "Feld wählen → SETZEN · ohne Einsatzkorb wird die Auswahl einzeln gespielt"
+            : string.Join(" · ", state.RouletteBets.Select(bet => BetLabel(bet.Choice) + ": " + CasinoMoney.FormatExact(bet.Stake))));
         RouletteText(state, "status", state.Status);
         RouletteText(state, "wheelresult", state.Outcome is { Game: CasinoGame.Roulette } booked
             && (state.Started is null || state.LandingApplied) ? booked.Number.ToString(CultureInfo.InvariantCulture)
@@ -757,13 +792,19 @@ public sealed class CasinoPresenter : IDisposable
         RouletteClass(state, "root", "uncertain", state.Unconfirmed is not null);
         if (state.RouletteFrame < 0) SetRouletteBall(state, 0);
         for (var bet = 0; bet <= 48; bet++)
-            RouletteClass(state, bet <= 36 ? "r" + bet : "bet" + bet, "selected", state.Bet == bet);
+        {
+            var panel = bet <= 36 ? "r" + bet : "bet" + bet;
+            var placed = state.RouletteBets.FirstOrDefault(wager => wager.Choice == bet);
+            RouletteClass(state, panel, "selected", state.Bet == bet);
+            RouletteClass(state, panel, "placed", placed is not null);
+            RouletteText(state, "chip" + bet, placed is null ? "" : CasinoMoney.FormatExact(placed.Stake));
+        }
         var net = state.Outcome is { Game: CasinoGame.Roulette } last && state.RouletteStake is { } originalStake
             ? $" · Netto {(last.Payout - originalStake > 0 ? "+" : "")}{Points(last.Payout - originalStake)}" : "";
         RouletteText(state, "result", state.Started is not null ? "Kugel läuft · Einsätze geschlossen"
             : state.Outcome is { Game: CasinoGame.Roulette } result
                 ? $"GEFALLEN: {result.Number} · Rückzahlung {Points(result.Payout)}{net}"
-                : "Wähle eine Zahl oder eine Außenwette · eine Wette pro Runde");
+                : "Zahlen und Außenwetten kombinieren · ein gemeinsames Ergebnis");
         if (state.Outcome is { Game: CasinoGame.Roulette } landed && (state.Started is null || state.LandingApplied))
             SetRouletteLanding(state, landed.Number);
     }
@@ -875,7 +916,7 @@ public sealed class CasinoPresenter : IDisposable
         {
             CasinoGame.Slots => "Slots: 5 Linien · Einsatz/5 · 12/22/36/55/100/150/300/1000×.",
             CasinoGame.Coinflip => "Coinflip: 2× Auszahlung inklusive Einsatz.",
-            CasinoGame.Roulette => "Roulette: Zahl 36× · Dutzend/Spalte 3× · andere Außenwetten 2×.",
+            CasinoGame.Roulette => "Feld wählen → SETZEN; beliebig kombinieren, dann KUGEL STARTEN. Limit gilt für GESAMT. Zahl 36× · Dutzend/Spalte 3× · Außen 2×, inklusive Einsatz. 0 verliert Außenwetten.",
             _ => "Wähle ein Spiel. Nur virtuelle €, keine Echtgeld-Auszahlung."
         };
 
@@ -1012,6 +1053,8 @@ public sealed class CasinoPresenter : IDisposable
         public bool Pending { get; set; }
         public int Stake { get; set; } = 100;
         public int Load { get; set; } = 500;
+        public List<RouletteBet> RouletteBets { get; } = [];
+        public List<RouletteBet[]> RouletteUndo { get; } = [];
         public int RouletteFrame { get; set; } = -1;
         public int RouletteStartAngle { get; set; }
         public int? RouletteStake { get; set; }

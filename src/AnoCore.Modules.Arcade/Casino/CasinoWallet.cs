@@ -26,6 +26,8 @@ public sealed class MySqlCasinoWallet(IDatabase database, CasinoStakeLimits? sta
         => database.WithConnectionAsync(async (connection, ct) => await BalanceAsync(connection, null, player, false, ct).ConfigureAwait(false), token);
     public ValueTask<CasinoReceipt> ApplyAsync(CasinoOperation op, CancellationToken token = default)
     {
+        // Freeze caller-owned arrays before validation and before the first async boundary.
+        if (op.Game?.Bets is { } bets) op = op with { Game = op.Game with { Bets = (RouletteBet[])bets.Clone() } };
         if (op.Id == Guid.Empty || !Enum.IsDefined(op.Action) || op.Amount is < 0 or > 1000000) throw new ArgumentException("Invalid operation.");
         if (op.Action == CasinoAction.Play) CasinoRules.Validate(op.Game ?? throw new ArgumentException("Missing game."));
         if (op.Action is CasinoAction.Credit or CasinoAction.Load && op.Amount == 0) throw new ArgumentException("Amount required.");

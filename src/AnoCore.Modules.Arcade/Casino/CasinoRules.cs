@@ -1,10 +1,13 @@
 using System.Security.Cryptography;
+using System.Text.Json.Serialization;
 
 namespace AnoCore.Modules.Arcade.Casino;
 
 public enum CasinoGame { Slots, Coinflip, Roulette }
 public sealed record CasinoOutcome(CasinoGame Game, int[] Symbols, int Number, bool Won, long Payout, string Summary);
-public sealed record CasinoRequest(CasinoGame Game, int Stake, int Choice);
+public sealed record RouletteBet(int Choice, int Stake);
+public sealed record CasinoRequest(CasinoGame Game, int Stake, int Choice,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] RouletteBet[]? Bets = null);
 
 /// <summary>Original versioned rules. Payouts include the returned stake.</summary>
 public static class CasinoRules
@@ -20,6 +23,8 @@ public static class CasinoRules
     public static long MaximumPayout(CasinoRequest request)
     {
         Validate(request);
+        if (request.Bets is not null)
+            return Enumerable.Range(0, 37).Max(number => EvaluateNumber(request, number).Payout);
         return (long)request.Stake * (request.Game == CasinoGame.Slots ? Multipliers.Max()
             : request.Game == CasinoGame.Coinflip ? 2 : request.Choice <= 36 ? 36 : request.Choice >= 43 ? 3 : 2);
     }
@@ -31,6 +36,13 @@ public static class CasinoRules
         if (request.Game == CasinoGame.Coinflip && request.Choice is not (0 or 1)
             || request.Game == CasinoGame.Roulette && request.Choice is < 0 or > 48)
             throw new ArgumentException("Ungültige Auswahl.");
+        if (request.Bets is { } bets
+            && (request.Game != CasinoGame.Roulette || bets.Length is < 1 or > 49
+                || bets.Any(bet => bet is null || bet.Choice is < 0 or > 48
+                    || bet.Stake is < 50 or > CasinoStakeLimits.TechnicalMaximum || bet.Stake % 50 != 0)
+                || bets.Select(bet => bet.Choice).Distinct().Count() != bets.Length
+                || bets.Sum(bet => (long)bet.Stake) != request.Stake))
+            throw new ArgumentException("Ungültige Roulette-Einsätze oder Gesamtsumme.");
     }
     public static CasinoOutcome Draw(CasinoRequest request, Func<int, int>? random = null)
     {
@@ -64,6 +76,12 @@ public static class CasinoRules
         Validate(request);
         if (request.Game == CasinoGame.Slots || number < 0 || number >= (request.Game == CasinoGame.Coinflip ? 2 : 37))
             throw new ArgumentException("Invalid outcome.");
+        if (request.Bets is { } bets)
+        {
+            var payoutTotal = bets.Sum(bet => EvaluateNumber(new(CasinoGame.Roulette, bet.Stake, bet.Choice), number).Payout);
+            var display = EvaluateNumber(new(CasinoGame.Roulette, request.Stake, request.Choice), number);
+            return display with { Won = payoutTotal > 0, Payout = payoutTotal, Summary = $"{number} · Rückzahlung: {payoutTotal:N0} €" };
+        }
         var won = request.Game == CasinoGame.Coinflip ? number == request.Choice : request.Choice switch
         {
             <= 36 => number == request.Choice,

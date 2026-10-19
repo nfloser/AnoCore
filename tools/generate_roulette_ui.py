@@ -11,7 +11,12 @@ def label(name, cls='', text='{s:text}'):
     return f'<Label id="casino_roulette_{name}" class="{cls}" text="{text}" hittest="false" />'
 
 def button(name, text, cls=''):
-    return f'<Button id="casino_roulette_{name}" class="casino-button {cls}"><Label text="{text}" hittest="false" /></Button>'
+    chip = ''
+    if name.startswith('r') and name[1:].isdigit():
+        chip = label('chip'+name[1:], 'chip-amount')
+    elif name.startswith('bet') and name[3:].isdigit():
+        chip = label('chip'+name[3:], 'chip-amount')
+    return f'<Button id="casino_roulette_{name}" class="casino-button {cls}"><Label text="{text}" hittest="false" />{chip}</Button>'
 
 def build():
     xml = '''<root><styles><include src="s2r://panorama/styles/custom_game/anocore/ano_casino_roulette.vcss_c" /></styles>
@@ -32,7 +37,7 @@ def build():
     xml+='</Panel><Panel class="outside-bets">'
     for name,text,cls in [(41,'1–18',''),(39,'GERADE',''),(37,'ROT','red'),(38,'SCHWARZ','black'),(40,'UNGERADE',''),(42,'19–36','')]:
         xml+=button('bet'+str(name),text,'outside-bet '+cls)
-    xml+='</Panel>'+label('choice','selected-bet')+'<Panel class="number-select"><Label class="caption" text="ZAHL WÄHLEN" hittest="false" />'+button('numberminus','−','small')+label('numbervalue','number-value')+button('numberplus','+','small')+button('number','AUF ZAHL')+'''</Panel><Panel class="paytable" hittest="false"><Label text="ZAHL 36×   ·   DUTZEND / SPALTE 3×   ·   AUSSENWETTE 2×" hittest="false" /><Label text="Rückzahlung inklusive Einsatz · 0 verliert alle Außenwetten" hittest="false" /></Panel></Panel></Panel>'''+label('result','casino-result')+'<Panel class="stake-controls"><Label class="caption" text="EINSATZ" hittest="false" />'+button('minus','−','small')+label('stake','stake-amount')+button('plus','+','small')+button('betmin','MIN','small')+button('bethalf','½','small')+button('betdouble','×2','small')+button('betmax','MAX','small')+button('play','KUGEL STARTEN','casino-primary')+'</Panel>'+label('status','casino-status')+'<Panel class="navigation">'+button('back','SPIELAUSWAHL')+button('refresh','AKTUALISIEREN')+button('rules','SPIELREGELN')+button('retry','BUCHUNG PRÜFEN','retry')+'''</Panel><Label class="note" text="Nur virtuelle € · eine Wette pro Runde · keine Echtgeld-Auszahlung" hittest="false" /></Panel></Panel></Panel></root>'''
+    xml+='</Panel>'+label('choice','selected-bet')+'<Panel class="number-select"><Label class="caption" text="ZAHL WÄHLEN" hittest="false" />'+button('numberminus','−','small')+label('numbervalue','number-value')+button('numberplus','+','small')+button('number','AUF ZAHL')+button('addbet','SETZEN','casino-primary')+'''</Panel><Panel class="paytable" hittest="false"><Label text="ZAHL 36×   ·   DUTZEND / SPALTE 3×   ·   AUSSENWETTE 2×" hittest="false" /><Label text="Rückzahlung inklusive Einsatz · 0 verliert alle Außenwetten" hittest="false" /></Panel></Panel></Panel>'''+label('betsummary','bet-summary')+'<Panel class="basket-controls">'+label('total','basket-total')+button('undobet','ZURÜCK')+button('clearbets','ALLE LÖSCHEN')+'</Panel>'+label('result','casino-result')+'<Panel class="stake-controls"><Label class="caption" text="EINSATZ" hittest="false" />'+button('minus','−','small')+label('stake','stake-amount')+button('plus','+','small')+button('betmin','MIN','small')+button('bethalf','½','small')+button('betdouble','×2','small')+button('betmax','MAX','small')+button('play','KUGEL STARTEN','casino-primary')+'</Panel>'+label('status','casino-status')+'<Panel class="navigation">'+button('back','SPIELAUSWAHL')+button('refresh','AKTUALISIEREN')+button('rules','SPIELREGELN')+button('retry','BUCHUNG PRÜFEN','retry')+'''</Panel><Label class="note" text="Nur virtuelle € · mehrere Einsätze pro Runde · keine Echtgeld-Auszahlung" hittest="false" /></Panel></Panel></Panel></root>'''
     xml='\n'.join(line.rstrip() for line in parseString(xml).toprettyxml(indent='  ').split('\n')[1:] if line.strip())+'\n'
     (UI/'layout/custom_game/anocore/ano_casino_roulette.xml').write_text(xml, encoding='utf-8')
     css='''/* Fixed wheel; only the server-booked ball uses bounded translate coordinates. */
@@ -40,7 +45,7 @@ def build():
 .casino-overlay { visibility:collapse; }
 .casino-overlay.shown { visibility:visible; }
 .casino-dim { width:4000px; height:2400px; horizontal-align:center; vertical-align:center; background-color:#030907ed; }
-.casino-window { width:1540px; height:1000px; horizontal-align:center; vertical-align:center; flow-children:down; padding:18px 24px; border:2px solid #aa9462; border-radius:16px; background-color:gradient(linear, 0% 0%, 0% 100%, from(#111c18), to(#070d0b)); }
+.casino-window { width:1540px; height:1040px; horizontal-align:center; vertical-align:center; flow-children:down; padding:18px 24px; border:2px solid #aa9462; border-radius:16px; background-color:gradient(linear, 0% 0%, 0% 100%, from(#111c18), to(#070d0b)); }
 Label { font-family:Arial; font-size:20px; color:#f0f4ef; margin:0px; }
 .casino-header { width:100%; height:50px; flow-children:right; }
 .casino-cover { width:42px; height:42px; background-image:url("s2r://panorama/styles/custom_game/anocore/casino/roulette.vtex"); background-size:contain; background-repeat:no-repeat; margin-right:12px; }
@@ -53,7 +58,7 @@ Label { font-family:Arial; font-size:20px; color:#f0f4ef; margin:0px; }
 .casino-counter { width:fill-parent-flow(1); height:72px; margin-right:8px; flow-children:down; padding:9px 16px; border:1px solid #425b4b; border-radius:6px; background-color:#101c16; }
 .caption { font-size:15px; color:#b5c8bb; letter-spacing:1px; }
 .amount { font-size:28px; color:#f0e1b7; margin-top:5px; }
-.casino-main { width:100%; height:560px; flow-children:right; }
+.casino-main { width:100%; height:550px; flow-children:right; }
 .wheel-column { width:520px; height:540px; flow-children:down; margin-right:18px; }
 .casino-pointer { horizontal-align:center; font-size:17px; color:#d9c794; height:28px; }
 .casino-wheel { width:500px; height:500px; min-height:500px; horizontal-align:center; flow-children:none; }
@@ -73,7 +78,7 @@ Label { font-family:Arial; font-size:20px; color:#f0f4ef; margin:0px; }
 .number-rows { width:fill-parent-flow(1); flow-children:down; }
 .number-row { width:100%; height:52px; flow-children:right; }
 .casino-number { width:fill-parent-flow(1); height:48px; padding:0px; margin-right:3px; border:1px solid #aa9462; border-radius:3px; }
-.casino-number Label { font-size:24px; font-weight:bold; }
+.casino-number Label { font-size:22px; font-weight:bold; }
 .red { background-color:#852b3c; }
 .black { background-color:#101c17; }
 .column-bet { width:64px; height:48px; padding:0px; margin-right:0px; }
@@ -85,24 +90,32 @@ Label { font-family:Arial; font-size:20px; color:#f0f4ef; margin:0px; }
 .outside-bet Label { font-size:17px; }
 .selected { border:3px solid #ffe1a0; box-shadow:#f2ca6c55 0px 0px 7px 0px; }
 .selected Label { color:#ffe7a6; }
+.chip-amount { visibility:collapse; }
+.placed { background-color:#6a5421; }
+.placed Label { vertical-align:top; margin-top:0px; }
+.placed .chip-amount { visibility:visible; vertical-align:bottom; horizontal-align:center; font-size:11px; color:#fff2c8; background-color:#1b271c; padding:0px 2px; border-radius:3px; margin-bottom:1px; }
+.bet-summary { width:100%; height:38px; font-size:15px; color:#e7d4a3; white-space:normal; text-overflow:ellipsis; }
+.basket-controls { width:100%; height:42px; flow-children:right; }
+.basket-controls .casino-button { height:36px; padding:5px 14px; }
+.basket-total { width:fill-parent-flow(1); vertical-align:center; color:#ffe2a2; font-size:23px; }
 .selected-bet { width:100%; font-size:24px; color:#ffe1a0; height:34px; padding-top:4px; }
 .number-select { width:100%; height:40px; flow-children:right; }
-.number-select .casino-button { height:36px; padding:4px 12px; }
+.number-select .casino-button { height:36px; padding:4px 8px; }
 .number-select .caption { vertical-align:center; margin-right:14px; }
 .small { min-width:52px; padding:8px 12px; }
 .number-value { width:54px; text-align:center; vertical-align:center; font-size:23px; }
 .paytable { width:100%; flow-children:down; margin-top:5px; }
 .paytable Label { width:100%; font-size:16px; color:#d0dccf; margin-top:4px; }
-.casino-result { width:100%; height:44px; padding:8px 12px; margin-bottom:8px; background-color:#12271d; border:1px solid #4c6c54; border-radius:6px; font-size:20px; }
+.casino-result { width:100%; height:40px; padding:8px 12px; margin-bottom:8px; background-color:#12271d; border:1px solid #4c6c54; border-radius:6px; font-size:20px; }
 .stake-controls { height:52px; horizontal-align:center; flow-children:right; }
 .stake-controls .caption { vertical-align:center; margin-right:18px; }
 .stake-amount { width:180px; text-align:center; vertical-align:center; font-size:25px; color:#f0e1b7; }
-.casino-status { width:100%; height:48px; font-size:18px; white-space:normal; color:#b7dfc5; margin-top:4px; }
+.casino-status { width:100%; height:36px; font-size:18px; white-space:normal; color:#b7dfc5; margin-top:4px; }
 .navigation { height:48px; horizontal-align:center; flow-children:right; }
 .retry { visibility:collapse; }
 .uncertain .retry { visibility:visible; }
 .note { horizontal-align:center; font-size:14px; color:#a6b7ac; margin-top:4px; }
-.busy .stake-controls, .busy .betting-table { opacity:0.55; }
+.busy .stake-controls, .busy .betting-table, .busy .basket-controls { opacity:0.55; }
 '''
     for ring in range(6):
         radius=228-16*ring
