@@ -10,10 +10,12 @@ public sealed class AnoVetoConfiguration
 
     public int MinimumVotes { get; set; } = 1;
 
+    public int MaxVotesPerPlayer { get; set; } = 3;
+
     public VoteTieBreakPolicy TieBreakPolicy { get; set; } = VoteTieBreakPolicy.OptionOrder;
 
     public AnoVetoOptions ToOptions()
-        => new(TimeSpan.FromSeconds(DurationSeconds), MinimumVotes, TieBreakPolicy);
+        => new(TimeSpan.FromSeconds(DurationSeconds), MinimumVotes, TieBreakPolicy, MaxVotesPerPlayer);
 
     public static IReadOnlyCollection<string> Validate(AnoVetoConfiguration configuration)
     {
@@ -28,6 +30,11 @@ public sealed class AnoVetoConfiguration
         if (configuration.MinimumVotes <= 0)
         {
             errors.Add("MinimumVotes must be greater than zero.");
+        }
+
+        if (configuration.MaxVotesPerPlayer is < 1 or > 8)
+        {
+            errors.Add("MaxVotesPerPlayer must be between 1 and 8.");
         }
 
         if (!Enum.IsDefined(typeof(VoteTieBreakPolicy), configuration.TieBreakPolicy))

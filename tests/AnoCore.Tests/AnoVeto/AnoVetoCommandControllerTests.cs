@@ -109,11 +109,12 @@ public sealed class AnoVetoCommandControllerTests
 
         await hud.ClickAsync(PlayerA, AnoVetoHudController.HudId, "ano_veto_map_3");
 
-        Assert.IsFalse(hud.VisiblePlayers(AnoVetoHudController.HudId).Contains(PlayerA));
+        Assert.IsTrue(hud.VisiblePlayers(AnoVetoHudController.HudId).Contains(PlayerA));
         Assert.IsTrue(coordinator.TryGetStatus(out var maps));
         var secondVote = await coordinator.CastAsync(PlayerA, maps[4].MapId, Now.AddSeconds(1));
-        Assert.IsFalse(secondVote.Accepted);
-        Assert.AreEqual(AnoVetoFailure.AlreadyVoted, secondVote.Failure);
+        Assert.IsTrue(secondVote.Accepted);
+        Assert.AreEqual(AnoVetoFailure.AlreadyVoted,
+            (await coordinator.CastAsync(PlayerA, maps[3].MapId, Now.AddSeconds(2))).Failure);
     }
 
     [TestMethod]

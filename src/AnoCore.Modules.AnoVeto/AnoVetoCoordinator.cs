@@ -99,7 +99,7 @@ public sealed class AnoVetoCoordinator
             "AnoVeto — choose the next map",
             voteOptions,
             distinctEligiblePlayers,
-            new VotePolicy(options.Duration, options.MinimumVotes, options.TieBreakPolicy));
+            new VotePolicy(options.Duration, options.MinimumVotes, options.TieBreakPolicy, options.MaxVotesPerPlayer));
 
         var created = await _votes.CreateAsync(manager, definition, now, cancellationToken).ConfigureAwait(false);
         if (!created.Accepted)
@@ -246,6 +246,37 @@ public sealed class AnoVetoCoordinator
             }
 
             maps = _active.Maps;
+            return true;
+        }
+    }
+
+    public bool TryGetPlayerSelections(
+        PlayerId playerId,
+        out IReadOnlyList<MapDefinition> selections,
+        out int maxVotesPerPlayer)
+    {
+        ArgumentNullException.ThrowIfNull(playerId);
+        lock (_gate)
+        {
+            if (_active is null || !_votes.TryGet(VoteId, out var snapshot)
+                || snapshot is null || snapshot.State != VoteState.Open)
+            {
+                selections = [];
+                maxVotesPerPlayer = 0;
+                return false;
+            }
+
+            maxVotesPerPlayer = snapshot.Definition.Policy.MaxVotesPerPlayer;
+            if (!snapshot.Selections.TryGetValue(playerId, out var chosen))
+            {
+                selections = [];
+                return true;
+            }
+
+            var chosenIds = chosen.ToHashSet(StringComparer.Ordinal);
+            selections = _active.Maps
+                .Where((_, index) => chosenIds.Contains($"map{index + 1:00}"))
+                .ToArray();
             return true;
         }
     }

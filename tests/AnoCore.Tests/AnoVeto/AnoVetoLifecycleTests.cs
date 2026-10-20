@@ -24,9 +24,22 @@ public sealed class AnoVetoLifecycleTests
         var winner = created.Maps[0];
 
         var first = await harness.Coordinator.CastAsync(PlayerA, winner.MapId, Now.AddSeconds(1));
-        var last = await harness.Coordinator.CastAsync(PlayerB, winner.MapId, Now.AddSeconds(2));
-
+        var second = await harness.Coordinator.CastAsync(PlayerB, winner.MapId, Now.AddSeconds(2));
         Assert.IsTrue(first.Accepted);
+        Assert.IsTrue(second.Accepted);
+        Assert.IsTrue(harness.Coordinator.TryGetStatus(out _));
+
+        foreach (var player in new[] { PlayerA, PlayerB })
+        {
+            Assert.IsTrue((await harness.Coordinator.CastAsync(
+                player, created.Maps[1].MapId, Now.AddSeconds(3))).Accepted);
+        }
+        Assert.IsTrue((await harness.Coordinator.CastAsync(
+            PlayerA, created.Maps[2].MapId, Now.AddSeconds(4))).Accepted);
+        Assert.IsTrue(harness.Coordinator.TryGetStatus(out _));
+        var last = await harness.Coordinator.CastAsync(
+            PlayerB, created.Maps[2].MapId, Now.AddSeconds(5));
+
         Assert.IsTrue(last.Accepted);
         Assert.AreEqual(AnoVetoOutcome.MapSelected, last.Outcome);
         Assert.AreEqual(winner.MapId, last.Winner?.MapId);
