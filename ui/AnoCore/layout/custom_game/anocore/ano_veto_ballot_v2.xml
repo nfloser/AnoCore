@@ -13,47 +13,47 @@
                         <Label id="ano_veto_title" class="ano-title" text="{s:text}" />
                         <Label id="ano_veto_status" class="ano-status" text="{s:text}" />
                     </Panel>
-                    <Button id="ano_veto_close" class="ano-close"><Label text="×" /></Button>
+                    <Button id="ano_veto_close" class="ano-close"><Label text="×" hittest="false" /></Button>
                 </Panel>
                 <Panel class="ano-map-grid" hittest="true">
                     <Button id="ano_veto_map_0" class="ano-map">
                         <Panel id="ano_veto_map_0_image" class="ano-map-image" hittest="false" />
-                        <Label id="ano_veto_map_0_text" class="ano-map-text" text="{s:text}" />
+                        <Label id="ano_veto_map_0_text" hittest="false" class="ano-map-text" text="{s:text}" />
                     </Button>
                     <Button id="ano_veto_map_1" class="ano-map">
                         <Panel id="ano_veto_map_1_image" class="ano-map-image" hittest="false" />
-                        <Label id="ano_veto_map_1_text" class="ano-map-text" text="{s:text}" />
+                        <Label id="ano_veto_map_1_text" hittest="false" class="ano-map-text" text="{s:text}" />
                     </Button>
                     <Button id="ano_veto_map_2" class="ano-map">
                         <Panel id="ano_veto_map_2_image" class="ano-map-image" hittest="false" />
-                        <Label id="ano_veto_map_2_text" class="ano-map-text" text="{s:text}" />
+                        <Label id="ano_veto_map_2_text" hittest="false" class="ano-map-text" text="{s:text}" />
                     </Button>
                     <Button id="ano_veto_map_3" class="ano-map">
                         <Panel id="ano_veto_map_3_image" class="ano-map-image" hittest="false" />
-                        <Label id="ano_veto_map_3_text" class="ano-map-text" text="{s:text}" />
+                        <Label id="ano_veto_map_3_text" hittest="false" class="ano-map-text" text="{s:text}" />
                     </Button>
                     <Button id="ano_veto_map_4" class="ano-map">
                         <Panel id="ano_veto_map_4_image" class="ano-map-image" hittest="false" />
-                        <Label id="ano_veto_map_4_text" class="ano-map-text" text="{s:text}" />
+                        <Label id="ano_veto_map_4_text" hittest="false" class="ano-map-text" text="{s:text}" />
                     </Button>
                     <Button id="ano_veto_map_5" class="ano-map">
                         <Panel id="ano_veto_map_5_image" class="ano-map-image" hittest="false" />
-                        <Label id="ano_veto_map_5_text" class="ano-map-text" text="{s:text}" />
+                        <Label id="ano_veto_map_5_text" hittest="false" class="ano-map-text" text="{s:text}" />
                     </Button>
                     <Button id="ano_veto_map_6" class="ano-map">
                         <Panel id="ano_veto_map_6_image" class="ano-map-image" hittest="false" />
-                        <Label id="ano_veto_map_6_text" class="ano-map-text" text="{s:text}" />
+                        <Label id="ano_veto_map_6_text" hittest="false" class="ano-map-text" text="{s:text}" />
                     </Button>
                     <Button id="ano_veto_map_7" class="ano-map">
                         <Panel id="ano_veto_map_7_image" class="ano-map-image" hittest="false" />
-                        <Label id="ano_veto_map_7_text" class="ano-map-text" text="{s:text}" />
+                        <Label id="ano_veto_map_7_text" hittest="false" class="ano-map-text" text="{s:text}" />
                     </Button>
                 </Panel>
                 <Panel class="ano-footer" hittest="true">
                     <Panel class="ano-voters-scroll" hittest="true"><Label id="ano_veto_voters" class="ano-voters" text="{s:text}" /></Panel>
                     <Panel class="ano-footer-actions" hittest="true">
                         <Label class="ano-help" text="1–3 Maps wählen. Erneut klicken zum Abwählen." />
-                        <Button id="ano_veto_confirm" class="ano-confirm"><Label id="ano_veto_confirm_text" text="{s:text}" /></Button>
+                        <Button id="ano_veto_confirm" class="ano-confirm"><Label id="ano_veto_confirm_text" hittest="false" text="{s:text}" /></Button>
                     </Panel>
                 </Panel>
             </Panel>

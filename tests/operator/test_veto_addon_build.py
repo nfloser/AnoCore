@@ -32,6 +32,16 @@ class VetoLayoutTests(unittest.TestCase):
                           for s in (".ano-banner", ".ano-header", ".ano-map-grid", ".ano-footer"))
         self.assertLessEqual(used_height, height)
 
+    def test_confirmed_ballot_text_clicks_reach_registered_buttons(self):
+        root = ET.parse(ROOT / "ui/AnoCore/layout/custom_game/anocore/ano_veto_ballot_v2.xml").getroot()
+        buttons = {node.attrib["id"]: node for node in root.iter("Button")}
+        self.assertEqual(10, len(buttons))
+        for button_id, button in buttons.items():
+            for child in button.iter():
+                if child is not button:
+                    self.assertEqual("false", child.attrib.get("hittest"),
+                                     (button_id, child.tag, child.attrib.get("id")))
+
     def test_card_layout_is_loaded_with_previews_and_all_click_targets(self):
         controller = (ROOT / "src/AnoCore.Modules.AnoVeto/AnoVetoHudController.cs").read_text()
         self.assertIn('anocore/ano_veto_ballot_v2.xml"', controller)

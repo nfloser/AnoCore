@@ -96,3 +96,8 @@ footer without a Confirm button while the server already runs draft selections.
 Install the matching plugin and compile the full new UI package together. If only
 the plugin is updated and the new resources are absent, the client cannot display
 the new view; it must not silently show a legacy layout as a compatible ballot.
+
+The #470 interaction contract also applies to the confirmed-ballot view: every
+child inside a registered button (map artwork/name, Close label, Confirm label)
+uses `hittest="false"`. The parent button owns the event. The source regression
+checks all ten buttons so text clicks cannot silently target an unregistered ID.
