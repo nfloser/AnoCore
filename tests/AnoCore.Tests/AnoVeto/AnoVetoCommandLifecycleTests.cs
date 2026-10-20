@@ -21,7 +21,7 @@ public sealed class AnoVetoCommandLifecycleTests
     {
         var harness = CreateHarness(TimeSpan.FromMinutes(1));
         using var controller = harness.Controller;
-        Assert.IsTrue((await harness.Commands.ExecuteAsync("!anoveto create", Manager)).Success);
+        Assert.IsTrue((await harness.Commands.ExecuteAsync("!anoveto random", Manager)).Success);
         Assert.HasCount(2, harness.Hud.VisiblePlayers(AnoVetoHudController.HudId));
 
         await harness.Hud.ClickAsync(PlayerA, AnoVetoHudController.HudId, "ano_veto_map_0");
@@ -43,7 +43,7 @@ public sealed class AnoVetoCommandLifecycleTests
     {
         var harness = CreateHarness(TimeSpan.FromSeconds(10));
         using var controller = harness.Controller;
-        Assert.IsTrue((await harness.Commands.ExecuteAsync("!anoveto create", Manager)).Success);
+        Assert.IsTrue((await harness.Commands.ExecuteAsync("!anoveto random", Manager)).Success);
         Assert.HasCount(2, harness.Hud.VisiblePlayers(AnoVetoHudController.HudId));
 
         harness.Time.Advance(TimeSpan.FromSeconds(10));

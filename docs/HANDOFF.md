@@ -1,3 +1,19 @@
+## Casino native reference adaptation (#472) and inline-style repair (#473) — 2026-10-14
+
+Built locally on #471 (11a78e8), preserving Veto actions, all six Casino games,
+existing rules, receipts and AP persistence. Slots/Book now have result-ribbon
+settle phases; Book loops a complete downward double strip. Blackjack gains
+bounded individual cards, concealed dealer hole card and active split-hand
+styling; Risk gains amount/next-step indicators. Button children are inert.
+Owner reported CS2 rejecting Panel style: positions now use CSS classes and
+all native layouts are scanned for forbidden inline style attributes.
+See casino-reference-ui.md for sources, exact acceptance and rollback.
+Local operator tests pass; .NET SDK/PowerShell/Valve/CS2 are unavailable here.
+Owner authorized publication: branches are on GitHub as draft PR #474/#475.
+First #475 CI built successfully and passed 1366/1367 tests; the added card test
+used an incomplete deck. Corrected its fixture to preserve all 52 physical cards.
+CI is rerun; native validation remains pending. No production/Workshop upload.
+
 ## Backup-matched CSS profile preparation (#354) — 2026-10-09
 
 Separate offline prepare_css_profile.py prepares three files from old CustomTags
@@ -979,3 +995,271 @@ License, NOTICE and source provenance must remain intact.
 ### CSS-owned individual team administration (#345)
 
 `anoteam`/`anoswap` now use the dedicated CSS `@anocore/team` flag, CSS targets/immunity and current-session engine writes. Other AnoCore permissions remain separate. Existing server developer/host groups need the flag appended; see [team administration](extended-inventory-team-admin.md). No MatchZy aliases or global side swaps are registered, and its roster handlers can restore a locked roster. Native CS2/DatHost acceptance is intentionally outstanding; no release, deployment or live config write occurred.
+## AnoCasino durable-round checkpoint (#423 / #429) — 2026-10-14
+
+- Integration branch `feature/429-casino-durable-rounds` keeps migration 027 and
+  all `anocasino-v1` request/receipt JSON immutable. Migration 028 adds separate
+  durable round/action tables with one active round per SteamID, optimistic
+  revisions, immutable operation receipts and a bounded outstanding-payout
+  reservation. No account-table columns were added because the v1 wallet uses a
+  positional insert.
+- Every writer locks the AP account before a round. A no-randomness plan proves
+  debit/liquidity and maximum gross payout exposure before the transition can
+  consume server randomness. Duplicate operation IDs replay the stored receipt;
+  stale different IDs fail without drawing. Intermediate bonus/Risk/Blackjack
+  winnings stay durably held and reserved; spendable AP is credited once on the
+  terminal action.
+- The legacy wallet now locks/checks an active round reservation after its account
+  lock, preventing credits or v1 games from consuming payout headroom. Migration
+  startup composes 027 then 028 in the Plugin, not Runtime.
+- MariaDB tests cover ten-way duplicate start/terminal replay, restart recovery,
+  competing same-revision actions and legacy-credit reservation enforcement.
+  Local `dotnet` is unavailable, so exact-head CI remains required. The existing
+  casino Panorama source suite passes (3 tests). No native Windows resourcecompiler,
+  Workshop, two-client CS2 or DatHost acceptance was performed.
+- Independent draft dependencies: #430 pins v1 compatibility, #431 adds Risk
+  rules, #432 adds Blackjack rules, #433 adds the bonus-slot rules and #434 adds
+  bounded fruit/coin/roulette animations. Their exact-head CI/reviews must pass
+  before integration. Presenter/plugin wiring for the three multi-action engines
+  remains next; none is yet claimed playable.
+
+### 05:00 automation run — reviewed integration checkpoint
+
+- `feat/casino-games` now contains the reviewed, squash-merged PRs #430, #431,
+  #432, #433 and #434 at `b247ee553a84025c1cbdc11657fdb244244bc556`:
+  immutable v1 compatibility vectors, bounded Risk rules, Blackjack rules,
+  bounded Book-style bonus rules and repeatable native fruit/coin/roulette
+  outcome animations. The last component run, CI #967, passed 1,295/1,295
+  tests plus formatting, packages and Panorama source validation.
+- Durable-round PR #435 is on `feature/429-casino-durable-rounds`, code head
+  `ea52c4bfef65afc190a1407abeedce64b4ecd576`. CI #970 passed the integrated
+  branch with 1,307/1,307 tests plus formatting, packaging, publish and
+  Panorama/operator checks. The independent review found and fixed two gaps: nonterminal
+  mutations can no longer credit spendable AP, and operation IDs are scoped to
+  a player so equal UUIDs on two accounts cannot collide after consuming both
+  transitions. MariaDB regression tests cover both fixes. #435 was squash-merged
+  as `db2c7c4b1b4a0a26e31326a69e4e5567bcbe6627`.
+- Final integration head for this run: `feat/casino-games` at
+  `db2c7c4b1b4a0a26e31326a69e4e5567bcbe6627`. CI on the post-merge head is a
+  final confirmation, while #970 already tested the identical merge result.
+- The rule engines are intentionally not advertised as playable. Next work is
+  to integrate cryptographic engine adapters with the durable store, expose
+  sanitized recovery state to the presenter and add the Blackjack, bonus and
+  Risk controls/history. Native Windows resourcecompiler, Workshop, two-client
+  CS2 and DatHost acceptance remains open and no release was created.
+
+
+## Six-game casino integration (#437) — 2026-10-14
+
+Branch feat/casino-playable-suite builds on dc4fafd (the latest casino-games
+foundation), preserving migration028 and all v1 receipts. A CasinoRoundService
+adapts native Blackjack/Risk/Bonus engines to the account-locked round store.
+Native lobby routes all six games; round views recover active state, gate legal
+actions, preserve retry IDs, and expose bounded native animations. The bonus
+retrigger count bug was reproduced and fixed: only spins that fit both caps
+are awarded, keeping persisted rounds playable. Cases remain excluded.
+
+Local Release/plugin build passes. New presenter/lobby tests pass; operator
+suite passes 38 with 8 PowerShell skips. Full local run: 1119 passed,191 skipped,
+6 management pipe tests fail because this runtime denies Unix sockets (not casino
+failures). New actual MariaDB service recovery/idempotence tests require CI.
+Full Roslyn formatting likewise needs named-pipe access; folder whitespace
+formatting and git diff checks work locally. Native resourcecompiler, Workshop
+upload and CS2 two-client lifecycle acceptance remain manual. Do not merge or
+claim native ready before relevant CI/native gates. See casino-test-install.md.
+
+
+## Missing Arcade window / compiled HUD resource repair (#441)
+
+Client reports all ano_arcade text IDs missing despite command acknowledgement.
+Actual source IDs match; server entity creation is not client resource validation.
+Inspection found the adapter passed source .xml verbatim to the CSS schema setter.
+The additive CompiledLayoutResource property now supplies .vxml_c while preserving
+the SDK source contract; entity cleanup recognizes both old and corrected names.
+Independent review confirmed the installed CSS1.0.376 setter performs no extension
+conversion. New contract cases and native-adapter source regression cover the fix.
+
+repair-arcade.ps1 stages only the original probe's five compiled client resources,
+requires fresh compiler output, backs up old overrides, verifies hashes and rolls
+back transfer failures. BuildOnly and UseWorkshop provide a narrow delivery check;
+visible marker ARCADE UI CHECK2026-10-14 identifies the source version. Existing
+combined/separate builders now reject stale outputs too. Owner must update the
+plugin and test client/Workshop rendering before native acceptance; CasinoEnabled
+is unnecessary for the original probe. Keep the fix PR draft until native proof.
+
+## Native acceptance regression, 14 October 2026 (#464)
+
+Veto's active predicate captured `created` and `createdAnoVeto`, both cleared during startup ownership transfer. Consequently all native Veto management requests failed closed after activation regardless of assigned CSS permissions. Capture the runtime value and check the installed `_anoVeto` module. Keep reconnect/session and permission checks intact. Regression: the operator source contract must reject the cleared-variable predicate. Retest `!anoveto create`, random/manual creation and cancellation as an authorized host, then as an ordinary player. Client interpolation warnings alone do not indicate an authorization failure.
+
+## Casino covers and client motion (#465)
+
+All six supplied cover artworks are included as 512px PNG textures, with source VTEX descriptors. Both combined and standalone builders compile and stage them plus the exact single-zero roulette wheel. Existing Workshop IDs and server configs remain unchanged. The shared Book/Blackjack/Risk presenter retains its durable round logic; its fixed 1100×940 shell replaces the percentage/auto-size scroll shell. Empty Book rounds now have a visual preview without booking AP.
+
+Slots use fixed 16-symbol strips, repeat after 896px, animate locally at 0.39–0.46s per loop, and stop separately with a bounce. Coinflip uses a vertical toss and 3D flip, hides the result during motion, and shows landing feedback. Roulette runs a 3.6s eased native spin, uses the correct European number order and aligns the rotor to the booked result; the ball moves independently. Alternate animation names restart consecutive spins even when class updates are coalesced. No per-frame server image updates or additional wallet operations are introduced.
+
+Native acceptance remains required: rebuild the complete matching addon with Workshop Tools, test locally first, and restart the client to exclude stale compiled resources. Confirm authorized and ordinary-player Veto behavior, all six game entries, rules/stake/buttons, two consecutive spins, result alignment, rapid clicks, close/reopen/reconnect and preserved AP. Only then publish the shared Workshop update. The Linux source/CI checks do not prove Valve rendering or FPS.
+
+## Native motion follow-up (#468)
+
+Owner acceptance confirmed smooth Roulette rendering, but asked for multiple full turns in one direction; Slots still looked like swapped pictures. Roulette now rotates an inner surface for five full clockwise laps, with a fixed outer result orientation. The ball makes six counterclockwise laps. Native keyframe increments are only 30 degrees: this prevents matrix interpolation across complete turns from taking a short/reversed path. Nonlinear timestamps slow the rotation smoothly, while interpolation between frames stays linear. Landing removes no fractional angle or long transform transition.
+
+Slots retain the doubled symbol strip but use absolute row positions rather than flow layout. Each row is exactly 112px apart and the complete strip translates from -896px to zero, downward; the two halves are identical so the repeat boundary is seamless. No server-side frame swapping is added. Retest both directions, visible downward travel, staggered stops and repeated spins using the matching complete package.
+
+## Manual Veto action feedback (#470)
+
+Native labels with their own IDs inside map/start buttons were still hit-testable. The HUD adapter accepts registered button IDs only. Make all button label children inert so text clicks reach the button. Keep image children inert. Explicit readiness explains the existing exactly-eight-map contract; incomplete pools remain clickable and report their actual count instead of silently failing. Missing preset storage no longer returns silently, and save/start report progress and failure visibly. The start path retains the coordinator's authorization and live catalog validation. Native acceptance: select eight maps by clicking names as well as images, save, reopen the saved pool and start it. Confirm incomplete selections and unavailable storage show explanations.
+
+## Biggest Boy Bücher – Issue #481
+
+Branch `feat/481-biggest-boy-symbols`, basiert auf Casino-UI PR #475. Eigenständiges 5×5-Spiel; die elf gelieferten Symbole sind unverändert eingebunden. Separate persistierte Spielart und Regelversion, genaue Linienauszahlungen, 10/+5/max.30 Freispiele, Kebap-Expansion, vier Umläufe, Einsatzkonfiguration und RTP-Audit. Siehe [biggest-boy.md](biggest-boy.md). GitHub-Push/PR durch automatische Freigabeprüfung wegen öffentlicher Bildveröffentlichung blockiert; noch kein CI-Lauf oder Merge dieses Branches. Native Abnahme offen.
+
+
+## 2026-10-16 — compact money and wallet capacity (#524)
+
+Local branch `feat/compact-casino-money` is based on `feat/521-biggest-boy-high-stakes`.
+Balances, load amounts and wins use German short units; every stake field and
+Blackjack hand stake retains exact grouping. Both wallet write paths now share
+`CasinoMoney.AccountLimit = 10^18`; existing signed BIGINT storage needs no migration.
+No UI assets changed and no Workshop upload is needed. See `casino-money.md`.
+
+Validation: 13 compiled C# formatter/exact-stake checks passed, including rollover,
+negative values and long.MinValue. Operator suite: 96 run, 18 skipped, no failures.
+Added presenter and MariaDB limit/reservation/idempotence regression tests.
+Full dotnet build/test/format remain unverified: default MSBuild workers fail on
+sandbox named pipes; single-worker attempts stalled without completing and were
+cancelled. MariaDB was not configured. No native CS2 acceptance or deployment.
+
+The owner explicitly approved publication and requested a deployment download.
+The shell git transport has no credentials; publish using the authenticated GitHub
+connector. CI and native acceptance status must be updated before delivery.
+
+
+## 2026-10-18 — Blackjack audit and table polish (#526)
+
+Local branch `feat/blackjack-polish`, based on #525 head 2cd1850.
+Fixed split turn order: previously Split selected the right hand first, and Hit
+could alternate unfinished hands. Selection now stays on the current actionable
+hand before advancing. Added deterministic regression covering Split → Hit →
+Stand → Stand and per-hand payout boundaries. Shared payout helper drives both
+settlement and result labels. Native green felt table, larger cards, active hand
+and explicit gross/net result ribbon; see `blackjack.md`.
+
+Python operator suite: 97 tests, 18 skipped, no failures. Book source prefix and
+original assets remain locked; only `.view-blackjack` selectors were appended.
+Release solution build passed: zero warnings/errors. Regular Arcade MSTest:
+176 passed, 19 DB skips. Broader suite: 1,265 passed, 203 environment skips,
+ManagementPipeBridgeTests excluded for local Unix-socket restrictions.
+Formatting failed at Roslyn named-pipe workspace startup (SocketException 13);
+whitespace checks passed. MariaDB, CI and native acceptance remain pending.
+Reviewed rule settlement parity, hidden dealer data, active-hand order, scoped
+styles and exact stakes. No merge/release or native-ready claim.
+Automatic approval review rejected the push to public nfloser/AnoCore, stating
+public publication/destination authorization was insufficient. Do not bypass;
+obtain explicit owner confirmation before publishing this branch/PR.
+
+## 2026-10-18 — Full classic Blackjack scope and dedicated table (#526)
+
+Owner explicitly approved public branch/PR publication and requested a complete,
+elegant, legible casino experience. This supersedes the earlier publication block.
+New v2 rounds add insurance/decline, Even Money, late surrender and re-split to
+four hands; v1 actions/version/two-hand limits and 8x exposure remain preserved.
+The shared wallet counts insurance separately and reserves a conservative 17x
+for v2. Split order fix is retained. See blackjack.md for complete rules.
+
+Dedicated Blackjack HUD/layout/style with 2x2 hands, centered card rows and bounded
+long fans, explicit net/gross results, exact stake shortcuts and a full rules sheet.
+Original Book XML/CSS and source-lock tests are restored unchanged from #525.
+Both native build paths compile the new resources. Matching addon upload required.
+
+Release build: zero warnings/errors. Last broad run: 1,281 passed, 204 skipped,
+ManagementPipeBridgeTests excluded for local Unix-socket restrictions. New MariaDB
+concurrent insurance regression is included for CI. Semantic format still requires
+permitted named pipes; whitespace formatting applied to changed C# files.
+Native Valve/CS2/two-client acceptance remains open. Keep PR draft, no merge/release.
+
+Review follow-up: verified legacy service transitions retain v1 metadata/reservation;
+four-hand rendering and refresh clear all cards. Long fan spacing leaves room for
+both digits of a ten. First PR CI passed build, full tests (including MariaDB),
+operator/PowerShell and UI build-script syntax, then found whitespace differences
+from the folder formatter. Restored original lock/catch/Tick indentation according
+to the project formatter; no behavior changes in that region. Exact-head CI rerun
+required after review commit. Native acceptance remains open.
+
+## 2026-10-18 — Native blank-card feedback (#526 / PR #527)
+
+Native screenshot shows the table and dealt card rectangles but no card faces or
+hand summaries. The dedicated layout used static empty `text=""` attributes for
+105 card labels, four summaries and the insurance result. CounterStrikeCustomHudService
+updates the `text` dialog variable, so labels must reference `{s:text}`. Added a
+regression asserting the binding on every server-updated label (120 total), which
+failed on dealer_card0 before the correction. Bound all 110 empty labels. No C#,
+wallet/rule, image or stylesheet changes; server plugin does not need replacing.
+
+For a local retest replace only ui/AnoCore/layout/custom_game/anocore/ano_casino_blackjack.xml
+in the extracted package, close CS2 and run the existing build.ps1 with
+-Addon anomeme_ui -InstallLocalClient. Then restart CS2 and reopen Blackjack.
+Workshop upload is only required when delivering the corrected UI to other clients.
+Check rank/suit, red/black faces, concealed question mark, all split summaries and
+insurance result in CS2; source tests do not replace that native retest.
+
+## 2026-10-18 — Roulette luxury table and stationary-wheel ball (#528)
+
+Branch feat/528-roulette-table is stacked on Blackjack #527 head 2d1deccc,
+retaining the native card text fix. Owner reports wheel/board rotation instead
+of a visible working ball. Replaced rotation keyframes/target wheel transforms
+with an independent bounded ball trajectory on the fixed wheel. Existing 50ms
+tick advances deterministic pose classes for the already booked number; exact
+landing at 3.6s, controls at 4s. No RNG, odds, wallet or schema change.
+
+Native green/gold shell, classic 3x12 number board plus zero and all outside bets,
+selected wager border, larger labels/counters, exact quick stake controls and
+net/gross result ribbon. Historical receipts restore the ball; unknown historic
+stakes do not produce invented net values. Reset/disconnect clears the last pose.
+See roulette.md. Both plugin and matching compiled UI need updating.
+
+Local Release build: zero warnings/errors. Arcade tests: 200 passed, 20 DB skips.
+Final broad run: 1,289 passed, 204 environment
+skips, ManagementPipeBridgeTests excluded for local Unix sockets. Operator suite:
+103 total, 18 environment skips, no failures. Exact-head CI checks pending.
+Native Valve compilation and CS2/two-client acceptance remain open. Keep draft;
+no production merge/release or native-ready claim.
+
+## 2026-10-19 — supplied skins and Roulette basket (#531, #533)
+
+Fresh checkout of feat/531-alles-spitze at 54de1f5. The five supplied original
+images are normalized with the existing converter and committed as 320x320 RGBA
+PNG textures (ee6f577). Both Workshop build paths already compile these textures.
+No Python is needed on the user's machine when using this prepared package.
+
+New local branch feat/533-roulette-multiple-bets adds an optional basket to
+CasinoRequest. Null is omitted from JSON to preserve legacy request replay.
+One cryptographic number is drawn inside the existing transaction; the total is
+debited once and all wagers settle against that number. Exposure is the maximum
+aggregate payout over all 37 outcomes. Unique choices, legal per-field stakes,
+matching sum and whole-round configured ceiling are enforced. Wallet snapshots
+caller-owned arrays before any async boundary. UI adds explicit SETZEN, undo,
+clear, placed amounts, total and the existing single-bet fallback. Selection is
+local; booked results/receipts remain durable. MAX respects remaining basket
+capacity. Native wheel motion is unchanged from #529.
+
+Local Release solution build: zero warnings/errors. Broad tests: 1309 passed,
+207 environment-dependent skips, ManagementPipeBridgeTests excluded because
+Unix sockets are denied in this environment. Operator suite: 110 checks,
+18 environment skips, no failures. Added DB concurrent basket/replay/change
+regression is included but requires MariaDB/CI. Standard solution formatter
+cannot open its named pipe; standalone folder whitespace formatter succeeds.
+Native Valve compilation and real CS2/two-client acceptance remain unperformed.
+No merge/release/production-ready claim.
+
+Automatic approval review rejected the git push that would publish the five
+images to nfloser/AnoCore: explicit authorization to disclose these supplied
+images at that GitHub destination was considered insufficient, and destination
+ownership/privacy was not verified. Do not retry publication by another route.
+Local build/test packaging is unaffected. No PR/CI run for #533 until authorized.
+
+## 2026-10-19 — publication authorized
+
+Owner explicitly authorized publishing the code and all five supplied images to
+nfloser/AnoCore. Image tree bb96a36 matches the delivered local build. Git CLI
+has no write credential; publication uses the authenticated GitHub connector.
+Roulette remains draft until CI and native CS2 acceptance.

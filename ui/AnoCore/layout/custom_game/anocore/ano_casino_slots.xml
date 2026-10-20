@@ -1,0 +1,153 @@
+<root>
+  <styles>
+    <include src="s2r://panorama/styles/custom_game/anocore/ano_casino_slots.vcss_c" />
+  </styles>
+  <Panel class="ano-hud-host" hittest="false">
+    <Panel id="casino_slots_root" class="casino-overlay" hittest="true">
+      <Panel class="casino-dim" hittest="false" />
+      <Panel class="casino-window" hittest="true">
+        <Panel class="casino-header">
+          <Label class="casino-title" text="ANOCASINO · SLOTS" />
+          <Button id="casino_slots_close" class="casino-button">
+            <Label text="SCHLIESSEN" hittest="false" />
+          </Button>
+        </Panel>
+        <Panel class="casino-game-banner">
+          <Panel class="casino-cover" hittest="false" />
+          <Panel class="casino-game-copy">
+            <Label class="casino-game-name" text="ANOSLOTS" />
+            <Label class="casino-game-caption" text="3 WALZEN · 5 GEWINNLINIEN" />
+          </Panel>
+        </Panel>
+        <Panel class="casino-row">
+          <Label text="Profil:" />
+          <Label id="casino_slots_account" text="{s:text}" />
+          <Label text="Automat:" />
+          <Label id="casino_slots_bank" text="{s:text}" />
+          <Label text="Gewinn:" />
+          <Label id="casino_slots_win" text="{s:text}" />
+        </Panel>
+        <Panel class="casino-reels">
+          <Panel id="casino_slots_reel0" class="casino-reel">
+            <Panel class="casino-motion">
+              <Panel class="casino-symbol symbol-cherry slot-row-0" />
+              <Panel class="casino-symbol symbol-lemon slot-row-1" />
+              <Panel class="casino-symbol symbol-plum slot-row-2" />
+              <Panel class="casino-symbol symbol-orange slot-row-3" />
+              <Panel class="casino-symbol symbol-grapes slot-row-4" />
+              <Panel class="casino-symbol symbol-watermelon slot-row-5" />
+              <Panel class="casino-symbol symbol-bell slot-row-6" />
+              <Panel class="casino-symbol symbol-seven slot-row-7" />
+              <Panel class="casino-symbol symbol-cherry slot-row-8" />
+              <Panel class="casino-symbol symbol-lemon slot-row-9" />
+              <Panel class="casino-symbol symbol-plum slot-row-10" />
+              <Panel class="casino-symbol symbol-orange slot-row-11" />
+              <Panel class="casino-symbol symbol-grapes slot-row-12" />
+              <Panel class="casino-symbol symbol-watermelon slot-row-13" />
+              <Panel class="casino-symbol symbol-bell slot-row-14" />
+              <Panel class="casino-symbol symbol-seven slot-row-15" />
+            </Panel>
+            <Panel class="casino-final">
+              <Panel id="casino_slots_symbol0" class="casino-symbol symbol-cherry" />
+              <Panel id="casino_slots_symbol1" class="casino-symbol symbol-cherry" />
+              <Panel id="casino_slots_symbol2" class="casino-symbol symbol-cherry" />
+              <Panel class="casino-symbol symbol-bell" hittest="false" />
+              <Panel class="casino-symbol symbol-seven" hittest="false" />
+              <Panel class="casino-symbol symbol-cherry" hittest="false" />
+            </Panel>
+          </Panel>
+          <Panel id="casino_slots_reel1" class="casino-reel">
+            <Panel class="casino-motion">
+              <Panel class="casino-symbol symbol-plum slot-row-0" />
+              <Panel class="casino-symbol symbol-orange slot-row-1" />
+              <Panel class="casino-symbol symbol-grapes slot-row-2" />
+              <Panel class="casino-symbol symbol-watermelon slot-row-3" />
+              <Panel class="casino-symbol symbol-bell slot-row-4" />
+              <Panel class="casino-symbol symbol-seven slot-row-5" />
+              <Panel class="casino-symbol symbol-cherry slot-row-6" />
+              <Panel class="casino-symbol symbol-lemon slot-row-7" />
+              <Panel class="casino-symbol symbol-plum slot-row-8" />
+              <Panel class="casino-symbol symbol-orange slot-row-9" />
+              <Panel class="casino-symbol symbol-grapes slot-row-10" />
+              <Panel class="casino-symbol symbol-watermelon slot-row-11" />
+              <Panel class="casino-symbol symbol-bell slot-row-12" />
+              <Panel class="casino-symbol symbol-seven slot-row-13" />
+              <Panel class="casino-symbol symbol-cherry slot-row-14" />
+              <Panel class="casino-symbol symbol-lemon slot-row-15" />
+            </Panel>
+            <Panel class="casino-final">
+              <Panel id="casino_slots_symbol3" class="casino-symbol symbol-cherry" />
+              <Panel id="casino_slots_symbol4" class="casino-symbol symbol-cherry" />
+              <Panel id="casino_slots_symbol5" class="casino-symbol symbol-cherry" />
+              <Panel class="casino-symbol symbol-bell" hittest="false" />
+              <Panel class="casino-symbol symbol-seven" hittest="false" />
+              <Panel class="casino-symbol symbol-cherry" hittest="false" />
+            </Panel>
+          </Panel>
+          <Panel id="casino_slots_reel2" class="casino-reel">
+            <Panel class="casino-motion">
+              <Panel class="casino-symbol symbol-bell slot-row-0" />
+              <Panel class="casino-symbol symbol-seven slot-row-1" />
+              <Panel class="casino-symbol symbol-cherry slot-row-2" />
+              <Panel class="casino-symbol symbol-lemon slot-row-3" />
+              <Panel class="casino-symbol symbol-plum slot-row-4" />
+              <Panel class="casino-symbol symbol-orange slot-row-5" />
+              <Panel class="casino-symbol symbol-grapes slot-row-6" />
+              <Panel class="casino-symbol symbol-watermelon slot-row-7" />
+              <Panel class="casino-symbol symbol-bell slot-row-8" />
+              <Panel class="casino-symbol symbol-seven slot-row-9" />
+              <Panel class="casino-symbol symbol-cherry slot-row-10" />
+              <Panel class="casino-symbol symbol-lemon slot-row-11" />
+              <Panel class="casino-symbol symbol-plum slot-row-12" />
+              <Panel class="casino-symbol symbol-orange slot-row-13" />
+              <Panel class="casino-symbol symbol-grapes slot-row-14" />
+              <Panel class="casino-symbol symbol-watermelon slot-row-15" />
+            </Panel>
+            <Panel class="casino-final">
+              <Panel id="casino_slots_symbol6" class="casino-symbol symbol-cherry" />
+              <Panel id="casino_slots_symbol7" class="casino-symbol symbol-cherry" />
+              <Panel id="casino_slots_symbol8" class="casino-symbol symbol-cherry" />
+              <Panel class="casino-symbol symbol-bell" hittest="false" />
+              <Panel class="casino-symbol symbol-seven" hittest="false" />
+              <Panel class="casino-symbol symbol-cherry" hittest="false" />
+            </Panel>
+          </Panel>
+        </Panel>
+        <Panel class="casino-lines">
+          <Label id="casino_slots_line0" class="line" text="OBEN" />
+          <Label id="casino_slots_line1" class="line" text="MITTE" />
+          <Label id="casino_slots_line2" class="line" text="UNTEN" />
+          <Label id="casino_slots_line3" class="line" text="↘" />
+          <Label id="casino_slots_line4" class="line" text="↗" />
+        </Panel>
+        <Panel class="casino-row">
+          <Button id="casino_slots_minus" class="casino-button">
+            <Label text="−" hittest="false" />
+          </Button>
+          <Label id="casino_slots_stake" text="{s:text}" />
+          <Button id="casino_slots_plus" class="casino-button">
+            <Label text="+" hittest="false" />
+          </Button>
+          <Button id="casino_slots_play" class="casino-button casino-primary">
+            <Label text="SPIELEN" hittest="false" />
+          </Button>
+        </Panel>
+        <Label id="casino_slots_status" class="casino-status" text="{s:text}" />
+        <Panel class="casino-row">
+          <Button id="casino_slots_back" class="casino-button">
+            <Label text="SPIELAUSWAHL" hittest="false" />
+          </Button>
+          <Button id="casino_slots_refresh" class="casino-button">
+            <Label text="AKTUALISIEREN" hittest="false" />
+          </Button>
+          <Button id="casino_slots_rules" class="casino-button">
+            <Label text="REGELN" hittest="false" />
+          </Button>
+          <Button id="casino_slots_retry" class="casino-button">
+            <Label text="BUCHUNG PRÜFEN" hittest="false" />
+          </Button>
+        </Panel>
+      </Panel>
+    </Panel>
+  </Panel>
+</root>

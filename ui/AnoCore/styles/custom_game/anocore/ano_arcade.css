@@ -1,0 +1,54 @@
+/* No scripts or per-frame server updates. Native CS2 compiler/client acceptance required. */
+.arcade-host { width: 100%; height: 100%; }
+.arcade-overlay { width: 100%; height: 100%; visibility: collapse; background-color: #000000dd; }
+.arcade-overlay.shown { visibility: visible; }
+.arcade-window { width: 1200px; padding: 24px; horizontal-align: center; vertical-align: center; flow-children: down; background-color: #101715; border: 1px solid #287547; border-radius: 10px; }
+Label { color: #e9efed; font-size: 20px; font-family: Arial; }
+.arcade-header { width: 100%; flow-children: right; padding-bottom: 16px; border-bottom: 1px solid #287547; }
+.arcade-heading { width: 760px; flow-children: down; }
+.arcade-brand { color: #39e38c; font-size: 18px; }
+.arcade-title { font-size: 36px; font-weight: bold; }
+.arcade-account { width: 360px; flow-children: down; background-color: #1a2421; padding: 12px; }
+.arcade-value { color: #f3d77c; font-size: 27px; horizontal-align: center; }
+.arcade-home { width: 100%; flow-children: down; }
+.arcade-cards { width: 100%; flow-children: right; margin-top: 22px; margin-bottom: 16px; }
+.arcade-card { width: 365px; height: 260px; margin-right: 12px; padding: 12px; flow-children: down; background-color: #1a2421; border: 1px solid #287547; border-radius: 8px; }
+.arcade-card Label { horizontal-align: center; }
+.arcade-card-art { width: 100%; height: 190px; background-size: contain; background-position: center; background-repeat: no-repeat; }
+.arcade-card-mark { height: 190px; font-size: 120px; color: #39e38c; }
+.arcade-card:hover, .arcade-button:hover, .arcade-small:hover { border-color: #39e38c; background-color: #223b2e; }
+.planned { opacity: 0.6; }
+.arcade-slots { width: 100%; flow-children: down; visibility: collapse; }
+.view-slots .arcade-home { visibility: collapse; }
+.view-slots .arcade-slots { visibility: visible; }
+.arcade-subtitle { font-size: 25px; color: #39e38c; margin-top: 12px; }
+.arcade-reels { horizontal-align: center; flow-children: right; margin-top: 12px; background-color: #090e0c; padding: 8px; border: 1px solid #287547; }
+.arcade-reel-window { width: 260px; height: 384px; overflow: clip; margin-right: 6px; background-color: #e9efed; }
+.arcade-reel-strip { width: 260px; flow-children: down; }
+.arcade-symbol { width: 260px; height: 128px; background-size: contain; background-position: center; background-repeat: no-repeat; }
+.symbol-cherry { background-image: url("s2r://panorama/styles/custom_game/anocore/arcade/cherry.vtex"); }
+.symbol-lemon { background-image: url("s2r://panorama/styles/custom_game/anocore/arcade/lemon.vtex"); }
+.symbol-plum { background-image: url("s2r://panorama/styles/custom_game/anocore/arcade/plum.vtex"); }
+.stop-0 { transform: translateY(0px); }
+.stop-1 { transform: translateY(-128px); }
+.stop-2 { transform: translateY(-256px); }
+/* Alternating names restart consecutive spins without same-tick remove/add collapse. */
+.spin-a { animation-name: 'arcade-spin-a'; animation-duration: 0.32s; animation-timing-function: linear; animation-iteration-count: infinite; }
+.spin-b { animation-name: 'arcade-spin-b'; animation-duration: 0.32s; animation-timing-function: linear; animation-iteration-count: infinite; }
+@keyframes 'arcade-spin-a' { 0% { transform: translateY(0px); } 100% { transform: translateY(-384px); } }
+@keyframes 'arcade-spin-b' { 0% { transform: translateY(0px); } 100% { transform: translateY(-384px); } }
+.arcade-counters { width: 100%; flow-children: right; margin-top: 12px; }
+.arcade-counter { width: 365px; height: 85px; flow-children: down; margin-right: 12px; background-color: #1a2421; padding: 8px; }
+.arcade-counter > Label { horizontal-align: center; font-size: 18px; }
+.arcade-counter > .arcade-value { font-size: 27px; }
+.arcade-stake-controls { flow-children: right; horizontal-align: center; }
+.arcade-stake-controls .arcade-value { width: 210px; text-align: center; }
+.arcade-small { width: 40px; height: 40px; border: 1px solid #287547; }
+.arcade-small Label { horizontal-align: center; font-size: 28px; }
+.arcade-controls { flow-children: right; margin-top: 12px; }
+.arcade-button { padding: 12px; margin-right: 10px; background-color: #1a2421; border: 1px solid #287547; border-radius: 5px; }
+.arcade-primary { width: 320px; background-color: #147443; }
+.arcade-primary Label { horizontal-align: center; font-weight: bold; }
+.busy #ano_arcade_spin, .busy #ano_arcade_load, .busy #ano_arcade_return, .busy #ano_arcade_minus, .busy #ano_arcade_plus { opacity: 0.4; }
+.arcade-status { color: #39e38c; margin-top: 12px; font-size: 18px; }
+.arcade-note { color: #9faea7; font-size: 16px; margin-top: 12px; }

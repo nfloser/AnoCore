@@ -6,6 +6,18 @@ namespace AnoCore.Tests.Hud;
 public sealed class CustomHudContractTests
 {
     [TestMethod]
+    [DataRow("panorama/layout/custom_game/anocore/ano_arcade.xml", "panorama/layout/custom_game/anocore/ano_arcade.vxml_c")]
+    [DataRow("panorama/layout/custom_game/anocore/ano_casino.xml", "panorama/layout/custom_game/anocore/ano_casino.vxml_c")]
+    [DataRow("panorama/layout/custom_game/anocore/ano_casino_rounds.xml", "panorama/layout/custom_game/anocore/ano_casino_rounds.vxml_c")]
+    [DataRow("  panorama\\layout\\custom_game\\anocore\\menu.XML  ", "panorama/layout/custom_game/anocore/menu.vxml_c")]
+    public void Definition_PreservesSourceContractAndResolvesCompiledNativeResource(string source, string compiled)
+    {
+        var definition = new CustomHudDefinition(new("ano.test"), source, "test_root");
+        Assert.AreEqual(compiled, definition.CompiledLayoutResource);
+        StringAssert.EndsWith(definition.LayoutResource.ToLowerInvariant(), ".xml");
+    }
+
+    [TestMethod]
     public void Definition_AllowsInformationOnlyLayoutWithoutInputCapture()
     {
         var definition = new CustomHudDefinition(

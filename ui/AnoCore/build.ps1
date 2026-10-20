@@ -1,5 +1,11 @@
 param(
     [string]$Cs2 = "",
+    [string]$BiggestBoyWildPng = "",
+    [string]$BookCoconutPng = "",
+    [switch]$RequireBookCoconut,
+    [switch]$RequireSpitzeSkins,
+    [switch]$IncludeBiggestBoy,
+    [ValidatePattern('^[a-z][a-z0-9_]*$')]
     [string]$Addon = "anomeme_ui",
     [string]$PreviewSource = "",
     [ValidateRange(128, 4096)]
@@ -10,6 +16,26 @@ param(
 
 $ErrorActionPreference = "Stop"
 $src = Split-Path -Parent $MyInvocation.MyCommand.Path
+# Convert the five original CS skins automatically when they are next to the other casino artwork.
+& (Join-Path $src "ensure-spitze-assets.ps1")
+$wildTarget = Join-Path $src "styles\custom_game\anocore\casino\biggest_book.png"
+$buildBiggestBoy = $IncludeBiggestBoy -or $BiggestBoyWildPng -or (Test-Path -LiteralPath $wildTarget -PathType Leaf)
+if ($buildBiggestBoy) {
+    if ($BiggestBoyWildPng) {
+        $wildBytes = [System.IO.File]::ReadAllBytes((Resolve-Path -LiteralPath $BiggestBoyWildPng).Path)
+        if ($wildBytes.Length -lt 8 -or [BitConverter]::ToString($wildBytes, 0, 8) -ne "89-50-4E-47-0D-0A-1A-0A") {
+            throw "BiggestBoyWildPng must be the original Biggest Boy Wild PNG."
+        }
+        if ([System.IO.Path]::GetFullPath($BiggestBoyWildPng) -ne [System.IO.Path]::GetFullPath($wildTarget)) {
+            Copy-Item -LiteralPath $BiggestBoyWildPng -Destination $wildTarget -Force
+        }
+    }
+    if (-not (Test-Path -LiteralPath $wildTarget -PathType Leaf)) {
+        throw "Biggest Boy original Biggest Boy Wild PNG is missing: $wildTarget. Supply -BiggestBoyWildPng <original.png>. Build stopped before changing the addon."
+    }
+}
+
+
 
 if (-not $Cs2) {
     $roots = @("C:\Program Files (x86)\Steam")
@@ -34,6 +60,27 @@ if (-not $Cs2) {
 
 if (-not $Cs2 -or -not (Test-Path $Cs2)) {
     throw "Counter-Strike 2 was not found. Pass -Cs2 '<path-to-CS2>'."
+}
+
+# Always compile the user's specific golden coconut asset for the Book wild/scatter.
+# Check it before modifying an installed CS2 addon.
+$coconutTarget = Join-Path $src "styles\\custom_game\\anocore\\casino\\book_coconut.png"
+if ($BookCoconutPng) {
+    $coconutSource = (Resolve-Path -LiteralPath $BookCoconutPng).Path
+    $coconutBytes = [System.IO.File]::ReadAllBytes($coconutSource)
+    if ($coconutBytes.Length -lt 8 -or [BitConverter]::ToString($coconutBytes, 0, 8) -ne "89-50-4E-47-0D-0A-1A-0A") {
+        throw "BookCoconutPng must be a real PNG file."
+    }
+    if ([System.IO.Path]::GetFullPath($coconutSource) -ne [System.IO.Path]::GetFullPath($coconutTarget)) {
+        Copy-Item -LiteralPath $coconutSource -Destination $coconutTarget -Force
+    }
+}
+$coconutAvailable = Test-Path -LiteralPath $coconutTarget -PathType Leaf
+if (-not $coconutAvailable -and $RequireBookCoconut) {
+    throw "The original golden coconut PNG is missing: $coconutTarget. Provide -BookCoconutPng '<image.png>' before building."
+}
+if (-not $coconutAvailable) {
+    Write-Warning "Book coconut PNG absent; dedicated Book UI texture will not be compiled. Use -RequireBookCoconut for the complete casino addon."
 }
 
 $compiler = Join-Path $Cs2 "game\bin\win64\resourcecompiler.exe"
@@ -149,20 +196,85 @@ if ($InstallLocalClient) {
     Copy-Item $logo (Join-Path $clientStyleDir "anomeme_banner.vtex_c") -Force
 }
 
-foreach ($name in @("ano_veto_cards", "ano_veto", "menu", "ano_tournament")) {
+# Compile replaceable arcade fruit textures from source PNG/VTEX pairs.
+$arcadeDir = Join-Path $styleDir "arcade"
+New-Item -ItemType Directory -Force -Path $arcadeDir | Out-Null
+foreach ($symbol in @("cherry", "lemon", "plum", "orange", "grapes", "watermelon", "bell", "seven")) {
+    foreach ($extension in @(".png", ".vtex")) {
+        Copy-Item (Join-Path $src "styles\custom_game\anocore\arcade\$symbol$extension") (Join-Path $arcadeDir "$symbol$extension") -Force
+    }
+    $compiled = Join-Path $Cs2 "game\csgo_addons\$Addon\panorama\styles\custom_game\anocore\arcade\$symbol.vtex_c"
+    if (Test-Path $compiled -PathType Leaf) { Remove-Item -LiteralPath $compiled -Force }
+    & $compiler -i (Join-Path $arcadeDir "$symbol.vtex") -f -r
+    if ($LASTEXITCODE -ne 0) { throw "Failed to compile arcade symbol $symbol" }
+    $compiled = Join-Path $Cs2 "game\csgo_addons\$Addon\panorama\styles\custom_game\anocore\arcade\$symbol.vtex_c"
+    if (-not (Test-Path $compiled)) { throw "Compiled arcade symbol missing: $compiled" }
+    if ($InstallLocalClient) {
+        $clientArcadeDir = Join-Path $Cs2 "game\csgo\panorama\styles\custom_game\anocore\arcade"
+        New-Item -ItemType Directory -Force -Path $clientArcadeDir | Out-Null
+        Copy-Item $compiled (Join-Path $clientArcadeDir "$symbol.vtex_c") -Force
+    }
+}
+
+# Casino covers and exact numbered roulette wheel belong to the matching HUD build.
+$casinoTextureDir = Join-Path $styleDir "casino"
+New-Item -ItemType Directory -Force -Path $casinoTextureDir | Out-Null
+$casinoTextures = @("slots", "coinflip", "coin_heads", "coin_tails", "roulette", "blackjack", "book", "risk", "wheel", "biggest_kebap", "biggest_beer", "biggest_cigarette", "biggest_butter", "biggest_shot", "biggest_funnel", "biggest_g", "biggest_o", "biggest_a", "biggest_t", "biggest_scatter")
+if ($buildBiggestBoy) { $casinoTextures += "biggest_book" }
+if ($coconutAvailable) { $casinoTextures += "book_coconut" }
+# Dedicated Alles Spitze skins are user-supplied, so do not pretend absent artwork
+# is already packaged. Keep the text-only HUD usable when a source image is missing.
+$spitzeNames = @("ggspray", "safarimesh", "neonrevolution", "gold", "knife")
+$spitzeMissing = @()
+foreach ($name in $spitzeNames) {
+    $texture = "spitze_$name"
+    if (Test-Path -LiteralPath (Join-Path $src "styles\\custom_game\\anocore\\casino\\$texture.png") -PathType Leaf) {
+        $casinoTextures += $texture
+    } else {
+        $spitzeMissing += $texture
+    }
+}
+if ($spitzeMissing.Count -gt 0) {
+    $missingMessage = "Alles Spitze images absent: $($spitzeMissing -join ', '). Prepare all five original skins first using prepare-spitze-assets.py."
+    if ($RequireSpitzeSkins) { throw $missingMessage }
+    Write-Warning $missingMessage
+}
+
+foreach ($texture in $casinoTextures) {
+    foreach ($extension in @(".png", ".vtex")) {
+        Copy-Item (Join-Path $src "styles\custom_game\anocore\casino\$texture$extension") (Join-Path $casinoTextureDir "$texture$extension") -Force
+    }
+    $compiled = Join-Path $Cs2 "game\csgo_addons\$Addon\panorama\styles\custom_game\anocore\casino\$texture.vtex_c"
+    if (Test-Path $compiled -PathType Leaf) { Remove-Item -LiteralPath $compiled -Force }
+    & $compiler -i (Join-Path $casinoTextureDir "$texture.vtex") -f -r
+    if ($LASTEXITCODE -ne 0) { throw "Failed to compile casino texture $texture" }
+    if (-not (Test-Path $compiled -PathType Leaf)) { throw "Compiled casino texture missing: $compiled" }
+    if ($InstallLocalClient) {
+        $clientCasinoDir = Join-Path $Cs2 "game\csgo\panorama\styles\custom_game\anocore\casino"
+        New-Item -ItemType Directory -Force -Path $clientCasinoDir | Out-Null
+        Copy-Item $compiled (Join-Path $clientCasinoDir "$texture.vtex_c") -Force
+    }
+}
+
+$casinoViews = @("ano_veto_cards", "ano_veto", "ano_veto_create", "menu", "ano_tournament", "ano_arcade", "ano_casino", "ano_casino_native_v2", "ano_casino_lobby", "ano_casino_slots", "ano_casino_coinflip", "ano_casino_roulette", "ano_casino_rounds", "ano_casino_spitze", "ano_casino_blackjack")
+if ($buildBiggestBoy) { $casinoViews += "ano_casino_biggest" }
+foreach ($name in $casinoViews) {
     $layoutTarget = Join-Path $layoutDir "$name.xml"
     $styleTarget = Join-Path $styleDir "$name.css"
     Copy-Item (Join-Path $src "layout\custom_game\anocore\$name.xml") $layoutTarget -Force
     Copy-Item (Join-Path $src "styles\custom_game\anocore\$name.css") $styleTarget -Force
 
+    $gameRoot = Join-Path $Cs2 "game\csgo_addons\$Addon\panorama"
+    $outLayout = Join-Path $gameRoot "layout\custom_game\anocore\$name.vxml_c"
+    $outStyle = Join-Path $gameRoot "styles\custom_game\anocore\$name.vcss_c"
+    foreach ($compiledOutput in @($outLayout, $outStyle)) {
+        if (Test-Path $compiledOutput -PathType Leaf) { Remove-Item -LiteralPath $compiledOutput -Force }
+    }
     & $compiler -i $styleTarget -f -r
     if ($LASTEXITCODE -ne 0) { throw "Failed to compile $name.css" }
     & $compiler -i $layoutTarget -f -r
     if ($LASTEXITCODE -ne 0) { throw "Failed to compile $name.xml" }
 
-    $gameRoot = Join-Path $Cs2 "game\csgo_addons\$Addon\panorama"
-    $outLayout = Join-Path $gameRoot "layout\custom_game\anocore\$name.vxml_c"
-    $outStyle = Join-Path $gameRoot "styles\custom_game\anocore\$name.vcss_c"
     foreach ($required in @($outLayout, $outStyle)) {
         if (-not (Test-Path $required)) { throw "Expected compiled resource missing: $required" }
     }

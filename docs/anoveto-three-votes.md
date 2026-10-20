@@ -22,7 +22,7 @@ The active vote pins its map catalog, vote duration, tie-break policy and select
 
 ## In-game behavior
 
-- Authorized host: `!anoveto create`; the same eight-map vote HUD opens to eligible players.
+- Authorized host: `!anoveto create` opens the existing map-pool picker and presets; `!anoveto random` starts the public vote directly with eight random maps.
 - Eligible participant: click one to three different maps; clicking a selected card again removes it. The third click does not submit automatically.
 - Press **Auswahl bestätigen** to submit the entire ballot atomically and close your HUD. An empty ballot cannot be confirmed. Confirmed ballots are final; they cannot be changed or submitted again.
 - Closing releases the cursor while preserving the current draft. Reopen with `!anoveto` to continue selecting or inspect your confirmed choices and the names/count of players who already voted. The roster updates for everyone currently viewing the HUD after confirmation; other players' map choices remain private.

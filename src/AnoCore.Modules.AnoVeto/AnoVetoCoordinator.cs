@@ -88,6 +88,68 @@ public sealed class AnoVetoCoordinator
             throw new InvalidOperationException("AnoVeto random selection must return exactly eight unique maps.");
         }
 
+        return await PublishSelectedAsync(manager, distinctEligiblePlayers, selected, options, now, cancellationToken).ConfigureAwait(false);
+    }
+
+    public IReadOnlyList<MapDefinition> GetAvailableMaps()
+    {
+        var catalog = _catalog() ?? throw new InvalidOperationException("AnoVeto map catalog unavailable.");
+        return catalog.All.ToArray();
+    }
+
+    /// <summary>
+    /// Starts a normal public vote from an explicitly confirmed eight-map pool.
+    /// Maps are resolved from the live catalog, never trusted from the HUD or preset labels.
+    /// </summary>
+    public async ValueTask<AnoVetoOperationResult> CreateSelectedAsync(
+        PlayerId manager,
+        IReadOnlyCollection<PlayerId> eligiblePlayers,
+        IReadOnlyCollection<string> mapIds,
+        DateTimeOffset now,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(manager);
+        ArgumentNullException.ThrowIfNull(eligiblePlayers);
+        ArgumentNullException.ThrowIfNull(mapIds);
+
+        lock (_gate)
+        {
+            if (_active is not null)
+                return AnoVetoOperationResult.Reject(AnoVetoFailure.AlreadyActive);
+        }
+
+        var ids = mapIds.ToArray();
+        if (ids.Length != MapCount || ids.Any(string.IsNullOrWhiteSpace)
+            || ids.Distinct(StringComparer.OrdinalIgnoreCase).Count() != MapCount)
+            return AnoVetoOperationResult.Reject(AnoVetoFailure.InvalidMap);
+
+        var catalog = _catalog() ?? throw new InvalidOperationException("AnoVeto map catalog provider returned no catalog.");
+        var lookup = catalog.All.ToDictionary(map => map.MapId, StringComparer.OrdinalIgnoreCase);
+        var selected = new List<MapDefinition>(MapCount);
+        foreach (var id in ids)
+        {
+            if (!lookup.TryGetValue(id, out var map))
+                return AnoVetoOperationResult.Reject(AnoVetoFailure.InvalidMap);
+            selected.Add(map);
+        }
+
+        var options = _options() ?? throw new InvalidOperationException("AnoVeto options provider returned no options.");
+        var eligible = eligiblePlayers.Distinct().ToArray();
+        if (eligible.Length < options.MinimumVotes)
+            return AnoVetoOperationResult.Reject(AnoVetoFailure.NotEnoughEligiblePlayers);
+
+        return await PublishSelectedAsync(manager, eligible, selected, options, now, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async ValueTask<AnoVetoOperationResult> PublishSelectedAsync(
+        PlayerId manager,
+        IReadOnlyCollection<PlayerId> eligiblePlayers,
+        IReadOnlyList<MapDefinition> selected,
+        AnoVetoOptions options,
+        DateTimeOffset now,
+        CancellationToken cancellationToken)
+    {
+
         var voteOptions = selected
             .Select((map, index) => new VoteOption($"map{index + 1:00}", map.DisplayName))
             .ToArray();
@@ -98,7 +160,7 @@ public sealed class AnoVetoCoordinator
             VoteId,
             "AnoVeto — choose the next map",
             voteOptions,
-            distinctEligiblePlayers,
+            eligiblePlayers,
             new VotePolicy(options.Duration, options.MinimumVotes, options.TieBreakPolicy, options.MaxVotesPerPlayer));
 
         var created = await _votes.CreateAsync(manager, definition, now, cancellationToken).ConfigureAwait(false);

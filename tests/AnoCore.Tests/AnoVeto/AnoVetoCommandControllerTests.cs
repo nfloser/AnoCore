@@ -18,7 +18,7 @@ public sealed class AnoVetoCommandControllerTests
     private static readonly DateTimeOffset Now = new(2026, 9, 17, 8, 30, 0, TimeSpan.Zero);
 
     [TestMethod]
-    public async Task CreateCommand_StartsVoteAndShowsCustomHudToOnlinePlayers()
+    public async Task CreateCommand_OpensNativeEntryMenuWithoutStartingVote()
     {
         var permissions = new ManagerPermissionEvaluator(allow: true);
         var commands = new CommandRegistry(permissions);
@@ -30,19 +30,211 @@ public sealed class AnoVetoCommandControllerTests
         var result = await commands.ExecuteAsync("!anoveto create", Manager);
 
         Assert.IsTrue(result.Success, result.Message);
+        Assert.IsFalse(coordinator.TryGetStatus(out _));
+        Assert.IsTrue(hud.VisiblePlayers(AnoVetoCreateHudController.HudId).Contains(Manager));
+        Assert.IsEmpty(hud.VisiblePlayers(AnoVetoHudController.HudId));
+        var definition = hud.Definition(AnoVetoCreateHudController.HudId);
+        Assert.IsNotNull(definition);
+        Assert.AreEqual(AnoVetoCreateHudController.LayoutResource, definition.LayoutResource);
+        Assert.IsTrue(definition.CaptureInput);
+
+        await hud.ClickAsync(Manager, AnoVetoCreateHudController.HudId, "ano_veto_create_random");
         Assert.IsTrue(coordinator.TryGetStatus(out var maps));
         Assert.HasCount(8, maps);
-        CollectionAssert.AreEquivalent(
-            new[] { Manager, PlayerA },
-            hud.VisiblePlayers(AnoVetoHudController.HudId).ToArray());
-        var definition = hud.Definition(AnoVetoHudController.HudId);
-        Assert.IsNotNull(definition);
-        Assert.IsTrue(definition.CaptureInput);
-        Assert.AreEqual(AnoVetoHudController.LayoutResource, definition.LayoutResource);
+        Assert.IsFalse(hud.VisiblePlayers(AnoVetoCreateHudController.HudId).Contains(Manager));
+        Assert.HasCount(2, hud.VisiblePlayers(AnoVetoHudController.HudId));
     }
 
     [TestMethod]
-    public async Task CreateCommand_RejectsUnauthorizedPlayer()
+    public async Task CreateCommand_RejectsBeforeOpeningPickerWhenSessionAuthorizationFails()
+    {
+        var permissions = new ManagerPermissionEvaluator(allow: true);
+        var commands = new CommandRegistry(permissions);
+        var hud = new TestCustomHudService();
+        var players = new StubPlayerRegistry([Snapshot(Manager, "Manager")]);
+        var coordinator = CreateCoordinator(permissions);
+        using var controller = new AnoVetoCommandController(
+            commands,
+            hud,
+            players,
+            coordinator,
+            new FixedTimeProvider(Now),
+            authorizeCreate: (_, _) => ValueTask.FromResult(false));
+
+        var result = await commands.ExecuteAsync("!anoveto create", Manager);
+
+        Assert.IsFalse(result.Success);
+        Assert.AreEqual(CommandFailureReason.Forbidden, result.FailureReason);
+        Assert.IsFalse(hud.VisiblePlayers(AnoVetoCreateHudController.HudId).Contains(Manager));
+        Assert.IsFalse(coordinator.TryGetStatus(out _));
+    }
+
+    [TestMethod]
+    public async Task PendingPickerButtons_NeverStartUnconfiguredVote()
+    {
+        var permissions = new ManagerPermissionEvaluator(allow: true);
+        var commands = new CommandRegistry(permissions);
+        var hud = new TestCustomHudService();
+        var players = new StubPlayerRegistry([Snapshot(Manager, "Manager")]);
+        var coordinator = CreateCoordinator(permissions);
+        using var controller = new AnoVetoCommandController(commands, hud, players, coordinator, new FixedTimeProvider(Now));
+
+        Assert.IsTrue((await commands.ExecuteAsync("!anoveto create", Manager)).Success);
+        await hud.ClickAsync(Manager, AnoVetoCreateHudController.HudId, "ano_veto_create_manual");
+        Assert.IsFalse(coordinator.TryGetStatus(out _));
+        await hud.ClickAsync(Manager, AnoVetoCreateHudController.HudId, "ano_veto_create_saved");
+        Assert.IsFalse(coordinator.TryGetStatus(out _));
+        await hud.ClickAsync(Manager, AnoVetoCreateHudController.HudId, "ano_veto_create_close");
+        Assert.IsFalse(hud.VisiblePlayers(AnoVetoCreateHudController.HudId).Contains(Manager));
+    }
+
+    [TestMethod]
+    public async Task ManualPicker_IncompleteSelectionAndMissingStorageReportWhyActionsCannotRun()
+    {
+        var permissions = new ManagerPermissionEvaluator(allow: true);
+        var commands = new CommandRegistry(permissions);
+        var hud = new TestCustomHudService();
+        var players = new StubPlayerRegistry([Snapshot(Manager, "Manager"), Snapshot(PlayerA, "Player A")]);
+        var coordinator = CreateCoordinator(permissions);
+        using var controller = new AnoVetoCommandController(commands, hud, players, coordinator, new FixedTimeProvider(Now));
+        await commands.ExecuteAsync("!anoveto create", Manager);
+        await hud.ClickAsync(Manager, AnoVetoCreateHudController.HudId, "ano_veto_create_manual");
+        await hud.ClickAsync(Manager, AnoVetoCreateHudController.HudId, "ano_veto_create_map_0");
+        await hud.ClickAsync(Manager, AnoVetoCreateHudController.HudId, "ano_veto_create_confirm");
+        Assert.IsFalse(coordinator.TryGetStatus(out _));
+        Assert.AreEqual("Bitte genau acht Maps auswählen (aktuell 1/8).", hud.Text(Manager, AnoVetoCreateHudController.HudId, "ano_veto_create_status"));
+        await hud.ClickAsync(Manager, AnoVetoCreateHudController.HudId, "ano_veto_create_save");
+        Assert.AreEqual("Speichern nicht verfügbar: Veto-Datenbank ist nicht eingerichtet.", hud.Text(Manager, AnoVetoCreateHudController.HudId, "ano_veto_create_status"));
+        for (var i = 1; i < 8; i++)
+            await hud.ClickAsync(Manager, AnoVetoCreateHudController.HudId, $"ano_veto_create_map_{i}");
+        Assert.AreEqual("Acht Maps ausgewählt. Die Abstimmung kann gestartet werden.", hud.Text(Manager, AnoVetoCreateHudController.HudId, "ano_veto_create_status"));
+        await hud.ClickAsync(Manager, AnoVetoCreateHudController.HudId, "ano_veto_create_confirm");
+        Assert.IsTrue(coordinator.TryGetStatus(out _));
+    }
+
+    [TestMethod]
+    public async Task ManualPicker_EightUniqueMapClicksStartSharedVote()
+    {
+        var permissions = new ManagerPermissionEvaluator(allow: true);
+        var commands = new CommandRegistry(permissions);
+        var hud = new TestCustomHudService();
+        var players = new StubPlayerRegistry([Snapshot(Manager, "Manager"), Snapshot(PlayerA, "Player A")]);
+        var coordinator = CreateCoordinator(permissions);
+        using var controller = new AnoVetoCommandController(commands, hud, players, coordinator, new FixedTimeProvider(Now));
+
+        Assert.IsTrue((await commands.ExecuteAsync("!anoveto create", Manager)).Success);
+        await hud.ClickAsync(Manager, AnoVetoCreateHudController.HudId, "ano_veto_create_manual");
+        for (var i = 0; i < 8; i++)
+            await hud.ClickAsync(Manager, AnoVetoCreateHudController.HudId, $"ano_veto_create_map_{i}");
+
+        Assert.IsFalse(coordinator.TryGetStatus(out _));
+        await hud.ClickAsync(Manager, AnoVetoCreateHudController.HudId, "ano_veto_create_confirm");
+
+        Assert.IsTrue(coordinator.TryGetStatus(out var maps));
+        Assert.HasCount(8, maps);
+        Assert.HasCount(2, hud.VisiblePlayers(AnoVetoHudController.HudId));
+        Assert.IsFalse(hud.VisiblePlayers(AnoVetoCreateHudController.HudId).Contains(Manager));
+    }
+
+    [TestMethod]
+    public async Task SavedVeto_StoreRenameBrowseAndStartFromPersonalPreset()
+    {
+        var permissions = new ManagerPermissionEvaluator(allow: true);
+        var commands = new CommandRegistry(permissions);
+        var hud = new TestCustomHudService();
+        var players = new StubPlayerRegistry([Snapshot(Manager, "Manager"), Snapshot(PlayerA, "Player A")]);
+        var coordinator = CreateCoordinator(permissions);
+        IAnoVetoPresetRepository presets = new AnoVetoPresetCatalog();
+        using var controller = new AnoVetoCommandController(
+            commands, hud, players, coordinator, new FixedTimeProvider(Now), presets);
+
+        Assert.IsTrue((await commands.ExecuteAsync("!anoveto create", Manager)).Success);
+        await hud.ClickAsync(Manager, AnoVetoCreateHudController.HudId, "ano_veto_create_manual");
+        for (var i = 0; i < 8; i++)
+            await hud.ClickAsync(Manager, AnoVetoCreateHudController.HudId, $"ano_veto_create_map_{i}");
+        await hud.ClickAsync(Manager, AnoVetoCreateHudController.HudId, "ano_veto_create_save");
+
+        var saved = await presets.ListAsync(Manager.SteamId64);
+        Assert.HasCount(1, saved);
+        Assert.AreEqual("Veto 01", saved[0].Preset.Name);
+        Assert.HasCount(8, saved[0].Preset.MapIds);
+
+        var renamed = await commands.ExecuteAsync("!anovetopreset rename \"Veto 01\" \"Custom Pool\"", Manager);
+        Assert.IsTrue(renamed.Success, renamed.Message);
+        Assert.IsNotNull(await presets.GetAsync(Manager.SteamId64, "Custom Pool"));
+        var listed = await commands.ExecuteAsync("!anovetopreset list", Manager);
+        Assert.IsTrue(listed.Success, listed.Message);
+        StringAssert.Contains(listed.Message, "Custom Pool");
+
+        await hud.ClickAsync(Manager, AnoVetoCreateHudController.HudId, "ano_veto_create_back");
+        await hud.ClickAsync(Manager, AnoVetoCreateHudController.HudId, "ano_veto_create_saved");
+        await hud.ClickAsync(Manager, AnoVetoCreateHudController.HudId, "ano_veto_create_map_0");
+        await hud.ClickAsync(Manager, AnoVetoCreateHudController.HudId, "ano_veto_create_confirm");
+        Assert.IsTrue(coordinator.TryGetStatus(out var maps));
+        Assert.HasCount(8, maps);
+        Assert.HasCount(2, hud.VisiblePlayers(AnoVetoHudController.HudId));
+    }
+
+    [TestMethod]
+    public async Task SavedVeto_DeleteNeedsSecondConfirmation()
+    {
+        var permissions = new ManagerPermissionEvaluator(allow: true);
+        var commands = new CommandRegistry(permissions);
+        var hud = new TestCustomHudService();
+        var players = new StubPlayerRegistry([Snapshot(Manager, "Manager")]);
+        var coordinator = CreateCoordinator(permissions);
+        IAnoVetoPresetRepository presets = new AnoVetoPresetCatalog();
+        await presets.CreateAsync(new AnoVetoPreset(
+            Manager.SteamId64, "Old Veto", Enumerable.Range(1, 8).Select(i => $"de_map{i:00}")));
+        using var controller = new AnoVetoCommandController(
+            commands, hud, players, coordinator, new FixedTimeProvider(Now), presets);
+
+        Assert.IsTrue((await commands.ExecuteAsync("!anoveto create", Manager)).Success);
+        await hud.ClickAsync(Manager, AnoVetoCreateHudController.HudId, "ano_veto_create_saved");
+        await hud.ClickAsync(Manager, AnoVetoCreateHudController.HudId, "ano_veto_create_map_0");
+        await hud.ClickAsync(Manager, AnoVetoCreateHudController.HudId, "ano_veto_create_delete");
+        Assert.HasCount(1, await presets.ListAsync(Manager.SteamId64));
+        await hud.ClickAsync(Manager, AnoVetoCreateHudController.HudId, "ano_veto_create_delete");
+        Assert.HasCount(0, await presets.ListAsync(Manager.SteamId64));
+    }
+
+    [TestMethod]
+    public async Task RandomCommand_ExplicitlyPreservesLegacyFastStart()
+    {
+        var permissions = new ManagerPermissionEvaluator(allow: true);
+        var commands = new CommandRegistry(permissions);
+        var hud = new TestCustomHudService();
+        var players = new StubPlayerRegistry([Snapshot(Manager, "Manager"), Snapshot(PlayerA, "Player A")]);
+        var coordinator = CreateCoordinator(permissions);
+        using var controller = new AnoVetoCommandController(commands, hud, players, coordinator, new FixedTimeProvider(Now));
+
+        var result = await commands.ExecuteAsync("!anoveto random", Manager);
+
+        Assert.IsTrue(result.Success, result.Message);
+        Assert.IsTrue(coordinator.TryGetStatus(out var maps));
+        Assert.HasCount(8, maps);
+        Assert.HasCount(2, hud.VisiblePlayers(AnoVetoHudController.HudId));
+    }
+
+    [TestMethod]
+    public async Task RandomCommand_RequiresSameManagerPermissionAsCreate()
+    {
+        var permissions = new ManagerPermissionEvaluator(allow: false);
+        var commands = new CommandRegistry(permissions);
+        var hud = new TestCustomHudService();
+        var players = new StubPlayerRegistry([Snapshot(Manager, "Manager")]);
+        var coordinator = CreateCoordinator(permissions);
+        using var controller = new AnoVetoCommandController(commands, hud, players, coordinator, new FixedTimeProvider(Now));
+
+        var result = await commands.ExecuteAsync("!anoveto random", Manager);
+
+        Assert.IsFalse(result.Success);
+        Assert.AreEqual(CommandFailureReason.Forbidden, result.FailureReason);
+        Assert.IsFalse(coordinator.TryGetStatus(out _));
+    }
+
+    [TestMethod]
+    public async Task CreateMenu_UnauthorizedRandomClickDoesNotStartVote()
     {
         var permissions = new ManagerPermissionEvaluator(allow: false);
         var commands = new CommandRegistry(permissions);
@@ -53,8 +245,8 @@ public sealed class AnoVetoCommandControllerTests
 
         var result = await commands.ExecuteAsync("!anoveto create", Manager);
 
-        Assert.IsFalse(result.Success);
-        Assert.AreEqual(CommandFailureReason.Forbidden, result.FailureReason);
+        Assert.IsTrue(result.Success);
+        await hud.ClickAsync(Manager, AnoVetoCreateHudController.HudId, "ano_veto_create_random");
         Assert.IsFalse(coordinator.TryGetStatus(out _));
         Assert.IsEmpty(hud.VisiblePlayers(AnoVetoHudController.HudId));
     }
@@ -75,6 +267,7 @@ public sealed class AnoVetoCommandControllerTests
         Assert.IsFalse(result.Success);
         Assert.AreEqual(CommandFailureReason.NotFound, result.FailureReason);
         Assert.IsNull(hud.Definition(AnoVetoHudController.HudId));
+        Assert.IsNull(hud.Definition(AnoVetoCreateHudController.HudId));
     }
 
     [TestMethod]
@@ -86,7 +279,7 @@ public sealed class AnoVetoCommandControllerTests
         var players = new StubPlayerRegistry([Snapshot(Manager, "Manager"), Snapshot(PlayerA, "Player A")]);
         var coordinator = CreateCoordinator(permissions);
         using var controller = new AnoVetoCommandController(commands, hud, players, coordinator, new FixedTimeProvider(Now));
-        Assert.IsTrue((await commands.ExecuteAsync("!anoveto create", Manager)).Success);
+        Assert.IsTrue((await commands.ExecuteAsync("!anoveto random", Manager)).Success);
         Assert.IsTrue(hud.Hide(PlayerA, AnoVetoHudController.HudId));
         Assert.IsFalse(hud.VisiblePlayers(AnoVetoHudController.HudId).Contains(PlayerA));
 
@@ -105,9 +298,13 @@ public sealed class AnoVetoCommandControllerTests
         var players = new StubPlayerRegistry([Snapshot(Manager, "Manager"), Snapshot(PlayerA, "Player A")]);
         var coordinator = CreateCoordinator(permissions);
         using var controller = new AnoVetoCommandController(commands, hud, players, coordinator, new FixedTimeProvider(Now));
-        Assert.IsTrue((await commands.ExecuteAsync("!anoveto create", Manager)).Success);
+        Assert.IsTrue((await commands.ExecuteAsync("!anoveto random", Manager)).Success);
 
         await hud.ClickAsync(PlayerA, AnoVetoHudController.HudId, "ano_veto_map_3");
+        Assert.IsTrue(hud.VisiblePlayers(AnoVetoHudController.HudId).Contains(PlayerA));
+        await hud.ClickAsync(PlayerA, AnoVetoHudController.HudId, "ano_veto_map_4");
+        Assert.IsTrue(hud.VisiblePlayers(AnoVetoHudController.HudId).Contains(PlayerA));
+        await hud.ClickAsync(PlayerA, AnoVetoHudController.HudId, "ano_veto_map_5");
 
         Assert.IsTrue(hud.VisiblePlayers(AnoVetoHudController.HudId).Contains(PlayerA));
         Assert.IsTrue(coordinator.TryGetStatus(out var maps));
@@ -115,7 +312,7 @@ public sealed class AnoVetoCommandControllerTests
         Assert.IsEmpty(before);
         await hud.ClickAsync(PlayerA, AnoVetoHudController.HudId, "ano_veto_confirm");
         Assert.IsTrue(coordinator.TryGetPlayerSelections(PlayerA, out var selected, out _));
-        Assert.HasCount(1, selected);
+        Assert.HasCount(3, selected);
         Assert.AreEqual(maps[3].MapId, selected[0].MapId);
         Assert.AreEqual(AnoVetoFailure.AlreadyVoted,
             (await coordinator.CastAsync(PlayerA, maps[4].MapId, Now.AddSeconds(2))).Failure);
@@ -130,7 +327,7 @@ public sealed class AnoVetoCommandControllerTests
         var players = new StubPlayerRegistry([Snapshot(Manager, "Manager"), Snapshot(PlayerA, "Player A")]);
         var coordinator = CreateCoordinator(permissions);
         using var controller = new AnoVetoCommandController(commands, hud, players, coordinator, new FixedTimeProvider(Now));
-        Assert.IsTrue((await commands.ExecuteAsync("!anoveto create", Manager)).Success);
+        Assert.IsTrue((await commands.ExecuteAsync("!anoveto random", Manager)).Success);
 
         var result = await commands.ExecuteAsync("!anoveto status", PlayerA);
 
@@ -147,7 +344,7 @@ public sealed class AnoVetoCommandControllerTests
         var players = new StubPlayerRegistry([Snapshot(Manager, "Manager"), Snapshot(PlayerA, "Player A")]);
         var coordinator = CreateCoordinator(permissions);
         using var controller = new AnoVetoCommandController(commands, hud, players, coordinator, new FixedTimeProvider(Now));
-        Assert.IsTrue((await commands.ExecuteAsync("!anoveto create", Manager)).Success);
+        Assert.IsTrue((await commands.ExecuteAsync("!anoveto random", Manager)).Success);
         Assert.HasCount(2, hud.VisiblePlayers(AnoVetoHudController.HudId));
 
         var result = await commands.ExecuteAsync("!anoveto cancel", Manager);
@@ -166,7 +363,7 @@ public sealed class AnoVetoCommandControllerTests
         var players = new StubPlayerRegistry([Snapshot(Manager, "Manager"), Snapshot(PlayerA, "Player A")]);
         var coordinator = CreateCoordinator(permissions);
         using var controller = new AnoVetoCommandController(commands, hud, players, coordinator, new FixedTimeProvider(Now));
-        Assert.IsTrue((await commands.ExecuteAsync("!anoveto create", Manager)).Success);
+        Assert.IsTrue((await commands.ExecuteAsync("!anoveto random", Manager)).Success);
 
         var result = await commands.ExecuteAsync("!anoveto cancel", PlayerA);
 

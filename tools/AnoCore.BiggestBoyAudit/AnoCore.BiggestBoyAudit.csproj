@@ -1,0 +1,4 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType></PropertyGroup>
+  <ItemGroup><ProjectReference Include="../../src/AnoCore.Modules.Arcade/AnoCore.Modules.Arcade.csproj" /></ItemGroup>
+</Project>

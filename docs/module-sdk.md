@@ -130,3 +130,9 @@ Acceptance: install one SDK-only module, execute its command, inspect host/modul
 status, trigger a failed initialization, then reconnect/hot reload/unload. Verify
 no duplicate native command or stale registration survives. Automated tests load a
 separately compiled SDK-only fixture and cover real ownership/path/lifecycle edges.
+
+
+Custom HUD definitions retain their source `.xml` `LayoutResource` for SDK
+compatibility. `CompiledLayoutResource` resolves the corresponding `.vxml_c`
+resource for the native dynamic HUD entity. Native adapters must request that
+compiled name; passing the source filename through is not a client load check.

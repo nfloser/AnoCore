@@ -1,0 +1,462 @@
+.ano-hud-host {
+    width: 100%;
+    height: 100%;
+    overflow: noclip;
+}
+
+.casino-overlay {
+    width: 100%;
+    height: 100%;
+    overflow: noclip;
+    opacity: 0;
+    visibility: collapse;
+}
+
+.casino-overlay.shown {
+    opacity: 1;
+    visibility: visible;
+}
+
+.casino-dim {
+    width: 4000px;
+    height: 2400px;
+    horizontal-align: center;
+    vertical-align: center;
+    background-color: #050a07e8;
+}
+
+.casino-window {
+    width: 1180px;
+    height: 880px;
+    horizontal-align: center;
+    vertical-align: center;
+    flow-children: down;
+    padding: 28px;
+    background-color: #0b110dfc;
+    border: 2px solid #287b3aff;
+    border-radius: 8px;
+    box-shadow: #000000b8 0px 14px 42px 0px;
+}
+
+.casino-window Label {
+    font-family: Arial;
+    color: #eef4f0ff;
+}
+
+.casino-header {
+    width: 100%;
+    height: 94px;
+    flow-children: right;
+}
+
+.casino-brand {
+    width: fill-parent-flow(1.0);
+    height: 90px;
+    flow-children: down;
+}
+
+.casino-kicker {
+    font-size: 13px;
+    letter-spacing: 1px;
+    color: #7fa98aff;
+}
+
+.casino-title {
+    font-size: 31px;
+    font-weight: bold;
+    margin-top: 4px;
+    color: #ffffffff;
+}
+
+.casino-subtitle {
+    font-size: 15px;
+    margin-top: 2px;
+    color: #8ea999ff;
+}
+
+.casino-account-card {
+    width: 190px;
+    height: 84px;
+    flow-children: down;
+    padding: 10px 14px;
+    margin-right: 12px;
+    background-color: #14251aff;
+    border: 1px solid #285e38ff;
+    border-radius: 7px;
+}
+
+.casino-account-label {
+    font-size: 12px;
+    color: #8aa997ff;
+}
+
+.casino-account-value {
+    font-size: 25px;
+    font-weight: bold;
+    color: #73e493ff;
+}
+
+.casino-account-caption {
+    font-size: 12px;
+    color: #718678ff;
+}
+
+.casino-close {
+    width: 46px;
+    height: 46px;
+    margin-top: 4px;
+    background-color: #111b15ff;
+    border: 1px solid #2b893d99;
+}
+
+.casino-close:hover {
+    background-color: #233d2aff;
+    border: 1px solid #63d47dff;
+}
+
+.casino-close Label {
+    horizontal-align: center;
+    vertical-align: center;
+    font-size: 30px;
+    color: #dce9e0ff;
+}
+
+.casino-divider {
+    width: 100%;
+    height: 1px;
+    margin-bottom: 18px;
+    background-color: #304036ff;
+}
+
+.casino-game-grid {
+    width: 100%;
+    height: 468px;
+    flow-children: right-wrap;
+}
+
+.casino-game-card {
+    width: 350px;
+    height: 218px;
+    margin-right: 18px;
+    margin-bottom: 16px;
+    flow-children: down;
+    background-color: #132019ff;
+    border: 1px solid #294b35ff;
+    border-radius: 7px;
+}
+
+.casino-game-card:hover {
+    brightness: 1.25;
+    border: 2px solid #47b861ff;
+}
+
+.casino-preview {
+    width: 100%;
+    height: 148px;
+    overflow: clip;
+    background-color: #0f1913ff;
+    border-bottom: 1px solid #24422fff;
+}
+
+.casino-preview-slots {
+    background-color: #18291dff;
+}
+
+.casino-mini-reels {
+    horizontal-align: center;
+    vertical-align: center;
+    flow-children: right;
+}
+
+.casino-mini-reels Label {
+    width: 72px;
+    height: 86px;
+    margin-right: 8px;
+    text-align: center;
+    vertical-align: center;
+    padding-top: 16px;
+    font-size: 44px;
+    font-weight: bold;
+    color: #f2d96eff;
+    background-color: #09100cff;
+    border: 2px solid #438e55ff;
+    border-radius: 5px;
+}
+
+.casino-preview-coin {
+    background-color: #101b14ff;
+}
+
+.casino-coin-art {
+    width: 112px;
+    height: 112px;
+    horizontal-align: center;
+    vertical-align: center;
+    border-radius: 56px;
+    background-color: #d3a939ff;
+    border: 7px solid #f0d578ff;
+    box-shadow: #00000088 0px 8px 18px 0px;
+}
+
+.casino-coin-art Label {
+    horizontal-align: center;
+    vertical-align: center;
+    font-size: 34px;
+    font-weight: bold;
+    color: #263117ff;
+}
+
+.casino-preview-roulette {
+    background-color: #111914ff;
+}
+
+.casino-wheel-art {
+    width: 122px;
+    height: 122px;
+    horizontal-align: center;
+    vertical-align: center;
+    border-radius: 61px;
+    background-color: #3f151aff;
+    border: 12px solid #c09d45ff;
+    box-shadow: #000000aa 0px 8px 18px 0px;
+}
+
+.casino-wheel-core {
+    width: 56px;
+    height: 56px;
+    horizontal-align: center;
+    vertical-align: center;
+    border-radius: 28px;
+    background-color: #101511ff;
+    border: 5px solid #5f8b63ff;
+}
+
+.casino-preview-blackjack {
+    background-color: #13221aff;
+}
+
+.casino-preview-book {
+    background-color: #241c10ff;
+}
+
+.casino-preview-risk {
+    background-color: #201318ff;
+}
+
+.casino-symbol-art {
+    horizontal-align: center;
+    vertical-align: center;
+    font-size: 48px;
+    font-weight: bold;
+    color: #79e796ff;
+}
+
+.casino-card-footer {
+    width: 100%;
+    height: 68px;
+    flow-children: right;
+    padding: 9px 12px;
+}
+
+.casino-card-copy {
+    width: fill-parent-flow(1.0);
+    flow-children: down;
+}
+
+.casino-card-title {
+    font-size: 18px;
+    font-weight: bold;
+    color: #ffffffff;
+}
+
+.casino-card-caption {
+    font-size: 12px;
+    margin-top: 3px;
+    color: #8fa797ff;
+}
+
+.casino-card-arrow {
+    width: 24px;
+    font-size: 29px;
+    text-align: center;
+    vertical-align: center;
+    color: #63d47dff;
+}
+
+.casino-lower {
+    width: 100%;
+    height: 184px;
+    flow-children: right;
+}
+
+.casino-wallet-panel {
+    width: 58%;
+    height: 174px;
+    flow-children: down;
+    padding: 12px 14px;
+    margin-right: 16px;
+    background-color: #0f1712ff;
+    border: 1px solid #243d2cff;
+    border-radius: 5px;
+}
+
+.casino-history-panel {
+    width: fill-parent-flow(1.0);
+    height: 174px;
+    flow-children: down;
+    padding: 12px 14px;
+    background-color: #0f1712ff;
+    border: 1px solid #243d2cff;
+    border-radius: 5px;
+}
+
+.casino-section-title {
+    font-size: 14px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    color: #8fb99bff;
+}
+
+.casino-wallet-row {
+    width: 100%;
+    height: 98px;
+    margin-top: 14px;
+    flow-children: right;
+}
+
+.casino-balance-box {
+    width: 126px;
+    height: 74px;
+    flow-children: down;
+    padding: 7px 9px;
+    margin-right: 9px;
+    background-color: #132019ff;
+    border: 1px solid #285e38ff;
+}
+
+.casino-muted {
+    font-size: 11px;
+    color: #728779ff;
+}
+
+.casino-balance-value {
+    margin-top: 5px;
+    font-size: 20px;
+    font-weight: bold;
+    color: #e6f0e9ff;
+}
+
+.casino-control {
+    width: 40px;
+    height: 42px;
+    margin-top: 15px;
+    margin-right: 6px;
+    background-color: #132019ff;
+    border: 1px solid #2b893d99;
+}
+
+.casino-control Label {
+    horizontal-align: center;
+    vertical-align: center;
+    font-size: 23px;
+}
+
+.casino-load-value {
+    width: 88px;
+    margin-top: 25px;
+    text-align: center;
+    font-size: 17px;
+}
+
+.casino-action {
+    height: 42px;
+    margin-top: 15px;
+    margin-right: 7px;
+    padding: 8px 12px;
+    background-color: #132019ff;
+    border: 1px solid #2b893d99;
+}
+
+.casino-action.primary {
+    background-color: #245c32ff;
+}
+
+.casino-action:hover,
+.casino-control:hover,
+.casino-link:hover {
+    brightness: 1.3;
+    border-color: #63d47dff;
+}
+
+.casino-history-header {
+    width: 100%;
+    height: 32px;
+    flow-children: right;
+}
+
+.casino-history-header .casino-section-title {
+    width: fill-parent-flow(1.0);
+}
+
+.casino-status {
+    width: 100%;
+    height: 90px;
+    margin-top: 12px;
+    font-size: 15px;
+    color: #c8d6ccff;
+    text-overflow: shrink;
+}
+
+.casino-footer {
+    width: 100%;
+    height: 54px;
+    flow-children: right;
+    padding-top: 12px;
+    border-top: 1px solid #26372cff;
+}
+
+.casino-note {
+    width: fill-parent-flow(1.0);
+    font-size: 13px;
+    color: #6f8075ff;
+}
+
+.casino-footer-actions {
+    flow-children: right;
+}
+
+.casino-link {
+    height: 32px;
+    padding: 5px 10px;
+    margin-left: 6px;
+    background-color: #101813ff;
+    border: 1px solid #285e38aa;
+}
+
+.casino-link Label {
+    font-size: 12px;
+    color: #a9c2afff;
+}
+
+.busy .casino-game-card,
+.busy .casino-control,
+.busy .casino-action {
+    opacity: 0.45;
+}
+
+/* Owner-supplied cover artwork. Decorative placeholder children stay hidden. */
+.casino-preview-slots { background-image: url("s2r://panorama/styles/custom_game/anocore/casino/slots.vtex"); background-size: contain; background-position: center; background-repeat: no-repeat; background-color: #070c08; }
+.casino-preview-coin { background-image: url("s2r://panorama/styles/custom_game/anocore/casino/coinflip.vtex"); background-size: contain; background-position: center; background-repeat: no-repeat; background-color: #070c08; }
+.casino-preview-roulette { background-image: url("s2r://panorama/styles/custom_game/anocore/casino/roulette.vtex"); background-size: contain; background-position: center; background-repeat: no-repeat; background-color: #070c08; }
+.casino-preview-blackjack { background-image: url("s2r://panorama/styles/custom_game/anocore/casino/blackjack.vtex"); background-size: contain; background-position: center; background-repeat: no-repeat; background-color: #070c08; }
+.casino-preview-book { background-image: url("s2r://panorama/styles/custom_game/anocore/casino/book.vtex"); background-size: contain; background-position: center; background-repeat: no-repeat; background-color: #070c08; }
+.casino-preview-risk { background-image: url("s2r://panorama/styles/custom_game/anocore/casino/risk.vtex"); background-size: contain; background-position: center; background-repeat: no-repeat; background-color: #070c08; }
+ .casino-preview Panel, .casino-preview Label { visibility: collapse; }
+
+.casino-game-grid { overflow:scroll; }
+.casino-preview-biggestboy { background-image:url("s2r://panorama/styles/custom_game/anocore/casino/biggest_scatter.vtex"); background-size:contain; background-position:center; background-repeat:no-repeat; }
+
+/* The historic Risk thumbnail stays in the package for completed round recovery,
+   but the new game advertises its own three-tower identity. */
+.casino-preview-spitze { background-color:#15251e; border:2px solid #af904a; background-image:none; }
+.casino-preview-spitze .casino-symbol-art { visibility:visible; font-size:28px; font-weight:bold; color:#f6d07c; text-align:center; horizontal-align:center; vertical-align:center; }

@@ -3,6 +3,7 @@ using AnoCore.Abstractions.Configuration;
 using AnoCore.Abstractions.Hud;
 using AnoCore.Abstractions.Maps;
 using AnoCore.Abstractions.Modules;
+using AnoCore.Abstractions.Persistence;
 using AnoCore.Abstractions.Players;
 using AnoCore.Abstractions.Voting;
 using AnoCore.Runtime.Maps;
@@ -42,7 +43,8 @@ public sealed class AnoVetoModuleRuntime : IDisposable
         IMapChanger mapChanger,
         TimeProvider? timeProvider = null,
         IAnoVetoRandomSource? random = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        IDatabase? presetDatabase = null)
         => CreateCoreAsync(
             configuration,
             commands,
@@ -53,7 +55,8 @@ public sealed class AnoVetoModuleRuntime : IDisposable
             timeProvider,
             random,
             cancellationToken,
-            reloads: null);
+            reloads: null,
+            presetDatabase: presetDatabase);
 
     public static ValueTask<AnoVetoModuleRuntime?> CreateAsync(
         IConfigStore configuration,
@@ -65,7 +68,8 @@ public sealed class AnoVetoModuleRuntime : IDisposable
         IConfigReloadRegistry reloads,
         TimeProvider? timeProvider = null,
         IAnoVetoRandomSource? random = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        IDatabase? presetDatabase = null)
     {
         ArgumentNullException.ThrowIfNull(reloads);
         return CreateCoreAsync(
@@ -78,7 +82,8 @@ public sealed class AnoVetoModuleRuntime : IDisposable
             timeProvider,
             random,
             cancellationToken,
-            reloads);
+            reloads,
+            presetDatabase);
     }
 
     public ValueTask<AnoVetoOperationResult?> ExpireAsync(CancellationToken cancellationToken = default)
@@ -106,7 +111,8 @@ public sealed class AnoVetoModuleRuntime : IDisposable
         TimeProvider? timeProvider,
         IAnoVetoRandomSource? random,
         CancellationToken cancellationToken,
-        IConfigReloadRegistry? reloads)
+        IConfigReloadRegistry? reloads,
+        IDatabase? presetDatabase)
     {
         ArgumentNullException.ThrowIfNull(configuration);
         ArgumentNullException.ThrowIfNull(commands);
@@ -121,6 +127,14 @@ public sealed class AnoVetoModuleRuntime : IDisposable
             return null;
         }
 
+        IAnoVetoPresetRepository? presetRepository = null;
+        if (presetDatabase is not null)
+        {
+            await AnoVetoPresetPersistenceBootstrap.EnsureReadyAsync(presetDatabase, cancellationToken)
+                .ConfigureAwait(false);
+            presetRepository = new MySqlAnoVetoPresetRepository(presetDatabase);
+        }
+
         var catalogLoader = new MapCatalogLoader(configuration);
         var catalog = await catalogLoader.LoadAsync(cancellationToken).ConfigureAwait(false);
         var randomSource = random ?? new AnoVetoRandomSource();
@@ -133,12 +147,20 @@ public sealed class AnoVetoModuleRuntime : IDisposable
                 mapChanger,
                 randomSource,
                 settings.ToOptions());
+            var fixedSessionAuthorization = votes as SessionBoundVetoVoteService;
+            Func<PlayerId, CancellationToken, ValueTask<bool>>? fixedAuthorizeCreate =
+                fixedSessionAuthorization is null ? null : fixedSessionAuthorization.AuthorizeCreateSessionAsync;
+            Action<PlayerId>? fixedRevokeCreate =
+                fixedSessionAuthorization is null ? null : fixedSessionAuthorization.RevokeCreateSession;
             var fixedController = new AnoVetoCommandController(
                 commands,
                 hud,
                 players,
                 fixedCoordinator,
-                timeProvider);
+                timeProvider,
+                presetRepository,
+                fixedAuthorizeCreate,
+                fixedRevokeCreate);
             return new AnoVetoModuleRuntime(fixedCoordinator, fixedController);
         }
 
@@ -169,12 +191,20 @@ public sealed class AnoVetoModuleRuntime : IDisposable
                 mapChanger,
                 randomSource,
                 () => activeSettings.Current.ToOptions());
+            var sessionAuthorization = votes as SessionBoundVetoVoteService;
+            Func<PlayerId, CancellationToken, ValueTask<bool>>? authorizeCreate =
+                sessionAuthorization is null ? null : sessionAuthorization.AuthorizeCreateSessionAsync;
+            Action<PlayerId>? revokeCreate =
+                sessionAuthorization is null ? null : sessionAuthorization.RevokeCreateSession;
             controller = new AnoVetoCommandController(
                 commands,
                 hud,
                 players,
                 coordinator,
-                timeProvider);
+                timeProvider,
+                presetRepository,
+                authorizeCreate,
+                revokeCreate);
 
             return new AnoVetoModuleRuntime(
                 coordinator,

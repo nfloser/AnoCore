@@ -1,0 +1,150 @@
+<root>
+  <styles>
+    <include src="s2r://panorama/styles/custom_game/anocore/ano_casino_lobby.vcss_c" />
+  </styles>
+
+  <Panel class="ano-hud-host" hittest="false">
+    <Panel id="casino_lobby_root" class="casino-overlay" hittest="true">
+      <Panel class="casino-dim" hittest="false" />
+
+      <Panel class="casino-window" hittest="true">
+        <Panel class="casino-header">
+          <Panel class="casino-brand">
+            <Label class="casino-kicker" text="ANOMEME / ANOCORE" />
+            <Label class="casino-title" text="ANO ARCADE" />
+            <Label id="casino_lobby_profile" class="casino-subtitle" text="{s:text}" />
+          </Panel>
+
+          <Panel class="casino-account-card">
+            <Label class="casino-account-label" text="DEIN KONTO" />
+            <Label id="casino_lobby_account" class="casino-account-value" text="{s:text}" />
+            <Label class="casino-account-caption" text="Profilpunkte" />
+          </Panel>
+
+          <Button id="casino_lobby_close" class="casino-close">
+            <Label text="×" hittest="false" />
+          </Button>
+        </Panel>
+
+        <Panel class="casino-divider" />
+
+        <Panel class="casino-game-grid">
+          <Button id="casino_lobby_slots" class="casino-game-card">
+            <Panel class="casino-preview casino-preview-slots" hittest="false" />
+            <Panel class="casino-card-footer" hittest="false">
+              <Panel class="casino-card-copy" hittest="false">
+                <Label class="casino-card-title" text="SLOTS" hittest="false" />
+                <Label class="casino-card-caption" text="5 Linien · Sofortauszahlung" hittest="false" />
+              </Panel>
+              <Label class="casino-card-arrow" text="›" hittest="false" />
+            </Panel>
+          </Button>
+
+          <Button id="casino_lobby_coinflip" class="casino-game-card">
+            <Panel class="casino-preview casino-preview-coin" hittest="false" />
+            <Panel class="casino-card-footer" hittest="false">
+              <Panel class="casino-card-copy" hittest="false">
+                <Label class="casino-card-title" text="COINFLIP" hittest="false" />
+                <Label class="casino-card-caption" text="Kopf oder Zahl · 2×" hittest="false" />
+              </Panel>
+              <Label class="casino-card-arrow" text="›" hittest="false" />
+            </Panel>
+          </Button>
+
+          <Button id="casino_lobby_roulette" class="casino-game-card">
+            <Panel class="casino-preview casino-preview-roulette" hittest="false" />
+            <Panel class="casino-card-footer" hittest="false">
+              <Panel class="casino-card-copy" hittest="false">
+                <Label class="casino-card-title" text="ROULETTE" hittest="false" />
+                <Label class="casino-card-caption" text="Europäisch · 0–36" hittest="false" />
+              </Panel>
+              <Label class="casino-card-arrow" text="›" hittest="false" />
+            </Panel>
+          </Button>
+
+          <Button id="casino_lobby_blackjack" class="casino-game-card compact">
+            <Panel class="casino-preview casino-preview-blackjack" hittest="false">
+              <Label class="casino-symbol-art" text="A♠" hittest="false" />
+            </Panel>
+            <Panel class="casino-card-footer" hittest="false">
+              <Panel class="casino-card-copy" hittest="false">
+                <Label class="casino-card-title" text="BLACKJACK" hittest="false" />
+                <Label class="casino-card-caption" text="Hit · Stand · Double · Split" hittest="false" />
+              </Panel>
+              <Label class="casino-card-arrow" text="›" hittest="false" />
+            </Panel>
+          </Button>
+
+          <Button id="casino_lobby_book" class="casino-game-card compact">
+            <Panel class="casino-preview casino-preview-book" hittest="false">
+              <Label class="casino-symbol-art" text="BOOK" hittest="false" />
+            </Panel>
+            <Panel class="casino-card-footer" hittest="false">
+              <Panel class="casino-card-copy" hittest="false">
+                <Label class="casino-card-title" text="BOOK · FREISPIELE" hittest="false" />
+                <Label class="casino-card-caption" text="Scatter · Wild · Bonus" hittest="false" />
+              </Panel>
+              <Label class="casino-card-arrow" text="›" hittest="false" />
+            </Panel>
+          </Button>
+
+          <Button id="casino_lobby_risk" class="casino-game-card compact">
+            <Panel class="casino-preview casino-preview-spitze" hittest="false">
+              <Label class="casino-symbol-art" text="×6  ×30  ×300" hittest="false" />
+            </Panel>
+            <Panel class="casino-card-footer" hittest="false">
+              <Panel class="casino-card-copy" hittest="false">
+                <Label class="casino-card-title" text="ALLES SPITZE" hittest="false" />
+                <Label class="casino-card-caption" text="3 Türme · Cashpot · Action Games" hittest="false" />
+              </Panel>
+              <Label class="casino-card-arrow" text="›" hittest="false" />
+            </Panel>
+          </Button>
+          <Button id="casino_lobby_biggestboy" class="casino-game-card compact">
+            <Panel class="casino-preview casino-preview-biggestboy" hittest="false" />
+            <Panel class="casino-card-footer" hittest="false">
+              <Panel class="casino-card-copy" hittest="false">
+                <Label class="casino-card-title" text="BIGGEST BOY SLOTS" hittest="false" />
+                <Label class="casino-card-caption" text="5×3 · Buch-Wild · Expanding-Freispiele" hittest="false" />
+              </Panel>
+              <Label class="casino-card-arrow" text="›" hittest="false" />
+            </Panel>
+          </Button>
+        </Panel>
+
+        <Panel class="casino-lower">
+          <Panel class="casino-wallet-panel">
+            <Label class="casino-section-title" text="GUTHABENKONTO" />
+            <Panel class="casino-wallet-row">
+              <Panel class="casino-balance-box">
+                <Label class="casino-muted" text="AUTOMAT" />
+                <Label id="casino_lobby_bank" class="casino-balance-value" text="{s:text}" />
+              </Panel>
+              <Button id="casino_lobby_loadminus" class="casino-control"><Label text="−" hittest="false" /></Button>
+              <Label id="casino_lobby_loadamount" class="casino-load-value" text="{s:text}" />
+              <Button id="casino_lobby_loadplus" class="casino-control"><Label text="+" hittest="false" /></Button>
+              <Button id="casino_lobby_load" class="casino-action primary"><Label text="AUFLADEN" hittest="false" /></Button>
+              <Button id="casino_lobby_return" class="casino-action"><Label text="ALLES ZURÜCK" hittest="false" /></Button>
+            </Panel>
+          </Panel>
+
+          <Panel class="casino-history-panel">
+            <Panel class="casino-history-header">
+              <Label class="casino-section-title" text="LETZTES SPIEL / STATUS" />
+              <Button id="casino_lobby_history" class="casino-link"><Label text="VERLAUF" hittest="false" /></Button>
+            </Panel>
+            <Label id="casino_lobby_status" class="casino-status" text="{s:text}" />
+          </Panel>
+        </Panel>
+
+        <Panel class="casino-footer">
+          <Label class="casino-note" text="Nur virtuelle € · keine Echtgeld-Auszahlung" />
+          <Panel class="casino-footer-actions">
+            <Button id="casino_lobby_refresh" class="casino-link"><Label text="AKTUALISIEREN" hittest="false" /></Button>
+            <Button id="casino_lobby_menu" class="casino-link"><Label text="ANOMENU" hittest="false" /></Button>
+          </Panel>
+        </Panel>
+      </Panel>
+    </Panel>
+  </Panel>
+</root>
