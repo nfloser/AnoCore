@@ -28,6 +28,40 @@ public sealed class ChatFormatSnapshotLifecycleTests
     }
 
     [TestMethod]
+    public async Task TeamChangeWithoutRenameRefreshesNameColorForBothChatChannels()
+    {
+        var store = new JsonConfigStore(_root);
+        await store.SaveAsync("chat-format", new ChatFormatConfiguration
+        {
+            PublicTemplate = "{player.name}: {message}",
+            TeamTemplate = "{player.name}: {message}",
+            NameColor = "Team",
+        });
+        var events = new AnoEventBus();
+        using var formatter = await ChatMessageFormatter.CreateAsync(store, new PlaceholderRegistry());
+        using var snapshots = new ChatFormatSnapshotLifecycle(events, formatter);
+        var session = PlayerSessionId.New();
+        var previous = new PlayerSnapshot(Player, session, "Nille", true, true,
+            PlayerTeam.CounterTerrorist, Now, Now);
+        await events.PublishAsync(new PlayerConnectedEvent(previous));
+        foreach (var (team, color) in new[]
+        {
+            (PlayerTeam.Terrorist, '\x10'),
+            (PlayerTeam.CounterTerrorist, '\x0B'),
+        })
+        {
+            var current = new PlayerSnapshot(Player, session, "Nille", true, true, team, Now, Now);
+            await events.PublishAsync(new PlayerUpdatedEvent(previous, current));
+            foreach (var teamChat in new[] { false, true })
+            {
+                Assert.IsTrue(snapshots.TryFormat(Player, session, "hello", teamChat, out var text));
+                Assert.AreEqual($"{color}Nille\x01: hello", text);
+            }
+            previous = current;
+        }
+    }
+
+    [TestMethod]
     public async Task ReloadDuringPreparationCannotPublishOldOrMixedTemplates()
     {
         var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);

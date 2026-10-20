@@ -8,7 +8,7 @@ public sealed class AnoVetoHudController : IDisposable
 {
     private static readonly ModuleId Owner = new("ano.veto");
     public static readonly CustomHudId HudId = new("ano.veto");
-    public const string LayoutResource = "panorama/layout/custom_game/anocore/ano_veto_cards.xml";
+    public const string LayoutResource = "panorama/layout/custom_game/anocore/ano_veto_ballot_v2.xml";
 
     private const string RootPanelId = "ano_veto_root";
     private const string ConfirmButtonId = "ano_veto_confirm";

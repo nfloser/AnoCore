@@ -48,6 +48,7 @@ class CssProfileTests(unittest.TestCase):
             self.assertEqual(chat['PublicTemplate'], chat['TeamTemplate'])
             self.assertIn('.map', chat['PassthroughCommands'])
             self.assertEqual('None', chat['MessageColor'])
+            self.assertEqual('Team', chat['NameColor'])
 
     def test_unsupported_data_fails_before_output_and_never_overwrites(self):
         with tempfile.TemporaryDirectory() as root:
@@ -86,3 +87,34 @@ class CssProfileTests(unittest.TestCase):
                 groups.write_text(json.dumps(invalid))
                 with self.assertRaises(ValueError):
                     profile.prepare(tags, groups, path / 'out')
+
+    def test_existing_commands_survive_color_migration_and_only_enabled_action_aliases_are_added(self):
+        with tempfile.TemporaryDirectory() as root:
+            path = Path(root)
+            tags, groups = self.inputs(path)
+            existing = path / 'chat-format.json'
+            existing.write_text(json.dumps({'PassthroughCommands': ['.custom', '.READY', '.r', '.pause']}))
+            profile.prepare(tags, groups, path / 'out', existing)
+            chat = json.loads((path / 'out/chat-format.json').read_text())
+            self.assertEqual(['.custom', '.READY', '.r', '.pause', '.p'], chat['PassthroughCommands'])
+
+    def test_existing_oversized_catalog_fails_without_dropping_custom_entries(self):
+        with tempfile.TemporaryDirectory() as root:
+            path = Path(root)
+            tags, groups = self.inputs(path)
+            existing = path / 'chat-format.json'
+            existing.write_text(json.dumps({'PassthroughCommands': ['.cmd' + str(i) for i in range(63)] + ['.ready']}))
+            with self.assertRaises(ValueError):
+                profile.prepare(tags, groups, path / 'out', existing)
+            self.assertFalse((path / 'out').exists())
+
+    def test_legacy_missing_command_field_keeps_defaults_but_explicit_empty_stays_disabled(self):
+        for catalog, expected in [(None, profile.PASSTHROUGH), ([], [])]:
+            with tempfile.TemporaryDirectory() as root:
+                path = Path(root)
+                tags, groups = self.inputs(path)
+                existing = path / 'chat-format.json'
+                existing.write_text(json.dumps({} if catalog is None else {'PassthroughCommands': catalog}))
+                profile.prepare(tags, groups, path / 'out', existing)
+                actual = json.loads((path / 'out/chat-format.json').read_text())['PassthroughCommands']
+                self.assertEqual(expected, actual)

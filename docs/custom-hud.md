@@ -33,7 +33,7 @@ This supports both kinds of UI:
 
 ## AnoVeto
 
-AnoVeto registers `panorama/layout/custom_game/anocore/ano_veto_cards.xml` with eight map button IDs plus a Close button. `!anoveto create` starts the existing shared vote session and opens the HUD for eligible players. Bare `!anoveto` reopens the active HUD. A map click is translated back into the existing `AnoVetoCoordinator` and shared `IVoteService`; the HUD layer does not own vote semantics.
+AnoVeto registers `panorama/layout/custom_game/anocore/ano_veto_ballot_v2.xml` with eight map button IDs, Close and Confirm buttons. `!anoveto create` starts the existing shared vote session and opens the HUD for eligible players. Bare `!anoveto` reopens the active HUD. A map click is translated back into the existing `AnoVetoCoordinator` and shared `IVoteService`; the HUD layer does not own vote semantics.
 
 After a successful ballot the HUD closes for that player. Completion, cancellation and expiry hide it for everyone and release input capture.
 
@@ -89,3 +89,15 @@ there is no reliable automatic missing-resource fallback. If the addon is missin
 set the flag back to false and restart. No Workshop ID is fabricated or configured
 by this source change. `-InstallLocalClient` remains a developer-only smoke-test
 option, not the deployment path for players.
+
+The confirmed-ballot view uses distinct `ano_veto_ballot_v2.xml` and CSS resources.
+This prevents an older Workshop copy of `ano_veto_cards` from displaying the old
+footer without a Confirm button while the server already runs draft selections.
+Install the matching plugin and compile the full new UI package together. If only
+the plugin is updated and the new resources are absent, the client cannot display
+the new view; it must not silently show a legacy layout as a compatible ballot.
+
+The #470 interaction contract also applies to the confirmed-ballot view: every
+child inside a registered button (map artwork/name, Close label, Confirm label)
+uses `hittest="false"`. The parent button owns the event. The source regression
+checks all ten buttons so text clicks cannot silently target an unregistered ID.

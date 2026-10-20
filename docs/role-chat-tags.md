@@ -17,7 +17,8 @@ Spielernamen und Nachrichten erfolgt weiterhin vor dieser Ausgabe.
 Server-Abnahme nach Austausch des Plugin-Builds und Neustart: normale Nachrichten
 im öffentlichen und Teamchat senden. `[DEV]` soll gelb, `[HOST]` lila,
 `[ANOMEME]` grün und der persönliche `[FOUNDER]` rot erscheinen. Namen und
-Nachricht bleiben bei `NameColor`/`MessageColor: None` unverändert. Teamchat darf
+Nachrichten bleiben bei `MessageColor: None` weiß; `NameColor: Team` färbt Namen
+für CT hellblau und für T orange. Teamchat darf
 nur die bisherigen Empfänger erreichen; Befehle und Gag-Verhalten ebenfalls
 prüfen. Unit-Tests prüfen die Ausgabezeichen, nicht das Rendering im CS2-Client.
 
@@ -92,8 +93,9 @@ Tags können weiterhin separat angezeigt werden und überschreiben die Rollenanz
 nicht. Für die Chatzeile mit den alten farbigen Rollenpräfixen verwende das
 [Chatformat-Profil](../examples/server-profiles/anomeme/chat-format.json) zusätzlich
 zum Rollenprofil. Der alte Backup setzt `ChatColor` und `NameColor` für alle
-aktiven Tags leer; das Profil lässt daher Namen und Nachrichten in ihrer
-nativen Standardfarbe und fügt `[ALL]`/`[TEAM]`
+aktiven Tags leer, Zenith färbt Namen aber weiterhin nativ nach Team.
+AnoCore benötigt dafür ausdrücklich `NameColor: Team`. Nachrichten bleiben in
+der Standardfarbe, und das Profil fügt `[ALL]`/`[TEAM]`
 vor den separaten Rollentags ein. Beide Templates verwenden
 `{player.name}: {message}`; das doppelte `(TEAM)` entfällt. Anschließend
 `css_anoreloadconfig chat-format` ausführen. Namen/Nachrichten bleiben untrusted Daten: native Farbcodes werden
@@ -207,7 +209,7 @@ Es benötigt die **aktuelle** `admin_groups.json` des Zielservers; die
 Im entpackten AnoCore-Paket oder Repository mit installiertem Python ausführen:
 
 ```powershell
-python tools/prepare_css_profile.py --tags "C:\Serverbackup\addons\counterstrikesharp\plugins\K4-Zenith-CustomTags\tags.json" --groups "C:\Zielserver\admin_groups.json" --output "C:\AnoCore-Rollen"
+python tools/prepare_css_profile.py --tags "C:\Serverbackup\addons\counterstrikesharp\plugins\K4-Zenith-CustomTags\tags.json" --groups "C:\Zielserver\admin_groups.json" --chat "C:\Zielserver\chat-format.json" --output "C:\AnoCore-Rollen"
 ```
 
 Der Ausgabeordner muss neu sein. Quelldateien werden nicht überschrieben. Das
@@ -215,7 +217,7 @@ Werkzeug schreibt keine Datenbankverbindung, `core.json`, Workshop- oder
 MultiAddonManager-Konfiguration. Die erzeugte `chat-format.json` zeigt nur den
 Rollentag vor dem Namen; zusätzliche Rangtags entfallen damit in der Chatanzeige.
 Die üblichen MatchZy-Punktbefehle bleiben durchgereicht. Zusätzliche eigene
-`PassthroughCommands` vor dem Installieren übernehmen.
+`PassthroughCommands` werden mit `--chat` aus der bestehenden Zielserverdatei übernommen. Die zu bereits aktivierten Aktionen gehörenden Ready-/Pause-/Seitenwechsel-Kürzel werden ergänzt. Bei mehr als 64 Einträgen wird abgebrochen, statt eigene Befehle zu entfernen. Ohne `--chat` enthält das Profil die acht Standardbefehle plus `.r`, `.ur`, `.notready`, `.p`, `.up` und `.swap`.
 
 | Erzeugte Datei | Ziel relativ zu `game/csgo` |
 | --- | --- |

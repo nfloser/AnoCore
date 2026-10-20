@@ -8,15 +8,24 @@ PROFILE = ROOT / "examples/server-profiles/anomeme"
 
 
 class LegacyChatProfileTests(unittest.TestCase):
-    def test_chat_profile_preserves_uncolored_name_and_message_slots(self):
+    def test_chat_profile_uses_team_colored_names_and_default_messages(self):
         data = json.loads((PROFILE / "chat-format.json").read_text(encoding="utf-8"))
         self.assertEqual("{player.name}: {message}", data["PublicTemplate"])
         self.assertEqual("{player.name}: {message}", data["TeamTemplate"])
-        self.assertEqual("None", data["NameColor"])
+        self.assertEqual("Team", data["NameColor"])
         self.assertEqual("None", data["MessageColor"])
         self.assertEqual("None", data["RankColor"])
         self.assertIn(".ready", data["PassthroughCommands"])
         self.assertIn(".map", data["PassthroughCommands"])
+
+    def test_standard_action_aliases_survive_the_color_profile(self):
+        data = json.loads((PROFILE / "chat-format.json").read_text(encoding="utf-8"))
+        commands = data["PassthroughCommands"]
+        self.assertLessEqual(len(commands), 64)
+        self.assertEqual(len(commands), len({c.lower() for c in commands}))
+        for command in [".r", ".ready", ".ur", ".notready", ".unready", ".p", ".pause",
+                        ".up", ".unpause", ".swap", ".switch", ".map", ".prac", ".stay"]:
+            self.assertIn(command, commands)
 
     def test_role_colors_still_match_old_server_groups(self):
         data = json.loads((PROFILE / "role-chat-tags.json").read_text(encoding="utf-8"))

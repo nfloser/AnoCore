@@ -14,7 +14,7 @@ PWSH = shutil.which("pwsh")
 
 class VetoLayoutTests(unittest.TestCase):
     def test_eight_cards_and_footer_fit_inside_the_window(self):
-        css = (ROOT / "ui/AnoCore/styles/custom_game/anocore/ano_veto_cards.css").read_text()
+        css = (ROOT / "ui/AnoCore/styles/custom_game/anocore/ano_veto_ballot_v2.css").read_text()
 
         def pixels(selector, property_name, default=0):
             block = re.search(re.escape(selector) + r"\s*\{([^}]+)\}", css).group(1)
@@ -32,19 +32,32 @@ class VetoLayoutTests(unittest.TestCase):
                           for s in (".ano-banner", ".ano-header", ".ano-map-grid", ".ano-footer"))
         self.assertLessEqual(used_height, height)
 
+    def test_confirmed_ballot_text_clicks_reach_registered_buttons(self):
+        root = ET.parse(ROOT / "ui/AnoCore/layout/custom_game/anocore/ano_veto_ballot_v2.xml").getroot()
+        buttons = {node.attrib["id"]: node for node in root.iter("Button")}
+        self.assertEqual(10, len(buttons))
+        for button_id, button in buttons.items():
+            for child in button.iter():
+                if child is not button:
+                    self.assertEqual("false", child.attrib.get("hittest"),
+                                     (button_id, child.tag, child.attrib.get("id")))
+
     def test_card_layout_is_loaded_with_previews_and_all_click_targets(self):
         controller = (ROOT / "src/AnoCore.Modules.AnoVeto/AnoVetoHudController.cs").read_text()
-        self.assertIn('anocore/ano_veto_cards.xml"', controller)
-        layout = ET.parse(ROOT / "ui/AnoCore/layout/custom_game/anocore/ano_veto_cards.xml").getroot()
+        self.assertIn('anocore/ano_veto_ballot_v2.xml"', controller)
+        layout = ET.parse(ROOT / "ui/AnoCore/layout/custom_game/anocore/ano_veto_ballot_v2.xml").getroot()
         sources = [x.attrib["src"] for x in layout.findall("styles/include")]
-        self.assertIn("s2r://panorama/styles/custom_game/anocore/ano_veto_cards.vcss_c", sources)
+        self.assertIn("s2r://panorama/styles/custom_game/anocore/ano_veto_ballot_v2.vcss_c", sources)
         self.assertIn("s2r://panorama/styles/custom_game/anocore/ano_veto_previews.vcss_c", sources)
         ids = {x.attrib["id"]: x for x in layout.iter() if "id" in x.attrib}
         self.assertIn("ano_veto_close", ids)
+        self.assertIn('"ano_veto_ballot_v2"', (ROOT / "ui/AnoCore/build.ps1").read_text())
+        legacy = ROOT / "ui/AnoCore/layout/custom_game/anocore/ano_veto_cards.xml"
+        self.assertTrue(legacy.is_file(), "Existing clients retain their legacy resource")
         self.assertEqual("Button", ids["ano_veto_confirm"].tag)
         for name in ("ano_veto_confirm_text", "ano_veto_voters"):
             self.assertEqual("{s:text}", ids[name].attrib["text"])
-        self.assertIn("overflow: squish scroll", (ROOT / "ui/AnoCore/styles/custom_game/anocore/ano_veto_cards.css").read_text())
+        self.assertIn("overflow: squish scroll", (ROOT / "ui/AnoCore/styles/custom_game/anocore/ano_veto_ballot_v2.css").read_text())
         for i in range(8):
             button = ids[f"ano_veto_map_{i}"]
             self.assertEqual("Button", button.tag)
