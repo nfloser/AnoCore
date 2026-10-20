@@ -18,6 +18,15 @@ class LegacyChatProfileTests(unittest.TestCase):
         self.assertIn(".ready", data["PassthroughCommands"])
         self.assertIn(".map", data["PassthroughCommands"])
 
+    def test_standard_action_aliases_survive_the_color_profile(self):
+        data = json.loads((PROFILE / "chat-format.json").read_text(encoding="utf-8"))
+        commands = data["PassthroughCommands"]
+        self.assertLessEqual(len(commands), 64)
+        self.assertEqual(len(commands), len({c.lower() for c in commands}))
+        for command in [".r", ".ready", ".ur", ".notready", ".unready", ".p", ".pause",
+                        ".up", ".unpause", ".swap", ".switch", ".map", ".prac", ".stay"]:
+            self.assertIn(command, commands)
+
     def test_role_colors_still_match_old_server_groups(self):
         data = json.loads((PROFILE / "role-chat-tags.json").read_text(encoding="utf-8"))
         group_colors = {entry["Group"]: entry["Tag"]["Color"] for entry in data["Groups"]}

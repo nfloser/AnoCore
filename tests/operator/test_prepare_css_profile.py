@@ -86,3 +86,23 @@ class CssProfileTests(unittest.TestCase):
                 groups.write_text(json.dumps(invalid))
                 with self.assertRaises(ValueError):
                     profile.prepare(tags, groups, path / 'out')
+
+    def test_existing_commands_survive_color_migration_and_only_enabled_action_aliases_are_added(self):
+        with tempfile.TemporaryDirectory() as root:
+            path = Path(root)
+            tags, groups = self.inputs(path)
+            existing = path / 'chat-format.json'
+            existing.write_text(json.dumps({'PassthroughCommands': ['.custom', '.READY', '.r', '.pause']}))
+            profile.prepare(tags, groups, path / 'out', existing)
+            chat = json.loads((path / 'out/chat-format.json').read_text())
+            self.assertEqual(['.custom', '.READY', '.r', '.pause', '.p'], chat['PassthroughCommands'])
+
+    def test_existing_oversized_catalog_fails_without_dropping_custom_entries(self):
+        with tempfile.TemporaryDirectory() as root:
+            path = Path(root)
+            tags, groups = self.inputs(path)
+            existing = path / 'chat-format.json'
+            existing.write_text(json.dumps({'PassthroughCommands': ['.cmd' + str(i) for i in range(63)] + ['.ready']}))
+            with self.assertRaises(ValueError):
+                profile.prepare(tags, groups, path / 'out', existing)
+            self.assertFalse((path / 'out').exists())

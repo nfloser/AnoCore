@@ -207,7 +207,7 @@ Es benötigt die **aktuelle** `admin_groups.json` des Zielservers; die
 Im entpackten AnoCore-Paket oder Repository mit installiertem Python ausführen:
 
 ```powershell
-python tools/prepare_css_profile.py --tags "C:\Serverbackup\addons\counterstrikesharp\plugins\K4-Zenith-CustomTags\tags.json" --groups "C:\Zielserver\admin_groups.json" --output "C:\AnoCore-Rollen"
+python tools/prepare_css_profile.py --tags "C:\Serverbackup\addons\counterstrikesharp\plugins\K4-Zenith-CustomTags\tags.json" --groups "C:\Zielserver\admin_groups.json" --chat "C:\Zielserver\chat-format.json" --output "C:\AnoCore-Rollen"
 ```
 
 Der Ausgabeordner muss neu sein. Quelldateien werden nicht überschrieben. Das
@@ -215,7 +215,7 @@ Werkzeug schreibt keine Datenbankverbindung, `core.json`, Workshop- oder
 MultiAddonManager-Konfiguration. Die erzeugte `chat-format.json` zeigt nur den
 Rollentag vor dem Namen; zusätzliche Rangtags entfallen damit in der Chatanzeige.
 Die üblichen MatchZy-Punktbefehle bleiben durchgereicht. Zusätzliche eigene
-`PassthroughCommands` vor dem Installieren übernehmen.
+`PassthroughCommands` werden mit `--chat` aus der bestehenden Zielserverdatei übernommen. Die zu bereits aktivierten Aktionen gehörenden Ready-/Pause-/Seitenwechsel-Kürzel werden ergänzt. Bei mehr als 64 Einträgen wird abgebrochen, statt eigene Befehle zu entfernen. Ohne `--chat` enthält das Profil die acht Standardbefehle plus `.r`, `.ur`, `.notready`, `.p`, `.up` und `.swap`.
 
 | Erzeugte Datei | Ziel relativ zu `game/csgo` |
 | --- | --- |

@@ -8,10 +8,16 @@
     ".map",
     ".prac",
     ".ready",
+    ".r",
     ".unready",
+    ".ur",
+    ".notready",
     ".pause",
+    ".p",
     ".unpause",
+    ".up",
     ".stay",
-    ".switch"
+    ".switch",
+    ".swap"
   ]
 }

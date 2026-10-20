@@ -11,7 +11,7 @@ COLORS = {name.upper(): name for name in (
     'Default', 'White', 'DarkRed', 'LightPurple', 'Green', 'Olive', 'Lime', 'Red',
     'Grey', 'Yellow', 'Silver', 'LightBlue', 'DarkBlue', 'Purple', 'LightRed', 'Orange')}
 COLORS['MAGENTA'] = 'Purple'
-PASSTHROUGH = ['.map', '.prac', '.ready', '.unready', '.pause', '.unpause', '.stay', '.switch']
+PASSTHROUGH = ['.map', '.prac', '.ready', '.r', '.unready', '.ur', '.notready', '.pause', '.p', '.unpause', '.up', '.stay', '.switch', '.swap']
 
 
 def uncomment(text):
@@ -88,7 +88,7 @@ def appearance(value):
     return {'Text': text, 'Color': color}
 
 
-def prepare(tags_path, groups_path, output):
+def prepare(tags_path, groups_path, output, chat_path=None):
     if output.exists() or output.is_symlink():
         raise ValueError('Output must be a new directory; existing files are never replaced')
     tags = read(tags_path)
@@ -122,6 +122,30 @@ def prepare(tags_path, groups_path, output):
                 flags.append(flag)
     chat = {'PublicTemplate': '{player.name}: {message}', 'TeamTemplate': '{player.name}: {message}',
             'RankColor': 'None', 'NameColor': 'None', 'MessageColor': 'None', 'PassthroughCommands': PASSTHROUGH}
+    if chat_path is not None:
+        existing = read(chat_path)
+        commands = existing.get('PassthroughCommands', [])
+        if not isinstance(commands, list):
+            raise ValueError('Existing passthrough commands must be a list')
+        merged = []
+        seen = set()
+        for command in commands:
+            if not isinstance(command, str) or re.fullmatch(r'\.[A-Za-z][A-Za-z0-9_]{0,31}', command) is None:
+                raise ValueError('Invalid existing passthrough command')
+            if command.lower() not in seen:
+                merged.append(command)
+                seen.add(command.lower())
+        aliases = {'.ready': ['.r'], '.unready': ['.ur', '.notready'],
+                   '.pause': ['.p'], '.unpause': ['.up'], '.switch': ['.swap']}
+        for full, short in aliases.items():
+            if full in seen:
+                for alias in short:
+                    if alias not in seen:
+                        merged.append(alias)
+                        seen.add(alias)
+        if len(merged) > 64:
+            raise ValueError('Merged catalog exceeds runtime limit; no output written')
+        chat['PassthroughCommands'] = merged
     # Validate and serialize every file before creating the destination. Sources
     # remain read-only; private overrides live only in this operator-owned output.
     files = {'role-chat-tags.json': roles, 'chat-format.json': chat, 'admin_groups.json': groups}
@@ -144,9 +168,10 @@ def main():
     parser.add_argument('--tags', required=True, type=Path)
     parser.add_argument('--groups', required=True, type=Path)
     parser.add_argument('--output', required=True, type=Path)
+    parser.add_argument('--chat', type=Path, help='Existing target-server chat-format.json; preserve its command catalog')
     args = parser.parse_args()
     try:
-        prepare(args.tags, args.groups, args.output)
+        prepare(args.tags, args.groups, args.output, args.chat)
     except (OSError, ValueError):
         # Do not echo parsed private selectors or JSON diagnostics containing IDs.
         parser.exit(1, 'Preparation failed: verify supported backup tags, operator groups and a new output directory.\n')
