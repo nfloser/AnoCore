@@ -107,3 +107,14 @@ class CssProfileTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 profile.prepare(tags, groups, path / 'out', existing)
             self.assertFalse((path / 'out').exists())
+
+    def test_legacy_missing_command_field_keeps_defaults_but_explicit_empty_stays_disabled(self):
+        for catalog, expected in [(None, profile.PASSTHROUGH), ([], [])]:
+            with tempfile.TemporaryDirectory() as root:
+                path = Path(root)
+                tags, groups = self.inputs(path)
+                existing = path / 'chat-format.json'
+                existing.write_text(json.dumps({} if catalog is None else {'PassthroughCommands': catalog}))
+                profile.prepare(tags, groups, path / 'out', existing)
+                actual = json.loads((path / 'out/chat-format.json').read_text())['PassthroughCommands']
+                self.assertEqual(expected, actual)

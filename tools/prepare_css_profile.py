@@ -124,7 +124,7 @@ def prepare(tags_path, groups_path, output, chat_path=None):
             'RankColor': 'None', 'NameColor': 'Team', 'MessageColor': 'None', 'PassthroughCommands': PASSTHROUGH}
     if chat_path is not None:
         existing = read(chat_path)
-        commands = existing.get('PassthroughCommands', [])
+        commands = existing.get('PassthroughCommands', PASSTHROUGH)
         if not isinstance(commands, list):
             raise ValueError('Existing passthrough commands must be a list')
         merged = []
