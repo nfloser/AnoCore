@@ -43,7 +43,7 @@ public sealed class AnoVetoCustomHudTests
         Assert.IsNotNull(hud.Definition);
         Assert.AreEqual(AnoVetoHudController.LayoutResource, hud.Definition.LayoutResource);
         Assert.IsTrue(hud.Definition.CaptureInput);
-        Assert.HasCount(9, hud.Definition.ButtonIds);
+        Assert.HasCount(10, hud.Definition.ButtonIds);
         Assert.IsTrue(hud.VisiblePlayers.Contains(PlayerA));
         for (var index = 0; index < 8; index++)
         {
@@ -53,22 +53,81 @@ public sealed class AnoVetoCustomHudTests
     }
 
     [TestMethod]
-    public async Task MapClick_CastsVoteAndHidesHudForThatPlayer()
+    public async Task MapClick_TogglesDraftAndRequiresConfirmation_ThenReopensWithVoterNames()
     {
         var hud = new RecordingHudService();
         var coordinator = CreateCoordinator();
-        var created = await coordinator.CreateAsync(Manager, [Manager, PlayerA], Now);
-        Assert.IsTrue(created.Accepted);
-        using var controller = new AnoVetoHudController(hud, coordinator, new FixedTimeProvider(Now));
+        Assert.IsTrue((await coordinator.CreateAsync(Manager, [Manager, PlayerA], Now)).Accepted);
+        using var controller = new AnoVetoHudController(hud, coordinator, new FixedTimeProvider(Now),
+            player => player == PlayerA ? "Alice" : "Manager");
         Assert.IsTrue(controller.Show(PlayerA));
-
+        Assert.IsTrue(controller.Show(Manager));
+        await hud.ClickAsync(PlayerA, "ano_veto_confirm");
+        Assert.IsTrue(coordinator.TryGetBallotStatus(out var voters, out _));
+        Assert.IsEmpty(voters);
         await hud.ClickAsync(PlayerA, "ano_veto_map_3");
-
+        Assert.IsTrue(hud.Classes[(PlayerA, "ano_veto_map_3", "selected")]);
+        await hud.ClickAsync(PlayerA, "ano_veto_map_3");
+        Assert.IsFalse(hud.Classes[(PlayerA, "ano_veto_map_3", "selected")]);
+        foreach (var index in new[] { 0, 1, 2, 3 }) await hud.ClickAsync(PlayerA, $"ano_veto_map_{index}");
+        Assert.IsFalse(hud.Classes[(PlayerA, "ano_veto_map_3", "selected")]);
+        Assert.IsTrue(hud.VisiblePlayers.Contains(PlayerA));
+        Assert.IsTrue(coordinator.TryGetBallotStatus(out voters, out _));
+        Assert.IsEmpty(voters);
+        await hud.ClickAsync(PlayerA, "ano_veto_map_1");
+        await hud.ClickAsync(PlayerA, "ano_veto_map_2");
+        await hud.ClickAsync(PlayerA, "ano_veto_close");
+        Assert.IsTrue(controller.Show(PlayerA));
+        Assert.IsTrue(hud.Classes[(PlayerA, "ano_veto_map_0", "selected")]);
+        await hud.ClickAsync(PlayerA, "ano_veto_confirm");
         Assert.IsFalse(hud.VisiblePlayers.Contains(PlayerA));
-        Assert.IsTrue(coordinator.TryGetStatus(out var maps));
-        var secondVote = await coordinator.CastAsync(PlayerA, maps[4].MapId, Now.AddSeconds(1));
-        Assert.IsFalse(secondVote.Accepted);
-        Assert.AreEqual(AnoVetoFailure.AlreadyVoted, secondVote.Failure);
+        Assert.IsTrue(hud.Text[(Manager, "ano_veto_voters", "text")].Contains("Alice", StringComparison.Ordinal));
+        await hud.ClickAsync(PlayerA, "ano_veto_close");
+        Assert.IsTrue(controller.Show(PlayerA));
+        Assert.IsTrue(hud.Text[(PlayerA, "ano_veto_voters", "text")].Contains("Alice", StringComparison.Ordinal));
+        await hud.ClickAsync(PlayerA, "ano_veto_map_0");
+        await hud.ClickAsync(PlayerA, "ano_veto_confirm");
+        Assert.IsTrue(coordinator.TryGetPlayerSelections(PlayerA, out var choices, out _));
+        Assert.HasCount(1, choices);
+    }
+
+    [TestMethod]
+    [DataRow(1)]
+    [DataRow(2)]
+    [DataRow(3)]
+    public async Task Confirm_AcceptsOneToThreeMapsAndFinalizesOnlyAfterEveryoneConfirms(int count)
+    {
+        var hud = new RecordingHudService();
+        var coordinator = CreateCoordinator();
+        Assert.IsTrue((await coordinator.CreateAsync(Manager, [Manager, PlayerA], Now)).Accepted);
+        using var controller = new AnoVetoHudController(hud, coordinator, new FixedTimeProvider(Now));
+        controller.ShowAll([Manager, PlayerA]);
+        for (var i = 0; i < count; i++) await hud.ClickAsync(PlayerA, $"ano_veto_map_{i}");
+        await hud.ClickAsync(PlayerA, "ano_veto_confirm");
+        Assert.IsTrue(coordinator.TryGetPlayerSelections(PlayerA, out var selected, out _));
+        Assert.HasCount(count, selected);
+        await hud.ClickAsync(Manager, "ano_veto_map_0");
+        Assert.IsTrue(coordinator.TryGetStatus(out _));
+        await hud.ClickAsync(Manager, "ano_veto_confirm");
+        Assert.IsFalse(coordinator.TryGetStatus(out _));
+        Assert.IsEmpty(hud.VisiblePlayers);
+    }
+
+    [TestMethod]
+    public async Task UnconfirmedDraft_DoesNotCountAtExpiryAndIsClearedForNextVote()
+    {
+        var coordinator = CreateCoordinator();
+        Assert.IsTrue((await coordinator.CreateAsync(Manager, [Manager, PlayerA], Now)).Accepted);
+        Assert.IsTrue(coordinator.ToggleSelection(PlayerA, "de_map01", Now).Accepted);
+        var expired = await coordinator.ExpireAsync(Now.AddSeconds(31));
+        Assert.IsNotNull(expired);
+        Assert.AreEqual(AnoVetoOutcome.QuorumNotMet, expired.Outcome);
+        Assert.IsTrue((await coordinator.CreateAsync(Manager, [Manager, PlayerA], Now.AddSeconds(32))).Accepted);
+        Assert.IsTrue(coordinator.TryGetDraft(PlayerA, out var draft, out _, out var confirmed));
+        Assert.IsEmpty(draft);
+        Assert.IsFalse(confirmed);
+        Assert.AreEqual(AnoVetoFailure.NotEligible, coordinator.ToggleSelection(new PlayerId(76561198000000999), "de_map01", Now.AddSeconds(32)).Failure);
+        Assert.AreEqual(AnoVetoFailure.NotActive, coordinator.ToggleSelection(PlayerA, "de_map01", Now.AddSeconds(63)).Failure);
     }
 
     [TestMethod]
@@ -116,7 +175,7 @@ public sealed class AnoVetoCustomHudTests
     }
 
     [TestMethod]
-    public async Task FinalVote_HidesHudForEveryone()
+    public async Task FinalVote_HidesHudOnlyAfterConfirmation()
     {
         var hud = new RecordingHudService();
         var coordinator = CreateCoordinator(minimumVotes: 2);
@@ -126,9 +185,16 @@ public sealed class AnoVetoCustomHudTests
         Assert.IsTrue(controller.Show(Manager));
         Assert.IsTrue(controller.Show(PlayerA));
         Assert.IsTrue(coordinator.TryGetStatus(out var maps));
-        Assert.IsTrue((await coordinator.CastAsync(Manager, maps[0].MapId, Now.AddSeconds(1))).Accepted);
+        foreach (var map in maps.Take(3))
+            Assert.IsTrue((await coordinator.CastAsync(Manager, map.MapId, Now.AddSeconds(1))).Accepted);
 
         await hud.ClickAsync(PlayerA, "ano_veto_map_0");
+        await hud.ClickAsync(PlayerA, "ano_veto_map_1");
+        Assert.IsTrue(hud.VisiblePlayers.Contains(PlayerA));
+        Assert.IsTrue(coordinator.TryGetStatus(out _));
+        await hud.ClickAsync(PlayerA, "ano_veto_map_2");
+        Assert.IsTrue(coordinator.TryGetStatus(out _));
+        await hud.ClickAsync(PlayerA, "ano_veto_confirm");
 
         Assert.IsEmpty(hud.VisiblePlayers);
         Assert.IsFalse(coordinator.TryGetStatus(out _));

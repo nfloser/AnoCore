@@ -14,12 +14,14 @@ public sealed class AnoVetoConfigurationTests
         Assert.IsTrue(configuration.Enabled);
         Assert.AreEqual(30, configuration.DurationSeconds);
         Assert.AreEqual(1, configuration.MinimumVotes);
+        Assert.AreEqual(3, configuration.MaxVotesPerPlayer);
         Assert.AreEqual(VoteTieBreakPolicy.OptionOrder, configuration.TieBreakPolicy);
         Assert.HasCount(0, AnoVetoConfiguration.Validate(configuration));
 
         var options = configuration.ToOptions();
         Assert.AreEqual(TimeSpan.FromSeconds(30), options.Duration);
         Assert.AreEqual(1, options.MinimumVotes);
+        Assert.AreEqual(3, options.MaxVotesPerPlayer);
         Assert.AreEqual(VoteTieBreakPolicy.OptionOrder, options.TieBreakPolicy);
     }
 
@@ -30,11 +32,12 @@ public sealed class AnoVetoConfigurationTests
         {
             DurationSeconds = 0,
             MinimumVotes = 0,
+            MaxVotesPerPlayer = 9,
             TieBreakPolicy = (VoteTieBreakPolicy)999,
         };
 
         var errors = AnoVetoConfiguration.Validate(configuration);
 
-        Assert.HasCount(3, errors);
+        Assert.HasCount(4, errors);
     }
 }

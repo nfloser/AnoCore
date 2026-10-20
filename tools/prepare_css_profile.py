@@ -120,7 +120,7 @@ def prepare(tags_path, groups_path, output):
         for flag in ('@anocore/team', '@anocore/veto'):
             if flag not in flags:
                 flags.append(flag)
-    chat = {'PublicTemplate': '{player.name}: {message}', 'TeamTemplate': '(TEAM) {player.name}: {message}',
+    chat = {'PublicTemplate': '{player.name}: {message}', 'TeamTemplate': '{player.name}: {message}',
             'RankColor': 'None', 'NameColor': 'None', 'MessageColor': 'None', 'PassthroughCommands': PASSTHROUGH}
     # Validate and serialize every file before creating the destination. Sources
     # remain read-only; private overrides live only in this operator-owned output.

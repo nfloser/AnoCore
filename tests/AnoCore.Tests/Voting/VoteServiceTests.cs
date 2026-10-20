@@ -16,6 +16,40 @@ public sealed class VoteServiceTests
     private static readonly DateTimeOffset Start = new(2026, 9, 16, 18, 0, 0, TimeSpan.Zero);
 
     [TestMethod]
+    public async Task SubmitBallot_IsAtomicRejectsInvalidOrRepeatedBallotsAndCompletesShortBallots()
+    {
+        var service = new VoteService(new AllowAllPermissions());
+        var id = new VoteId("ano.confirm");
+        await service.CreateAsync(Manager, new VoteDefinition(id, "Confirm",
+            [new VoteOption("a", "A"), new VoteOption("b", "B"), new VoteOption("c", "C"), new VoteOption("d", "D")],
+            [PlayerOne, PlayerTwo], new VotePolicy(TimeSpan.FromSeconds(30), 2, maxVotesPerPlayer: 3)), Start);
+        foreach (string[] invalid in new string[][] { [], ["a", "a"], ["a", "missing"], ["a", "b", "c", "d"] })
+        {
+            Assert.AreEqual(VoteOperationFailure.InvalidOption,
+                (await service.SubmitBallotAsync(id, PlayerOne, invalid, Start)).Failure);
+            Assert.IsTrue(service.TryGet(id, out var empty));
+            Assert.IsNotNull(empty);
+            Assert.IsEmpty(empty.Ballots);
+        }
+        Assert.AreEqual(VoteOperationFailure.NotEligible,
+            (await service.SubmitBallotAsync(id, Outsider, ["a"], Start)).Failure);
+        Assert.IsTrue((await service.SubmitBallotAsync(id, PlayerOne, ["a"], Start)).Accepted);
+        Assert.IsNull(service.FinalizeIfAllEligibleVoted(id, Start));
+        Assert.AreEqual(VoteOperationFailure.AlreadyVoted,
+            (await service.CastAsync(id, PlayerOne, "b", Start)).Failure);
+        Assert.AreEqual(VoteOperationFailure.AlreadyVoted,
+            (await service.SubmitBallotAsync(id, new PlayerId(PlayerOne.SteamId64), ["b"], Start)).Failure);
+        Assert.AreEqual(VoteOperationFailure.NotOpen,
+            (await service.SubmitBallotAsync(id, PlayerTwo, ["b"], Start.AddSeconds(30))).Failure);
+        Assert.IsTrue((await service.SubmitBallotAsync(id, PlayerTwo, ["a", "b"], Start)).Accepted);
+        var result = service.FinalizeIfAllEligibleVoted(id, Start);
+        Assert.IsNotNull(result);
+        Assert.AreEqual(2, result.Tallies["a"]);
+        Assert.AreEqual(1, result.Tallies["b"]);
+        Assert.AreEqual(3, result.VotesCast);
+    }
+
+    [TestMethod]
     public async Task CreateAsync_RequiresManagementPermission()
     {
         var service = new VoteService(new DenyAllPermissions());
@@ -198,6 +232,69 @@ public sealed class VoteServiceTests
         Assert.AreEqual(expectedOutcome, closed.Result!.Outcome);
         Assert.AreEqual(expectedWinner, closed.Result.WinningOptionId);
         Assert.AreEqual(0, random.Calls);
+    }
+
+    [TestMethod]
+    public async Task MultiChoice_ThreeDistinctVotesAreTalliedWithoutAllowingDuplicatesOrFourthVotes()
+    {
+        var service = new VoteService(new AllowAllPermissions());
+        var definition = new VoteDefinition(new VoteId("ano.multi"), "Three votes",
+            [new VoteOption("a", "A"), new VoteOption("b", "B"), new VoteOption("c", "C"),
+             new VoteOption("d", "D")],
+            [PlayerOne, PlayerTwo],
+            new VotePolicy(TimeSpan.FromSeconds(30), 1, VoteTieBreakPolicy.OptionOrder, maxVotesPerPlayer: 3));
+        await service.CreateAsync(Manager, definition, Start);
+
+        Assert.IsTrue((await service.CastAsync(definition.Id, PlayerOne, "a", Start.AddSeconds(1))).Accepted);
+        Assert.AreEqual(VoteOperationFailure.AlreadyVoted,
+            (await service.CastAsync(definition.Id, PlayerOne, "a", Start.AddSeconds(2))).Failure);
+        Assert.IsTrue((await service.CastAsync(definition.Id, new PlayerId(PlayerOne.SteamId64), "b", Start.AddSeconds(3))).Accepted);
+        Assert.IsTrue((await service.CastAsync(definition.Id, PlayerOne, "c", Start.AddSeconds(4))).Accepted);
+        Assert.AreEqual(VoteOperationFailure.AlreadyVoted,
+            (await service.CastAsync(definition.Id, PlayerOne, "d", Start.AddSeconds(5))).Failure);
+        Assert.IsNull(service.FinalizeIfAllEligibleVoted(definition.Id, Start.AddSeconds(6)));
+        Assert.IsTrue(service.TryGet(definition.Id, out var snapshot));
+        CollectionAssert.AreEqual(new[] { "a", "b", "c" }, snapshot!.Selections[PlayerOne].ToArray());
+        Assert.AreEqual("a", snapshot.Ballots[PlayerOne]); // legacy single-choice view remains stable
+
+        Assert.IsTrue((await service.CastAsync(definition.Id, PlayerTwo, "b", Start.AddSeconds(7))).Accepted);
+        Assert.IsTrue((await service.CastAsync(definition.Id, PlayerTwo, "c", Start.AddSeconds(8))).Accepted);
+        Assert.IsNull(service.FinalizeIfAllEligibleVoted(definition.Id, Start.AddSeconds(9)));
+        Assert.IsTrue((await service.CastAsync(definition.Id, PlayerTwo, "d", Start.AddSeconds(10))).Accepted);
+        var completed = service.FinalizeIfAllEligibleVoted(definition.Id, Start.AddSeconds(11));
+
+        Assert.IsNotNull(completed);
+        Assert.AreEqual(6, completed.VotesCast);
+        Assert.AreEqual(1, completed.Tallies["a"]);
+        Assert.AreEqual(2, completed.Tallies["b"]);
+        Assert.AreEqual(2, completed.Tallies["c"]);
+        Assert.AreEqual(1, completed.Tallies["d"]);
+    }
+
+    [TestMethod]
+    public async Task MultiChoice_QuorumCountsDistinctParticipantsAndExpiryKeepsPartialBallots()
+    {
+        var service = new VoteService(new AllowAllPermissions());
+        var definition = new VoteDefinition(new VoteId("ano.multi-quorum"), "Quorum",
+            [new VoteOption("a", "A"), new VoteOption("b", "B"), new VoteOption("c", "C")],
+            [PlayerOne, PlayerTwo], new VotePolicy(TimeSpan.FromSeconds(10), 2, maxVotesPerPlayer: 3));
+        await service.CreateAsync(Manager, definition, Start);
+        foreach (var (option, seconds) in new[] { ("a", 1), ("b", 2), ("c", 3) })
+            Assert.IsTrue((await service.CastAsync(definition.Id, PlayerOne, option, Start.AddSeconds(seconds))).Accepted);
+
+        var results = service.FinalizeExpired(Start.AddSeconds(10));
+        Assert.HasCount(1, results);
+        Assert.AreEqual(VoteOutcome.QuorumNotMet, results[0].Outcome);
+        Assert.AreEqual(3, results[0].VotesCast);
+    }
+
+    [TestMethod]
+    public void Policy_RejectsInvalidMaxVotesOrMoreVotesThanOptions()
+    {
+        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => new VotePolicy(TimeSpan.FromSeconds(30), 1, maxVotesPerPlayer: 0));
+        Assert.ThrowsExactly<ArgumentException>(() => new VoteDefinition(new VoteId("ano.invalid"), "Invalid",
+            [new VoteOption("a", "A"), new VoteOption("b", "B")], [PlayerOne],
+            new VotePolicy(TimeSpan.FromSeconds(30), 1, maxVotesPerPlayer: 3)));
     }
 
     private sealed class FixedRandom(int index) : Random

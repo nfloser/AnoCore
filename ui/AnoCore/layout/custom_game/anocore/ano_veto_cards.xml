@@ -49,8 +49,12 @@
                         <Label id="ano_veto_map_7_text" class="ano-map-text" text="{s:text}" />
                     </Button>
                 </Panel>
-                <Panel class="ano-footer" hittest="false">
-                    <Label class="ano-help" text="Select a map to vote. Close releases the cursor without voting." />
+                <Panel class="ano-footer" hittest="true">
+                    <Panel class="ano-voters-scroll" hittest="true"><Label id="ano_veto_voters" class="ano-voters" text="{s:text}" /></Panel>
+                    <Panel class="ano-footer-actions" hittest="true">
+                        <Label class="ano-help" text="1–3 Maps wählen. Erneut klicken zum Abwählen." />
+                        <Button id="ano_veto_confirm" class="ano-confirm"><Label id="ano_veto_confirm_text" text="{s:text}" /></Button>
+                    </Panel>
                 </Panel>
             </Panel>
         </Panel>
