@@ -45,6 +45,7 @@ class CssProfileTests(unittest.TestCase):
             self.assertEqual(before, groups.read_bytes())
             chat = json.loads((output / 'chat-format.json').read_text())
             self.assertEqual('{player.name}: {message}', chat['PublicTemplate'])
+            self.assertEqual(chat['PublicTemplate'], chat['TeamTemplate'])
             self.assertIn('.map', chat['PassthroughCommands'])
             self.assertEqual('None', chat['MessageColor'])
 

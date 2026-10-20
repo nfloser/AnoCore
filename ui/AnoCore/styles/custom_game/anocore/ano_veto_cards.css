@@ -37,5 +37,12 @@
 .ano-map-image { width: 100%; height: 128px; background-color: #0c1710ff; background-size: cover; background-position: 50% 50%; background-repeat: no-repeat; }
 .ano-map-text { width: 192px; height: 52px; margin-left: 12px; margin-top: 8px; vertical-align: center; color: #eaf2ecff; font-size: 18px; text-overflow: shrink; }
 .ano-map:hover .ano-map-text { color: #ffffffff; }
-.ano-footer { width: 100%; height: 44px; margin-top: 12px; padding-top: 12px; border-top: 1px solid #2b893d66; }
-.ano-help { width: 100%; color: #a6b9aaff; font-size: 16px; text-overflow: shrink; }
+.ano-footer { flow-children: down; width: 100%; height: 140px; margin-top: 12px; padding-top: 12px; border-top: 1px solid #2b893d66; }
+.ano-help { width: fill-parent-flow(1.0); color: #a6b9aaff; font-size: 16px; text-overflow: shrink; }
+
+.ano-voters-scroll { width: 100%; height: 64px; overflow: squish scroll; }
+.ano-voters { width: 100%; height: fit-children; color: #eaf2ecff; font-size: 16px; white-space: normal; text-overflow: clip; }
+.ano-footer-actions { width: 100%; height: 44px; flow-children: right; }
+.ano-confirm { width: 230px; height: 42px; margin-left: 12px; background-color: #246a35ff; border: 1px solid #70d484ff; }
+.ano-confirm Label { horizontal-align: center; vertical-align: center; color: #ffffffff; font-size: 18px; }
+.ano-confirm.unavailable { opacity: 0.4; }

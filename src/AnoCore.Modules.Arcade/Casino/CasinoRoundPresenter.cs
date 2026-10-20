@@ -815,8 +815,12 @@ public sealed class CasinoRoundPresenter : IDisposable
     private static string Points(long value) => CasinoMoney.Format(value);
     private static string SpitzeSkin(SpitzeSymbol symbol) => symbol switch
     {
-        SpitzeSymbol.Loss => "ggspray", SpitzeSymbol.SafariMesh => "safarimesh", SpitzeSymbol.NeonRevolution => "neonrevolution",
-        SpitzeSymbol.Gold => "gold", SpitzeSymbol.Knife => "knife", _ => "blank",
+        SpitzeSymbol.Loss => "ggspray",
+        SpitzeSymbol.SafariMesh => "safarimesh",
+        SpitzeSymbol.NeonRevolution => "neonrevolution",
+        SpitzeSymbol.Gold => "gold",
+        SpitzeSymbol.Knife => "knife",
+        _ => "blank",
     };
 
     private static readonly HashSet<string> ResultTexts =

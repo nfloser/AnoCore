@@ -89,10 +89,11 @@ zusätzlichen Tag-Cache und keine Datenbankabfrage im nativen Chat-Hook.
 
 Bei abgefangenen Nachrichten steht das Chatkanal-Präfix vor dem Rollenpräfix: `[ALL] [DEV] Name: Text` beziehungsweise `[TEAM] [DEV] Name: Text`. Das native `(TEAM)`-Template-Präfix wird zur Vermeidung doppelter Labels entfernt. Commands werden weiterhin nativ durchgereicht. Das Rollenpräfix steht vor dem übrigen Chatformat. Ränge und selbst gewählte
 Tags können weiterhin separat angezeigt werden und überschreiben die Rollenanzeige
-nicht. Für die komplette farbige Anzeige wie auf dem alten Server verwende das
+nicht. Für die Chatzeile mit den alten farbigen Rollenpräfixen verwende das
 [Chatformat-Profil](../examples/server-profiles/anomeme/chat-format.json) zusätzlich
-zum Rollenprofil. Es färbt Spielernamen mit `NameColor: Team` nach CT/T/Spectator,
-lässt Nachrichten mit `MessageColor: Default` lesbar und fügt `[ALL]`/`[TEAM]`
+zum Rollenprofil. Der alte Backup setzt `ChatColor` und `NameColor` für alle
+aktiven Tags leer; das Profil lässt daher Namen und Nachrichten in ihrer
+nativen Standardfarbe und fügt `[ALL]`/`[TEAM]`
 vor den separaten Rollentags ein. Beide Templates verwenden
 `{player.name}: {message}`; das doppelte `(TEAM)` entfällt. Anschließend
 `css_anoreloadconfig chat-format` ausführen. Namen/Nachrichten bleiben untrusted Daten: native Farbcodes werden
@@ -173,6 +174,21 @@ Vote-Service. Andere Votes und SDK-Integrationen verwenden unverändert
 AnoCore-Workaround-Grants allein autorisieren das native AnoVeto nicht mehr.
 CSS-Änderungen tatsächlich laden (verlässlich: Serverneustart); ein Rollenpräfix
 allein ist kein Recht. Die Konsole bleibt für AnoVeto wie zuvor ausgeschlossen.
+
+### Ablehnung trotz korrektem Veto-Flag (#367)
+
+Der erste Stand von #352 enthielt einen Fehler in der Start-Komposition:
+Die Aktivitätsprüfung griff auf lokale Variablen zu, die bei der Übergabe an
+das Plugin geleert wurden. Dadurch wurden auch korrekt berechtigte Dev-/Host-
+Spieler vor der CSS-Prüfung abgelehnt. #367 behält die Runtime-Identität stabil
+und prüft das tatsächlich aktive Modul; Austausch und Unload sperren alte Dienste.
+Zum Aktualisieren alle ausgelieferten DLLs unter
+`addons/counterstrikesharp/plugins/AnoCore/` ersetzen und den Server vollständig
+stoppen/starten. Bestehende Konfiguration und Spielerzuordnungen beibehalten.
+`css_plugins list` in der Serverkonsole bestätigt das Laden, aber `0.1.0-dev`
+identifiziert den Build nicht eindeutig; dafür `BUILD-COMMIT.txt` des Pakets prüfen.
+Native Abnahme: Dev/Host können erstellen und abbrechen; OG/Normal dürfen
+nicht verwalten, berechtigte Teilnehmer können weiterhin abstimmen.
 
 Manuell prüfen: Host, Dev und Root erstellen/abbrechen; OG/Normal werden dabei
 abgewiesen, können aber an einer aktiven Abstimmung teilnehmen. Vor Ausführung

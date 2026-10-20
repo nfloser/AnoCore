@@ -41,6 +41,10 @@ class VetoLayoutTests(unittest.TestCase):
         self.assertIn("s2r://panorama/styles/custom_game/anocore/ano_veto_previews.vcss_c", sources)
         ids = {x.attrib["id"]: x for x in layout.iter() if "id" in x.attrib}
         self.assertIn("ano_veto_close", ids)
+        self.assertEqual("Button", ids["ano_veto_confirm"].tag)
+        for name in ("ano_veto_confirm_text", "ano_veto_voters"):
+            self.assertEqual("{s:text}", ids[name].attrib["text"])
+        self.assertIn("overflow: squish scroll", (ROOT / "ui/AnoCore/styles/custom_game/anocore/ano_veto_cards.css").read_text())
         for i in range(8):
             button = ids[f"ano_veto_map_{i}"]
             self.assertEqual("Button", button.tag)

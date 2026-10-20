@@ -8,12 +8,12 @@ PROFILE = ROOT / "examples/server-profiles/anomeme"
 
 
 class LegacyChatProfileTests(unittest.TestCase):
-    def test_chat_profile_keeps_scope_roles_and_colored_player_names_separate(self):
+    def test_chat_profile_preserves_uncolored_name_and_message_slots(self):
         data = json.loads((PROFILE / "chat-format.json").read_text(encoding="utf-8"))
         self.assertEqual("{player.name}: {message}", data["PublicTemplate"])
         self.assertEqual("{player.name}: {message}", data["TeamTemplate"])
-        self.assertEqual("Team", data["NameColor"])
-        self.assertEqual("Default", data["MessageColor"])
+        self.assertEqual("None", data["NameColor"])
+        self.assertEqual("None", data["MessageColor"])
         self.assertEqual("None", data["RankColor"])
         self.assertIn(".ready", data["PassthroughCommands"])
         self.assertIn(".map", data["PassthroughCommands"])

@@ -17,6 +17,15 @@ public interface IVoteService
         DateTimeOffset now,
         CancellationToken cancellationToken = default);
 
+    // Atomically submit a complete ballot. Implementations without this capability fail closed.
+    ValueTask<VoteOperationResult> SubmitBallotAsync(
+        VoteId voteId,
+        PlayerId playerId,
+        IReadOnlyCollection<string> optionIds,
+        DateTimeOffset now,
+        CancellationToken cancellationToken = default)
+        => ValueTask.FromResult(VoteOperationResult.Reject(VoteOperationFailure.InvalidOption));
+
     ValueTask<VoteOperationResult> CloseAsync(
         PlayerId caller,
         VoteId voteId,

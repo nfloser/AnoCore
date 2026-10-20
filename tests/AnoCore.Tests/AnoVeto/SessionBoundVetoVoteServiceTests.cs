@@ -30,6 +30,56 @@ public sealed class SessionBoundVetoVoteServiceTests
     }
 
     [TestMethod]
+    public async Task SubmitBallotAsync_ForwardsShortBallotAtomicallyForEligibleVetoVoter()
+    {
+        var fixture = await Fixture.CreateAsync();
+        Assert.IsTrue((await fixture.Run(fixture.Votes.CreateAsync(Host, Definition(2), Now))).Accepted);
+
+        var submitted = await fixture.Run(fixture.Votes.SubmitBallotAsync(
+            AnoVetoCoordinator.VoteId, Normal, ["two"], Now));
+
+        Assert.IsTrue(submitted.Accepted);
+        var duplicate = await fixture.Run(fixture.Votes.SubmitBallotAsync(
+            AnoVetoCoordinator.VoteId, Normal, ["one"], Now.AddSeconds(1)));
+        Assert.AreEqual(VoteOperationFailure.AlreadyVoted, duplicate.Failure);
+        Assert.AreEqual(VoteOperationFailure.NotEligible,
+            (await fixture.Run(fixture.Votes.SubmitBallotAsync(
+                AnoVetoCoordinator.VoteId, new PlayerId(76561198000000503), ["one"], Now))).Failure);
+        Assert.IsTrue((await fixture.Run(fixture.Votes.SubmitBallotAsync(
+            AnoVetoCoordinator.VoteId, Host, ["one"], Now))).Accepted);
+        Assert.IsNotNull(fixture.Votes.FinalizeIfAllEligibleVoted(AnoVetoCoordinator.VoteId, Now));
+    }
+
+    [TestMethod]
+    public async Task SubmitBallotAsync_RespectsVoteScopeAndModuleLifetime()
+    {
+        var fixture = await Fixture.CreateAsync();
+        Assert.IsTrue((await fixture.Run(fixture.Votes.CreateAsync(Host, Definition(), Now))).Accepted);
+
+        Assert.AreEqual(VoteOperationFailure.Forbidden,
+            (await fixture.Run(fixture.Votes.SubmitBallotAsync(
+                new VoteId("ano.other"), Normal, ["two"], Now))).Failure);
+        fixture.Active = false;
+        Assert.AreEqual(VoteOperationFailure.Forbidden,
+            (await fixture.Run(fixture.Votes.SubmitBallotAsync(
+                AnoVetoCoordinator.VoteId, Normal, ["two"], Now))).Failure);
+    }
+
+    [TestMethod]
+    public async Task SubmitBallotAsync_RejectsLateBallotThroughUnderlyingVoteService()
+    {
+        var fixture = await Fixture.CreateAsync();
+        Assert.IsTrue((await fixture.Run(fixture.Votes.CreateAsync(Host, Definition(), Now))).Accepted);
+
+        var result = await fixture.Run(fixture.Votes.SubmitBallotAsync(
+            AnoVetoCoordinator.VoteId, Normal, ["two"], Now.AddSeconds(30)));
+
+        Assert.AreEqual(VoteOperationFailure.NotOpen, result.Failure);
+        Assert.IsTrue(fixture.Votes.TryGet(AnoVetoCoordinator.VoteId, out var vote));
+        Assert.AreEqual(0, vote!.Ballots.Count);
+    }
+
+    [TestMethod]
     public async Task QueuedManagement_RechecksRevocationReconnectAndUnloadBeforeMutation()
     {
         var fixture = await Fixture.CreateAsync();
@@ -105,9 +155,9 @@ public sealed class SessionBoundVetoVoteServiceTests
         Assert.IsFalse(fixture.Votes.TryGet(AnoVetoCoordinator.VoteId, out _));
     }
 
-    private static VoteDefinition Definition() => new(AnoVetoCoordinator.VoteId, "Veto",
+    private static VoteDefinition Definition(int maximum = 1) => new(AnoVetoCoordinator.VoteId, "Veto",
         [new VoteOption("one", "One"), new VoteOption("two", "Two")], [Host, Normal],
-        new VotePolicy(TimeSpan.FromSeconds(30), 1, VoteTieBreakPolicy.OptionOrder));
+        new VotePolicy(TimeSpan.FromSeconds(30), 1, VoteTieBreakPolicy.OptionOrder, maximum));
 
     private sealed class Fixture
     {

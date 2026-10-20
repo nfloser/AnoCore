@@ -27,17 +27,18 @@ The active destination for the former is
 `game/csgo/addons/counterstrikesharp/plugins/AnoCore/config/chat-format.json`.
 
 ```text
-[ALL]  [DEV]      Name-in-team-color: white message
-[TEAM] [HOST]     Name-in-team-color: white message
+[ALL]  [DEV]      Name: message
+[TEAM] [HOST]     Name: message
 ```
 
 These are illustrative plain-text examples, not evidence of client rendering.
-The role uses its independently configured native color; `NameColor: "Team"`
-makes T names orange and CT names light blue (spectators light purple), and
-`MessageColor: "Default"` returns to the ordinary message color. The
+The role uses its independently configured native color. In the old backup,
+`ChatColor` and `NameColor` are empty for every active tag entry, so the sample
+leaves both the player name and message at their native defaults. The
 channel label is added **once before the role**, not embedded in the
 per-player templates; do not prepend `[ALL]`/`[TEAM]` manually.
-The profile intentionally excludes `{rank.tag}` so the old-style role
+The old Zenith rank-format setting has an empty current value, so the profile
+intentionally excludes `{rank.tag}` and the old-style role
 prefix does not compete with an additional rank badge.
 
 After copying only the desired profile values into the existing configuration:

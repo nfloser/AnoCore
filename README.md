@@ -73,7 +73,7 @@ Enter commands in game chat with `!`. Administrative commands require the approp
 | `!anotournamentstatus` / `!anoready` | Match status or mark yourself ready |
 | `!anostatus` | Check plugin startup and module status |
 
-Details: [tournaments](docs/tournament.md), [challenges and XP](docs/progression.md), [moderation](docs/moderation-commands.md), [configuration reload](docs/configuration-reload.md), [management interface](docs/management-api.md) and [module SDK](docs/module-sdk.md).
+Details: [AnoVeto three-map voting](docs/anoveto-three-votes.md), [tournaments](docs/tournament.md), [challenges and XP](docs/progression.md), [moderation](docs/moderation-commands.md), [configuration reload](docs/configuration-reload.md), [management interface](docs/management-api.md) and [module SDK](docs/module-sdk.md).
 
 ## Development
 

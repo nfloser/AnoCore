@@ -343,6 +343,82 @@ public sealed class AnoVetoCoordinator
         }
     }
 
+    public bool TryGetBallotStatus(out IReadOnlyList<PlayerId> confirmed, out int eligibleCount)
+    {
+        lock (_gate)
+        {
+            confirmed = [];
+            eligibleCount = 0;
+            if (_active is null || !_votes.TryGet(VoteId, out var vote) || vote is null
+                || vote.State != VoteState.Open) return false;
+            confirmed = vote.Selections.Keys.OrderBy(player => player.SteamId64).ToArray();
+            eligibleCount = vote.Definition.EligiblePlayers.Count;
+            return true;
+        }
+    }
+
+    public bool TryGetDraft(PlayerId player, out IReadOnlyList<MapDefinition> maps, out int maximum, out bool confirmed)
+    {
+        lock (_gate)
+        {
+            maps = [];
+            maximum = 0;
+            confirmed = false;
+            if (_active is null || !_votes.TryGet(VoteId, out var vote) || vote is null
+                || vote.State != VoteState.Open) return false;
+            maximum = Math.Min(3, vote.Definition.Policy.MaxVotesPerPlayer);
+            confirmed = vote.Selections.ContainsKey(player);
+            if (confirmed) return TryGetPlayerSelections(player, out maps, out _);
+            if (_active.Drafts.TryGetValue(player, out var draft)) maps = draft.ToArray();
+            return true;
+        }
+    }
+
+    public AnoVetoOperationResult ToggleSelection(PlayerId player, string mapId, DateTimeOffset now)
+    {
+        lock (_gate)
+        {
+            if (_active is null || !_votes.TryGet(VoteId, out var vote) || vote is null
+                || vote.State != VoteState.Open || now >= vote.Deadline)
+                return AnoVetoOperationResult.Reject(AnoVetoFailure.NotActive);
+            if (!vote.Definition.EligiblePlayers.Contains(player))
+                return AnoVetoOperationResult.Reject(AnoVetoFailure.NotEligible);
+            if (vote.Selections.ContainsKey(player))
+                return AnoVetoOperationResult.Reject(AnoVetoFailure.AlreadyVoted);
+            var map = _active.Maps.FirstOrDefault(map => string.Equals(map.MapId, mapId, StringComparison.OrdinalIgnoreCase));
+            if (map is null) return AnoVetoOperationResult.Reject(AnoVetoFailure.InvalidMap);
+            if (!_active.Drafts.TryGetValue(player, out var draft))
+                _active.Drafts[player] = draft = [];
+            if (!draft.Remove(map))
+            {
+                if (draft.Count >= Math.Min(3, vote.Definition.Policy.MaxVotesPerPlayer))
+                    return AnoVetoOperationResult.Reject(AnoVetoFailure.VoteRejected);
+                draft.Add(map);
+            }
+            return AnoVetoOperationResult.Success(_active.Maps);
+        }
+    }
+
+    public async ValueTask<AnoVetoOperationResult> ConfirmSelectionsAsync(
+        PlayerId player, DateTimeOffset now, CancellationToken cancellationToken = default)
+    {
+        ActiveVote active;
+        string[] choices;
+        lock (_gate)
+        {
+            if (_active is null) return AnoVetoOperationResult.Reject(AnoVetoFailure.NotActive);
+            active = _active;
+            if (!active.Drafts.TryGetValue(player, out var draft) || draft.Count == 0)
+                return AnoVetoOperationResult.Reject(AnoVetoFailure.InvalidMap);
+            choices = draft.Select(map => active.OptionToMap.Single(pair => pair.Value == map).Key).ToArray();
+        }
+        var submitted = await _votes.SubmitBallotAsync(VoteId, player, choices, now, cancellationToken).ConfigureAwait(false);
+        if (!submitted.Accepted) return AnoVetoOperationResult.Reject(MapFailure(submitted.Failure));
+        var result = _votes.FinalizeIfAllEligibleVoted(VoteId, now);
+        return result is null ? AnoVetoOperationResult.Success(active.Maps)
+            : await FinalizeCoreAsync(active, result, cancellationToken).ConfigureAwait(false);
+    }
+
     private async ValueTask<AnoVetoOperationResult> CastCoreAsync(
         PlayerId player,
         string optionId,
@@ -425,5 +501,8 @@ public sealed class AnoVetoCoordinator
 
     private sealed record ActiveVote(
         IReadOnlyList<MapDefinition> Maps,
-        IReadOnlyDictionary<string, MapDefinition> OptionToMap);
+        IReadOnlyDictionary<string, MapDefinition> OptionToMap)
+    {
+        public Dictionary<PlayerId, List<MapDefinition>> Drafts { get; } = [];
+    }
 }

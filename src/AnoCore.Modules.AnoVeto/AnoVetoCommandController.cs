@@ -38,7 +38,9 @@ public sealed class AnoVetoCommandController : IDisposable
         _hud = new AnoVetoHudController(
             hud ?? throw new ArgumentNullException(nameof(hud)),
             coordinator,
-            _timeProvider);
+            _timeProvider,
+            player => _players.TryGet(player, out var snapshot) && snapshot is not null
+                ? snapshot.Name : player.SteamId64.ToString(System.Globalization.CultureInfo.InvariantCulture));
         _createHud = new AnoVetoCreateHudController(hud, StartRandomFromHudAsync,
             _coordinator.GetAvailableMaps, StartSelectedFromHudAsync, presetRepository,
             revokeCreateAuthorization);

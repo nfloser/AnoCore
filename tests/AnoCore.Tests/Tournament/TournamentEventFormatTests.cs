@@ -75,6 +75,27 @@ public sealed class TournamentEventFormatTests
     }
 
     [TestMethod]
+    public void Validation_RejectsUnknownOrUnprintableRosterLabels()
+    {
+        var definition = CreateEvent(3);
+        definition.Teams[0].PlayerNames[definition.Teams[1].Starters[0]] = "Someone else";
+        definition.Teams[0].PlayerNames[definition.Teams[0].Starters[0]] = "Bad\nLabel";
+
+        var errors = TournamentEventDefinition.Validate(definition);
+        Assert.IsTrue(errors.Count(error => error.Contains("player name", StringComparison.OrdinalIgnoreCase)) >= 2);
+    }
+
+    [TestMethod]
+    public void Validation_AcceptsOptionalOfflineNamesWithoutChangingRosterIdentity()
+    {
+        var definition = CreateEvent(3);
+        var original = definition.Teams[0].Starters.ToArray();
+        definition.Teams[0].PlayerNames[original[0]] = "Offline Captain";
+        Assert.AreEqual(0, TournamentEventDefinition.Validate(definition).Count);
+        CollectionAssert.AreEqual(original, definition.Teams[0].Starters);
+    }
+
+    [TestMethod]
     public void Validation_RejectsTooFewTeamsAndIncorrectStarterCount()
     {
         var definition = CreateEvent(3);

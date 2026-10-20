@@ -114,6 +114,13 @@ public sealed class SessionBoundVetoVoteService : IVoteService
             ? _votes.CastAsync(voteId, playerId, optionId, now, cancellationToken)
             : ValueTask.FromResult(Denied());
 
+    public ValueTask<VoteOperationResult> SubmitBallotAsync(VoteId voteId, PlayerId playerId,
+        IReadOnlyCollection<string> optionIds, DateTimeOffset now,
+        CancellationToken cancellationToken = default)
+        => _isActive() && voteId == AnoVetoCoordinator.VoteId
+            ? _votes.SubmitBallotAsync(voteId, playerId, optionIds, now, cancellationToken)
+            : ValueTask.FromResult(Denied());
+
     public VoteResult? FinalizeIfAllEligibleVoted(VoteId voteId, DateTimeOffset now)
         => _isActive() && voteId == AnoVetoCoordinator.VoteId ? _votes.FinalizeIfAllEligibleVoted(voteId, now) : null;
 

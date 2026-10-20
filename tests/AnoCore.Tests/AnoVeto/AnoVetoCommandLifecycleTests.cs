@@ -17,24 +17,21 @@ public sealed class AnoVetoCommandLifecycleTests
     private static readonly DateTimeOffset Now = new(2026, 9, 17, 13, 0, 0, TimeSpan.Zero);
 
     [TestMethod]
-    public async Task FinalEligibleHudSelection_HidesVoteHudForEveryone()
+    public async Task FinalEligibleHudConfirmation_HidesVoteHudAfterOneChoiceEach()
     {
         var harness = CreateHarness(TimeSpan.FromMinutes(1));
         using var controller = harness.Controller;
         Assert.IsTrue((await harness.Commands.ExecuteAsync("!anoveto random", Manager)).Success);
         Assert.HasCount(2, harness.Hud.VisiblePlayers(AnoVetoHudController.HudId));
 
-        for (var i = 0; i < 2; i++)
-        {
-            await harness.Hud.ClickAsync(PlayerA, AnoVetoHudController.HudId, $"ano_veto_map_{i}");
-            Assert.IsTrue(harness.Hud.VisiblePlayers(AnoVetoHudController.HudId).Contains(PlayerA));
-        }
-        await harness.Hud.ClickAsync(PlayerA, AnoVetoHudController.HudId, "ano_veto_map_2");
+        await harness.Hud.ClickAsync(PlayerA, AnoVetoHudController.HudId, "ano_veto_map_0");
+        await harness.Hud.ClickAsync(PlayerA, AnoVetoHudController.HudId, "ano_veto_confirm");
         Assert.IsFalse(harness.Hud.VisiblePlayers(AnoVetoHudController.HudId).Contains(PlayerA));
         Assert.IsTrue(harness.Hud.VisiblePlayers(AnoVetoHudController.HudId).Contains(Manager));
-
-        for (var i = 0; i < 3; i++)
-            await harness.Hud.ClickAsync(Manager, AnoVetoHudController.HudId, $"ano_veto_map_{i + 3}");
+        Assert.IsTrue(harness.Coordinator.TryGetStatus(out _));
+        await harness.Hud.ClickAsync(Manager, AnoVetoHudController.HudId, "ano_veto_map_0");
+        Assert.IsTrue(harness.Coordinator.TryGetStatus(out _));
+        await harness.Hud.ClickAsync(Manager, AnoVetoHudController.HudId, "ano_veto_confirm");
 
         Assert.IsFalse(harness.Coordinator.TryGetStatus(out _));
         Assert.IsEmpty(harness.Hud.VisiblePlayers(AnoVetoHudController.HudId));

@@ -81,6 +81,9 @@ public sealed class VoteService : IVoteService
                 return ValueTask.FromResult(VoteOperationResult.Reject(VoteOperationFailure.InvalidOption));
             }
 
+            if (session.Confirmed.Contains(playerId))
+                return ValueTask.FromResult(VoteOperationResult.Reject(VoteOperationFailure.AlreadyVoted));
+
             if (!session.Ballots.TryGetValue(playerId, out var selections))
             {
                 selections = [];
@@ -94,6 +97,38 @@ public sealed class VoteService : IVoteService
             }
 
             selections.Add(normalizedOption);
+            return ValueTask.FromResult(VoteOperationResult.Success());
+        }
+    }
+
+    public ValueTask<VoteOperationResult> SubmitBallotAsync(
+        VoteId voteId,
+        PlayerId playerId,
+        IReadOnlyCollection<string> optionIds,
+        DateTimeOffset now,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        ArgumentNullException.ThrowIfNull(voteId);
+        ArgumentNullException.ThrowIfNull(playerId);
+        ArgumentNullException.ThrowIfNull(optionIds);
+        var choices = optionIds.Select(id => id?.Trim().ToLowerInvariant() ?? string.Empty).ToArray();
+        lock (_gate)
+        {
+            if (!_sessions.TryGetValue(voteId, out var session))
+                return ValueTask.FromResult(VoteOperationResult.Reject(VoteOperationFailure.NotFound));
+            if (session.State != VoteState.Open || now >= session.Deadline)
+                return ValueTask.FromResult(VoteOperationResult.Reject(VoteOperationFailure.NotOpen));
+            if (!session.Eligible.Contains(playerId))
+                return ValueTask.FromResult(VoteOperationResult.Reject(VoteOperationFailure.NotEligible));
+            if (session.Ballots.ContainsKey(playerId))
+                return ValueTask.FromResult(VoteOperationResult.Reject(VoteOperationFailure.AlreadyVoted));
+            if (choices.Length < 1 || choices.Length > session.Definition.Policy.MaxVotesPerPlayer
+                || choices.Distinct(StringComparer.Ordinal).Count() != choices.Length
+                || choices.Any(id => !session.OptionIds.Contains(id)))
+                return ValueTask.FromResult(VoteOperationResult.Reject(VoteOperationFailure.InvalidOption));
+            session.Ballots.Add(playerId, choices.ToList());
+            session.Confirmed.Add(playerId);
             return ValueTask.FromResult(VoteOperationResult.Success());
         }
     }
@@ -161,8 +196,8 @@ public sealed class VoteService : IVoteService
                 || session.State != VoteState.Open
                 || now >= session.Deadline
                 || session.Ballots.Count != session.Eligible.Count
-                || session.Ballots.Values.Any(selections =>
-                    selections.Count < session.Definition.Policy.MaxVotesPerPlayer))
+                || session.Ballots.Any(pair => !session.Confirmed.Contains(pair.Key)
+                    && pair.Value.Count < session.Definition.Policy.MaxVotesPerPlayer))
             {
                 return null;
             }
@@ -225,6 +260,7 @@ public sealed class VoteService : IVoteService
         public HashSet<PlayerId> Eligible { get; }
         public HashSet<string> OptionIds { get; }
         public Dictionary<PlayerId, List<string>> Ballots { get; } = [];
+        public HashSet<PlayerId> Confirmed { get; } = [];
         public VoteState State { get; private set; } = VoteState.Open;
         public VoteResult? Result { get; private set; }
 
