@@ -16,6 +16,40 @@ public sealed class VoteServiceTests
     private static readonly DateTimeOffset Start = new(2026, 9, 16, 18, 0, 0, TimeSpan.Zero);
 
     [TestMethod]
+    public async Task SubmitBallot_IsAtomicRejectsInvalidOrRepeatedBallotsAndCompletesShortBallots()
+    {
+        var service = new VoteService(new AllowAllPermissions());
+        var id = new VoteId("ano.confirm");
+        await service.CreateAsync(Manager, new VoteDefinition(id, "Confirm",
+            [new VoteOption("a", "A"), new VoteOption("b", "B"), new VoteOption("c", "C"), new VoteOption("d", "D")],
+            [PlayerOne, PlayerTwo], new VotePolicy(TimeSpan.FromSeconds(30), 2, maxVotesPerPlayer: 3)), Start);
+        foreach (string[] invalid in new string[][] { [], ["a", "a"], ["a", "missing"], ["a", "b", "c", "d"] })
+        {
+            Assert.AreEqual(VoteOperationFailure.InvalidOption,
+                (await service.SubmitBallotAsync(id, PlayerOne, invalid, Start)).Failure);
+            Assert.IsTrue(service.TryGet(id, out var empty));
+            Assert.IsNotNull(empty);
+            Assert.IsEmpty(empty.Ballots);
+        }
+        Assert.AreEqual(VoteOperationFailure.NotEligible,
+            (await service.SubmitBallotAsync(id, Outsider, ["a"], Start)).Failure);
+        Assert.IsTrue((await service.SubmitBallotAsync(id, PlayerOne, ["a"], Start)).Accepted);
+        Assert.IsNull(service.FinalizeIfAllEligibleVoted(id, Start));
+        Assert.AreEqual(VoteOperationFailure.AlreadyVoted,
+            (await service.CastAsync(id, PlayerOne, "b", Start)).Failure);
+        Assert.AreEqual(VoteOperationFailure.AlreadyVoted,
+            (await service.SubmitBallotAsync(id, new PlayerId(PlayerOne.SteamId64), ["b"], Start)).Failure);
+        Assert.AreEqual(VoteOperationFailure.NotOpen,
+            (await service.SubmitBallotAsync(id, PlayerTwo, ["b"], Start.AddSeconds(30))).Failure);
+        Assert.IsTrue((await service.SubmitBallotAsync(id, PlayerTwo, ["a", "b"], Start)).Accepted);
+        var result = service.FinalizeIfAllEligibleVoted(id, Start);
+        Assert.IsNotNull(result);
+        Assert.AreEqual(2, result.Tallies["a"]);
+        Assert.AreEqual(1, result.Tallies["b"]);
+        Assert.AreEqual(3, result.VotesCast);
+    }
+
+    [TestMethod]
     public async Task CreateAsync_RequiresManagementPermission()
     {
         var service = new VoteService(new DenyAllPermissions());
