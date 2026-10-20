@@ -121,7 +121,7 @@ def prepare(tags_path, groups_path, output, chat_path=None):
             if flag not in flags:
                 flags.append(flag)
     chat = {'PublicTemplate': '{player.name}: {message}', 'TeamTemplate': '{player.name}: {message}',
-            'RankColor': 'None', 'NameColor': 'None', 'MessageColor': 'None', 'PassthroughCommands': PASSTHROUGH}
+            'RankColor': 'None', 'NameColor': 'Team', 'MessageColor': 'None', 'PassthroughCommands': PASSTHROUGH}
     if chat_path is not None:
         existing = read(chat_path)
         commands = existing.get('PassthroughCommands', [])

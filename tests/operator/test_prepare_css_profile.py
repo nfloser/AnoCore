@@ -48,6 +48,7 @@ class CssProfileTests(unittest.TestCase):
             self.assertEqual(chat['PublicTemplate'], chat['TeamTemplate'])
             self.assertIn('.map', chat['PassthroughCommands'])
             self.assertEqual('None', chat['MessageColor'])
+            self.assertEqual('Team', chat['NameColor'])
 
     def test_unsupported_data_fails_before_output_and_never_overwrites(self):
         with tempfile.TemporaryDirectory() as root:

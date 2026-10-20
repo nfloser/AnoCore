@@ -32,9 +32,11 @@ The active destination for the former is
 ```
 
 These are illustrative plain-text examples, not evidence of client rendering.
-The role uses its independently configured native color. In the old backup,
-`ChatColor` and `NameColor` are empty for every active tag entry, so the sample
-leaves both the player name and message at their native defaults. The
+The role uses its independently configured native color. The old Zenith plugin
+applied native team coloring to names even though its custom `NameColor` override
+was empty. AnoCore must explicitly use `NameColor: "Team"`: CT names are light
+blue and T names orange. Messages use the native default, with a color reset after
+the name. Same-name team changes refresh the prepared chat snapshot. The
 channel label is added **once before the role**, not embedded in the
 per-player templates; do not prepend `[ALL]`/`[TEAM]` manually.
 The old Zenith rank-format setting has an empty current value, so the profile

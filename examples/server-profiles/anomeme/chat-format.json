@@ -2,7 +2,7 @@
   "PublicTemplate": "{player.name}: {message}",
   "TeamTemplate": "{player.name}: {message}",
   "RankColor": "None",
-  "NameColor": "None",
+  "NameColor": "Team",
   "MessageColor": "None",
   "PassthroughCommands": [
     ".map",

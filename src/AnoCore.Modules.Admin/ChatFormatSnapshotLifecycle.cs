@@ -121,9 +121,11 @@ public sealed class ChatFormatSnapshotLifecycle : IDisposable
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(@event);
-        if (@event.Previous.Name == @event.Current.Name)
+        if (@event.Previous.Name == @event.Current.Name
+            && @event.Previous.Team == @event.Current.Team)
             return ValueTask.CompletedTask;
-        return WarmAsync(@event.Current, false, cancellationToken);
+        return WarmAsync(@event.Current, false, cancellationToken,
+            invalidate: @event.Previous.Team != @event.Current.Team);
     }
 
     private ValueTask OnDisconnectedAsync(
