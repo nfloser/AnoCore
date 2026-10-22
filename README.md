@@ -1,6 +1,6 @@
 # AnoCore
 
-AnoCore is a modular CS2 server plugin for community servers, regular game nights and organized matches. It combines player statistics, competitive ranks, levels and challenges, moderation, map voting and tournament management.
+AnoCore is a modular Counter-Strike 2 server plugin for community play and organized matches. It handles player statistics, competitive ranks, XP and challenges, moderation, map voting and tournament management.
 
 ![ANOMEME dashboard — design preview with example data](docs/images/dashboard-example.png)
 
@@ -20,7 +20,7 @@ These screenshots show the AnoCore and ANOMEME interface running inside Counter-
 
 ![AnoCore player dashboard with profile, statistics and weekly challenges](docs/images/dashboard-ingame.png)
 
-*Personal overview of rank, progression, gameplay statistics and active challenges.*
+*The dashboard shows rank, XP progression, game statistics and active challenges.*
 
 ### Main menu
 
@@ -42,7 +42,7 @@ These screenshots show the AnoCore and ANOMEME interface running inside Counter-
 | Administration | Permission-controlled player/server actions, roles, moderation, warnings and audit records |
 | Integrations | Extend modules through the SDK; use the optional authenticated management connection and configurable moderation webhooks |
 
-A community server can retain shared statistics and long-term progression. Regular game nights can use challenges and scheduled XP boosts. For organized matches, operators configure teams and control the match lifecycle. AnoRating assists manual team selection; it is not an automatic team balancer. Leetify is an optional external integration with separate API configuration.
+Servers can retain statistics and player progression across sessions. Operators can schedule challenges and XP boosts for regular game nights, or configure teams and control the match lifecycle for organized play. AnoRating helps with manual team selection but does not balance teams automatically. Leetify is optional and needs its own API configuration.
 
 **Development and testing status:** Automated checks do not replace CS2 server acceptance tests. Tournament events such as knife-round winners and map winners are reported through documented commands; this is not a fully automatic tournament platform. Available features and menus depend on enabled modules, permissions and the installed build. No battle pass is included. See the [acceptance matrix](docs/functional-acceptance.md) and [server test plan](docs/full-system-test.md).
 

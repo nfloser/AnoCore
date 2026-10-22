@@ -1,6 +1,6 @@
 # Quick installation: Windows and DatHost
 
-For server operators. The server plugin and Workshop addon are separate updates. Use a successful CI build containing the dashboard version you want. `BUILD-COMMIT.txt` records its source revision. Older builds cannot populate new dashboard panels. No battle pass is included.
+Server operators update the plugin and Workshop addon separately. Choose a successful CI build with the dashboard features you need and check its source revision in `BUILD-COMMIT.txt`. Older builds cannot populate newer dashboard panels. The package does not include a battle pass.
 
 ## Requirements
 
@@ -40,4 +40,4 @@ Preserve other configured addon IDs. These settings belong to the server/MultiAd
 
 Wait for upload/approval, start the server and completely restart CS2. Server console: `css_anostatus`. Game chat: `!anostatus`, then `!anomenu`. Check the dashboard, logo, challenge previews, Open menu, Back, Home, pagination and Close. Back is disabled only on the dashboard; Prev page is disabled on page 1. Test with two players to confirm separate personal values.
 
-Already updated the Workshop addon? Update only the matching server plugin. Changed only CSS/XML/logo? Rebuild and upload the UI; no C# build is needed. To restore an earlier version, stop the server and restore the backed-up program files and matching UI. Handle database-schema rollback separately as described in [deployment](deployment.md).
+If the Workshop addon is already current, update only the matching server plugin. Changes limited to CSS, XML or the logo require rebuilding and uploading the UI; no C# build is needed. To restore an earlier version, stop the server and restore the backed-up program files and matching UI. Handle database-schema rollback separately as described in [deployment](deployment.md).
