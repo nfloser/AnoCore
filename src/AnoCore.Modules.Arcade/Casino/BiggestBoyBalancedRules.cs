@@ -13,15 +13,20 @@ public static class BiggestBoyBalancedRules
     public static int Multiplier(BiggestBoySymbol symbol, int count) =>
         BiggestBoyExpandingRules.IsRegular(symbol) && count is >= 3 and <= 5 ? Pays[(int)symbol][count - 3] : 0;
 
-    public static BiggestBoySpinResult EvaluateGrid(int stake, IReadOnlyList<BiggestBoySymbol> grid)
+    public static BiggestBoySpinResult EvaluateGrid(int stake, IReadOnlyList<BiggestBoySymbol> grid,
+        SlotPaytableSettings? paytable = null)
     {
         if (!BiggestBoyStakeLimits.IsValid(stake)) throw new ArgumentOutOfRangeException(nameof(stake));
-        return BiggestBoyExpandingRules.EvaluateGrid(stake, grid, Multiplier);
+        paytable?.Validate(10);
+        return BiggestBoyExpandingRules.EvaluateGrid(stake, grid,
+            (symbol, count) => paytable?.Multiplier((int)symbol, count, Multiplier(symbol, count))
+                ?? Multiplier(symbol, count), paytable?.LineStakeDivisor ?? BiggestBoyExpandingRules.PaylineCount);
     }
 
-    public static long MaximumRoundExposure(int stake)
+    public static long MaximumRoundExposure(int stake, SlotPaytableSettings? paytable = null)
     {
         if (!BiggestBoyStakeLimits.IsValid(stake)) throw new ArgumentOutOfRangeException(nameof(stake));
-        return checked(stake * 50L * 31);
+        return paytable is null ? checked(stake * 50L * 31)
+            : paytable.Validate(10).MaximumRoundExposure(stake, 50);
     }
 }
