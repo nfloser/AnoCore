@@ -304,21 +304,21 @@ public sealed class CasinoRoundService(ICasinoRoundStore store, int biggestBoyMa
     };
     private static long Exposure(CasinoRoundGame game, int stake, string? version = null,
         SlotOutcomeSettings? settings = null) => game switch
-    {
-        CasinoRoundGame.Blackjack => stake * (version == BlackjackRules.LegacyVersion ? 8L : 17L),
-        CasinoRoundGame.Risk => Math.Min(RiskRules.MaximumHeldExposure, stake * (1L << RiskRules.MaximumGambles)),
-        CasinoRoundGame.Spitze => SpitzeRules.MaximumExposure(stake),
-        CasinoRoundGame.BiggestBoy => version switch
         {
-            ControlledSlotRules.BiggestVersion => BiggestBoyBalancedRules.MaximumRoundExposure(stake, settings?.Paytable),
-            BiggestBoyRules.Version => BiggestBoyRules.MaximumRoundExposure(stake),
-            BiggestBoyCollectorRules.Version => BiggestBoyCollectorRules.MaximumRoundExposure(stake),
-            _ => BiggestBoyExpandingRules.MaximumRoundExposure(stake),
-        },
-        _ => version == ControlledSlotRules.BookVersion
-            ? BookBalancedRules.MaximumRoundExposure(stake, settings?.Paytable)
-            : BonusSlotRules.MaximumRoundExposure(stake),
-    };
+            CasinoRoundGame.Blackjack => stake * (version == BlackjackRules.LegacyVersion ? 8L : 17L),
+            CasinoRoundGame.Risk => Math.Min(RiskRules.MaximumHeldExposure, stake * (1L << RiskRules.MaximumGambles)),
+            CasinoRoundGame.Spitze => SpitzeRules.MaximumExposure(stake),
+            CasinoRoundGame.BiggestBoy => version switch
+            {
+                ControlledSlotRules.BiggestVersion => BiggestBoyBalancedRules.MaximumRoundExposure(stake, settings?.Paytable),
+                BiggestBoyRules.Version => BiggestBoyRules.MaximumRoundExposure(stake),
+                BiggestBoyCollectorRules.Version => BiggestBoyCollectorRules.MaximumRoundExposure(stake),
+                _ => BiggestBoyExpandingRules.MaximumRoundExposure(stake),
+            },
+            _ => version == ControlledSlotRules.BookVersion
+                ? BookBalancedRules.MaximumRoundExposure(stake, settings?.Paytable)
+                : BonusSlotRules.MaximumRoundExposure(stake),
+        };
     private static BlackjackAction BlackjackActionFor(CasinoRoundAction action) => action switch
     {
         CasinoRoundAction.Hit => BlackjackAction.Hit,
