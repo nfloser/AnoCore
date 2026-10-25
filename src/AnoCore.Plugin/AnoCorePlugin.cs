@@ -1279,7 +1279,7 @@ public sealed class AnoCorePlugin : BasePlugin
                             {
                                 Logger.LogDebug(exception, "Optional native casino reel click could not be played.");
                             }
-                        });
+                        }, biggestBoyOutcomes: _biggestBoyOutcomes, bookOutcomes: _bookOutcomes);
                     var activeCasino = casino;
                     var activeRounds = casinoRounds;
                     casinoTimer = AddTimer(0.05f, () => { activeCasino.Tick(); activeRounds.Tick(); }, TimerFlags.REPEAT);
