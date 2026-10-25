@@ -70,9 +70,12 @@ public sealed class CasinoRoundService(ICasinoRoundStore store, int biggestBoyMa
             if (op.Game == CasinoRoundGame.BiggestBoy && _biggestBoyOutcomes is null && !BiggestBoyRules.IsValidStake(op.Stake))
                 throw new CasinoRejectedException("Ungültiger Einsatz für historische Spielregeln.");
             if (op.Stake > maximum) throw new CasinoRejectedException("Konfiguriertes Einsatzlimit überschritten.");
-            return new(op.Stake, Exposure(op.Game, op.Stake, op.Game == CasinoRoundGame.BiggestBoy && _biggestBoyOutcomes is not null
+            var newVersion = op.Game == CasinoRoundGame.BiggestBoy && _biggestBoyOutcomes is not null
                 ? ControlledSlotRules.BiggestVersion : op.Game == CasinoRoundGame.Book && _bookOutcomes is not null
-                    ? ControlledSlotRules.BookVersion : null));
+                    ? ControlledSlotRules.BookVersion : null;
+            var newSettings = op.Game == CasinoRoundGame.BiggestBoy ? _biggestBoyOutcomes
+                : op.Game == CasinoRoundGame.Book ? _bookOutcomes : null;
+            return new(op.Stake, Exposure(op.Game, op.Stake, newVersion, newSettings));
         }
         var view = View(current);
         if (view.Game != op.Game || view.Stake != op.Stake || (current.RulesVersion != Version(op.Game)
@@ -143,7 +146,16 @@ public sealed class CasinoRoundService(ICasinoRoundStore store, int biggestBoyMa
                     throw new CasinoRejectedException("Keine Freispiele verfügbar.");
                 break;
         }
-        return new(debit, Exposure(op.Game, op.Stake, current.RulesVersion));
+        // Reserve against the snapshot's frozen paytable, not current server settings.
+        var frozenSettings = op.Game switch
+        {
+            CasinoRoundGame.BiggestBoy when ControlledSlotRules.IsControlledBiggest(current.RulesVersion)
+                => Read<BiggestBoySpinResult>(current).State.OutcomeSettings,
+            CasinoRoundGame.Book when ControlledSlotRules.IsControlledBook(current.RulesVersion)
+                => Read<BonusSlotSpinResult>(current).State.OutcomeSettings,
+            _ => null,
+        };
+        return new(debit, Exposure(op.Game, op.Stake, current.RulesVersion, frozenSettings));
     }
 
     private CasinoRoundMutation Transition(DurableCasinoRoundOperation op, CasinoRoundSnapshot? current)
@@ -226,8 +238,10 @@ public sealed class CasinoRoundService(ICasinoRoundStore store, int biggestBoyMa
         }
         var json = JsonSerializer.Serialize(state, state.GetType());
         var rulesVersion = state is BiggestBoySpinResult biggestState ? biggestState.State.RulesVersion : state is BonusSlotSpinResult bookState ? bookState.State.RulesVersion : state is BlackjackState blackjackState ? blackjackState.RulesVersion : Version(op.Game);
+        var frozenSettings = state is BiggestBoySpinResult biggestSnapshot ? biggestSnapshot.State.OutcomeSettings
+            : state is BonusSlotSpinResult bookSnapshot ? bookSnapshot.State.OutcomeSettings : null;
         return new(rulesVersion, json, debit, complete ? payout : 0,
-            complete ? 0 : Exposure(op.Game, op.Stake, rulesVersion), complete, "{}");
+            complete ? 0 : Exposure(op.Game, op.Stake, rulesVersion, frozenSettings), complete, "{}");
     }
 
     private static DurableCasinoRoundSnapshot View(CasinoRoundSnapshot round, int fallbackStake = 0)
@@ -288,19 +302,22 @@ public sealed class CasinoRoundService(ICasinoRoundStore store, int biggestBoyMa
         CasinoRoundGame.BiggestBoy => BiggestBoyExpandingRules.Version,
         _ => BonusSlotRules.Version,
     };
-    private static long Exposure(CasinoRoundGame game, int stake, string? version = null) => game switch
+    private static long Exposure(CasinoRoundGame game, int stake, string? version = null,
+        SlotOutcomeSettings? settings = null) => game switch
     {
         CasinoRoundGame.Blackjack => stake * (version == BlackjackRules.LegacyVersion ? 8L : 17L),
         CasinoRoundGame.Risk => Math.Min(RiskRules.MaximumHeldExposure, stake * (1L << RiskRules.MaximumGambles)),
         CasinoRoundGame.Spitze => SpitzeRules.MaximumExposure(stake),
         CasinoRoundGame.BiggestBoy => version switch
         {
-            ControlledSlotRules.BiggestVersion => BiggestBoyBalancedRules.MaximumRoundExposure(stake),
+            ControlledSlotRules.BiggestVersion => BiggestBoyBalancedRules.MaximumRoundExposure(stake, settings?.Paytable),
             BiggestBoyRules.Version => BiggestBoyRules.MaximumRoundExposure(stake),
             BiggestBoyCollectorRules.Version => BiggestBoyCollectorRules.MaximumRoundExposure(stake),
             _ => BiggestBoyExpandingRules.MaximumRoundExposure(stake),
         },
-        _ => version == ControlledSlotRules.BookVersion ? BookBalancedRules.MaximumRoundExposure(stake) : BonusSlotRules.MaximumRoundExposure(stake),
+        _ => version == ControlledSlotRules.BookVersion
+            ? BookBalancedRules.MaximumRoundExposure(stake, settings?.Paytable)
+            : BonusSlotRules.MaximumRoundExposure(stake),
     };
     private static BlackjackAction BlackjackActionFor(CasinoRoundAction action) => action switch
     {
