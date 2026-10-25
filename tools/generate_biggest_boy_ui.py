@@ -70,11 +70,16 @@ def generate():
     rules = ET.Element('Panel',{'class':'bb-rules bb-biggest-rules','hittest':'false'})
     text=['GEWINNPLAN · 5×3 · 10 Linien · nur virtuelle Beträge','Liniengewinn = Einsatz ÷ 10 × Faktor. Drei, vier oder fünf passende Symbole von links. Pro Linie nur der höchste Gewinn; verschiedene Linien addieren sich.','Gesicht ist Freispiel-Scatter. Die Biggest-Boy-Schärpe ist Wild und ersetzt reguläre Gewinnsymbole.']
     labels=['Döner','Bier','Zigarette','Butter','Shot','Trichter','G','O','A','T']
-    for t in text: ET.SubElement(rules,'Label',{'text':t,'hittest':'false'})
+    for index, t in enumerate(text):
+        attrs = {'text':t,'hittest':'false'}
+        if index == 1: attrs['id'] = 'casino_round_biggest_paytable_divisor'
+        ET.SubElement(rules,'Label',attrs)
     for cls, paytable in [('bb-legacy-paytable', pays), ('bb-balanced-paytable', balanced_pays('BiggestBoyBalancedRules.cs'))]:
         group = ET.SubElement(rules, 'Panel', {'class':cls, 'hittest':'false'})
-        for name, values in zip(labels, paytable):
-            ET.SubElement(group, 'Label', {'text':f'{name}: {values[0]}× / {values[1]}× / {values[2]}×', 'hittest':'false'})
+        for index, (name, values) in enumerate(zip(labels, paytable)):
+            attrs = {'text':f'{name}: {values[0]}× / {values[1]}× / {values[2]}×', 'hittest':'false'}
+            if cls == 'bb-balanced-paytable': attrs['id'] = f'casino_round_biggest_paytable_{index}'
+            ET.SubElement(group, 'Label', attrs)
     text = []
     text += ['3/4/5 Gesichter vergeben 10/15/20 Freispiele. Erneuter Trigger: +5, maximal 30 tatsächlich gespielte Freispiele. Ein reguläres Expanding Symbol wird beim Bonusstart gleichverteilt festgelegt und bleibt unverändert.','Trifft das Expanding Symbol eine Walze, füllt es genau drei Positionen. Linien werden einmal auf dem expandierten Feld ausgewertet. Scatter für Verlängerungen zählen vor der Expansion. Einsatz bleibt fest, Gesamtauszahlung am Rundenende.']
     text += [f'Linie {n+1}: '+' – '.join(str(x%3+1) for x in line) for n,line in enumerate(lines)]
@@ -82,13 +87,15 @@ def generate():
     book_rules = ET.Element('Panel',{'class':'bb-rules bb-book-rules','hittest':'false'})
     for text in ["BOOK FREISPIELE · 5×3 · 10 Linien · nur virtuelle Beträge","Bilder: Kirsche, Zitrone, Pflaume, Orange, Traube, Glocke, Sieben, goldene Kokosnuss. Die Kokosnuss ist Scatter und Wild.","Drei oder mehr Kokosnüsse: 10 Freispiele. Bei erneuten drei Kokosnüssen: +5 Freispiele; höchstens 20 gleichzeitig und höchstens 30 insgesamt.","Ein Bonussymbol (außer Kokosnuss) wird zum Start zufällig festgelegt. Erscheint es während eines Freispiels auf einer Walze, expandiert es über die drei Felder.","Gewinne: Mindestens 3 gleiche von links auf einer der 10 Linien. Mehrere Linien addieren sich. Einsatz bleibt während der Freispielserie konstant.","Die gebuchten Gewinne werden während der Serie gesammelt und nach der letzten Freispielrunde ausgezahlt."]:
         ET.SubElement(book_rules,'Label',{'text':text,'hittest':'false'})
-    label(book_rules, 'Liniengewinn = Einsatz ÷ 10 × Faktor (3 / 4 / 5 Symbole).')
+    label(book_rules, 'Liniengewinn = Einsatz ÷ 10 × Faktor (3 / 4 / 5 Symbole).', 'book_paytable_divisor')
     fruit_names = ['Kirsche', 'Zitrone', 'Pflaume', 'Orange', 'Traube', 'Glocke', 'Sieben']
     legacy_fruit = [[2,5,10],[1,4,8],[3,6,12],[4,8,20],[5,10,30],[8,20,60],[15,50,200]]
     for cls, paytable in [('bb-legacy-paytable', legacy_fruit), ('bb-balanced-paytable', balanced_pays('BookBalancedRules.cs'))]:
         group = ET.SubElement(book_rules, 'Panel', {'class':cls, 'hittest':'false'})
-        for name, values in zip(fruit_names, paytable):
-            ET.SubElement(group, 'Label', {'text':f'{name}: {values[0]}× / {values[1]}× / {values[2]}×', 'hittest':'false'})
+        for index, (name, values) in enumerate(zip(fruit_names, paytable)):
+            attrs = {'text':f'{name}: {values[0]}× / {values[1]}× / {values[2]}×', 'hittest':'false'}
+            if cls == 'bb-balanced-paytable': attrs['id'] = f'casino_round_book_paytable_{index}'
+            ET.SubElement(group, 'Label', attrs)
     window.append(table);window.append(rules);window.append(book_rules)
     label(window,'{s:text}','detail','round-detail')
     controls=panel(window,'bb-controls')
