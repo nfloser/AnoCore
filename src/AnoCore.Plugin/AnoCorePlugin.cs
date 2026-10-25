@@ -484,8 +484,10 @@ public sealed class AnoCorePlugin : BasePlugin
             _biggestBoyProfile = settings.BiggestBoyLuckPercent == 0
                 ? BiggestBoyProfiles.Validate(settings.BiggestBoyProfile)
                 : BiggestBoyProfiles.Validate("lucky:" + settings.BiggestBoyLuckPercent.ToString(System.Globalization.CultureInfo.InvariantCulture));
-            _biggestBoyOutcomes = settings.BiggestBoyOutcomes.Validate();
-            _bookOutcomes = settings.BookOutcomes.Validate();
+            _biggestBoyOutcomes = (settings.BiggestBoyOutcomes ?? throw new InvalidOperationException("BiggestBoyOutcomes cannot be null.")).Validate();
+            _biggestBoyOutcomes.Paytable?.Validate(10);
+            _bookOutcomes = (settings.BookOutcomes ?? throw new InvalidOperationException("BookOutcomes cannot be null.")).Validate();
+            _bookOutcomes.Paytable?.Validate(7);
             _casinoReelStopSoundEnabled = settings.CasinoReelStopSoundEnabled;
             if (_casinoEnabled && !settings.PanoramaMenusEnabled) throw new InvalidOperationException("CasinoEnabled requires PanoramaMenusEnabled.");
             if (_arcadeProbeEnabled && !_panoramaMenusEnabled)
