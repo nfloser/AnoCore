@@ -27,9 +27,11 @@ public static class BookBalancedRules
         var mapped = grid.Select(symbol => symbol == BonusSlotSymbol.Book
             ? BiggestBoySymbol.Book : (BiggestBoySymbol)(int)symbol).ToArray();
         var result = BiggestBoyExpandingRules.EvaluateGrid(stake, mapped,
-            (symbol, count) => paytable?.Multiplier((int)symbol, count,
-                Multiplier((BonusSlotSymbol)(int)symbol, count))
-                ?? Multiplier((BonusSlotSymbol)(int)symbol, count),
+            (symbol, count) => symbol is >= BiggestBoySymbol.Kebap and < (BiggestBoySymbol)7
+                ? paytable?.Multiplier((int)symbol, count,
+                    Multiplier((BonusSlotSymbol)(int)symbol, count))
+                    ?? Multiplier((BonusSlotSymbol)(int)symbol, count)
+                : 0,
             paytable?.LineStakeDivisor ?? BonusSlotRules.PaylineCount);
         return new(grid.ToImmutableArray(), grid.Count(symbol => symbol == BonusSlotSymbol.Book),
             result.LineWins.Select(win => new BonusSlotLineWin(win.Payline,
