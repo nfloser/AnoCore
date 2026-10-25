@@ -559,7 +559,8 @@ public sealed class CasinoRoundPresenter : IDisposable
         Class(state, "root", "motion-b", rolling && state.Animation % 2 == 0);
         Class(state, "root", "biggest-rules", state.BiggestRules);
         Class(state, "root", "uncertain", state.Unconfirmed is not null);
-        RenderConfiguredPaytable(state, true, spin?.State.OutcomeSettings?.Paytable ?? _biggestBoyPaytable);
+        RenderConfiguredPaytable(state, true, spin is null ? _biggestBoyPaytable
+            : spin.State.RulesVersion == ControlledSlotRules.BiggestVersion ? spin.State.OutcomeSettings?.Paytable : null);
         Text(state, "title", "BIGGEST BOY · 5×3");
         Text(state, "account", Points(state.Balance.Available)); Text(state, "bankroll", Points(state.Balance.Allocated));
         Text(state, "stake", CasinoMoney.FormatExact(active ? state.Round!.Stake : state.Stake));
@@ -641,7 +642,8 @@ public sealed class CasinoRoundPresenter : IDisposable
         Class(state, "root", "motion-b", rolling && state.Animation % 2 == 0);
         Class(state, "root", "biggest-rules", state.BiggestRules);
         Class(state, "root", "uncertain", state.Unconfirmed is not null);
-        RenderConfiguredPaytable(state, false, spin?.State.OutcomeSettings?.Paytable ?? _bookPaytable);
+        RenderConfiguredPaytable(state, false, spin is null ? _bookPaytable
+            : spin.State.RulesVersion == ControlledSlotRules.BookVersion ? spin.State.OutcomeSettings?.Paytable : null);
         Text(state, "title", "BOOK · FREISPIELE · 5×3");
         Text(state, "account", Points(state.Balance.Available));
         Text(state, "bankroll", Points(state.Balance.Allocated));
