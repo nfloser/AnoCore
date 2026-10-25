@@ -19,11 +19,13 @@ public static class ControlledSlotRules
         BiggestBoyRoundState? previous = null)
     {
         settings = (previous?.OutcomeSettings ?? settings).Validate();
+        settings.Paytable?.Validate(10);
         var version = previous?.RulesVersion ?? BiggestVersion;
         if (!IsControlledBiggest(version)) throw new ArgumentException("Invalid controlled slot version.");
         ValidatePrevious(previous?.FreeSpinsRemaining, previous?.RulesVersion, version);
         Func<int, IReadOnlyList<BiggestBoySymbol>, BiggestBoySpinResult> evaluate = version == LegacyBiggestVersion
-            ? BiggestBoyExpandingRules.EvaluateGrid : BiggestBoyBalancedRules.EvaluateGrid;
+            ? BiggestBoyExpandingRules.EvaluateGrid
+            : (value, grid) => BiggestBoyBalancedRules.EvaluateGrid(value, grid, settings.Paytable);
         if (previous is not null && (previous.LockedStake != stake || previous.FreeSpinsAwarded is < 10 or > 30
             || previous.SpinsPlayed is < 1 or > 30 || previous.FreeSpinsRemaining > previous.FreeSpinsAwarded
             || previous.FreeSpinsAwarded - previous.FreeSpinsRemaining != previous.SpinsPlayed - 1
@@ -61,11 +63,13 @@ public static class ControlledSlotRules
         BonusSlotRoundState? previous = null)
     {
         settings = (previous?.OutcomeSettings ?? settings).Validate();
+        settings.Paytable?.Validate(7);
         var version = previous?.RulesVersion ?? BookVersion;
         if (!IsControlledBook(version)) throw new ArgumentException("Invalid controlled slot version.");
         ValidatePrevious(previous?.FreeSpinsRemaining, previous?.RulesVersion, version);
         Func<int, IReadOnlyList<BonusSlotSymbol>, BonusSlotSpinResult> evaluate = version == LegacyBookVersion
-            ? BonusSlotRules.EvaluateGrid : BookBalancedRules.EvaluateGrid;
+            ? BonusSlotRules.EvaluateGrid
+            : (value, grid) => BookBalancedRules.EvaluateGrid(value, grid, settings.Paytable);
         if (previous is not null && (previous.LockedStake != stake || previous.FreeSpinsAwarded is < 10 or > 30
             || previous.SpinsPlayed is < 1 or > 30 || previous.FreeSpinsRemaining > previous.FreeSpinsAwarded
             || previous.FreeSpinsAwarded - previous.FreeSpinsRemaining != previous.SpinsPlayed - 1
