@@ -39,6 +39,10 @@ public sealed class CasinoRoundPresenter : IDisposable
     private readonly int _biggestBoyMaximumStake;
     private readonly CasinoStakeLimits _stakeLimits;
     private readonly string _biggestBoyProfile;
+    private readonly SlotPaytableSettings? _biggestBoyPaytable;
+    private readonly SlotPaytableSettings? _bookPaytable;
+    private static readonly string[] BiggestPaytableNames = ["Döner", "Bier", "Zigarette", "Butter", "Shot", "Trichter", "G", "O", "A", "T"];
+    private static readonly string[] BookPaytableNames = ["Kirsche", "Zitrone", "Pflaume", "Orange", "Traube", "Glocke", "Sieben"];
     private readonly object _gate = new();
     private readonly Dictionary<PlayerId, State> _states = [];
     private readonly List<IDisposable> _owned = [];
@@ -48,12 +52,15 @@ public sealed class CasinoRoundPresenter : IDisposable
         ICasinoWallet wallet, ICasinoRounds rounds, IAnoEventBus events, Action<PlayerId> beforeOpen,
         Func<PlayerId, CancellationToken, ValueTask> back, TimeProvider? clock = null, int biggestBoyMaximumStake = BiggestBoyRules.MaximumStake,
         string biggestBoyProfile = BiggestBoyProfiles.Standard, CasinoStakeLimits? stakeLimits = null,
-        Action<PlayerId>? reelStopSound = null)
+        Action<PlayerId>? reelStopSound = null, SlotOutcomeSettings? biggestBoyOutcomes = null,
+        SlotOutcomeSettings? bookOutcomes = null)
     {
         _stakeLimits = (stakeLimits ?? new()).Validate();
         _hud = hud; _players = players; _permissions = permissions; _wallet = wallet; _rounds = rounds;
         _beforeOpen = beforeOpen; _back = back; _reelStopSound = reelStopSound; _clock = clock ?? TimeProvider.System;
         _biggestBoyProfile = BiggestBoyProfiles.Validate(biggestBoyProfile);
+        _biggestBoyPaytable = biggestBoyOutcomes?.Paytable?.Validate(10);
+        _bookPaytable = bookOutcomes?.Paytable?.Validate(7);
         _biggestBoyMaximumStake = Math.Clamp(biggestBoyMaximumStake, 50, BiggestBoyStakeLimits.Maximum);
         try
         {
@@ -512,6 +519,27 @@ public sealed class CasinoRoundPresenter : IDisposable
               (round.Status == SpitzeRoundStatus.Active ? "EINSAMMELN oder weiterspielen" : $"Rückzahlung {Points(round.FinalPayout ?? 0)}"));
     }
 
+    /// <summary>Show the actual factors frozen in the active bonus instead of a baked-in table.</summary>
+    private void RenderConfiguredPaytable(State state, bool biggest, SlotPaytableSettings? paytable)
+    {
+        var prefix = biggest ? "biggest" : "book";
+        var names = biggest ? BiggestPaytableNames : BookPaytableNames;
+        Text(state, prefix + "_paytable_divisor",
+            $"Liniengewinn = Einsatz ÷ {paytable?.LineStakeDivisor ?? BonusSlotRules.PaylineCount} × Faktor (3 / 4 / 5 Symbole).");
+        for (var i = 0; i < names.Length; i++)
+        {
+            var index = i;
+            var values = Enumerable.Range(3, 3).Select(count =>
+            {
+                var fallback = biggest
+                    ? BiggestBoyBalancedRules.Multiplier((BiggestBoySymbol)index, count)
+                    : BookBalancedRules.Multiplier((BonusSlotSymbol)index, count);
+                return (paytable?.Multiplier(index, count, fallback) ?? fallback).ToString(CultureInfo.InvariantCulture) + "×";
+            });
+            Text(state, prefix + "_paytable_" + i, names[i] + ": " + string.Join(" / ", values));
+        }
+    }
+
     private void RenderExpanding(State state)
     {
         if (state.Game == CasinoRoundGame.Book) { RenderBook(state); return; }
@@ -531,6 +559,7 @@ public sealed class CasinoRoundPresenter : IDisposable
         Class(state, "root", "motion-b", rolling && state.Animation % 2 == 0);
         Class(state, "root", "biggest-rules", state.BiggestRules);
         Class(state, "root", "uncertain", state.Unconfirmed is not null);
+        RenderConfiguredPaytable(state, true, spin?.State.OutcomeSettings?.Paytable ?? _biggestBoyPaytable);
         Text(state, "title", "BIGGEST BOY · 5×3");
         Text(state, "account", Points(state.Balance.Available)); Text(state, "bankroll", Points(state.Balance.Allocated));
         Text(state, "stake", CasinoMoney.FormatExact(active ? state.Round!.Stake : state.Stake));
@@ -612,6 +641,7 @@ public sealed class CasinoRoundPresenter : IDisposable
         Class(state, "root", "motion-b", rolling && state.Animation % 2 == 0);
         Class(state, "root", "biggest-rules", state.BiggestRules);
         Class(state, "root", "uncertain", state.Unconfirmed is not null);
+        RenderConfiguredPaytable(state, false, spin?.State.OutcomeSettings?.Paytable ?? _bookPaytable);
         Text(state, "title", "BOOK · FREISPIELE · 5×3");
         Text(state, "account", Points(state.Balance.Available));
         Text(state, "bankroll", Points(state.Balance.Allocated));
