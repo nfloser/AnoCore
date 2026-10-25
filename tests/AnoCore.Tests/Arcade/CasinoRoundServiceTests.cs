@@ -405,6 +405,42 @@ public sealed class CasinoRoundServiceTests
             System.Text.Json.JsonSerializer.Deserialize<BlackjackState>(receipt.Round.StateJson)!.RulesVersion);
     }
 
+    [TestMethod]
+    public async Task ConfiguredPaytableExposureIsFrozenAcrossRestartForBothSlots()
+    {
+        foreach (var game in new[] { CasinoRoundGame.BiggestBoy, CasinoRoundGame.Book })
+        {
+            var store = new MemoryStore();
+            var firstSettings = new SlotOutcomeSettings(0, 100, 0, new SlotPaytableSettings(1));
+            var service = new CasinoRoundService(store, biggestBoyOutcomes: firstSettings, bookOutcomes: firstSettings);
+            var op = new DurableCasinoRoundOperation(Guid.NewGuid(), Player, Guid.NewGuid(),
+                game, CasinoRoundAction.Start, 100, 0);
+            var first = await service.ApplyAsync(op);
+            Assert.AreEqual(1550000L, store.LastPlan!.MaximumPayoutExposure);
+            Assert.IsFalse(first.Round.IsComplete);
+
+            // Simulate a process restart with a new operator configuration.
+            service = new CasinoRoundService(store,
+                biggestBoyOutcomes: new SlotOutcomeSettings(100, 0, 100, new SlotPaytableSettings(10)),
+                bookOutcomes: new SlotOutcomeSettings(100, 0, 100, new SlotPaytableSettings(10)));
+            await service.ApplyAsync(op with
+            {
+                Id = Guid.NewGuid(),
+                SessionId = first.Round.Id,
+                Action = CasinoRoundAction.FreeSpin,
+                ExpectedRevision = first.Round.Revision
+            });
+            Assert.AreEqual(1550000L, store.LastPlan!.MaximumPayoutExposure);
+            Assert.AreEqual(1550000L, store.Current!.ReservedPayout);
+            Assert.AreEqual(0L, store.LastPlan.AdditionalDebit);
+            var json = store.Current.StateJson;
+            var saved = game == CasinoRoundGame.BiggestBoy
+                ? System.Text.Json.JsonSerializer.Deserialize<BiggestBoySpinResult>(json)!.State.OutcomeSettings
+                : System.Text.Json.JsonSerializer.Deserialize<BonusSlotSpinResult>(json)!.State.OutcomeSettings;
+            Assert.AreEqual(1, saved!.Paytable!.LineStakeDivisor);
+        }
+    }
+
     private sealed class MemoryStore(long initialAllocated = 1000) : ICasinoRoundStore
     {
         public CasinoRoundSnapshot? Current { get; private set; }

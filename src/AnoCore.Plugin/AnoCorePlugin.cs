@@ -484,8 +484,10 @@ public sealed class AnoCorePlugin : BasePlugin
             _biggestBoyProfile = settings.BiggestBoyLuckPercent == 0
                 ? BiggestBoyProfiles.Validate(settings.BiggestBoyProfile)
                 : BiggestBoyProfiles.Validate("lucky:" + settings.BiggestBoyLuckPercent.ToString(System.Globalization.CultureInfo.InvariantCulture));
-            _biggestBoyOutcomes = settings.BiggestBoyOutcomes.Validate();
-            _bookOutcomes = settings.BookOutcomes.Validate();
+            _biggestBoyOutcomes = (settings.BiggestBoyOutcomes ?? throw new InvalidOperationException("BiggestBoyOutcomes cannot be null.")).Validate();
+            _biggestBoyOutcomes.Paytable?.Validate(10);
+            _bookOutcomes = (settings.BookOutcomes ?? throw new InvalidOperationException("BookOutcomes cannot be null.")).Validate();
+            _bookOutcomes.Paytable?.Validate(7);
             _casinoReelStopSoundEnabled = settings.CasinoReelStopSoundEnabled;
             if (_casinoEnabled && !settings.PanoramaMenusEnabled) throw new InvalidOperationException("CasinoEnabled requires PanoramaMenusEnabled.");
             if (_arcadeProbeEnabled && !_panoramaMenusEnabled)
@@ -1277,7 +1279,7 @@ public sealed class AnoCorePlugin : BasePlugin
                             {
                                 Logger.LogDebug(exception, "Optional native casino reel click could not be played.");
                             }
-                        });
+                        }, biggestBoyOutcomes: _biggestBoyOutcomes, bookOutcomes: _bookOutcomes);
                     var activeCasino = casino;
                     var activeRounds = casinoRounds;
                     casinoTimer = AddTimer(0.05f, () => { activeCasino.Tick(); activeRounds.Tick(); }, TimerFlags.REPEAT);
